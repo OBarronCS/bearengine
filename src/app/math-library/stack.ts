@@ -11,24 +11,24 @@ export interface Stack<T> {
 
 // Linked list representation of a stack
 export class StackNode<T> {
-    next: StackNode<T> = null;
-    item: T;
+    public item: T;
+    public next: StackNode<T>;
+
+    constructor(item: T, next: StackNode<T>){
+        this.item = item;
+        this.next = next;
+    }
 }
 
-// In terms of performance, native JavaScript arrays are about 20-35% faster. Here's a jsbench: https://jsben.ch/Xisaw;
+// In terms of performance, native JavaScript arrays are about 20-35% faster. Here's a jsbench: https://jsben.ch/mVear
 // Even on small data sets
 export class LinkedStack<T> implements Stack<T> {
-    private first: StackNode<T> = null;
-    private internalSize = 0;
+    protected first: StackNode<T> = null;
+    protected internalSize = 0;
 
     push(item: T): void {
         // Adds a new node to the front of the linked list
-        const currentFirst = this.first;
-
-        this.first = new StackNode<T>();
-        this.first.item = item;
-        this.first.next = currentFirst;
-
+        this.first = new StackNode<T>(item,this.first);
         this.internalSize += 1;
     }
 
@@ -59,7 +59,6 @@ export class LinkedStack<T> implements Stack<T> {
         return this.internalSize;
     }
 
-
     isEmpty(): boolean {
         return this.size() === 0;
     }
@@ -83,5 +82,19 @@ export class LinkedStack<T> implements Stack<T> {
     }
 }
 
+
+
+// basically a stack, but using this class signals you are using it for a different purpose
+// will allows index based access and deleting, contains, delete
+// meant for small amount of values
+// For real JavaScript performance, arrays are very optimized and quicker anyways
+export class LightLinkedBag<T> extends LinkedStack<T> {
+    contains(value: T): boolean {
+        for(let x = this.first; x != null; x = x.next){
+            if(x.item == value) return true;
+        }
+        return false;
+    }
+}
 
 

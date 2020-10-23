@@ -1,4 +1,3 @@
-import { TilingSprite } from "pixi.js";
 import { StackNode } from "./stack";
 
 
@@ -10,9 +9,9 @@ export interface Queue<T> {
 }
 
 
-/// This is MUCH faster than using native JS arrays for queue (at least in the V8 engine)
+/// This is faster than using native JS arrays for queue (at least in the V8 engine)
 /// I tested it on jsbench --> https://jsben.ch/6ySlJ
-// This is faster than the ArrayQueue implementation at the bottom of the page for this use case. As data set increases (array of thousands of values), they become pretty much the same speed and then FastQueue wins
+// This is faster than the ArrayQueue implementation at the bottom of the page for this use case. As data set increases (array of thousands of values), they become pretty much the same speed and then ArrayQueue wins
 export class LinkedQueue<T> implements Queue<T> {
     
     private first: StackNode<T> = null;
@@ -22,8 +21,7 @@ export class LinkedQueue<T> implements Queue<T> {
     enqueue(item: T): void {
         const currentLast = this.last;
     
-        this.last = new StackNode<T>();
-        this.last.item = item;
+        this.last = new StackNode<T>(item,null);
 
         if(this.internalSize === 0){
             this.first = this.last
