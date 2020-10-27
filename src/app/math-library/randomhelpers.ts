@@ -39,3 +39,14 @@ export function randomChar(){
     return allChars.charAt(randomInt(0,allChars.length));
 }
 
+
+// Takes a function that returns some value, fills an array with return value of n function calls
+export function fillFunction<T>(func: () => T, amount: number){
+    const arr: T[] = [];
+    for(let i = 0; i < amount; i++){
+        arr.push( func() );
+    }
+    
+    return arr;
+}
+

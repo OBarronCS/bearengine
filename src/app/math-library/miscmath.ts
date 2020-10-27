@@ -32,6 +32,7 @@ export const max = Math.max;
 export const sign = Math.sign;
 export const floor = Math.floor;
 export const ceil = Math.ceil;
+export const sqrt = Math.sqrt;
 
 // JavaScript modulo is not a real modulo so this is not accurate with negative numbers
 //https://community.khronos.org/t/fract-behaviour/62096
@@ -73,7 +74,7 @@ export function smoothNoise(seed: number): number {
 }
 
 //#region Date stuff
-//returns the number of milliseconds elapsed since January 1, 1970 00:00:00 UTC.
+//returns the number of milliseconds elapsed since January 1, 1970.
 export function time(){
     return Date.now();
 }

@@ -80,7 +80,6 @@ export class Vec2 {
         return this;
     }
 
-    // Make a function that takes in two coords like in glsl? distance(A,B)
     /** returns distance between these two points */
     public distance(point: Coordinate): number {
         const dx = this.x - point.x;

@@ -609,7 +609,11 @@ export class LiveGridGraph {
      */
     draw(g: Graphics, scale = 1){
         g.removeChildren();
-        const maxVal = Math.hypot(this.width,this.height)
+
+        const [x1,y1] = this.one2two(this.start);
+        const [x2,y2] = this.one2two(this.target);
+
+        const maxVal = Math.hypot(x1 - x2,y1 - y2);
         for(let i = 0; i < this.width; i++){
             for(let j = 0; j < this.height; j++){
                 const index = this.two2one(i,j);
@@ -623,9 +627,9 @@ export class LiveGridGraph {
 
                 if(this.estimatedFinalCost.has(index)){
                     const val = this.estimatedFinalCost.get(index);
-                    const percent = 3 * val / maxVal;
+                    const percent = val / maxVal;
                     g.lineStyle(3,0xff0000);
-                    g.beginFill(blend(rgb(0,255,0),rgb(255,0,0),percent).value());
+                    g.beginFill(blend(rgb(25,255,0),rgb(255,0,0),percent).value());
                 }
 
                 //  else if(this.inPQ.has(index)){

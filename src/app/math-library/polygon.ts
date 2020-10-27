@@ -19,6 +19,7 @@ export class Polygon implements Shape<Polygon>{
 
     static isClockwise(vecs: Vec2[]): boolean {
         throw new Error("Not supported yet!")
+        // if area is negative, it is indeed clockwise!
     }
 
     clone(): Polygon {
