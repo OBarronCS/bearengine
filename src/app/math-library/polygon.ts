@@ -17,12 +17,18 @@ export class Polygon implements Shape<Polygon>{
         this.normals = normals;
     }
 
+    static isClockwise(vecs: Vec2[]): boolean {
+        throw new Error("Not supported yet!")
+    }
+
     clone(): Polygon {
         const copy_points = this.points.slice(0);
         const copy_normals = this.normals.slice(0);
 
         return new Polygon(copy_points, copy_normals);
     }
+
+
 
     contains(point: Coordinate): boolean {
         const testx = point.x;
