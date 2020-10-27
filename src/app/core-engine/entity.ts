@@ -9,6 +9,9 @@ export abstract class Entity {
     readonly parts: Part[] = [];
     readonly graphics: Graphics
 
+    get x() { return this.position.x; }
+    get y() { return this.position.y; }
+
     constructor() {
         this.graphics = new Graphics();
     }

@@ -44,6 +44,8 @@ import { rgb, blend, Color } from "../math-library/color";
 import { ColorTween } from "./tweening/tween";
 import { QuadTree } from "../math-library/quadtree";
 import { SpatialGrid } from "../math-library/spatialgrid";
+import { LiveGridGraph } from "../math-library/graphs";
+import { floor } from "../math-library/miscmath";
 
 export interface CoreEvents  {}
 
@@ -148,7 +150,7 @@ class BearEngine {
             }
         }
 
-        this.addEntity(new Test())
+        //this.addEntity(new Test())
 
         // Color blend of hermite curve
         class Test2 extends Entity {
@@ -190,28 +192,42 @@ class BearEngine {
             }
         }
 
-        this.addEntity(new Test2())
+        //this.addEntity(new Test2())
 
         class Test3 extends Entity {
 
-            private tree = new QuadTree<Vec2>(E.Level.bbox.width,E.Level.bbox.height,(vec) => new Rect(vec.x, vec.y, 2, 2));
-            private counter: number = 1;
+            private grid = new LiveGridGraph(25,25);
 
             constructor() {
                 super();
+                this.grid.start_astar(0,0,24,24);
+                for(let i = 5; i < 20; i++){
+                    this.grid.blockcell(i,5);
+                }
+
+                for(let i = 5; i < 20; i++){
+                    this.grid.blockcell(i,20);
+                }
+
+                this.grid.step_astar();
+                this.redraw();
             }
 
             update(dt: number): void {
-                if(E.Mouse.wasReleased("left")) this.counter = 1;
-                if(E.Mouse.isDown("left")) this.counter++;
-                if(this.counter % 4 === 0){
-                    this.tree.insert(E.Mouse.position.clone())
+                if(E.Mouse.isDown("left")){
+                    this.grid.blockcell(floor(E.Mouse.position.x / 30),floor(E.Mouse.position.y / 30));
+                    this.grid.start_astar(0,0,24,24);
+                    console.time();
+                    while(!this.grid.step_astar()){}
+                    console.timeEnd();
+                    
                     this.redraw();
                 }
             }
+
             draw(g: PIXI.Graphics): void {
                 g.clear();
-                this.tree.draw(g);
+                this.grid.draw(g,30);
             }
         }
 
@@ -225,12 +241,6 @@ class BearEngine {
 
     // Loads assets from server
     async preload(): Promise<typeof RESOURCES>{
-
-
-
-
-
-
         return new Promise((resolve) => this.renderer.initTextures(ALL_TEXTURES, () => {
             resolve(RESOURCES)
         }));

@@ -14,9 +14,9 @@ import { swap } from "./arrayshelper"
 // In the priority function, a higher number indicates a higher priority
 export class PQ<T> {
 
-    private arr: T[] = []
-    private compareFunction: (a:T, b:T) => number;
-    private N: number = 0;
+    protected arr: T[] = []
+    protected compareFunction: (a:T, b:T) => number;
+    protected N: number = 0;
 
     constructor(compareFunction: (a:T, b:T) => number) {
         this.compareFunction = compareFunction;
@@ -71,6 +71,25 @@ export class PQ<T> {
     }
 }
 
+// allows you to change the priority of a value
+export class ModifiablePQ<T> extends PQ<T> {
+    // o(n) operation 
+    modify(value: T){
+        let index = -1;
+        for(let i = 0; i < this.N; i++){
+            if(this.arr[i] === value){
+                index = i;
+                break;
+            }
+        }
+        if(index === -1) return;
+
+        // either it moves up or down, but puts it in its place
+        binaryheapSwim(this.arr,index,this.compareFunction);
+        binaryheapSink(this.arr,index,this.N,this.compareFunction);
+    }
+}
+
 /// in-place nlogn, non-stable
 export function binaryHeapSort<T>(arr: T[], compareFunction: (a:T, b:T) => number){
     heapify(arr, compareFunction);
@@ -100,6 +119,7 @@ function binaryheapSwim<T>(arr: T[], k: number, compareFunction: (a:T, b:T) => n
     }
 }
 
+// N is the last index, exlusive, to check.
 function binaryheapSink<T>(arr: T[], k: number, N:number, compareFunction: (a:T, b:T) => number) {
     while(2*k + 1 < N){
         let j = (2*k) + 1;

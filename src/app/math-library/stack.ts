@@ -80,6 +80,15 @@ export class LinkedStack<T> implements Stack<T> {
         };
         return iterator;
     }
+
+    toString(): string {
+        let str = "";
+        for(const item of this){
+            str += item + " -> ";
+        }
+
+        return str.slice(0,str.length - 4);
+    }
 }
 
 
