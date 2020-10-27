@@ -55,7 +55,6 @@ export class Vec2 {
         return this;
     }
 
-    /// @func set(x,y);
     public set(point: Coordinate): this {
         this.x = point.x;
         this.y = point.y;
@@ -151,8 +150,25 @@ export class Vec2 {
 		this.x *= magnitude;
 		this.y *= magnitude;
 		return this;
-	}
+    }
+    
+    /** Takes in a NORMALIZED VECTOR, and converts this vector to that bounced vector */
+    bounce(normal: Coordinate): this {
+        Vec2.bounce(this, normal, this);
+        return this;
+    }
 
+    static dot(vec1: Coordinate, vec2: Coordinate): number {
+        return (vec1.x * vec2.x) + (vec1.y * vec2.y);
+    }
+
+    static bounce(vec: Coordinate, normal: Coordinate, target: Vec2 = new Vec2(0,0)): Vec2 {
+        const dot = 2 * Vec2.dot(vec,normal);
+        target.x = vec.x - dot * normal.x;
+        target.y = vec.y - dot * normal.y;
+        return target;
+    }
+    
     public clone(){
         return new Vec2(this.x, this.y)
     }

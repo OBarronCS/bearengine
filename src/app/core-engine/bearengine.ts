@@ -35,7 +35,7 @@ import { Player } from "../gamelogic/player";
 import { CreateWindow } from "../apiwrappers/windowopen";
 import { Polygon } from "../math-library/polygon";
 import { Vec2 } from "../math-library/vec2";
-import { drawPoint } from "../math-library/shapedrawing";
+import { drawPoint, drawVecAsArrow } from "../math-library/shapedrawing";
 import { EngineKeyboard } from "../input/keyboard";
 import { Ellipse } from "../math-library/ellipse";
 import { EffectHandler } from "./effecthandler";
@@ -46,6 +46,7 @@ import { QuadTree } from "../math-library/quadtree";
 import { SpatialGrid } from "../math-library/spatialgrid";
 import { LiveGridGraph } from "../math-library/graphs";
 import { floor } from "../math-library/miscmath";
+import { log } from "../math-library/performance";
 
 export interface CoreEvents  {}
 
@@ -227,7 +228,15 @@ class BearEngine {
 
             draw(g: PIXI.Graphics): void {
                 g.clear();
-                this.grid.draw(g,30);
+                g.moveTo(0,0);
+                //this.grid.draw(g,30);
+                
+
+                drawVecAsArrow(g,Vec2.RIGHT,-50,0,50);
+                drawVecAsArrow(g,Vec2.NE,-25,25,50);
+                const r = Vec2.bounce(Vec2.RIGHT, Vec2.NW)
+                drawVecAsArrow(g,r,0,0,50);
+                log(r.length())
             }
         }
 

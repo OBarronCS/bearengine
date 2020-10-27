@@ -16,7 +16,6 @@ enum PlayerStates {
 }
 
 export class Player extends Entity {
-    
     yspd = 0;
     xspd = 0;
     
