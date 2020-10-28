@@ -1,5 +1,5 @@
 
-import { Rect } from "../math-library/rectangle";
+import { Rect } from "../math-library/shapes/rectangle";
 import { CustomMapFormat } from "./tiledmapeditor";
 import { TerrainManager } from "./terrainmanager";
 import { E } from "./globals";

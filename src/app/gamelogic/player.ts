@@ -1,4 +1,4 @@
-import { Entity, SpritePart } from "../core-engine/entity";
+import { Entity } from "../core-engine/entity";
 import { Sprite, Point, RAD_TO_DEG, Graphics } from "pixi.js";
 import { E } from "../core-engine/globals";
 import { Vec2, rotatePoint } from "../math-library/vec2";
@@ -9,6 +9,7 @@ import { DefaultBulletEffect } from "../core-engine/effects/effects";
 import { AddOnType } from "../core-engine/weapons/addon";
 import { VecTween } from "../core-engine/tweening/tween";
 import { random_range, random } from "../math-library/randomhelpers";
+import { SpritePart } from "../core-engine/parts";
 
 enum PlayerStates {
     Ground,

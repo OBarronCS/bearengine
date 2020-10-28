@@ -1,9 +1,10 @@
 import { Effect } from "../effecthandler";
 import { Vec2 } from "../../math-library/vec2";
-import { Entity, SpritePart } from "../entity";
+import { Entity } from "../entity";
 import { Sprite, Point, graphicsUtils, Graphics } from "pixi.js";
 import { E } from "../globals";
 import { ShotInfo } from "../weapons/weaponinterfaces";
+import { SpritePart } from "../parts";
 
 
 export class DefaultBulletEffect extends Effect {

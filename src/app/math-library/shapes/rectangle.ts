@@ -1,7 +1,7 @@
-import { Coordinate, Vec2 } from "./vec2";
+import { Coordinate, Vec2 } from "../vec2";
 import { Shape } from "./shapesinterfaces";
 import { Polygon, minPoint, maxPoint } from "./polygon";
-import { min, max } from "./miscmath";
+import { min, max } from "../miscmath";
 
 
 

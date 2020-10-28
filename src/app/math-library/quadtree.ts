@@ -2,7 +2,7 @@
 
 import { Graphics, utils } from "pixi.js";
 import { clamp } from "./miscmath";
-import { Rect } from "./rectangle";
+import { Rect } from "./shapes/rectangle";
 
 
 export class QuadTree<T> {

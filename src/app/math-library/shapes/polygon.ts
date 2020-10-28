@@ -1,7 +1,7 @@
 import { Shape } from "./shapesinterfaces";
-import { Coordinate, Vec2, distanceSquared, mix, coordinateArraytoVec } from "./vec2";
+import { Coordinate, Vec2, distanceSquared, mix, coordinateArraytoVec, flattenVecArray } from "../vec2";
 import { Rect } from "./rectangle";
-import { abs, atan2, niceColor } from "./miscmath";
+import { abs, atan2, niceColor } from "../miscmath";
 import { Graphics, utils } from "pixi.js";
 import { drawVecAsArrow } from "./shapedrawing";
 
@@ -30,7 +30,6 @@ export class Polygon implements Shape<Polygon>{
     }
 
 
-
     contains(point: Coordinate): boolean {
         const testx = point.x;
         const testy = point.y;
@@ -49,7 +48,6 @@ export class Polygon implements Shape<Polygon>{
                 c = !c;
         }
         return c;
-      
     }
 
     copyFrom(shape: Polygon): this {
@@ -231,19 +229,12 @@ export class Polygon implements Shape<Polygon>{
     }
 }
 
-/**
- * [vec1, vec2] --> [vec1.x, vec1.y, vec2.x, vec2.y]
- * 
- */
-export function flattenVecArray(array: Coordinate[]){
-    return array.flatMap(vec => [vec.x, vec.y]);
-}
+
 
 /** Top left AABB
  *  Takes in array of coordinates, returns a coordinate with the min x and min y of all points
  * @param array 
  */
-
 export function minPoint(array: Coordinate[]): Coordinate{
     let left = array[0].x;
     for(let i = 1; i < array.length; i++){

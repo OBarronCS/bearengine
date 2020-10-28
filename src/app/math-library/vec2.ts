@@ -1,10 +1,9 @@
-import { DEG_TO_RAD, RAD_TO_DEG, dcos, dsin } from "./miscmath";
+import { DEG_TO_RAD, RAD_TO_DEG, dcos, dsin, floor } from "./miscmath";
 
 export interface Coordinate {
     x: number,
     y: number
 }
-
 
 
 export class Vec2 {
@@ -129,8 +128,14 @@ export class Vec2 {
      */
     public drotate(degrees: number): this {
         return this.rotate(degrees * DEG_TO_RAD);
-	}
-
+    }
+    
+    public floor(): this {
+        this.x = floor(this.x);
+        this.y = floor(this.y);
+        return this;
+    }
+ 
     public normalize(): this {
         const len = this.length();
 		// Don't want to divide by zero!
@@ -183,17 +188,18 @@ export class Vec2 {
 }
 
 
-/**
- * [x1, y1, x2, y2] -> [vec1, vec2]
- * 
- */
+/** [x1, y1, x2, y2] -> [vec1, vec2] */
 export function coordinateArraytoVec(array: number[]): Vec2[] {
     const vecs: Vec2[] = []
     for(let i = 0; i < array.length; i += 2){
         vecs.push(new Vec2(array[i], array[i + 1]));
     }
-
     return vecs;
+}
+
+/** [vec1, vec2] --> [vec1.x, vec1.y, vec2.x, vec2.y] */
+export function flattenVecArray(array: Coordinate[]){
+    return array.flatMap(vec => [vec.x, vec.y]);
 }
 
 export function rotatePoint(_point: Vec2, _center: Coordinate, _unit_circle: Coordinate){

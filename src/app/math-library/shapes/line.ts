@@ -1,4 +1,4 @@
-import { Vec2, Coordinate } from "./vec2";
+import { Vec2, Coordinate } from "../vec2";
 import { Rect } from "./rectangle";
 
 

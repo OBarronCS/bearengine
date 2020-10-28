@@ -93,22 +93,17 @@ abstract class Tween<T> extends Effect  {
 // class NumberTween
 
 export class ColorTween extends Tween<Color> {
-    
     setValueAt(t: number): void {
         blend(this.initialValue, this.finalValue, t, this.object[this.property]);
     }
-
 }    
 
 
 export class VecTween extends Tween<Coordinate> {
-    
     setValueAt(t: number): void {
         mix(this.initialValue, this.finalValue, t, this.object[this.property]);
     }
-
-}    
-
+}
 
 
 

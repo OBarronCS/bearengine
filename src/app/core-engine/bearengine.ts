@@ -5,7 +5,7 @@ import * as PIXI from "pixi.js";
 import { GUI } from "dat.gui";
 import { Renderer } from "./renderer";
 import { CameraSystem } from "./camera";
-import { Rect } from "../math-library/rectangle";
+import { Rect } from "../math-library/shapes/rectangle";
 import { E } from "./globals";
 import { LevelHandler } from "./level";
 
@@ -33,11 +33,11 @@ import { Entity } from "./entity";
 import { CustomMapFormat } from "./tiledmapeditor";
 import { Player } from "../gamelogic/player";
 import { CreateWindow } from "../apiwrappers/windowopen";
-import { Polygon } from "../math-library/polygon";
+import { Polygon } from "../math-library/shapes/polygon";
 import { Vec2 } from "../math-library/vec2";
-import { drawPoint, drawVecAsArrow } from "../math-library/shapedrawing";
+import { drawPoint, drawVecAsArrow } from "../math-library/shapes/shapedrawing";
 import { EngineKeyboard } from "../input/keyboard";
-import { Ellipse } from "../math-library/ellipse";
+import { Ellipse } from "../math-library/shapes/ellipse";
 import { EffectHandler } from "./effecthandler";
 import { BezierCurve, HermiteCurve } from "../math-library/paths";
 import { rgb, blend, Color } from "../math-library/color";
@@ -74,8 +74,6 @@ class BearEngine {
         E.Engine = this;
         
         this.mouse = new InternalMouse();
-        
-
 
         if(!settings.popup){
             this.keyboard = new EngineKeyboard(window)
@@ -240,7 +238,7 @@ class BearEngine {
             }
         }
 
-        this.addEntity(new Test3());
+        //this.addEntity(new Test3());
     }
 
 
@@ -299,6 +297,7 @@ class BearEngine {
             for (let i = 0; i < this.updateList.length; i++) {
                 const entity = this.updateList[i];
                 entity.update(dt);
+                entity.postUpdate();
                 entity.updateParts(dt);
             }
 

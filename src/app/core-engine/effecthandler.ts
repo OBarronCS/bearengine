@@ -1,7 +1,7 @@
 import { Vec2 } from "../math-library/vec2";
 import { E } from "./globals";
 import { Player } from "../gamelogic/player";
-import { Entity, SpritePart } from "./entity";
+import { Entity } from "./entity";
 import { Sprite, Point } from "pixi.js";
 
 

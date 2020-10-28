@@ -1,6 +1,11 @@
-import { Vec2 } from "../math-library/vec2";
+import { Coordinate, Vec2 } from "../math-library/vec2";
 import { Container, DisplayObject, Sprite, Graphics, TextureMatrix } from "pixi.js";
 import { E } from "./globals";
+import { Shape } from "../math-library/shapes/shapesinterfaces";
+import { DEG_TO_RAD, floor, RAD_TO_DEG } from "../math-library/miscmath";
+import { Part, SpritePart } from "./parts";
+import { random } from "../math-library/randomhelpers";
+
 
 
 
@@ -11,6 +16,9 @@ export abstract class Entity {
 
     get x() { return this.position.x; }
     get y() { return this.position.y; }
+
+    set x(_x) { this.position.x = _x; }
+    set y(_y) { this.position.y = _y; }
 
     constructor() {
         this.graphics = new Graphics();
@@ -34,42 +42,61 @@ export abstract class Entity {
     }
 
     abstract update(dt: number): void;
-    abstract draw(g: Graphics): void
+    abstract draw(g: Graphics): void;
+    
+    // Intended for us by abstract classes for behind the scenes work
+    public postUpdate(): void {}
 }
 
+export abstract class SpriteEntity extends Entity {
 
-abstract class Part {
-    public owner: Entity 
+    // maybe name it "sprite" and not "image";
+    public image: SpritePart;
 
-    abstract onAdd(): void;
-    abstract onRemove(): void;
-    abstract update(dt: number): void;
-}
-
-export class SpritePart extends Part {
-    container: Container = new Container();
-    constructor(displayObj: Container){
+    constructor(spot: Coordinate, spr_source: string){
         super();
-        this.container.addChild(displayObj)
+
+        const spr = new Sprite(E.Engine.renderer.getTexture(spr_source));
+        this.image = new SpritePart(spr);
+
+        this.addPart(this.image);
+        this.position.set(spot);
     }
 
-    onAdd(): void {
-        E.Engine.renderer.addSprite(this.container);
-    }
-
-    onRemove(): void {
-        E.Engine.renderer.removeSprite(this.container);
-        this.container.destroy({
-            children: true,
-            baseTexture:false,
-            texture: false
-        });
-    }
-
-    update(dt: number): void {
-        this.container.position.copyFrom(this.owner.position)
-    }
 }
 
+
+export abstract class GMEntity extends SpriteEntity {
+    public readonly velocity: Vec2 = new Vec2(0,0);
+    public readonly startPosition: Vec2 = new Vec2(0,0);
+    public readonly gravity: Vec2 = new Vec2(0,0);
+
+    constructor(spot: Coordinate,spr_source: string){
+        super(spot, spr_source);
+        this.startPosition.set(spot);
+    }
+
+    postUpdate(){
+        this.position.add(this.velocity);
+        this.position.add(this.gravity);
+    }
+
+    /** Teleports to a random position aligned to dx and dy intervals, within width and height */
+    randomPositionSnap(dx: number,dy: number,width: number, height: number){
+        const x = dx * Math.round(random(width) / dx);
+        const y = dy * Math.round(random(height) / dy);
+        this.position.x = x;
+        this.position.y = y;
+    }
+
+    // A temporary vector used for convenience so no need to create a new one each time
+    private static moveTowards = new Vec2(0,0);
+    moveTowards(point: Coordinate, distance: number){
+        GMEntity.moveTowards.x = point.x - this.position.x;
+        GMEntity.moveTowards.y = point.y - this.position.y;
+        GMEntity.moveTowards.extend(distance);
+        this.position.add(GMEntity.moveTowards);
+    }
+}
 
 

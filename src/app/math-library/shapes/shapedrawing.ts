@@ -1,5 +1,5 @@
 import { Graphics, utils } from "pixi.js";
-import { Coordinate } from "./vec2";
+import { Coordinate } from "../vec2";
 
 // draws the vector as an arrow taking into account magnitude and direction, at a certain location
 export function drawVecAsArrow(graphics: Graphics, vec: Coordinate, _x: number, _y: number, _factor: number){

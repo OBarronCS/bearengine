@@ -1,13 +1,14 @@
 import { Graphics } from "pixi.js";
 import { clamp } from "./miscmath";
-import { Rect } from "./rectangle";
-import { drawLineBetweenPoints } from "./shapedrawing";
+import { Rect } from "./shapes/rectangle";
+import { drawLineBetweenPoints } from "./shapes/shapedrawing";
 
 export class SpatialGrid<T> {
 
     private AABBFunction: (object: T) => Rect;
 
     // 2D array of lists of objects
+    // Could maybe convert this to just a 1d array of lists, by mapping each 2d coord to a 1d location
     private grid: T[][][] = [];
 
     private worldWidth: number;
@@ -19,6 +20,7 @@ export class SpatialGrid<T> {
     private tileWidth: number;
     private tileHeight: number;
 
+    /** World dimensions, how many tiles in each axis, */
     constructor(worldWidth: number, worldHeight: number, gridWidth: number, gridHeight: number, AABBfunc: (object: T) => Rect) {
         this.AABBFunction = AABBfunc;
         
@@ -57,9 +59,17 @@ export class SpatialGrid<T> {
         }
 
         drawLineBetweenPoints(g,{x: this.worldWidth, y: 0},{x: this.worldWidth, y: this.worldHeight})
-
-                // horizontal lines
         drawLineBetweenPoints(g,{x: 0, y: this.worldHeight},{x: this.worldWidth, y:  this.worldHeight})
+
+		// Draw everything the mouse is over
+		//var x_index = floor(mouse_x / tile_width);
+		//var y_index = floor(mouse_y / tile_height);
+		
+		//if(x_index >= 0 and x_index < grid_width and y_index >= 0 and y_index < grid_height){
+		//	grid[x_index][y_index].forEach(function(e){
+		//		e.draw();
+		//	})
+		//}
     }
 
 
