@@ -17,9 +17,38 @@ export class Polygon implements Shape<Polygon>{
         this.normals = normals;
     }
 
+    // Deals with creating normals automatically. Creates clockwise ordered polygon
+    static from(points: Vec2[]): Polygon {
+        // Clockwise here is not same as real life clockwise, because the coordinate system is flipped across y axis.
+        if(!Polygon.isClockwise(points)){
+            console.log(Polygon.SignedArea(points))
+            console.log("NOT CLOCKWISE")
+            points.reverse();
+            console.log(points)
+        }
+
+        const normals: Vec2[] = []
+        let m: number;
+        for(let n = 0; n < points.length; n++){
+            m = n + 1;
+            if(m === points.length){ m = 0; }
+
+            const p1 = points[n]
+            const p2 = points[m]
+
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+
+            const magnitude = Math.sqrt((dx * dx) + (dy * dy));
+            // If not clockwise, negate this vector
+            normals.push(new Vec2(dy/magnitude, -dx/magnitude));
+        }
+
+        return new Polygon(points,normals);
+    }
+
     static isClockwise(vecs: Vec2[]): boolean {
-        throw new Error("Not supported yet!")
-        // if area is negative, it is indeed clockwise!
+        return Polygon.SignedArea(vecs) < 0
     }
 
     clone(): Polygon {
@@ -96,11 +125,26 @@ export class Polygon implements Shape<Polygon>{
         return (leftside - rightside) / 2;
     }
 
+    static SignedArea(points: Vec2[]): number {
+        let leftside = 0;
+        let rightside = 0;
+
+        const n = points.length - 1;
+        for (let i = 0; i < points.length - 1; i++) {
+            leftside += points[i].x * points[i + 1].y;
+            leftside += points[n].x * points[0].y;
+        
+            rightside += points[i + 1].x * points[i].y;
+            rightside -= points[0].x * points[n].y;
+        }
+
+        return (leftside - rightside) / 2;
+    }
+    
     //https://en.wikipedia.org/wiki/Shoelace_formula
     area(): number {
         let leftside = 0;
         let rightside = 0;
-
 
         const n = this.points.length - 1;
         for (let i = 0; i < this.points.length - 1; i++) {
@@ -205,10 +249,10 @@ export class Polygon implements Shape<Polygon>{
 
 
         //// AHHHHHh CHANGE THIS
-        return new Polygon(final_points, []);
+        return Polygon.from(final_points);
     }
 
-    // Returns array of polygons that are triangles
+    // Returns array of polygons that are triangles. No normals
     triangulate(): Polygon[] {
         const flatArray = flattenVecArray(this.points);
         const coords = utils.earcut(flatArray);

@@ -10,9 +10,6 @@ import { SpatialGrid } from "../math-library/spatialgrid";
 
 export class TerrainManager {
 
-	// Used in grid for optimization
-	// Right now it will crash if any vertices are outside this range!
-	
 	private grid: SpatialGrid<Line>;
 	
 	width: number;
@@ -21,7 +18,7 @@ export class TerrainManager {
 	grid_width = 20
 	grid_height = 20 
 
-    /// TerrainMesh objects --> the individual bodies --> not really used in any calculations...
+    /// TerrainMesh objects --> the individual bodies --> not really used in any calculations
     terrains: TerrainMesh[] = [];
 
     constructor(world_width: number, world_height: number){

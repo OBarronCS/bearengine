@@ -9,8 +9,6 @@ import { ColliderPart, Part, SpritePart } from "./parts";
 import { dimensions } from "../math-library/shapes/rectangle";
 
 
-
-
 export abstract class Entity {
     readonly position: Vec2 = new Vec2(0,0)
     readonly parts: Part[] = [];

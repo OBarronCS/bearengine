@@ -28,7 +28,7 @@ export class Renderer {
         this.targetDiv = targetDiv;
         document.body.style.zoom = "1.0"
         
-        // These numbers mean nothing --> the second the screen is resize in the fitToScren call
+        // These numbers mean nothing --> the second the screen is resized in the fitToScreen call
         // these are overridden
         let width = targetWindow.innerWidth;
         let height = targetWindow.innerHeight;

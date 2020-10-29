@@ -304,6 +304,23 @@ class BearEngine {
         }
 
         //this.addEntity(new FirstSprite({x:50,y:170}));
+
+        class PolygonTest extends Entity {
+
+                public p = Polygon.from([new Vec2(0,170),  new Vec2(150,0), new Vec2(0,0)]);
+
+            constructor(){super(); this.redraw();}
+
+            update(dt: number): void {
+            
+            }
+            draw(g: PIXI.Graphics): void {
+                this.p.draw(g);
+            }
+
+        }
+
+        this.addEntity(new PolygonTest());
     }
 
 

@@ -9,7 +9,7 @@ Entities are most likely things that move (player), things that can appear/dissa
 Only for collision detection for AABB's. No resolution.
 */
 
-import { Circle, Graphics } from "pixi.js";
+import { Graphics } from "pixi.js";
 import { Line } from "../math-library/shapes/line";
 import { Rect } from "../math-library/shapes/rectangle";
 import { SpatialGrid } from "../math-library/spatialgrid";
@@ -20,8 +20,7 @@ import { ColliderPart } from "./parts";
 // E.Collision
 export class CollisionManager {
     
-    // In the future, what lots of entities, this will probably become a bottleneck. Research more efficient data structures
-
+    // In the future, with lots of entities, this will probably become a bottleneck. Research more efficient data structures
     // Rebuild the grid every step
 
     private colliders: ColliderPart[] = [];

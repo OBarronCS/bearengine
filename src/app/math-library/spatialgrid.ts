@@ -81,6 +81,7 @@ export class SpatialGrid<T> {
     }
 
 
+    // What if outside everything? Maybe don't add at all
     public insert(obj: T): void {
         const aabb = this.AABBFunction(obj);
 

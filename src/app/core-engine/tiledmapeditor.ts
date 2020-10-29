@@ -152,7 +152,6 @@ const customMapFormat = {
                         // Clockwise as in FLIPPED clockwise
                         // so actually not clockwise
                         let clockwise: boolean;
-                        // it shouldn't be this way but it just works for some reason
                         if(sum < 0){
                             //CLOCK WISE
                             clockwise = true
