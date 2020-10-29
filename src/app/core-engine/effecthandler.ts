@@ -1,4 +1,4 @@
-import { Vec2 } from "../math-library/vec2";
+import { Vec2 } from "../math-library/shapes/vec2";
 import { E } from "./globals";
 import { Player } from "../gamelogic/player";
 import { Entity } from "./entity";

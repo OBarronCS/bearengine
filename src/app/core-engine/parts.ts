@@ -1,5 +1,6 @@
 import { Container, DEG_TO_RAD } from "pixi.js";
-import { Coordinate } from "../math-library/vec2";
+import { Dimension, Rect } from "../math-library/shapes/rectangle";
+import { Coordinate } from "../math-library/shapes/vec2";
 import { Entity } from "./entity";
 import { E } from "./globals";
 
@@ -39,8 +40,9 @@ export class SpritePart extends Part {
     }
 
     /** Sets point on the sprite that sits on position vector */
+    // Test this
     set offset(offset: Coordinate) {
-        this.container.pivot.set(-offset.x, -offset.y);
+        this.container.pivot.set(offset.x, offset.y);
     }
 
     set visible(v: boolean){
@@ -92,4 +94,32 @@ export class SpritePart extends Part {
 }
 
 
+// Something to take into consideration --> the only thing rect cares about really is the width and height
+export class ColliderPart extends Part {
+
+    public rect: Rect;
+    // Where on the rect is the position
+    public offset: Coordinate;
+
+    constructor(dimensions: Dimension,offset: Coordinate){
+        super();
+        this.rect = new Rect(0,0,dimensions.width, dimensions.height);
+        this.offset = {x: 0, y:0};
+        this.offset.x = -this.offset.x;
+        this.offset.y = -this.offset.y;
+    }
+
+    onAdd(): void {
+        E.Collision.add(this);
+    }
+
+    onRemove(): void {
+        E.Collision.remove(this);
+    }
+
+    update(dt: number): void {
+        this.rect.moveTo(this.owner.position);
+        this.rect.translate(this.offset);
+    }
+}
 

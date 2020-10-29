@@ -42,6 +42,14 @@ export class SpatialGrid<T> {
         }
     }
 
+    public clear(){
+        for (let i = 0; i < this.gridWidth; i++) {
+            for(let j = 0; j < this.gridHeight; j++){
+                this.grid[i][j] = []
+            }
+        }
+    }
+
     public draw(g: Graphics): void {
         
         for (let i = 0; i < this.gridWidth; i++) {

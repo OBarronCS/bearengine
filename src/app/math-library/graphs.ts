@@ -5,7 +5,7 @@ import { abs, floor, min } from "./miscmath";
 import { ModifiablePQ, PQ } from "./priorityqueue";
 import { LinkedQueue } from "./queue";
 import { LinkedStack, LightLinkedBag } from "./stack";
-import { distanceSquared } from "./vec2";
+import { distanceSquared } from "./shapes/vec2";
 
 
 // TODO: 

@@ -1,4 +1,4 @@
-import { Coordinate } from "../vec2";
+import { Coordinate } from "./vec2";
 import { Rect } from "./rectangle";
 import { Graphics } from "pixi.js";
 import { Polygon } from "./polygon";
@@ -17,8 +17,5 @@ export interface Shape<T> {
 }
 
 /* MAYBE: 
-equals() ? 
-
-Ellipse (and a special case Circle?
-
+equals()
 */

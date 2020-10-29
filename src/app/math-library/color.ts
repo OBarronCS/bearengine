@@ -1,6 +1,4 @@
-
-// look into use Proxy object to do swizzling
-/*
+/* // look into use Proxy object to do swizzling
 https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy
 
 get --> getting any property
@@ -21,9 +19,6 @@ const obj = new Proxy({}, {
   }
 });
 
-
-rbg 0 - 255 red green and blue value --> [red, green, blue]
-
 // 6 or 3 digit, hex 
 // 16.7 million options ---- 4096 options
 hex --> #FFFFFF or #FFF
@@ -43,17 +38,8 @@ LIGHTNESS/DARKNESS
     .5 is pretty much just the hue
     1 is white
 
-// transparancy is for blending
-a is between 0 and 1
-1 is opaque
-0 is fully trasparant
-
-rgba --> same as rgb but with alpha channel for transparancy
-hsla --> same
 hex with alpha --> two more digits, scaled 0-1 between 0 - 255
     #ffff000f
-
---> add fourth parameter with or without the "a" with is just works
 
 has hsl conversion algorithm
 https://drafts.csswg.org/css-color/#funcdef-hsl
@@ -81,7 +67,7 @@ export class Color {
     get b(){ return this.values[2]; }
     get a(){ return this.values[3]; }
 
-    valToHexString(val: number): string {
+    private valToHexString(val: number): string {
         let hex = val.toString(16);
         if (hex.length < 2) hex = "0" + hex;
         return hex;

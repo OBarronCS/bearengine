@@ -1,5 +1,5 @@
 import { Shape } from "./shapesinterfaces";
-import { Coordinate, Vec2, distanceSquared, mix, coordinateArraytoVec, flattenVecArray } from "../vec2";
+import { Coordinate, Vec2, distanceSquared, mix, coordinateArraytoVec, flattenVecArray } from "./vec2";
 import { Rect } from "./rectangle";
 import { abs, atan2, niceColor } from "../miscmath";
 import { Graphics, utils } from "pixi.js";

@@ -3,6 +3,7 @@ import { MouseInput } from "../input/mouse";
 import { LevelHandler } from "./level";
 import { TerrainManager } from "./terrainmanager";
 import { EngineKeyboard } from "../input/keyboard";
+import { CollisionManager } from "./entitycollision";
 
 // globally accessible as E.
 
@@ -17,7 +18,7 @@ export class E  {
     static Keyboard: EngineKeyboard;
     static Level: LevelHandler;
     static Terrain: TerrainManager;
-
+    static Collision: CollisionManager;
 }
 
 

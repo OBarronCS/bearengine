@@ -1,4 +1,4 @@
-import { Vec2 } from "../math-library/vec2";
+import { Vec2 } from "../math-library/shapes/vec2";
 import { sign } from "../math-library/miscmath";
 
 export type MouseButton = "left" | "middle" | "right" 

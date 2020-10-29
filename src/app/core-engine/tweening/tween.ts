@@ -2,7 +2,7 @@ import { Effect } from "../effecthandler"
 import { E } from "../globals";
 import { clamp } from "../../math-library/miscmath";
 import { Color, blend } from "../../math-library/color";
-import { Vec2, mix, Coordinate } from "../../math-library/vec2";
+import { Vec2, mix, Coordinate } from "../../math-library/shapes/vec2";
 
 
 abstract class Tween<T> extends Effect  {

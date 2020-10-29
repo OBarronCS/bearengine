@@ -1,7 +1,7 @@
 import { BearEngine } from "./core-engine/bearengine";
 import { DropTarget } from "./apiwrappers/draganddrop";
 import { Texture, BaseTexture, Sprite, Point, resources } from "pixi.js";
-import { Vec2 } from "./math-library/vec2";
+import { Vec2 } from "./math-library/shapes/vec2";
 import { Polygon } from "./math-library/shapes/polygon";
 import { StartFullscreen } from "./apiwrappers/fullscreen";
 import { E } from "./core-engine/globals";

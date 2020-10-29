@@ -1,5 +1,5 @@
 import { Effect } from "../effecthandler";
-import { Vec2 } from "../../math-library/vec2";
+import { Vec2 } from "../../math-library/shapes/vec2";
 import { Entity } from "../entity";
 import { Sprite, Point, graphicsUtils, Graphics } from "pixi.js";
 import { E } from "../globals";

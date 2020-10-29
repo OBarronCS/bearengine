@@ -1,5 +1,5 @@
 import { Line, lines_intersect } from "../math-library/shapes/line";
-import {  Vec2, Coordinate, distanceSquared, mix } from "../math-library/vec2";
+import {  Vec2, Coordinate, distanceSquared, mix } from "../math-library/shapes/vec2";
 import { clamp } from "../math-library/miscmath";
 import { Graphics, utils } from "pixi.js";
 import { drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "../math-library/shapes/shapedrawing";
@@ -65,7 +65,7 @@ export class TerrainManager {
 		}
 	}
 	
-	
+	// Terrain Raycast
 	/// return null if no collision, Point of intersection otherwise
 	lineCollision(A: Coordinate,B: Coordinate): {point:Vec2,normal:Vec2} {
 		const box = (new Line(A,B)).getAABB();

@@ -1,10 +1,12 @@
-import { Coordinate, Vec2 } from "../math-library/vec2";
+import { Coordinate, Vec2 } from "../math-library/shapes/vec2";
 import { Container, DisplayObject, Sprite, Graphics, TextureMatrix } from "pixi.js";
 import { E } from "./globals";
 import { Shape } from "../math-library/shapes/shapesinterfaces";
-import { DEG_TO_RAD, floor, RAD_TO_DEG } from "../math-library/miscmath";
-import { Part, SpritePart } from "./parts";
+import { DEG_TO_RAD, floor, min, RAD_TO_DEG } from "../math-library/miscmath";
+
 import { random } from "../math-library/randomhelpers";
+import { ColliderPart, Part, SpritePart } from "./parts";
+import { dimensions } from "../math-library/shapes/rectangle";
 
 
 
@@ -49,18 +51,21 @@ export abstract class Entity {
 }
 
 export abstract class SpriteEntity extends Entity {
-
     // maybe name it "sprite" and not "image";
     public image: SpritePart;
+    public collider: ColliderPart;
 
     constructor(spot: Coordinate, spr_source: string){
         super();
 
         const spr = new Sprite(E.Engine.renderer.getTexture(spr_source));
         this.image = new SpritePart(spr);
-
         this.addPart(this.image);
         this.position.set(spot);
+
+
+        this.collider = new ColliderPart(dimensions(spr.width, spr.height), spr.pivot)
+        this.addPart(this.collider);
     }
 
 }
@@ -91,12 +96,24 @@ export abstract class GMEntity extends SpriteEntity {
 
     // A temporary vector used for convenience so no need to create a new one each time
     private static moveTowards = new Vec2(0,0);
+    // Move this to vector class?
+    // Does NOT overshoot
     moveTowards(point: Coordinate, distance: number){
         GMEntity.moveTowards.x = point.x - this.position.x;
         GMEntity.moveTowards.y = point.y - this.position.y;
-        GMEntity.moveTowards.extend(distance);
+        
+        GMEntity.moveTowards.extend(min(Vec2.distance(this.position,point),distance));
         this.position.add(GMEntity.moveTowards);
     }
 }
 
 
+
+// Used for quick movement implementing
+export function SimpleMovement(e: Entity, speed: number){
+    const horz_move = +E.Keyboard.isDown("KeyD") - +E.Keyboard.isDown("KeyA");
+    const vert_move = +E.Keyboard.isDown("KeyS") - +E.Keyboard.isDown("KeyW");
+
+    e.x += horz_move * speed;
+    e.y += vert_move * speed;
+}

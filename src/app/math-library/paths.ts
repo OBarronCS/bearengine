@@ -1,4 +1,4 @@
-import { Vec2, mix, Coordinate } from "./vec2";
+import { Vec2, mix, Coordinate } from "./shapes/vec2";
 import { Point, Graphics } from "pixi.js";
 
 export interface Path {

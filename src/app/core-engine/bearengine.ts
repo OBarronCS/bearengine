@@ -5,7 +5,7 @@ import * as PIXI from "pixi.js";
 import { GUI } from "dat.gui";
 import { Renderer } from "./renderer";
 import { CameraSystem } from "./camera";
-import { Rect } from "../math-library/shapes/rectangle";
+import { dimensions, Rect } from "../math-library/shapes/rectangle";
 import { E } from "./globals";
 import { LevelHandler } from "./level";
 
@@ -29,13 +29,13 @@ console.log(ALL_TEXTURES)
 
 import { EventEmitter } from "eventemitter3"
 import TypedEmitter from "typed-emitter"
-import { Entity } from "./entity";
+import { Entity, GMEntity, SimpleMovement, SpriteEntity } from "./entity";
 import { CustomMapFormat } from "./tiledmapeditor";
 import { Player } from "../gamelogic/player";
 import { CreateWindow } from "../apiwrappers/windowopen";
 import { Polygon } from "../math-library/shapes/polygon";
-import { Vec2 } from "../math-library/vec2";
-import { drawPoint, drawVecAsArrow } from "../math-library/shapes/shapedrawing";
+import { Coordinate, Vec2 } from "../math-library/shapes/vec2";
+import { drawCircle, drawPoint, drawVecAsArrow } from "../math-library/shapes/shapedrawing";
 import { EngineKeyboard } from "../input/keyboard";
 import { Ellipse } from "../math-library/shapes/ellipse";
 import { EffectHandler } from "./effecthandler";
@@ -47,6 +47,8 @@ import { SpatialGrid } from "../math-library/spatialgrid";
 import { LiveGridGraph } from "../math-library/graphs";
 import { floor } from "../math-library/miscmath";
 import { log } from "../math-library/performance";
+import { ColliderPart } from "./parts";
+import { Line } from "../math-library/shapes/line";
 
 export interface CoreEvents  {}
 
@@ -118,9 +120,53 @@ class BearEngine {
         this.current_level.load();
         E.Level = this.current_level;
         E.Terrain = this.current_level.terrainManager;
+        E.Collision = this.current_level.collisionManager;
     
         
         this.addEntity(new Player())
+
+
+        class TestCollision extends Entity {
+            
+            private line: Line;
+            private r: Rect;
+
+            constructor(){
+                super();
+                this.addPart(new ColliderPart(dimensions(50,50), new Vec2(20,20)))
+                this.r = new Rect(100,150,50,50);
+                this.line = new Line(new Vec2(0,0), new Vec2(0,0));
+            }
+            
+            update(dt: number): void {
+                this.line.B.set(E.Mouse.position);
+                if(E.Mouse.wasPressed("left")){
+                    this.line.A.set(E.Mouse.position);
+                }
+                this.redraw();
+            }
+            
+            draw(g: PIXI.Graphics): void {
+                g.clear();
+                this.r.draw(g)
+                this.line.draw(g,Rect.CollidesWithLine(this.r, this.line.A.x, this.line.A.y, this.line.B.x, this.line.B.y) ? "#FF0000":"#0000FF" );
+            }
+        }
+
+        //this.addEntity(new TestCollision())
+
+        class Debug extends Entity {
+            update(dt: number): void {
+                this.redraw();
+            }
+            draw(g: PIXI.Graphics): void {
+                g.clear();
+                E.Collision.draw(g);
+            }
+
+        }
+
+        this.addEntity(new Debug())
 
         // Rectangle overlap test
         class Test extends Entity {
@@ -239,6 +285,25 @@ class BearEngine {
         }
 
         //this.addEntity(new Test3());
+
+        class FirstSprite extends GMEntity {
+            
+            constructor(spot: Coordinate){
+                super(spot,"images/tree.gif");
+            }
+
+            update(dt: number): void {
+                // SimpleMovement(this,250 * dt);
+                this.moveTowards(E.Mouse.position,21);
+            }
+
+            draw(g: PIXI.Graphics): void {
+                
+            }
+
+        }
+
+        //this.addEntity(new FirstSprite({x:50,y:170}));
     }
 
 
@@ -274,7 +339,7 @@ class BearEngine {
         /// Setting mouse world position values
         const canvasPoint = new PIXI.Point();
         this.renderer.pixiapp.renderer.plugins.interaction.mapPositionToPoint(canvasPoint,this.mouse.screenPosition.x,this.mouse.screenPosition.y);
-        /// @ts-ignore
+        /// @ts-expect-error
         this.renderer.mainContainer.toLocal(canvasPoint,undefined,this.mouse.position);
 
 
@@ -289,11 +354,14 @@ class BearEngine {
 
         this.keyboard.update();
         this.mouse.update();
+
         // both of these are in ms
         while (accumulated >= (simulation_time)) {
+
             // divide by 1000 to get seconds
             const dt = simulation_time / 1000;
-
+            this.current_level.collisionManager.update(dt);
+            
             for (let i = 0; i < this.updateList.length; i++) {
                 const entity = this.updateList[i];
                 entity.update(dt);

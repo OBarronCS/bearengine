@@ -1,4 +1,5 @@
-import { DEG_TO_RAD, RAD_TO_DEG, dcos, dsin, floor } from "./miscmath";
+import { ColliderPart } from "../../core-engine/parts";
+import { DEG_TO_RAD, RAD_TO_DEG, dcos, dsin, floor } from "../miscmath";
 
 export interface Coordinate {
     x: number,
@@ -12,6 +13,7 @@ export class Vec2 {
     public y: number
 
     // Maybe make these getters so you can take a mutable one
+    static ZERO: Readonly<Coordinate> = new Vec2(0,0);
     static RIGHT: Readonly<Coordinate> = new Vec2(1,0);
     static LEFT: Readonly<Coordinate> = new Vec2(-1,0);
     static UP: Readonly<Coordinate> = new Vec2(0,-1);

@@ -1,5 +1,7 @@
-import { Vec2, Coordinate } from "../vec2";
+import { Vec2, Coordinate } from "./vec2";
 import { Rect } from "./rectangle";
+import { Graphics } from "pixi.js";
+import { drawLineBetweenPoints } from "./shapedrawing";
 
 
 // A line segment
@@ -38,6 +40,10 @@ export class Line {
         }
 
         return null;
+    }
+
+    draw(g: Graphics, color?: string){
+        drawLineBetweenPoints(g, this.A, this.B, color);
     }
 
 }

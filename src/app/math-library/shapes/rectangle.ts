@@ -1,8 +1,18 @@
-import { Coordinate, Vec2 } from "../vec2";
+import { Coordinate, distanceSquared, Vec2 } from "./vec2";
 import { Shape } from "./shapesinterfaces";
 import { Polygon, minPoint, maxPoint } from "./polygon";
-import { min, max } from "../miscmath";
+import { min, max, clamp } from "../miscmath";
+import { lines_intersect } from "./line";
 
+
+export interface Dimension {
+    width: number;
+    height: number;
+}
+
+export function dimensions(w: number, h: number): Dimension{
+    return {width: w, height: h};
+}
 
 
 export class Rect implements Shape<Rect> {
@@ -139,6 +149,54 @@ export class Rect implements Shape<Rect> {
 
         return new Polygon(points, normals);
     }
+    
+    // Keeps the dimensions, moves the top left to these points
+    moveTo(point: Coordinate){
+        const w = this.width;
+        const h = this.height;
+        this.x = point.x;
+        this.y = point.y;
+
+        this.x2 = this.x + w;
+        this.y2 = this.y + h;
+    }
+
+    translate(point: Coordinate){
+        const w = this.width;
+        const h = this.height;
+        this.x += point.x;
+        this.y += point.y;
+
+        this.x2 = this.x + w;
+        this.y2 = this.y + h;
+    }
+
+
+    // Maybe find a better spot to put this
+    static CollidesWithSphere(rect: Rect, x: number, y: number, r: number): boolean {
+        if(rect.contains({x: x, y: y})) return true;
+        // Check if the closest point to this rect is at least r away from the sphere
+        const _x = clamp(x, rect.left, rect.right);
+        const _y = clamp(y, rect.top, rect.bot);
+        if(distanceSquared(_x,_y,x,y) <= r * r) return true;
+
+        return false;
+    }
+
+    static CollidesWithLine(rect: Rect, x1: number, y1: number, x2: number, y2: number): boolean {
+        // Turn the rect into 4 lines, check line-line intersections
+        
+        // Vertical
+        if(lines_intersect(rect.left, rect.top, rect.left, rect.bot, x1,y1,x2,y2, true) > 0) return true;
+        if(lines_intersect(rect.right, rect.top, rect.right, rect.bot, x1,y1,x2,y2, true) > 0) return true;
+
+        // Horizontal
+        if(lines_intersect(rect.left, rect.top, rect.right, rect.top, x1,y1,x2,y2, true) > 0) return true;
+        if(lines_intersect(rect.left, rect.bot, rect.right, rect.bot, x1,y1,x2,y2, true) > 0) return true;
+
+        return false;
+    }
+
 }
 
 

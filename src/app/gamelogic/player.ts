@@ -1,7 +1,7 @@
 import { Entity } from "../core-engine/entity";
 import { Sprite, Point, RAD_TO_DEG, Graphics } from "pixi.js";
 import { E } from "../core-engine/globals";
-import { Vec2, rotatePoint } from "../math-library/vec2";
+import { Vec2, rotatePoint } from "../math-library/shapes/vec2";
 import { NormalModuleReplacementPlugin } from "webpack";
 import { clamp } from "../math-library/miscmath";
 import { DefaultGun } from "../core-engine/weapons/weapon";
@@ -9,7 +9,8 @@ import { DefaultBulletEffect } from "../core-engine/effects/effects";
 import { AddOnType } from "../core-engine/weapons/addon";
 import { VecTween } from "../core-engine/tweening/tween";
 import { random_range, random } from "../math-library/randomhelpers";
-import { SpritePart } from "../core-engine/parts";
+import { ColliderPart, SpritePart } from "../core-engine/parts";
+import { dimensions, Rect } from "../math-library/shapes/rectangle";
 
 enum PlayerStates {
     Ground,
@@ -54,6 +55,7 @@ export class Player extends Entity {
     space_time_to_jump = -1;
 
     private spritePart: SpritePart;
+    private colliderPart: ColliderPart;
 
     constructor(){
         super();
@@ -63,6 +65,10 @@ export class Player extends Entity {
         const spr = this.spritePart = new SpritePart(spr2)
         
         this.addPart(spr);
+
+        this.colliderPart = new ColliderPart(dimensions(50,50),{x: 10, y: 5});
+        this.addPart(this.colliderPart);
+
 
         this.test_height = spr.container.height;
         this.test_width = spr.container.width;

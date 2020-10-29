@@ -4,6 +4,7 @@ import { CustomMapFormat } from "./tiledmapeditor";
 import { TerrainManager } from "./terrainmanager";
 import { E } from "./globals";
 import { utils } from "pixi.js";
+import { CollisionManager } from "./entitycollision";
 
 // Current level accessible by "E.Level"
 export class LevelHandler {
@@ -16,6 +17,7 @@ export class LevelHandler {
 
 
 	terrainManager: TerrainManager = null;
+	collisionManager: CollisionManager = null;
 
     constructor(data_struct: CustomMapFormat){
         this.data_struct = data_struct;
@@ -33,6 +35,8 @@ export class LevelHandler {
 		E.Engine.renderer.pixiapp.renderer.backgroundColor = utils.string2hex(bg);
 		
 		this.terrainManager = new TerrainManager(width, height);
+		this.collisionManager = new CollisionManager(width,height);
+
 		this.bbox = new Rect(0,0,width, height);
 		
 		const bodies = info_struct.bodies // list of bodies
