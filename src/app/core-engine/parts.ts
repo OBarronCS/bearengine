@@ -1,4 +1,4 @@
-import { Container, DEG_TO_RAD } from "pixi.js";
+import { Container, DEG_TO_RAD, Sprite } from "pixi.js";
 import { Dimension, Rect } from "../math-library/shapes/rectangle";
 import { Coordinate } from "../math-library/shapes/vec2";
 import { Entity } from "./entity";
@@ -32,64 +32,62 @@ export class ScriptPart extends Part {
 
 export class SpritePart extends Part {
 
-    container: Container = new Container();
+    sprite: Sprite;
 
-    constructor(displayObj: Container){
+    constructor(spr_source: string){
         super();
-        this.container.addChild(displayObj);
+        this.sprite = new Sprite(E.Engine.renderer.getTexture(spr_source));
     }
 
     /** Sets point on the sprite that sits on position vector */
-    // Test this
-    set offset(offset: Coordinate) {
-        this.container.pivot.set(offset.x, offset.y);
+    set origin(offset: Coordinate) { this.sprite.pivot.set(offset.x, offset.y); }
+    get origin(): Coordinate { return this.sprite.pivot; }
+
+    set originPercent(offset: Coordinate) {
+        this.sprite.anchor.set(offset.x, offset.y);
     }
 
     set visible(v: boolean){
-        this.container.visible = v;
+        this.sprite.visible = v;
     }
 
     set scale(s: Coordinate) {
-        this.container.scale.set(s.x,s.y);
+        this.sprite.scale.set(s.x,s.y);
     }
 
-    set width(w: number){
-        this.container.width = w;
-    }
+    set width(w: number){ this.sprite.width = w; }
+    get width(){ return this.sprite.width; }
 
-    set height(h: number){
-        this.container.height = h;
-    }
+    set height(h: number){ this.sprite.height = h; }
+    get height(){ return this.sprite.height; }
 
-    set alpha(a: number){
-        this.container.alpha = a;
-    }
+    set alpha(a: number){ this.sprite.alpha = a; }
+    get alpha(){ return this.sprite.alpha; }
 
     /** RADIANS */
-    set angle(radians: number ){
-        this.container.rotation = radians;
-    }
+    set angle(radians: number ){ this.sprite.rotation = radians; }
+    get angle(){ return this.sprite.rotation; }
 
     /** DEGREES */
-    set dangle(degrees: number){
-        this.angle = degrees * DEG_TO_RAD;
-    }
+    set dangle(degrees: number){ this.angle = degrees * DEG_TO_RAD; }
+    get dangle(){ return this.sprite.angle; }
 
     onAdd(): void {
-        E.Engine.renderer.addSprite(this.container);
+        E.Engine.renderer.addSprite(this.sprite);
     }
 
     onRemove(): void {
-        E.Engine.renderer.removeSprite(this.container);
-        this.container.destroy({
+        E.Engine.renderer.removeSprite(this.sprite);
+
+        this.sprite.destroy({
             children: true,
-            baseTexture:false,
+            baseTexture: false,
             texture: false
         });
     }
 
     update(dt: number): void {
-        this.container.position.copyFrom(this.owner.position)
+        this.sprite.position.copyFrom(this.owner.position);
     }
 }
 
@@ -105,8 +103,8 @@ export class ColliderPart extends Part {
         super();
         this.rect = new Rect(0,0,dimensions.width, dimensions.height);
         this.offset = {x: 0, y:0};
-        this.offset.x = -this.offset.x;
-        this.offset.y = -this.offset.y;
+        this.offset.x = -offset.x;
+        this.offset.y = -offset.y;
     }
 
     onAdd(): void {

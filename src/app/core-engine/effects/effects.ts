@@ -1,6 +1,6 @@
 import { Effect } from "../effecthandler";
 import { Vec2 } from "../../math-library/shapes/vec2";
-import { Entity } from "../entity";
+import { Entity, SpriteEntity } from "../entity";
 import { Sprite, Point, graphicsUtils, Graphics } from "pixi.js";
 import { E } from "../globals";
 import { ShotInfo } from "../weapons/weaponinterfaces";
@@ -19,14 +19,10 @@ export class DefaultBulletEffect extends Effect {
         this.velocity = velocityVec;
 
         // Temp class here for testing
-        class Bullet extends Entity {
+        class Bullet extends SpriteEntity {
             constructor(){
-                super();
-                const spr2 = new Sprite(E.Engine.renderer.getTexture("images/flower.png"))
-                spr2.anchor = new Point(.5,.5);
-                const spr = new SpritePart(spr2)
-                
-                this.addPart(spr);
+                super({x: 0, y: 0},"images/flower.png");
+                this.image.originPercent = new Vec2(.5,.5);
             }
 
             update(dt: number): void {

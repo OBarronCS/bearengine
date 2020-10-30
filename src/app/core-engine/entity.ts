@@ -56,13 +56,12 @@ export abstract class SpriteEntity extends Entity {
     constructor(spot: Coordinate, spr_source: string){
         super();
 
-        const spr = new Sprite(E.Engine.renderer.getTexture(spr_source));
-        this.image = new SpritePart(spr);
-        this.addPart(this.image);
         this.position.set(spot);
 
+        this.image = new SpritePart(spr_source);
+        this.addPart(this.image);
 
-        this.collider = new ColliderPart(dimensions(spr.width, spr.height), spr.pivot)
+        this.collider = new ColliderPart(dimensions(this.image.width, this.image.height), this.image.origin);
         this.addPart(this.collider);
     }
 

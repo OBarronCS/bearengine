@@ -85,7 +85,8 @@ class BearEngine {
 
             const div = document.querySelector("#display") as HTMLElement;
             this.renderer = new Renderer(div, window);
-            const mainCamera = new CameraSystem(this.renderer,this.renderer.mainContainer, window)
+            const mainCamera = new CameraSystem(this.renderer,this.renderer.mainContainer, window);
+            mainCamera.container.pivot.y = 380;
         } else { // creates a pop up display
             CreateWindow("Game", {width:400, height:300,center:true}).then(new_window => {
                 this.keyboard = new EngineKeyboard(new_window);
@@ -98,6 +99,7 @@ class BearEngine {
 
                 this.renderer = new Renderer(displayDiv, new_window);
                 const camera = new CameraSystem(this.renderer,this.renderer.mainContainer, new_window)
+                
             });
         }
 
@@ -121,6 +123,7 @@ class BearEngine {
         E.Level = this.current_level;
         E.Terrain = this.current_level.terrainManager;
         E.Collision = this.current_level.collisionManager;
+        
     
         
         this.addEntity(new Player())
@@ -406,12 +409,14 @@ class BearEngine {
 
     endCurrentLevel(){
         this.current_level.end();
-        const children = this.renderer.mainContainer.removeChildren();
-        // This is extremely crucial --> otherwise there is kinda of a memory leak (PIXI has its own garbage collector but it sets in only after a few minutes)
-        children.forEach(child => child.destroy())
+
         for(let i = this.updateList.length - 1; i >= 0; --i){
             this.destroyEntity(this.updateList[i]);
         }
+
+        const children = this.renderer.mainContainer.removeChildren();
+        // This is crucial --> otherwise there is a memory leak
+        children.forEach(child => child.destroy())
     }   
 
 }

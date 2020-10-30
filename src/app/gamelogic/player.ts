@@ -11,6 +11,7 @@ import { VecTween } from "../core-engine/tweening/tween";
 import { random_range, random } from "../math-library/randomhelpers";
 import { ColliderPart, SpritePart } from "../core-engine/parts";
 import { dimensions, Rect } from "../math-library/shapes/rectangle";
+import { drawPoint } from "../math-library/shapes/shapedrawing";
 
 enum PlayerStates {
     Ground,
@@ -60,20 +61,20 @@ export class Player extends Entity {
     constructor(){
         super();
         this.position.set({x : 500, y: 100})
-        const spr2 = new Sprite(E.Engine.renderer.getTexture("images/flower.png"))
-        spr2.anchor = new Point(.5,.5);
-        const spr = this.spritePart = new SpritePart(spr2)
-        
-        this.addPart(spr);
 
-        this.colliderPart = new ColliderPart(dimensions(50,50),{x: 10, y: 5});
+        this.spritePart = new SpritePart("images/flower.png")
+        this.spritePart.originPercent = {x:.5 ,y:.5};
+        this.addPart(this.spritePart);
+        
+        this.colliderPart = new ColliderPart(dimensions(50,50),{x:20, y: 20});
         this.addPart(this.colliderPart);
 
 
-        this.test_height = spr.container.height;
-        this.test_width = spr.container.width;
+        this.test_width = this.spritePart.width;
+        this.test_height = this.spritePart.height;
         
-        const {width, height} = spr.container
+        
+        const {width, height} = this.spritePart.sprite
         const {x, y} = this.position
 
         this.downRayTop = new Vec2(x,y);
@@ -122,12 +123,13 @@ export class Player extends Entity {
     // }
 
     update(dt: number): void {
+        this.redraw()
         this.gun.setLocation(this.position, (new Vec2(0,0).set(E.Mouse.position).sub(this.position)));
         this.gun.operate(E.Mouse.isDown("left"));
 
         const start_x = this.position.x;
         const angle = Math.atan2(this.slope_normal.y, this.slope_normal.x) * RAD_TO_DEG;
-        this.spritePart.container.angle = angle + 90;
+        this.spritePart.dangle = angle + 90;
 
         if(this.state == PlayerStates.Ground){
             this.time_to_jump = 6;
@@ -337,7 +339,8 @@ export class Player extends Entity {
 
 
     draw(g: Graphics) {
-        
+        g.clear();
+        drawPoint(g,this.position);
     }
 }
 
