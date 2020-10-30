@@ -1,6 +1,7 @@
-import { Container, DEG_TO_RAD, Sprite } from "pixi.js";
+import { Container, DEG_TO_RAD, Sprite, TilingSprite } from "pixi.js";
+import { abs, angleDifference, min, sign } from "../math-library/miscmath";
 import { Dimension, Rect } from "../math-library/shapes/rectangle";
-import { Coordinate } from "../math-library/shapes/vec2";
+import { angleBetween, Coordinate } from "../math-library/shapes/vec2";
 import { Entity } from "./entity";
 import { E } from "./globals";
 
@@ -47,9 +48,8 @@ export class SpritePart extends Part {
         this.sprite.anchor.set(offset.x, offset.y);
     }
 
-    set visible(v: boolean){
-        this.sprite.visible = v;
-    }
+    set visible(v: boolean){ this.sprite.visible = v; }
+    get visible(){ return this.sprite.visible; }
 
     set scale(s: Coordinate) {
         this.sprite.scale.set(s.x,s.y);
@@ -72,6 +72,24 @@ export class SpritePart extends Part {
     set dangle(degrees: number){ this.angle = degrees * DEG_TO_RAD; }
     get dangle(){ return this.sprite.angle; }
 
+
+    /** Moves this image angle to look towards a point, relative to the position of the entitiy */
+    angleTowardsPoint(point: Coordinate, speed: number){
+        this.angleTowards(angleBetween(this.owner.position,point),speed)
+    }
+
+    /** RADIANS, does not overshoot */
+    angleTowards(angle: number, speed: number){
+        const diff = angleDifference(this.angle, angle);
+        const angleMagnitude = min(abs(diff), speed);
+        this.angle += sign(diff) * angleMagnitude;
+    }
+
+    /** DEGREES */
+    dangleTowards(angle: number, speed: number){
+        this.angleTowards(angle * DEG_TO_RAD, speed);
+    }
+
     onAdd(): void {
         E.Engine.renderer.addSprite(this.sprite);
     }
@@ -92,7 +110,6 @@ export class SpritePart extends Part {
 }
 
 
-// Something to take into consideration --> the only thing rect cares about really is the width and height
 export class ColliderPart extends Part {
 
     public rect: Rect;

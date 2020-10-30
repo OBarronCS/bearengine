@@ -73,6 +73,20 @@ export function smoothNoise(seed: number): number {
 	return (Math.sin(7*seed) + Math.sin(Math.PI * seed) + Math.cos(11*seed))/3
 }
 
+
+// finds shortest angle difference between two angles
+
+/** RADIANS */
+export function angleDifference(from: number, to: number){
+    let diff = to - from;
+    return (diff + PI) % (2 * PI) - PI;
+}
+
+/** DEGREES */
+export function dangleDifference(from: number, to: number){
+    return angleDifference(from * DEG_TO_RAD, to * DEG_TO_RAD);
+}
+
 //#region Date stuff
 //returns the number of milliseconds elapsed since January 1, 1970.
 export function time(){

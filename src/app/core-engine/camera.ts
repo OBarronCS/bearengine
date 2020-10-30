@@ -1,31 +1,36 @@
 import { Container, Point } from "pixi.js";
 import { Renderer } from "./renderer";
-import { Vec2 } from "../math-library/shapes/vec2";
+import { Coordinate, Vec2 } from "../math-library/shapes/vec2";
 import { E } from "./globals";
+import { Rect } from "../math-library/shapes/rectangle";
 
 export class CameraSystem {
     
-    // Top left of the camera in world coordinates
-    position: Vec2
-
     public renderer: Renderer;
     public container: Container;
-    public startPoint: any;
 
     constructor(renderer: Renderer, container: Container, targetWindow: Window) {
-        this.position = new Vec2(0,0);
+
         this.renderer = renderer;
         this.container = container;
 
+        // pivot should be at center of screen at all times. Allows rotation around the middle
+        // set it to half the renderer width
+        container.position.x = renderer.pixiapp.renderer.width / 2;
+        container.position.y = renderer.pixiapp.renderer.height / 2;
+
+
+
         E.Keyboard.bind("space", () => {
-            this.renderer.mainContainer.pivot.x = -1300
-            this.renderer.mainContainer.pivot.y = -100
-            this.renderer.mainContainer.scale.x = .3;
-            this.renderer.mainContainer.scale.y = .3;
+            this.center = {x: 500, y:500}
+            this.renderer.mainContainer.scale.x = .4;
+            this.renderer.mainContainer.scale.y = .4;
         });
+
         
         // Dragging the layer around
-        let startMouse: any;
+        let startMouse: Coordinate;
+        let startPoint: Coordinate;
         targetWindow.addEventListener("mousemove",event => {
             const point = new Point(0,0);
             renderer.pixiapp.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y)
@@ -34,19 +39,19 @@ export class CameraSystem {
                 if(!E.Mouse.isDown("left")) return
                 if(!E.Keyboard.isDown("ShiftLeft")) return
             } 
-            
 
             const speed = 1;
 
-            container.pivot.x = this.startPoint.x - (((point.x - startMouse.x) / container.scale.x) * speed)
-            container.pivot.y = this.startPoint.y - (((point.y - startMouse.y) / container.scale.y) * speed) 
+            container.pivot.x = startPoint.x - (((point.x - startMouse.x) / container.scale.x) * speed)
+            container.pivot.y = startPoint.y - (((point.y - startMouse.y) / container.scale.y) * speed) 
         })
 
         targetWindow.addEventListener("mousedown", (event) => {
-            this.startPoint = this.container.pivot.copyTo(new Point(0,0));
+            startPoint = this.container.pivot.copyTo(new Point(0,0));
             startMouse = renderer.mouse.clone()
         })
 
+        // ZOOM
         targetWindow.addEventListener("wheel", (event) => {
             const point = new Point(0,0);
             renderer.pixiapp.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y)
@@ -70,20 +75,35 @@ export class CameraSystem {
         })
     }
 
-    // NOT IN USE
-    // i have to think about this --> take in css x and y or renderer.mouse.x.y
-    // renderer.mouse won't work in window.open...
-    pixiGlobalToGamePoint(point: Point): Point{
-        /* FROM css x and y (native mouse move event e.x,y) to WORLD X AND Y
-         const canvasPoint = new PIXI.Point();
-        this.renderer.pixiapp.renderer.plugins.interaction.mapPositionToPoint(canvasPoint,this.mouse.screenPosition.x,this.mouse.screenPosition.y);
-        /// @ts-ignore
-        this.renderer.mainContainer.toLocal(canvasPoint,undefined,this.mouse.position);
-        */
-        const con = this.container;
 
-        let gamePoint = con.toLocal(new Point(point.x, point.y))
-        return gamePoint as Point;
+    set center(point: Coordinate) { this.container.pivot.copyFrom(point); }
+    get center(): Coordinate { return this.container.pivot }
+
+    set left(x: number) { this.container.pivot.x = x + (this.container.position.x / this.container.scale.x); }
+    get left(): number {return this.container.pivot.x - (this.container.position.x / this.container.scale.x); }
+
+    set right(x: number) { this.container.pivot.x = x - (this.container.position.x / this.container.scale.x); }
+    get right(): number {return this.container.pivot.x + (this.container.position.x / this.container.scale.x); }
+
+    set top(y: number) { this.container.pivot.y = y + (this.container.position.y / this.container.scale.y); }
+    get top(): number { return this.container.pivot.y - (this.container.position.y / this.container.scale.y); }
+
+    set bot(y: number) { this.container.pivot.y = y - (this.container.position.y / this.container.scale.y); }
+    get bot(): number { return this.container.pivot.y + (this.container.position.y / this.container.scale.y); }
+
+
+    // Takes into account zoom. How many pixels are being rendered
+    get viewWidth(){ return 2 * this.container.position.x / this.container.scale.x; }
+    get viewHeight(){ return 2 * this.container.position.y / this.container.scale.y; }
+
+
+    // checks whether a point is in the view
+    inView(point: Coordinate){
+        return point.x >= this.left && point.x <= this.right && point.y >= this.top && point.y <= this.bot;
+    }
+
+    getViewBounds(){
+        return new Rect(this.left, this.top, this.viewWidth, this.viewHeight);
     }
 }
 

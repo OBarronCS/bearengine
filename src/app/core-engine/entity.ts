@@ -102,6 +102,7 @@ export abstract class GMEntity extends SpriteEntity {
         GMEntity.moveTowards.extend(min(Vec2.distance(this.position,point),distance));
         this.position.add(GMEntity.moveTowards);
     }
+
 }
 
 

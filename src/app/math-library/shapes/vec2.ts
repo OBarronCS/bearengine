@@ -189,6 +189,10 @@ export class Vec2 {
     }
 }
 
+export function angleBetween(p1: Coordinate, p2: Coordinate){
+    return Math.atan2(p2.y - p1.y, p2.x - p1.x);
+}
+
 
 /** [x1, y1, x2, y2] -> [vec1, vec2] */
 export function coordinateArraytoVec(array: number[]): Vec2[] {

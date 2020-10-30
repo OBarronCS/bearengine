@@ -5,7 +5,7 @@ const resources = Loader.shared.resources;
 
 // arbitrary, but make it high enough so it looks good --> this is the base render texture height!
 // so things are actually renderer to THIS thing
-const DEFAULT_RESOLUTION_HEIGHT = 768;
+const DEFAULT_RESOLUTION_HEIGHT = 1200//768;
 
 const MIN_RATIO = 4/3;
 const MAX_RATIO = 21/9;
