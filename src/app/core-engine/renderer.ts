@@ -60,6 +60,8 @@ export class Renderer {
         }
 
         this.mainContainer.zIndex = 0;
+        this.mainContainer.sortableChildren = true;
+
         this.guiContainer.zIndex = 100
 
         this.pixiapp.stage.addChild(this.mainContainer);

@@ -1,16 +1,20 @@
+import { Sprite } from "pixi.js";
 import { BearEngine } from "../core-engine/bearengine";
-import { Entity, GMEntity } from "../core-engine/entity";
+import { Entity, GMEntity, SimpleKeyboardCheck, SimpleMovement, SpriteEntity } from "../core-engine/entity";
 import { E } from "../core-engine/globals";
 import { ColliderPart } from "../core-engine/parts";
+import { Tilemap } from "../core-engine/tilemap";
 import { ColorTween } from "../core-engine/tweening/tween";
 import { rgb, Color } from "../math-library/color";
 import { LiveGridGraph } from "../math-library/graphs";
 import { floor, PI } from "../math-library/miscmath";
 import { HermiteCurve } from "../math-library/paths";
 import { QuadTree } from "../math-library/quadtree";
+import { chance, randomRangeSet } from "../math-library/randomhelpers";
 import { Line } from "../math-library/shapes/line";
 import { Polygon } from "../math-library/shapes/polygon";
 import { Rect, dimensions } from "../math-library/shapes/rectangle";
+import { drawPoint } from "../math-library/shapes/shapedrawing";
 import { Vec2, Coordinate, angleBetween } from "../math-library/shapes/vec2";
 import { Player } from "./player";
 
@@ -226,6 +230,52 @@ export function loadTestLevel(this: BearEngine): void {
     }
     //this.addEntity(new PolygonTest());
 
+
+    class Tilemaptest extends Entity {
+
+        private map = new Tilemap(30,30,80,80);
+        private testobject: SpriteEntity;
+
+        constructor(){
+            super();
+            
+            class test3 extends SpriteEntity {
+                update(dt: number): void {}
+                draw(g: PIXI.Graphics): void {}
+            }
+
+            this.testobject =  new test3(Vec2.ZERO, "images/flower.png");
+            E.Engine.addEntity(this.testobject);
+
+            for(let i = 1; i < 30; i++){
+                for(const index of randomRangeSet(0,30,30)){
+                    this.map.setCell(index,i);
+                }
+            }
+
+            this.graphics.zIndex = -10000;
+        }
+
+        update(dt: number): void {
+            this.redraw();
+            const testMove = SimpleKeyboardCheck(6);
+            this.testobject.position.add(this.map.potentialMove(this.testobject.collider.rect, testMove));
+        }
+
+        draw(g: PIXI.Graphics): void {
+            g.clear();
+           
+            this.map.draw(g);
+            this.testobject.collider.rect.draw(g);
+            
+
+            drawPoint(g,E.Mouse.position, this.map.isSolid(E.Mouse.position.x, E.Mouse.position.y) ? "0xFF0000":"0x0000FF");
+        }
+
+
+    }
+
+    this.addEntity(new Tilemaptest());
 
 
 }

@@ -40,6 +40,31 @@ export function randomChar(){
 }
 
 
+// An iterable with random amount of integers in a range
+/** [min, max) , chance of each one appearing */
+export function randomRangeSet(min:number, max: number,percent: number){
+    return { 
+        [Symbol.iterator](){
+            const array = []
+            for(let i = min; i < max; i++){
+                if(chance(percent)) array.push(i);
+            }
+            let index = 0;
+            
+            const iterator = {
+                next: () => {
+                    if(index < array.length){
+                        return { value: array[index++], done: false };
+                    } 
+                
+                    return { value: null, done: true };
+                }
+            };
+            return iterator;
+        }
+    }
+}
+
 // Takes a function that returns some value, fills an array with return value of n function calls
 export function fillFunction<T>(func: () => T, amount: number){
     const arr: T[] = [];

@@ -115,3 +115,11 @@ export function SimpleMovement(e: Entity, speed: number){
     e.x += horz_move * speed;
     e.y += vert_move * speed;
 }
+
+export function SimpleKeyboardCheck(magnitude: number = 1): Coordinate {
+    return {
+        x: magnitude * (+E.Keyboard.isDown("KeyD") - +E.Keyboard.isDown("KeyA")), 
+        y: magnitude * (+E.Keyboard.isDown("KeyS") - +E.Keyboard.isDown("KeyW"))
+    }
+}
+
