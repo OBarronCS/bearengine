@@ -7,6 +7,17 @@
 import { randomInt } from "./randomhelpers";
 
 
+
+// Used for simple iteration. Performance is of course not as fast as a for loop with defined start and end
+/** [min, max). Step must be positive */
+export function range(min: number, max: number, step: number = 1): Iterable<number> {
+    const arr = [];
+    for(let i = min; i < max; i += step){
+        arr.push(i)
+    }
+    return arr;
+}
+
 /**
  * In-place, "Knuth/Fisher-Yates" shuffle
  */

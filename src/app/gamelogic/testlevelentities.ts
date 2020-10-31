@@ -1,4 +1,4 @@
-import { Sprite } from "pixi.js";
+import { Graphics, Sprite, TilingSprite } from "pixi.js";
 import { BearEngine } from "../core-engine/bearengine";
 import { Entity, GMEntity, SimpleKeyboardCheck, SimpleMovement, SpriteEntity } from "../core-engine/entity";
 import { E } from "../core-engine/globals";
@@ -10,7 +10,7 @@ import { LiveGridGraph } from "../math-library/graphs";
 import { floor, PI } from "../math-library/miscmath";
 import { HermiteCurve } from "../math-library/paths";
 import { QuadTree } from "../math-library/quadtree";
-import { chance, randomRangeSet } from "../math-library/randomhelpers";
+import { chance, fillFunction, randomRangeSet } from "../math-library/randomhelpers";
 import { Line } from "../math-library/shapes/line";
 import { Polygon } from "../math-library/shapes/polygon";
 import { Rect, dimensions } from "../math-library/shapes/rectangle";
@@ -275,8 +275,163 @@ export function loadTestLevel(this: BearEngine): void {
 
     }
 
-    this.addEntity(new Tilemaptest());
+    //this.addEntity(new Tilemaptest());
 
+
+    class conwaytest extends Entity {
+
+        private conway = new ConwaysLife(60,60);
+        private accumulation = -2;
+
+        constructor(){
+            super();
+            for(let i = 0; i < 60; i++){
+                for(const index of randomRangeSet(0,60,20)){
+                    this.conway.makeCellAlive(i,index);
+                }
+            }
+            this.redraw()
+
+        }
+
+        update(dt: number): void {
+            this.accumulation += dt;
+            if(this.accumulation > .1){
+                this.conway.updategrid();
+                this.redraw();
+                this.accumulation = 0;
+            }
+        }
+        draw(g: Graphics): void {
+            g.clear();
+            this.conway.draw(g);
+        }
+
+    }
+    this.addEntity(new conwaytest())
 
 }
 
+
+
+class ConwaysLife {
+
+    //true = alive
+    private grid: boolean[][];
+
+    private width:number;
+    private height:number;
+
+    constructor(w: number, h: number){
+        this.width = w;
+        this.height = h;
+
+        this.grid = [];
+
+        for(let i = 0; i < w; i++){
+            this.grid[i] = [];
+            this.grid[i].length = h;
+            this.grid[i].fill(false);
+        }
+    }
+
+    numberOfNeighbours(g: boolean[][], x: number, y:number): number {
+        // UNCOMMENT THIS LINE FOR COOL ART
+        //g = this.grid;
+        let total = 0;
+        
+        //left
+        if(x - 1 >= 0){
+            total += +g[x-1][y]
+
+            //left top
+            if(y - 1 >= 0){
+                total += +g[x - 1][y-1]
+            }
+    
+            //left bot
+            if(y + 1 < this.height){
+                total += +g[x - 1][y + 1]
+            }
+        }
+
+        if(x + 1 < this.width){
+            total += +g[x+1][y]
+            //left top
+            if(y - 1 >= 0){
+                total += +g[x + 1][y-1]
+            }
+    
+            //left bot
+            if(y + 1 < this.height){
+                total += +g[x + 1][y + 1]
+            }
+        }
+
+        if(y - 1 >= 0){
+            total += +g[x][y-1]
+        }
+
+        if(y + 1 < this.height){
+            total += +g[x][y + 1]
+        }
+
+
+        return total;
+    }
+
+    makeCellAlive(x: number,y: number){
+        this.grid[x][y] = true;
+    }
+
+    updategrid(){
+        const gridcopy: boolean[][] = [];
+        for(let i = 0; i < this.width; i++){
+            gridcopy[i] = [];
+            for(let j = 0; j < this.height; j++){
+                gridcopy[i][j] = this.grid[i][j];
+            }
+        }
+       
+        for(let i = 0; i < this.width; i++){
+            for(let j = 0; j < this.height; j++){
+                const n = this.numberOfNeighbours(gridcopy,i,j);
+            
+                // if its alive right now
+                if(gridcopy[i][j]){
+                    if(n < 2){
+                        this.grid[i][j] = false;
+                    } else if (n === 2 || n === 3){
+                        this.grid[i][j] = true;
+                    // IF THIS IS CHANGE TO n > 3, in addition to other other change in neighbour getting, you can make some cool art
+                    } else if (n >= 3){
+                        this.grid[i][j] = false;
+                    } 
+                } else {
+                    if(n === 3){
+                        this.grid[i][j] = true;
+                    }
+                }
+            }
+        }
+    }
+
+
+    draw(g: Graphics, scale = 10){
+        // black = alive
+        for(let i = 0; i < this.width; i++){
+            for(let j = 0; j < this.height; j++){
+
+                // White if alive
+                if(!this.grid[i][j]){
+                    g.beginFill(0x000000);
+                } else {
+                    g.beginFill(0xFFFFFF)
+                }
+
+                g.drawRect(i * scale, j * scale,scale,scale);
+            }
+        }
+    }
+
+}
