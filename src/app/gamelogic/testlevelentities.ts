@@ -6,16 +6,17 @@ import { ColliderPart } from "../core-engine/parts";
 import { Tilemap } from "../core-engine/tilemap";
 import { ColorTween } from "../core-engine/tweening/tween";
 import { rgb, Color } from "../math-library/color";
-import { LiveGridGraph } from "../math-library/graphs";
-import { floor, PI } from "../math-library/miscmath";
+import { GraphNode, LiveGridGraph } from "../math-library/graphs";
+import { abs, floor, min, PI } from "../math-library/miscmath";
 import { HermiteCurve } from "../math-library/paths";
-import { QuadTree } from "../math-library/quadtree";
+import { GridQuadNode, GridQuadTree, LiveGridQuadTree, QuadTree } from "../math-library/quadtree";
 import { chance, fillFunction, randomRangeSet } from "../math-library/randomhelpers";
 import { Line } from "../math-library/shapes/line";
 import { Polygon } from "../math-library/shapes/polygon";
 import { Rect, dimensions } from "../math-library/shapes/rectangle";
-import { drawPoint } from "../math-library/shapes/shapedrawing";
+import { drawLineBetweenPoints, drawPoint } from "../math-library/shapes/shapedrawing";
 import { Vec2, Coordinate, angleBetween } from "../math-library/shapes/vec2";
+import { LinkedStack } from "../math-library/stack";
 import { Player } from "./player";
 
 
@@ -26,7 +27,7 @@ import { Player } from "./player";
 
 export function loadTestLevel(this: BearEngine): void {
 
-    this.addEntity(new Player())
+    //this.addEntity(new Player())
 
     class TestCollision extends Entity {
         private line: Line;
@@ -37,12 +38,17 @@ export function loadTestLevel(this: BearEngine): void {
             this.r = new Rect(100,150,50,50);
             this.line = new Line(new Vec2(0,0), new Vec2(0,0));
         }
+
+        
         
         update(dt: number): void {
             this.line.B.set(E.Mouse.position);
             if(E.Mouse.wasPressed("left")){
                 this.line.A.set(E.Mouse.position);
             }
+
+           
+
             this.redraw();
         }
         
@@ -134,48 +140,159 @@ export function loadTestLevel(this: BearEngine): void {
     }
     //this.addEntity(new Test2())
 
-    // ASTAR GRID
-    class Test3 extends Entity {
+    // GRID QUADTREE
 
-        private grid = new LiveGridGraph(25,25);
+    class Quadquadtest extends Entity {
+        
+        private q = new LiveGridQuadTree(128);
+        private scale = 16;
 
-        constructor() {
+        constructor(){
             super();
-            this.grid.start_astar(0,0,24,24);
-            for(let i = 5; i < 20; i++){
-                this.grid.blockcell(i,5);
-            }
-
-            for(let i = 5; i < 20; i++){
-                this.grid.blockcell(i,20);
-            }
-
-            this.grid.step_astar();
+            this.q.calculateEdges();
             this.redraw();
+            this.graphics.addChild(this.hoverGraphic)
         }
+
+        private hoverGraphic = new Graphics();
+
+        private start = new Vec2(0,0);
+        private target = new Vec2(0,0);
+
+        private flip = false;
+
 
         update(dt: number): void {
             if(E.Mouse.isDown("left")){
-                this.grid.blockcell(floor(E.Mouse.position.x / 30),floor(E.Mouse.position.y / 30));
-                this.grid.start_astar(0,0,24,24);
+
+                const x = floor(E.Mouse.position.x / this.scale);
+                const y = floor(E.Mouse.position.y / this.scale)
+
+                this.q.insert(x,y);
+                
+
+                this.q.insert(x+1,y);
+                this.q.insert(x-1,y);
+                this.q.insert(x,y+1);
+                this.q.insert(x,y-1);
+
+                this.q.insert(x+1,y+1);
+                this.q.insert(x+1,y-1);
+                this.q.insert(x-1,y+1);
+                this.q.insert(x-1,y-1);
+
+                this.q.calculateEdges();
+
+                this.q.startPath(this.start.x, this.start.y, this.target.x, this.target.y);
+
+                this.redraw();
+            } else if(E.Keyboard.wasPressed("KeyE")){
+                const x = floor(E.Mouse.position.x / this.scale);
+                const y = floor(E.Mouse.position.y / this.scale);
+
+                if(!this.flip)
+                    this.start.set({x: x, y: y});
+                else
+                    this.target.set({x: x, y: y});
+
+                
+                this.flip = !this.flip;
+                this.q.startPath(this.start.x, this.start.y, this.target.x, this.target.y)
+                this.redraw();
+            } else if(E.Mouse.isDown("right")){
+                 
+
+                this.q.stepPath();
+            
                 this.redraw();
             }
 
-            if(E.Mouse.isDown("right")){
-                console.time();
+            this.hoverGraphic.clear();
+
+            const x = floor(E.Mouse.position.x / this.scale);
+            const y = floor(E.Mouse.position.y / this.scale);
+
+            const node = this.q.getNode(x,y)
+            if(node !== null) node.draw(this.hoverGraphic,this.scale, 9, 0x0000FF);
+        }
+
+        draw(g: Graphics): void {
+            g.clear();
+
+            this.q.draw(g,this.scale);
+        }
+
+    }
+
+    this.addEntity(new Quadquadtest())
+
+    // ASTAR GRID
+    class Test3 extends Entity {
+
+        private grid = new LiveGridGraph(128,128);
+
+        private scale = 16;
+
+        constructor() {
+            super();
+            this.grid.start_astar(0,0,24,12);
+            this.grid.step_astar();
+
+            this.redraw();
+        }
+
+        private start = new Vec2(0,0);
+        private target = new Vec2(0,0);
+
+        private flip = false;
+
+        update(dt: number): void {
+            if(E.Mouse.isDown("left")){
+                const x = floor(E.Mouse.position.x / this.scale);
+                const y = floor(E.Mouse.position.y / this.scale);
+                
+                this.grid.blockcell(x,y);
+
+                this.grid.blockcell(x+1,y);
+                this.grid.blockcell(x-1,y);
+                this.grid.blockcell(x,y+1);
+                this.grid.blockcell(x,y-1);
+
+                this.grid.blockcell(x+1,y+1);
+                this.grid.blockcell(x+1,y-1);
+                this.grid.blockcell(x-1,y+1);
+                this.grid.blockcell(x-1,y-1);
+
+                this.grid.start_astar(this.start.x, this.start.y, this.target.x, this.target.y);
+                
+                this.redraw();
+            } else if(E.Keyboard.wasPressed("KeyE")){
+                const x = floor(E.Mouse.position.x / this.scale);
+                const y = floor(E.Mouse.position.y / this.scale);
+
+                if(!this.flip)
+                    this.start.set({x: x, y: y});
+                else
+                    this.target.set({x: x, y: y});
+
+                
+                this.flip = !this.flip;
+                this.grid.start_astar(this.start.x, this.start.y, this.target.x, this.target.y)
+                this.redraw();
+                
+            } else if(E.Mouse.isDown("right")){
                 this.grid.step_astar();
                 this.redraw();
-                console.timeEnd();
             }
         }
 
         draw(g: PIXI.Graphics): void {
             g.clear();
-            g.moveTo(0,0);      
-            this.grid.draw(g,30);
+            g.x = this.scale * 128;   
+            this.grid.draw(g,this.scale);
         }
     }
-    //this.addEntity(new Test3());
+    this.addEntity(new Test3());
 
     class FirstSprite extends GMEntity {
         constructor(spot: Coordinate){
@@ -281,7 +398,7 @@ export function loadTestLevel(this: BearEngine): void {
     class conwaytest extends Entity {
 
         private conway = new ConwaysLife(60,60);
-        private accumulation = -2;
+        private accumulation = -.5;
 
         constructor(){
             super();
@@ -308,8 +425,7 @@ export function loadTestLevel(this: BearEngine): void {
         }
 
     }
-    this.addEntity(new conwaytest())
-
+    //this.addEntity(new conwaytest())
 }
 
 

@@ -1,18 +1,14 @@
 
 import { Graphics, Text } from "pixi.js";
 import { blend, rgb } from "./color";
-import { abs, floor, min } from "./miscmath";
+import { abs, floor, max, min } from "./miscmath";
 import { ModifiablePQ, PQ } from "./priorityqueue";
 import { LinkedQueue } from "./queue";
 import { LinkedStack, LightLinkedBag } from "./stack";
 import { distanceSquared } from "./shapes/vec2";
+import { drawLineBetweenPoints } from "./shapes/shapedrawing";
 
 
-// TODO: 
-//  make distance between nodes be a factor.
-//  Implement a more generic version
-//  Reimplemented ASTAR
-//  Optimized version for 2D grids
 
 // Change it into the graph class
 // add Edge class to allow weighted edges --> has Node, distance, next
@@ -20,8 +16,8 @@ import { distanceSquared } from "./shapes/vec2";
 
 
 // Allows for connected component tests aswell as paths between nodes
-// no weights implemented
-class GraphNode<T> {
+// no weights
+export class GraphNode<T> {
     // The thing that uniquely describes this node
     // could be a string name, a [x,y] coordinate,
     identity: T;
@@ -118,8 +114,9 @@ class PathNode<T> {
     }
 }
 
-// Convert graph nodes to be handled by this class --> easier handling of edges
-export class Graph<T> {
+
+
+export class WeightedGraph<T> {
     constructor(){}
 
     createNode(identity: T): void {
@@ -209,7 +206,7 @@ export class NamedGraph<P extends primitiveTypes> {
             }
         }
 
-        return null;
+        return null; 
     }
 }
 
@@ -227,7 +224,15 @@ class NamedPathNode<P extends primitiveTypes> {
     }
 }
 
-// TODO: used for pathfinding in grids, common in games.
+
+// Other ways to optimize this: 
+//    create a static quadtree, subdivide into four rectangles until the rectangle has no walls.
+//    then at each leaf node, finds everything that is it connected, and set those as its neighbours (all for 8 sides)
+//    
+// Other:
+//   just add nodes to corners of lone blocks 
+// 
+
 export class GridGraph {
     private grid: boolean[] = [];
 
@@ -335,12 +340,15 @@ export class GridGraph {
         return Math.hypot(xfirst - xsecond, yfirst - ysecond);
     }
     
+    // THIS HEURISTIC IS FALSE. I NEED TO CORRECT IT
     heuristic(first: number, second: number){
         const [xfirst,yfirst] = this.one2two(first);
         const [xsecond,ysecond] = this.one2two(second);
         const dx = abs(xfirst - xsecond);
         const dy = abs(yfirst - ysecond);
-        return (dx + dy) + (Math.SQRT2-1) * min(dx,dy);
+
+        const maxLength = max(this.width, this.height)
+        return (1 + 1/maxLength) * ((dx + dy) + (Math.SQRT2-2) * min(dx,dy));
     }
 
     neighbours(index: number): number[] {
@@ -471,20 +479,26 @@ export class LiveGridGraph {
         this.solved = false;
         this.solvable = true;
 
+        this.iterations = 0;
         const test = new GridGraph(this.width, this.height);
         test["grid"] = this.grid.slice(0)
         this.solvable = (test.astar(xstart,ystart,xtarget,ytarget) !== null);
     }
 
+
+    private iterations = 0;
     // true if done!
     step_astar(){
         if(!this.solvable) return true;
         if(this.solved) return true;
 
+
+
         if(!this.pq.isEmpty()){
             const node = this.pq.popMax();
-            
+            this.iterations++;
             if(node === this.target){
+                console.log("Grid Astar:" + this.iterations);
                 // Found a path!
                 const raw:number[] = []
                 const stack = new LinkedStack<[number, number]>();
@@ -543,7 +557,15 @@ export class LiveGridGraph {
         const [xsecond,ysecond] = this.one2two(second);
         const dx = abs(xfirst - xsecond);
         const dy = abs(yfirst - ysecond);
-        return (dx + dy) + (Math.SQRT2-1) * min(dx,dy);
+
+
+        // the heuristic needs to be just right::
+            // Many paths in a grid have the exact same distance, so it has explore all of them. I multiply the heuristic
+            // this by a small number to try and offset that (so it has more importance). There are many different methods described below:
+       //http://theory.stanford.edu/~amitp/GameProgramming/Heuristics.html#breaking-ties
+       // still not perfect, sometimes its too 'hesitant' to choose a path
+        const maxLength = 4 * max(this.width, this.height)
+        return (1 + 1/maxLength) * ((dx + dy) + (Math.SQRT2-2) * min(dx,dy));
     }
 
     neighbours(index: number): number[] {
@@ -612,54 +634,59 @@ export class LiveGridGraph {
 
         const [x1,y1] = this.one2two(this.start);
         const [x2,y2] = this.one2two(this.target);
-
         const maxVal = Math.hypot(x1 - x2,y1 - y2);
-        for(let i = 0; i < this.width; i++){
-            for(let j = 0; j < this.height; j++){
+
+        g.beginFill(0x46484d);
+        g.drawRect(0,0, this.width * scale, this.height*scale);
+
+        //walls and other stuff
+        for(let i = 0; i < this.width; ++i){
+            for(let j = 0; j < this.height; ++j){
                 const index = this.two2one(i,j);
-                g.endFill()
+                // super laggy
+                // drawLineBetweenPoints(g,{x: 0 , y:j * scale}, {x: this.width * scale, y:j * scale},"#000000",1,3)
+                // drawLineBetweenPoints(g,{x: scale * i , y:0}, {x: scale * i, y:this.height * scale},"#000000",1,3)
+            
                 if(this.grid[index] === false){
-                    g.lineStyle(3,0xffffff);
-                } else {
-                    g.lineStyle(3,0x000000);
-                    g.beginFill(0x46484d);
+                    g.beginFill(0x000000);
+                    g.drawRect(i * scale, j*scale, scale, scale);
+                    g.endFill();
                 }
-
-                if(this.estimatedFinalCost.has(index)){
-                    const val = this.estimatedFinalCost.get(index);
-                    const percent = val / maxVal;
-                    g.lineStyle(3,0xff0000);
-                    g.beginFill(blend(rgb(25,255,0),rgb(255,0,0),percent).value());
-                }
-
-                //  else if(this.inPQ.has(index)){
-                //     g.lineStyle(3,0xff0000);
-                //     g.beginFill(0xff0000, .1);
-                // }
-
-                if(this.finalPath !== null){
-                    if(this.finalPath.includes(index)){
-                        g.lineStyle(3,0xe8913f);
-                        g.beginFill(0xe8913f);
-                    }
-                }
-
-               
-
-                g.drawRect(i * scale,j*scale,scale, scale)
-
-                // const cost = this.estimatedFinalCost.get(index);
-                // if(cost !== undefined){
-                //     const text = new Text(cost.toFixed(1) + "",{
-                //         fontSize: 13
-                //     });
-                //     text.x = i * scale;
-                //     text.y = j * scale;
-                    
-                //     g.addChild(text);
-                // }
             }
         }
+
+        // Draw places we have explored 
+        for(const [key,val] of this.estimatedFinalCost){
+            const percent = val / maxVal;
+
+            const index = this.one2two(key);
+            g.lineStyle(3,0xff0000);
+            g.beginFill(blend(rgb(25,255,0),rgb(255,0,0),percent).value());
+            g.drawRect(index[0] * scale, index[1] *scale, scale, scale);
+        }
+
+
+        if(this.finalPath !== null){
+            for(const val of this.finalPath){
+                const index = this.one2two(val);
+                g.lineStyle(18,0xe8913f);
+                g.beginFill(0xe8913f);
+                g.drawRect(index[0] * scale, index[1] *scale, scale, scale);
+            }
+        }  
+
+        // const cost = this.estimatedFinalCost.get(index);
+        // if(cost !== undefined){
+        //     const text = new Text(cost.toFixed(1) + "",{
+        //         fontSize: 13
+        //     });
+        //     text.x = i * scale;
+        //     text.y = j * scale;
+            
+        //     g.addChild(text);
+        // }
+            
+        
 
     }
 }

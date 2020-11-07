@@ -23,8 +23,7 @@ export function drawCircle(graphics: Graphics, point: Coordinate, r: number, col
 }
 
 /// @func drawLineBetweenPoints(point1, point2, [color])
-export function drawLineBetweenPoints(graphics: Graphics, point1: Coordinate, point2: Coordinate, color: string = "#FF000F"){
-    const width = 3;
+export function drawLineBetweenPoints(graphics: Graphics, point1: Coordinate, point2: Coordinate, color: string = "#FF000F", alpha = 1, width = 3){
     const real_color = utils.string2hex(color);
     
 	const x1 = point1.x;
@@ -32,7 +31,7 @@ export function drawLineBetweenPoints(graphics: Graphics, point1: Coordinate, po
 	const x2 = point2.x;
 	const y2 = point2.y;
     
-    graphics.lineStyle(width, real_color);
+    graphics.lineStyle(width, real_color, alpha);
     graphics.moveTo(x1,y1);
     graphics.lineTo(x2,y2);
 

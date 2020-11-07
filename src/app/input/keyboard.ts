@@ -1,4 +1,5 @@
 import * as Mousetrap from "mousetrap"
+import { ExtendedKeyboardEvent, MousetrapInstance } from "mousetrap";
 import { KECode } from "../apiwrappers/keyboardapiwrapper";
 
 // Things maybe to add:
