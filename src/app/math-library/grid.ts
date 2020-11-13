@@ -1,20 +1,8 @@
 
 
-// Extending arrays is not as simple as it seems
-// So just a grid for now
-
 import { swap } from "./arrayshelper";
 import { randomInt } from "./randomhelpers";
 
-// Basically a 2D array with extra functionality
-
-
-// other option, 
-//   create a static create function and have functions that take a grid
-//    would allow array access [][]
-//    and Grid would hold a ton of helpers
-//          Grid.copy()
-//          Grid.create()
 
 
 export class Grid {

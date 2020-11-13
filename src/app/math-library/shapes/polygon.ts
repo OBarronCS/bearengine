@@ -6,6 +6,8 @@ import { Graphics, utils } from "pixi.js";
 import { drawVecAsArrow } from "./shapedrawing";
 
 
+// Test for concavity: http://paulbourke.net/geometry/polygonmesh/
+// TODO: more optimized clockwise test for 3 points, and hull calculation.
 
 export class Polygon implements Shape<Polygon>{
    
@@ -142,6 +144,7 @@ export class Polygon implements Shape<Polygon>{
     }
     
     //https://en.wikipedia.org/wiki/Shoelace_formula
+    // this might have more efficient formula: http://paulbourke.net/geometry/polygonmesh/ 
     area(): number {
         let leftside = 0;
         let rightside = 0;

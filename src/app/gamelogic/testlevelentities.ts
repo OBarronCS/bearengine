@@ -1,22 +1,25 @@
-import { Graphics, Sprite, TilingSprite } from "pixi.js";
+import { Graphics, Sprite, TilingSprite, TimeLimiter } from "pixi.js";
 import { BearEngine } from "../core-engine/bearengine";
 import { Entity, GMEntity, SimpleKeyboardCheck, SimpleMovement, SpriteEntity } from "../core-engine/entity";
 import { E } from "../core-engine/globals";
 import { ColliderPart } from "../core-engine/parts";
 import { Tilemap } from "../core-engine/tilemap";
 import { ColorTween } from "../core-engine/tweening/tween";
+import { range } from "../math-library/arrayshelper";
 import { rgb, Color } from "../math-library/color";
 import { GraphNode, LiveGridGraph } from "../math-library/graphs";
+import { SparseGrid } from "../math-library/hashtable";
 import { abs, floor, min, PI } from "../math-library/miscmath";
 import { HermiteCurve } from "../math-library/paths";
 import { GridQuadNode, GridQuadTree, LiveGridQuadTree, QuadTree } from "../math-library/quadtree";
-import { chance, fillFunction, randomRangeSet } from "../math-library/randomhelpers";
+import { chance, fillFunction, random, randomRangeSet, random_range } from "../math-library/randomhelpers";
 import { Line } from "../math-library/shapes/line";
 import { Polygon } from "../math-library/shapes/polygon";
 import { Rect, dimensions } from "../math-library/shapes/rectangle";
-import { drawLineBetweenPoints, drawPoint } from "../math-library/shapes/shapedrawing";
-import { Vec2, Coordinate, angleBetween } from "../math-library/shapes/vec2";
+import { drawLineArray, drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "../math-library/shapes/shapedrawing";
+import { Vec2, Coordinate, angleBetween, mix } from "../math-library/shapes/vec2";
 import { LinkedStack } from "../math-library/stack";
+import { TickTimer } from "../math-library/ticktimer";
 import { Player } from "./player";
 
 
@@ -224,7 +227,7 @@ export function loadTestLevel(this: BearEngine): void {
 
     }
 
-    this.addEntity(new Quadquadtest())
+    //this.addEntity(new Quadquadtest())
 
     // ASTAR GRID
     class Test3 extends Entity {
@@ -292,7 +295,7 @@ export function loadTestLevel(this: BearEngine): void {
             this.grid.draw(g,this.scale);
         }
     }
-    this.addEntity(new Test3());
+    //this.addEntity(new Test3());
 
     class FirstSprite extends GMEntity {
         constructor(spot: Coordinate){
@@ -313,6 +316,7 @@ export function loadTestLevel(this: BearEngine): void {
     //this.addEntity(new FirstSprite({x:50,y:170}));
 
 
+    // Quadtree drawing test
     class Q extends Entity {
         private tree = new QuadTree<Vec2>(2000,2000, a => new Rect(a.x, a.y,4,4));
         private nope = this.redraw();
@@ -347,7 +351,7 @@ export function loadTestLevel(this: BearEngine): void {
     }
     //this.addEntity(new PolygonTest());
 
-
+    // TileMap collision
     class Tilemaptest extends Entity {
 
         private map = new Tilemap(30,30,80,80);
@@ -426,6 +430,111 @@ export function loadTestLevel(this: BearEngine): void {
 
     }
     //this.addEntity(new conwaytest())
+
+
+
+    class LightningTest extends Entity {
+
+        private startPoint = Vec2.ZERO;
+
+        private lines: Line[] = [];
+
+        private ticker = new TickTimer(6);
+
+        update(dt: number): void {
+            if(!this.ticker.tick()) return;
+            this.lines = [];
+            if(E.Mouse.wasPressed("left")){
+                this.startPoint = E.Mouse.position.clone();
+            }
+            const mousePoint = E.Mouse.position.clone();
+
+            this.lines.push(new Line(this.startPoint, mousePoint));
+            
+            // the longer the distance, the bigger this needs to be
+            // so the lightning looks natural
+            let offset =150;
+
+           
+            // how many times do we cut the segment in half?
+            for (let i = 0; i < 5; i++) {
+
+                const newLines: Line[] = [];
+
+                for(const line of this.lines){
+                    const midPoint = mix(line.A, line.B, .5);
+                    
+                    midPoint.add(Line.normal(line.A, line.B).extend(random_range(-offset,offset)));
+
+                    newLines.push(new Line(line.A, midPoint))
+                    newLines.push(new Line(midPoint, line.B));
+
+                    /// sometimes, split!
+                    if(chance(18)){
+                        const dir = Vec2.asSub(midPoint, line.A);
+                        dir.drotate(random_range(-30,30)).scale(.7).add(midPoint);
+                        newLines.push(new Line(midPoint, dir));
+                    }
+                }
+
+                this.lines = newLines;
+                offset /= 2;
+            }
+
+            
+
+            this.redraw();
+        }
+
+
+        draw(g: Graphics): void {
+            g.clear();
+            for(const line of this.lines){
+                line.draw(g,"#FFFFFF");
+            }
+        }
+
+    }
+
+    this.addEntity(new LightningTest());
+    
+    // Quadtree drawing test
+    class SpatialTest extends Entity {
+        private sparse = new SparseGrid<Vec2>(1000,1000,10,10,a => new Rect(a.x, a.y,4,4));
+        private nope = this.redraw();
+    
+        update(dt: number): void {
+            if(E.Keyboard.wasPressed("KeyF")){
+                this.sparse.insert(E.Mouse.position.clone());
+                this.redraw();
+                console.log(this.sparse["hashmap"]["arr"])
+            }
+        }
+        draw(g: PIXI.Graphics): void {
+            g.clear();
+            this.sparse.draw(g);
+        }
+    }
+    // this.addEntity(new SpatialTest())
+
+
+    class LineCloseTest extends Entity {
+
+        private line = new Line(new Vec2(100,60), new Vec2(10,200));
+        private p = this.redraw()
+
+        update(dt: number): void {
+            this.redraw();
+        }
+        draw(g: Graphics): void {
+            g.clear();
+            this.line.draw(g);
+            drawPoint(g,this.line.pointClosestTo(E.Mouse.position));
+        }
+
+    }
+
+    this.addEntity(new LineCloseTest());
 }
 
 

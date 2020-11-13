@@ -41,6 +41,10 @@ export class Vec2 {
         return Math.sqrt(dx * dx + dy * dy);
     }
 
+    static asSub(p1: Coordinate,p2: Coordinate): Vec2 {
+        return new Vec2(p1.x - p2.x,p1.y - p2.y)
+    }
+
     constructor(_x: number,_y: number){
         this.x = _x;
         this.y = _y;

@@ -9,7 +9,7 @@ export interface Stack<T> {
 }
 
 
-// Linked list representation of a stack
+
 export class StackNode<T> {
     public item: T;
     public next: StackNode<T>;

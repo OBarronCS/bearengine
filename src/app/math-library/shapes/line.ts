@@ -2,6 +2,7 @@ import { Vec2, Coordinate } from "./vec2";
 import { Rect } from "./rectangle";
 import { Graphics } from "pixi.js";
 import { drawLineBetweenPoints } from "./shapedrawing";
+import { clamp } from "../miscmath";
 
 
 // A line segment
@@ -10,6 +11,16 @@ export class Line {
     A: Vec2;
     B: Vec2;
     normal: Vec2;
+
+    // Returns a normal of two points, it can be either of the two options depending on which is a or b.
+    static normal(a: Coordinate,b: Coordinate): Vec2 {
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+
+        const magnitude = Math.sqrt((dx * dx) + (dy * dy));
+
+        return new Vec2(dy/magnitude, -dx/magnitude);
+    }
 
     constructor(p1: Coordinate, p2: Coordinate, normal: Coordinate = {x: 0, y: -1}){
         this.A = new Vec2(p1.x, p1.y);
@@ -25,6 +36,21 @@ export class Line {
         
         const rect = new Rect(left, top, right - left, bot - top);
 		return rect;
+    }
+
+
+    pointClosestTo(p: Coordinate): Vec2 {
+        //How it works:
+        // Finds the point on the line that when passed through p, is normal to the line.
+        //http://paulbourke.net/geometry/pointlineplane/ 
+        const dx = this.B.x - this.A.x;
+        const dy = this.B.y - this.A.y;
+
+        const numerator = (p.x - this.A.x)*(dx) +  (p.y - this.A.y)*(dy)
+        const denominator = Vec2.asSub(this.B, this.A).lengthSquared();
+        const u = clamp(numerator / denominator,0,1);
+
+        return new Vec2(this.A.x + u * (dx), this.A.y + u * (dy));
     }
 
     /**

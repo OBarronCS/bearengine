@@ -122,6 +122,7 @@ export class Rect implements Shape<Rect> {
     }
 
     /** Returns a rectangle that encloses both of these */
+    // Union is same thing
     merge(box: Rect): Rect {
         // Top left
         const _x = min(this.x, box.x);
@@ -171,6 +172,10 @@ export class Rect implements Shape<Rect> {
         this.y2 = this.y + h;
     }
 
+
+    area(): number {
+        return this.height * this.width;
+    }
 
     // Maybe find a better spot to put this
     static CollidesWithSphere(rect: Rect, x: number, y: number, r: number): boolean {
