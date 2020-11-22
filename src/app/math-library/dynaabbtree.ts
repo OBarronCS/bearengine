@@ -8,7 +8,7 @@ import { PQ } from "./priorityqueue";
 import { LinkedQueue } from "./queue";
 import { Ellipse } from "./shapes/ellipse";
 import { Rect } from "./shapes/rectangle";
-import { rotatePoint } from "./shapes/vec2";
+import { Coordinate, rotatePoint } from "./shapes/vec2";
 import { LinkedStack } from "./stack";
 
 
@@ -308,6 +308,28 @@ export class DynamicAABBTree {
         return cost;
     }
 
+    pointQuery(point: Coordinate, node = this.root, list: Ellipse[] = []): Ellipse[] {
+        if(node === null) return [];
+        if(!node.aabb.contains(point)) return [];
+        
+        if(node.isLeaf && node.object.contains(point)) list.push(node.object);
+
+        this.pointQuery(point, node.left, list);
+        this.pointQuery(point, node.right, list);
+
+        return list;
+    }
+
+    pointQueryTestNodes(point: Coordinate, node = this.root, list: Node[] = []): Node[] {
+        if(node === null) return [];
+        if(node.aabb.contains(point)) list.push(node);
+
+        this.pointQueryTestNodes(point, node.left, list);
+        this.pointQueryTestNodes(point, node.right, list);
+
+        return list;
+    }
+
     draw(g: Graphics, node = this.root) {
         if(node === null) return;
 
@@ -317,7 +339,6 @@ export class DynamicAABBTree {
         // Leaf Node
         if(node.isLeaf) { 
             node.object.draw(g,0xFF0000);
-            console.log(1)
         }
 
         this.draw(g, node.left);

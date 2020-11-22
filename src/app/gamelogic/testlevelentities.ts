@@ -546,12 +546,14 @@ export function loadTestLevel(this: BearEngine): void {
         update(dt: number): void {
             if(E.Mouse.wasPressed("left")){
                 this.tree.insert(new Ellipse(E.Mouse.position.clone(),40,40))
+                console.log(this.tree["root"])
                 this.redraw();
             }
+
+            this.tree.pointQueryTestNodes(E.Mouse.position).forEach(e => e.aabb.draw(this.graphics,0x00F0FF));
         }
         draw(g: Graphics): void {
             g.clear();
-            console.log("REDRAW");
             this.tree.draw(g);
         }
 
