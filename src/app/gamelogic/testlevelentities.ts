@@ -551,6 +551,7 @@ export function loadTestLevel(this: BearEngine): void {
         }
         draw(g: Graphics): void {
             g.clear();
+            console.log("REDRAW");
             this.tree.draw(g);
         }
 

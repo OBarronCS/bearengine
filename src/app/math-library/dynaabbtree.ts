@@ -8,6 +8,7 @@ import { PQ } from "./priorityqueue";
 import { LinkedQueue } from "./queue";
 import { Ellipse } from "./shapes/ellipse";
 import { Rect } from "./shapes/rectangle";
+import { rotatePoint } from "./shapes/vec2";
 import { LinkedStack } from "./stack";
 
 
@@ -20,10 +21,6 @@ import { LinkedStack } from "./stack";
 // only update it if aabb is larger
 // also, make compenstaitons for velocity, so if moving a certian direction, make it larger in that respect
 
-// go to page 73 for balancing
-
-
-
 
 class Node {
         
@@ -34,8 +31,10 @@ class Node {
     constructor(
         public object: Ellipse,
         public aabb: Rect,
-        public isLeaf: boolean,
     ) {}
+
+    // all nodes will have either zero or two children in this data structure 
+    get isLeaf(){ return this.left === null}
 }
 
 
@@ -48,7 +47,7 @@ export class DynamicAABBTree {
     insert(obj: Ellipse){
         const aabb = obj.getAABB();
 
-        const leaf = new Node(obj, aabb, true)
+        const leaf = new Node(obj, aabb)
 
         if(this.root === null) {
             this.root = leaf;
@@ -61,7 +60,7 @@ export class DynamicAABBTree {
         const oldParent = sibling.parent;
 
         // creates new internal node
-        const newParent = new Node(null,null, false);
+        const newParent = new Node(null,null);
         newParent.parent = oldParent;
         newParent.aabb = aabb.merge(sibling.aabb);
 
@@ -97,10 +96,111 @@ export class DynamicAABBTree {
             const right = currentNode.right;
 
             currentNode.aabb = left.aabb.merge(right.aabb);
+
+            this.rotate(currentNode);
+
             currentNode = currentNode.parent;
         }
     }
 
+    // rotates to keep AABB's small
+    rotate(node: Node){
+        // if left child is swapped with sibling, looks like this
+        // original = SA(left,right)
+        // potentialNew = SA(other swapped, right)
+
+        const right = node.right;
+        const left = node.left;
+    
+        let swapped = false;
+        // check rotating left down a level, to become its siblings child
+        if(left !== null){
+            if(!right.isLeaf){
+                const originalSA = right.aabb.area();
+
+                // if swap LEFT
+                const newSAleft = right.right.aabb.merge(left.aabb).area();
+
+                // if swap RIGHT
+                const newSAright = right.left.aabb.merge(left.aabb).area();
+
+                
+                // pick the swap that is better
+                if(newSAleft < newSAright){
+                    if(newSAleft < originalSA){
+                        const temp = right.left;
+
+                        right.left = node.left;
+                        right.left.parent = temp.parent;
+
+                        node.left = temp;
+                        node.left.parent = node;
+
+                        this.refitToChildren(right);
+
+                        swapped = true;
+                    }
+                } else if(newSAright < originalSA){
+                    // swap them!
+                    const temp = right.right;
+                    right.right = node.left;
+                    right.right.parent = temp.parent;
+
+                    node.left = temp;
+                    node.left.parent = node;
+
+                    this.refitToChildren(right);
+
+                    swapped = true;
+                }
+            }
+        }  
+        if(!swapped && right !== null){
+            // now trying to swap from right to left, where left has a greater depth
+            if(!left.isLeaf){
+                // swap best one
+                const originalSA = left.aabb.area();
+
+                // if swap LEFT
+                const newSAleft = left.right.aabb.merge(right.aabb).area();
+
+                // if swap RIGHT
+                const newSAright = left.left.aabb.merge(right.aabb).area();
+
+                
+
+                if(newSAleft < newSAright){
+                    if(newSAleft < originalSA){
+                        // swap them!
+                        const temp = left.left;
+                        left.left = node.right;
+                        left.left.parent = temp.parent
+
+
+                        node.right = temp;
+                        node.right.parent = node;
+
+                        this.refitToChildren(node.left);
+                    }
+                } else if(newSAright < originalSA){
+                    // swap them!
+                    const temp = left.right;
+                    left.right = node.right;
+                    left.right.parent = temp.parent;
+
+                    node.right = temp;
+                    node.right.parent = node;
+
+                    this.refitToChildren(node.left);
+                }
+            }
+        }
+    }
+
+
+    refitToChildren(node: Node){
+        node.aabb = node.left.aabb.merge(node.right.aabb);
+    }
 
     bestSibling(node: Node): Node {
         // this is an efficient method that avoids looking at ALL of the possible siblings
@@ -151,6 +251,7 @@ export class DynamicAABBTree {
     }
 
 
+    // cost of parents changing
     private inheritedCost(node: Node, newSibling: Node){
         let total = 0;
 
@@ -187,9 +288,8 @@ export class DynamicAABBTree {
         return newParentAABB.area() + this.inheritedCost(node, newSibling);
     }
 
-    // converting to array would make this faster;
+    // Total surface area under a node
     nodeCost(node: Node){
-        
         const stack = new LinkedStack<Node>();
         stack.push(node);
 
@@ -217,6 +317,7 @@ export class DynamicAABBTree {
         // Leaf Node
         if(node.isLeaf) { 
             node.object.draw(g,0xFF0000);
+            console.log(1)
         }
 
         this.draw(g, node.left);
