@@ -7,12 +7,14 @@ import { Tilemap } from "../core-engine/tilemap";
 import { ColorTween } from "../core-engine/tweening/tween";
 import { range } from "../math-library/arrayshelper";
 import { rgb, Color } from "../math-library/color";
+import { DynamicAABBTree } from "../math-library/dynaabbtree";
 import { GraphNode, LiveGridGraph } from "../math-library/graphs";
 import { SparseGrid } from "../math-library/hashtable";
 import { abs, floor, min, PI } from "../math-library/miscmath";
 import { HermiteCurve } from "../math-library/paths";
 import { GridQuadNode, GridQuadTree, LiveGridQuadTree, QuadTree } from "../math-library/quadtree";
 import { chance, fillFunction, random, randomRangeSet, random_range } from "../math-library/randomhelpers";
+import { Ellipse } from "../math-library/shapes/ellipse";
 import { Line } from "../math-library/shapes/line";
 import { Polygon } from "../math-library/shapes/polygon";
 import { Rect, dimensions } from "../math-library/shapes/rectangle";
@@ -496,7 +498,7 @@ export function loadTestLevel(this: BearEngine): void {
 
     }
 
-    this.addEntity(new LightningTest());
+    // this.addEntity(new LightningTest());
     
     // Quadtree drawing test
     class SpatialTest extends Entity {
@@ -534,7 +536,27 @@ export function loadTestLevel(this: BearEngine): void {
 
     }
 
-    this.addEntity(new LineCloseTest());
+    // this.addEntity(new LineCloseTest());
+
+
+    class DynAABBTest extends Entity {
+        
+        private tree = new DynamicAABBTree();
+
+        update(dt: number): void {
+            if(E.Mouse.wasPressed("left")){
+                this.tree.insert(new Ellipse(E.Mouse.position.clone(),40,40))
+                this.redraw();
+            }
+        }
+        draw(g: Graphics): void {
+            g.clear();
+            this.tree.draw(g);
+        }
+
+    }
+    
+    this.addEntity(new DynAABBTest());
 }
 
 

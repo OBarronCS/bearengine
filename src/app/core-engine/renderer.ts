@@ -5,7 +5,7 @@ const resources = Loader.shared.resources;
 
 // arbitrary, but make it high enough so it looks good --> this is the base render texture height!
 // so things are actually renderer to THIS thing
-const DEFAULT_RESOLUTION_HEIGHT = 1200//768;
+const DEFAULT_RESOLUTION_HEIGHT = 1200 //768;
 
 const MIN_RATIO = 4/3;
 const MAX_RATIO = 21/9;
@@ -94,6 +94,9 @@ export class Renderer {
     }
     
     private fitToScreen(){
+        // this is wrong if zoom in on chrome, or on a macbook.
+        // use this to scale accordingly
+        // https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio
         let window_height: number;
         let window_width: number;
 
@@ -101,6 +104,7 @@ export class Renderer {
         window_width = this.targetWindow.innerWidth;
         window_height = this.targetWindow.innerHeight;
 
+        console.log(window_width, window_height)
 
         // console.log(window_width, window_height)
 
