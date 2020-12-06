@@ -2,13 +2,12 @@
 // use Rect class for the bounding boxes
 
 import { Graphics } from "pixi.js";
-import { GraphNode } from "./graphs";
 import { niceColor } from "./miscmath";
 import { PQ } from "./priorityqueue";
 import { LinkedQueue } from "./queue";
 import { Ellipse } from "./shapes/ellipse";
 import { Rect } from "./shapes/rectangle";
-import { Coordinate, rotatePoint } from "./shapes/vec2";
+import { Coordinate } from "./shapes/vec2";
 import { LinkedStack } from "./stack";
 
 
@@ -23,7 +22,6 @@ import { LinkedStack } from "./stack";
 
 
 class Node {
-        
     public parent: Node = null;
     public left: Node = null;
     public right: Node = null;

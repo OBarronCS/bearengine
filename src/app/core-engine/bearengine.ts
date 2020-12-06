@@ -57,17 +57,20 @@ export interface EngineSettings {
 }
 
 class BearEngine {
+
     public renderer: Renderer;
 
     public camera: CameraSystem;
 
+    //
     public mouse_info = new PIXI.Text("",new PIXI.TextStyle({"fill": "white"}));
     public gui: GUI;
     
-    // Total simulated time
+    // Total simulated time, in seconds
     public totalTime = 0;
 
-    // Things that are accessable the API
+
+    // Things that should be globally accessable by E
     private mouse: EngineMouse;
     private keyboard: EngineKeyboard;
     private current_level: LevelHandler = null;
@@ -75,7 +78,7 @@ class BearEngine {
 
     private updateList: Entity[] = [];
 
-    constructor(settings: EngineSettings ){
+    constructor(settings: EngineSettings){
         E.Engine = this;
         
         this.mouse = new InternalMouse();
@@ -124,7 +127,7 @@ class BearEngine {
     }
 
     async initRenderer(){
-
+        
     }
 
 	startLevel(level_struct: CustomMapFormat){

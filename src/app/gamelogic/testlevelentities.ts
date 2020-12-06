@@ -334,7 +334,7 @@ export function loadTestLevel(this: BearEngine): void {
             this.tree.draw(g);
         }
     }
-    // this.addEntity(new Q())
+    //this.addEntity(new Q())
 
     // Clockwise test
     class PolygonTest extends Entity {
@@ -498,7 +498,7 @@ export function loadTestLevel(this: BearEngine): void {
 
     }
 
-    // this.addEntity(new LightningTest());
+    this.addEntity(new LightningTest());
     
     // Quadtree drawing test
     class SpatialTest extends Entity {
@@ -559,7 +559,7 @@ export function loadTestLevel(this: BearEngine): void {
 
     }
     
-    this.addEntity(new DynAABBTest());
+    //this.addEntity(new DynAABBTest());
 }
 
 
