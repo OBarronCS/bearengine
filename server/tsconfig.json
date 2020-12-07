@@ -1,23 +1,18 @@
 {
     "compilerOptions": {
+        "outDir": "/build",
+        "rootDir": "./",
+        "module": "CommonJS",
         "moduleResolution": "node",
         "target": "ESNext",
         "lib": ["DOM","ESNext"],
-        /*
-        Look into setting sourceMap == true for better debugging
-        */
+        "esModuleInterop": true
         //"allowSyntheticDefaultImports": true
-        //"esModuleInterop": true
         //"noImplicitAny" : true,
         //"noImplicitThis":
         // also one about case: and making sure you write "break;" 
-        "types": [
-            "webpack",
-            "webpack-env"
-        ]        
     },
     "exclude": [
-        "node_modules",
-        "server"
-    ],    
+        "node_modules"
+    ]
 }

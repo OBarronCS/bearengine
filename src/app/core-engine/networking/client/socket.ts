@@ -25,7 +25,7 @@ export abstract class Network {
         this.socket.binaryType = "arraybuffer";
 
         this.socket.onopen = () => {
-            console.log("Connected");
+            console.log("Socket connected");
             this.onopen();
         }
 
@@ -34,12 +34,13 @@ export abstract class Network {
             this.onclose();
         }
 
-        this.socket.onmessage = this.onmessage;
+        // The bind is crucial here, otherwise this would refer to the socket
+        this.socket.onmessage = this.onmessage.bind(this);
     }
 
     abstract onopen(): void;
     abstract onclose(): void;
-    abstract onmessage(this: WebSocket, ev: MessageEvent<any>): void;
+    abstract onmessage(ev: MessageEvent<any>): void;
 
     public send(buffer: ArrayBuffer | ArrayBufferView){
         this.socket.send(buffer);
@@ -56,16 +57,15 @@ export class BufferedNetwork extends Network {
 
     private packets = new LinkedQueue<ArrayBuffer>();
 
-    onopen(): void {
-        
-    }
+    onopen(): void {}
 
     onclose(): void {
 
     }
 
-    onmessage(this: WebSocket, ev: MessageEvent<any>): void {
-        console.log(this)
+    onmessage(ev: MessageEvent<any>): void {
+        console.log(this,
+            ev.data)
     }
 
 
@@ -73,6 +73,7 @@ export class BufferedNetwork extends Network {
     public tick(delta: number){
 
     }
+
 }
 
 

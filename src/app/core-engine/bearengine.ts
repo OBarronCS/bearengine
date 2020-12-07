@@ -49,6 +49,7 @@ import { log } from "../math-library/performance";
 import { ColliderPart } from "./parts";
 import { Line } from "../math-library/shapes/line";
 import { loadTestLevel } from "../gamelogic/testlevelentities";
+import { BufferedNetwork } from "./networking/client/socket";
 
 export interface CoreEvents  {}
 
@@ -78,9 +79,16 @@ class BearEngine {
 
     private updateList: Entity[] = [];
 
+
+    private network: BufferedNetwork;
+
     constructor(settings: EngineSettings){
         E.Engine = this;
         
+
+        this.network = new BufferedNetwork("ws://127.0.0.1:8080");
+        this.network.connect();
+
         this.mouse = new InternalMouse();
 
         if(!settings.popup){

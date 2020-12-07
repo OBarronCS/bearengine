@@ -9,7 +9,7 @@
 
 
 
-class BufferWriterStream extends DataView {
+export class BufferWriterStream extends DataView {
 
     private littleEndian = false;
     byteOffset: number = 0;
