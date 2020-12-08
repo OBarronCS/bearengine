@@ -1,4 +1,5 @@
 
+import { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } from "constants";
 import express from "express";
 import { readFile } from "fs";
 import path from "path";
@@ -27,20 +28,28 @@ app.get("/", (request, response) => {
 });
 
 const TICK_RATE = 20;
-const buffer = new ArrayBuffer(2);
-const initInfo = new DataView(buffer);
-initInfo.setUint8(0,1);
-initInfo.setUint8(1, TICK_RATE)
 
 const ws = new WS.Server( { port:8080 } )
-
-
 const sockets: WS[] = []
 
 let tick = 0;
+
+let referenceTime: bigint = 0n;
+let referenceTick = 0;
+
+// Currently I don't deal with wrap over of tick why is 16 bit number
 ws.on("connection", (socket) => {
     console.log("New connection")
     sockets.push(socket);
+
+    const buffer = new ArrayBuffer(12);
+    const initInfo = new DataView(buffer);
+    initInfo.setUint8(0,1);
+    initInfo.setUint8(1, TICK_RATE)
+    initInfo.setBigUint64(2,referenceTime);
+    initInfo.setInt16(10,referenceTick);
+
+    console.log(referenceTime,referenceTick)
 
     socket.send(initInfo.buffer);
 
@@ -77,7 +86,12 @@ function gameLoop(){
 
     // If we have made it far enough to TICK THE GAME
     if (previousTick + (1000 / TICK_RATE) <= now) {
-        console.log(now - previousTick);
+        //console.log(now - previousTick);
+        
+        referenceTime = BigInt(now);
+        referenceTick = tick;
+        console.log(tick)
+
         previousTick = now
 
         GameTick();
@@ -95,13 +109,15 @@ function GameTick(){
     const buffer = new ArrayBuffer(3);
     const view = new DataView(buffer);
     view.setUint8(0,3);
-    view.setInt16(1,tick);
+    view.setUint16(1,tick);
 
     sockets.forEach((client) => {
         //if (client.readyState === WebSocket.OPEN) {
             client.send(buffer);
     //       }
     })
+
+
     tick++;
 }
 

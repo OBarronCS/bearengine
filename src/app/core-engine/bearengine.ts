@@ -91,7 +91,7 @@ class BearEngine {
 
         setInterval(() => {
             this.network.sendPing();
-        }, 1000)
+        }, 2000)
 
         this.mouse = new InternalMouse();
 
@@ -202,14 +202,16 @@ class BearEngine {
         this.mouse.update();
 
 
+        // Checks buffer
+        this.network.tick();
+
         // both of these are in ms
         while (accumulated >= (simulation_time)) {
 
             // divide by 1000 to get seconds
             const dt = simulation_time / 1000;
 
-            // Checks buffer
-            this.network.tick(dt);
+
 
             this.current_level.collisionManager.update(dt);
 

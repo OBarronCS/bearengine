@@ -65,23 +65,25 @@ export class BufferedNetwork extends Network {
     private packets = new LinkedQueue<BufferedPacket>();
 
     public SERVER_SEND_RATE: number = -1;
+    /** seconds */
     public SERVER_SEND_INTERVAL: number = -1; //    1 / SERVER_SEND_RATE
 
-    public intervalTimer: number = 0; // Keep track of time, reset to zero on packets
-    public currentServerSendID: number = 0; // The packet being sent by server right now, estimate
-
-    /*
-    N depends on latency
-        N should be AT LEAST ceiling(ping / ms per server send data)
-        Same as ceiling(ping * SERVER_SEND_RATE)
+    // These are used to calculate the current tick the server is sending
+    // Sent in INIT packet
     
-    So server sends data every 50 ms (20 serversend_rate).  ping = 200 ms
-    N should be at least 4. Add one or two to this.
-    */
+    public REFERENCE_SERVER_TICK_ID: number = 0;
+    public REFERENCE_SERVER_TICK_TIME: bigint = -1n;
+
+    /** milliseconds */
+    public CLOCK_DELTA = 0;
+
+    // How much buffer caused by latency
     private latencyBuffer: number = -1;
     private additionalBuffer = 3;
 
-    public ping: number = -1;
+
+    // Generous, default ping
+    public ping: number = 150;
 
     public SERVER_IS_TICKING: boolean = false;
 
@@ -112,15 +114,18 @@ export class BufferedNetwork extends Network {
             case 2: this.prepareTicking(view); break;
             case 3: this.processGameData(view); break;
         }
-
-        this.packets.enqueue(ev.data);
     }
 
     private initInfo(view: DataView){
+        //
+        // [ 8bit id, 8bit rate, 64 bit timestamp, 16 bit id]
         const rate = view.getUint8(1);
         this.SERVER_SEND_RATE = rate;
         this.SERVER_SEND_INTERVAL = (1/rate);
 
+        // These may desync over time. Maybe resend them every now and then if it becomes an issue?
+        this.REFERENCE_SERVER_TICK_TIME = view.getBigUint64(2);
+        this.REFERENCE_SERVER_TICK_ID = view.getInt16(10)
     }
 
     private prepareTicking(view: DataView){
@@ -129,14 +134,15 @@ export class BufferedNetwork extends Network {
         this.SERVER_IS_TICKING = true;
         // console.log(view)
         // this is the next tick that will be sent
-        this.currentServerSendID = view.getUint16(1);
+        // this.currentServerSendID = view.getUint16(1);
     }
 
     private processGameData(view: DataView){
-        const id = view.getInt16(1);
+        const id = view.getUint16(1);
 
-        console.log("Received: " + id)
-        //this.packets.enqueue({ id: id, buffer: view.buffer });
+        // console.log("Received: " + id)
+        this.packets.enqueue({ id: id, buffer: view.buffer });
+        // console.log("Size of queue: " + this.packets.size())
     }
 
     public sendPing(){
@@ -152,60 +158,101 @@ export class BufferedNetwork extends Network {
         this.socket.send(view)
     }
 
+    private lastConfirmedPacketFromBuffer = 0;
+
+    // Get ping, 
     private calculatePing(view: DataView){
         // first byte: 1
         // next 8 bytes: the unix timestamp I sent
         // next 8 bytes: server time stamp
+
+    
         
         const originalStamp = view.getBigInt64(1);
         const serverStamp = view.getBigInt64(9);
 
-        this.ping = Number(BigInt(Date.now()) - originalStamp);
+        const currentTime = BigInt(Date.now());
+        this.ping = ceil(Number((currentTime - originalStamp)) / 2);
 
+        console.log("Ping:" + this.ping);
 
         this.latencyBuffer = ceil((this.ping / 1000) * this.SERVER_SEND_RATE);
         console.log("LatencyBuffer: " + this.latencyBuffer)
+
+        
+    
+
+        // This method assume latency is equal both ways
+        const delta = serverStamp - currentTime + BigInt(this.ping);
+
+        // LOCAL TIME + CLOCK_DELTA === TIME_ON_SERVER
+
+        this.CLOCK_DELTA = Number(delta);
+
+        /*
+        ONE HUGE ISSUE HERE:
+            If we are constantly re-adjusting ping (it will flucuate)
+            than the buffer will constantly also move forward/backwards one frame and cause noticable jitter for one frame
+            This might become an issue. If so, calculate ping over many frames and take average, and 
+        */
+
+
     }
 
-    public tick(delta: number){
+    public tick(){
         // Don't do this based on delta... right?
         if(this.SERVER_IS_TICKING && this.ping !== -1){
-            this.intervalTimer += delta;
+            // ms
+            const serverTime = Date.now() + this.CLOCK_DELTA;
+            const referenceDelta = BigInt(serverTime) - this.REFERENCE_SERVER_TICK_TIME;
 
-            while(this.intervalTimer >= this.SERVER_SEND_INTERVAL){
-                console.log(this.intervalTimer);
-                this.currentServerSendID += 1;
+            // console.log("Ticks passed: " + (referenceDelta / BigInt((this.SERVER_SEND_INTERVAL * 1000))));
+            const currentServerTick =  ((referenceDelta / BigInt((this.SERVER_SEND_INTERVAL * 1000)))) + BigInt(this.REFERENCE_SERVER_TICK_ID)
 
-                this.requestPacket(this.currentServerSendID - (this.latencyBuffer + this.additionalBuffer));
+            const frameToGet = Number(currentServerTick) - (this.latencyBuffer + this.additionalBuffer);
+            
+            // New frame!
+            if(frameToGet !== this.lastConfirmedPacketFromBuffer){
+                console.log(Date.now())
+                console.log("Getting frame: " + frameToGet)
+                
+                //Attempt to get this frame out of the buffer
+                // First, delete all old frames
+                while(this.packets.size() > 0 && frameToGet > this.packets.peek().id){
+                    const oldPacket = this.packets.dequeue();
+                    console.log("Old packet discarded: " + oldPacket.id)
+                }
 
-                this.intervalTimer -= this.SERVER_SEND_INTERVAL
-            }   
+                if(this.packets.size() === 0){
+                    // In this case, we are asking for a frame that we don't have yet
+                    console.log("ERROR: ASKING FOR FRAME WE DO NOT HAVE: " + frameToGet);
+                    
+///////////////////////////// // * !ASIGAKUSVAJYSFAKUSC JACFSAJFSCAJSCJASC 0?
+                    // get rid of this return statement
+                    return; 
+                }
+
+                // Okay so we are not too far in the future.
+                // Might be too far in the past though, ( ex: start of game, only one buffered but its in future)
+                if(frameToGet < this.packets.peek().id){
+                    console.log("We are too far in the future")
+                    return;
+                }
+                
+                // This is the one!
+                const packet = this.packets.dequeue();
+                const buffer = packet.buffer;
+                console.log("Confirmed: " + packet.id)
+
+                console.log("Number of buffer frames: " + this.packets.size());
+
+
+                this.lastConfirmedPacketFromBuffer = frameToGet;
+
+                return buffer;
+            }
         }
     }
-
-
-    public requestPacket(id: number){
-        console.log(id);
-        return;
-        while(id > this.packets.peek().id){
-            this.packets.dequeue();
-        }
-
-        
-        
-        let buffer: ArrayBuffer;
-        if(this.packets.peek().id === id){
-            const packet = this.packets.dequeue();
-            console.log("Found packet: " + packet.id);
-        } else {
-            // We couldn't find the packet. Either too small or large id
-            // Just an error overall
-            console.log()
-        }
-
-        return buffer;
-    }
-
 }
 
 
