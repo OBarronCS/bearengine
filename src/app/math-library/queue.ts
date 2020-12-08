@@ -31,6 +31,11 @@ export class LinkedQueue<T> implements Queue<T> {
 
         this.internalSize += 1;        
     }
+
+    peek(): T {
+        if(this.first === null) return null;
+        return this.first.item;
+    }
     
     dequeue(): T {
         if(this.first === null) return null;

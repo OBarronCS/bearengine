@@ -12,7 +12,7 @@ import { LevelHandler } from "./level";
 const RESOURCES = PIXI.Loader.shared.resources
 
 let lastFrameTimeMs = 0;
-let maxFPS = 59.854; //60
+let maxFPS = 60;
 let accumulated = 0;
 let simulation_time = 1000 / maxFPS;
 
@@ -88,6 +88,10 @@ class BearEngine {
 
         this.network = new BufferedNetwork("ws://127.0.0.1:8080");
         this.network.connect();
+
+        setInterval(() => {
+            this.network.sendPing();
+        }, 1000)
 
         this.mouse = new InternalMouse();
 
@@ -197,12 +201,18 @@ class BearEngine {
         this.keyboard.update();
         this.mouse.update();
 
+
         // both of these are in ms
         while (accumulated >= (simulation_time)) {
 
             // divide by 1000 to get seconds
             const dt = simulation_time / 1000;
+
+            // Checks buffer
+            this.network.tick(dt);
+
             this.current_level.collisionManager.update(dt);
+
             
             for (let i = 0; i < this.updateList.length; i++) {
                 const entity = this.updateList[i];
