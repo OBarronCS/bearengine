@@ -47,7 +47,7 @@ export class Line {
         const dy = this.B.y - this.A.y;
 
         const numerator = (p.x - this.A.x)*(dx) +  (p.y - this.A.y)*(dy)
-        const denominator = Vec2.asSub(this.B, this.A).lengthSquared();
+        const denominator = Vec2.distanceSquared(this.B, this.A);
         const u = clamp(numerator / denominator,0,1);
 
         return new Vec2(this.A.x + u * (dx), this.A.y + u * (dy));

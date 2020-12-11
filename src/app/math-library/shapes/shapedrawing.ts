@@ -23,16 +23,16 @@ export function drawCircle(graphics: Graphics, point: Coordinate, r: number, col
 
 export function drawLineArray(g: Graphics, points: Coordinate[], color: number, loop = false){
     g.lineStyle(3,color)
-    for (let i = 0; i < this.points.length - 1; ++i) {
-        const p1 = this.points[i];
-        const p2 = this.points[i + 1];
+    for (let i = 0; i < points.length - 1; ++i) {
+        const p1 = points[i];
+        const p2 = points[i + 1];
         g.moveTo(p1.x, p1.y);
         g.lineTo(p2.x, p2.y);
     }
 
     if(loop){
-        const p1 = this.points[0];
-        const p2 = this.points[this.point.length - 1];
+        const p1 = points[0];
+        const p2 = points[points.length - 1];
 
         g.moveTo(p1.x, p1.y);
         g.lineTo(p2.x, p2.y);

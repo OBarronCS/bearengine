@@ -2,7 +2,7 @@ import { Shape } from "./shapesinterfaces";
 import { Coordinate, Vec2, distanceSquared, mix, coordinateArraytoVec, flattenVecArray } from "./vec2";
 import { Rect } from "./rectangle";
 import { abs, atan2, niceColor } from "../miscmath";
-import { Graphics, utils } from "pixi.js";
+import { Graphics, Point, utils } from "pixi.js";
 import { drawVecAsArrow } from "./shapedrawing";
 
 
@@ -172,7 +172,7 @@ export class Polygon implements Shape<Polygon>{
     draw(g: Graphics, color: number = niceColor()): void {
         g.lineStyle(3,color,.9);
         g.endFill()
-        g.drawPolygon(flattenVecArray(this.points))
+        g.drawPolygon(this.points as unknown as Point[])
 
         // Draw normals
         for(let i = 0; i < this.normals.length; i++){
@@ -220,8 +220,8 @@ export class Polygon implements Shape<Polygon>{
             const angleToA = atan2(a.y - top.y, a.x - top.x);
             const angleToB = atan2(b.y - top.y, b.x - top.x);
             if(angleToA === angleToB){
-                const distanceA = distanceSquared(a.x, a.y, top.x, top.y);
-                const distanceB = distanceSquared(b.x, b.y, top.x, top.y);
+                const distanceA = Vec2.distanceSquared(a, top);
+                const distanceB = Vec2.distanceSquared(b, top);
 
                 // if first point is farther, splice second one
                 if(distanceA > distanceB){

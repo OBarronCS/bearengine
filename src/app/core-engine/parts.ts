@@ -15,7 +15,8 @@ export abstract class Part {
 
 // If these get too annoying to write, just change the system
 // so there is a pre update and post update (optional?) method on entities
-// the main reason I'm not doing that now is because
+
+// Non in use right now
 export class ScriptPart extends Part {
     private script: (dt: number) => void;
 

@@ -65,12 +65,11 @@ export class BufferedNetwork extends Network {
     private packets = new LinkedQueue<BufferedPacket>();
 
     public SERVER_SEND_RATE: number = -1;
-    /** seconds */
+    /** seconds, 1 / SERVER_SEND_RATE */
     public SERVER_SEND_INTERVAL: number = -1; //    1 / SERVER_SEND_RATE
 
     // These are used to calculate the current tick the server is sending
     // Sent in INIT packet
-    
     public REFERENCE_SERVER_TICK_ID: number = 0;
     public REFERENCE_SERVER_TICK_TIME: bigint = -1n;
 
@@ -79,12 +78,17 @@ export class BufferedNetwork extends Network {
 
     // How much buffer caused by latency
     private latencyBuffer: number = -1;
+    
+    // Buffer by default
+    // MAYBE: Change this to big in terms of ms? Because if tick rate is slow (10fps) than this only really needs to be 1, because clumping is less of an issue
     private additionalBuffer = 3;
 
-
     // Generous, default ping
+    // TODO: set it to -1 and don't start ticking until we actually know it. Right now it starts ticking and then 100ms seconds later the ping is adjusted
     public ping: number = 150;
 
+    // Used if join a game, and its a lobby phase where the server is not sending real data. Or if server sends a message that says its DONE
+    // TODO: implement failsafes so if the connecting abrubtly ends, we don't get errors in devtools, and instead notify the game engine that we are no longer connected.
     public SERVER_IS_TICKING: boolean = false;
 
     onopen(): void {
@@ -200,18 +204,24 @@ export class BufferedNetwork extends Network {
     }
 
     public tick(){
-        // Don't do this based on delta... right?
+
         if(this.SERVER_IS_TICKING && this.ping !== -1){
+
             // ms
             const serverTime = Date.now() + this.CLOCK_DELTA;
             const referenceDelta = BigInt(serverTime) - this.REFERENCE_SERVER_TICK_TIME;
 
             // console.log("Ticks passed: " + (referenceDelta / BigInt((this.SERVER_SEND_INTERVAL * 1000))));
+
+            // This uses BigInt, division is floored
             const currentServerTick =  ((referenceDelta / BigInt((this.SERVER_SEND_INTERVAL * 1000)))) + BigInt(this.REFERENCE_SERVER_TICK_ID)
 
             const frameToGet = Number(currentServerTick) - (this.latencyBuffer + this.additionalBuffer);
             
             // New frame!
+            // TODO: make a check to make sure it doesn't go back in time? 
+            // Implement some sort of pause at very beginning of game, so it waits to start look at packets like .5 seconds after the first recieved packet.
+            // , and when the latency is adjusted backwards, so that it 
             if(frameToGet !== this.lastConfirmedPacketFromBuffer){
                 console.log(Date.now())
                 console.log("Getting frame: " + frameToGet)

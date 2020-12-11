@@ -1,13 +1,12 @@
 
 
-export interface Stack<T> {
+export interface Stack<T> extends Iterable<T> {
     push(element: T): void;
     pop(): T;
     peek(): T;
     size(): number;
     isEmpty(): boolean;
 }
-
 
 
 export class StackNode<T> {
@@ -20,7 +19,7 @@ export class StackNode<T> {
     }
 }
 
-// In terms of performance, native JavaScript arrays are about 20-35% faster. Here's a jsbench: https://jsben.ch/mVear
+// In terms of performance, native JavaScript arrays are about 20-35% faster. Here's a jsbench:https://jsben.ch/GUfQk
 // Even on small data sets
 export class LinkedStack<T> implements Stack<T> {
     protected first: StackNode<T> = null;
@@ -64,7 +63,7 @@ export class LinkedStack<T> implements Stack<T> {
     }
 
     // Allows the use of 'for of' loops
-    [Symbol.iterator](){
+    [Symbol.iterator](): Iterator<T>{
         let currentNode: StackNode<T> = this.first;
         const iterator = {
             next: () => {
@@ -105,5 +104,64 @@ export class LightLinkedBag<T> extends LinkedStack<T> {
         return false;
     }
 }
+
+
+export class ArrayStack<T> implements Stack<T> {
+    
+    private arr: T[];
+    
+    constructor(){
+        this.arr = [];
+    }
+    
+
+    push(t: T){
+        this.arr.push(t)
+    }
+
+    peek(): T {
+        if(this.arr.length === 0) return null;
+        return this.arr[this.arr.length - 1];
+    }
+
+    pop(){
+        if(this.arr.length === 0) return null;
+        return this.arr.pop();
+    }
+
+    size(): number {
+        return this.arr.length;
+    }
+
+    isEmpty(): boolean {
+        return this.size() === 0;
+    }
+
+    [Symbol.iterator](): Iterator<T>{
+        let currentIndex = this.arr.length - 1;
+        const iterator = {
+            next: () => {
+                if(currentIndex >= 0){
+                    const item = this.arr[currentIndex];
+                    currentIndex -= 1;
+                    return { value: item, done: false };
+                } 
+            
+                return { value: null, done: true };
+            
+            }
+        };
+        return iterator;
+    }
+
+}
+
+
+
+
+
+
+
+
 
 

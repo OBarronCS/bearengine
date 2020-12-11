@@ -10,7 +10,7 @@ import { rgb, Color } from "../math-library/color";
 import { DynamicAABBTree } from "../math-library/dynaabbtree";
 import { GraphNode, LiveGridGraph } from "../math-library/graphs";
 import { SparseGrid } from "../math-library/hashtable";
-import { abs, floor, min, PI } from "../math-library/miscmath";
+import { abs, floor, min, niceColor, PI } from "../math-library/miscmath";
 import { HermiteCurve } from "../math-library/paths";
 import { GridQuadNode, GridQuadTree, LiveGridQuadTree, QuadTree } from "../math-library/quadtree";
 import { chance, fillFunction, random, randomRangeSet, random_range } from "../math-library/randomhelpers";
@@ -351,7 +351,8 @@ export function loadTestLevel(this: BearEngine): void {
         }
 
     }
-    //this.addEntity(new PolygonTest());
+    
+    // this.addEntity(new PolygonTest());
 
     // TileMap collision
     class Tilemaptest extends Entity {
@@ -473,7 +474,7 @@ export function loadTestLevel(this: BearEngine): void {
 
                     /// sometimes, split!
                     if(chance(18)){
-                        const dir = Vec2.asSub(midPoint, line.A);
+                        const dir = Vec2.subtract(midPoint, line.A);
                         dir.drotate(random_range(-30,30)).scale(.7).add(midPoint);
                         newLines.push(new Line(midPoint, dir));
                     }
@@ -498,7 +499,7 @@ export function loadTestLevel(this: BearEngine): void {
 
     }
 
-    this.addEntity(new LightningTest());
+    //this.addEntity(new LightningTest());
     
     // Quadtree drawing test
     class SpatialTest extends Entity {
@@ -536,7 +537,7 @@ export function loadTestLevel(this: BearEngine): void {
 
     }
 
-    // this.addEntity(new LineCloseTest());
+    //this.addEntity(new LineCloseTest());
 
 
     class DynAABBTest extends Entity {
@@ -560,6 +561,73 @@ export function loadTestLevel(this: BearEngine): void {
     }
     
     //this.addEntity(new DynAABBTest());
+
+
+    class IK extends Entity {
+        
+        private points: Vec2[] = []
+
+        constructor(){
+            super();
+
+            const segments = 25;
+            const length = 50;
+
+            for(let i = 0; i < segments; i++){
+                this.points.push(
+                    new Vec2(i * length, 0)
+                    )
+            }
+        }
+
+        update(dt: number): void {
+
+            let target = E.Mouse.position.clone() as Coordinate;
+            const base = this.points[this.points.length - 1].clone();
+
+            for (let i = 0; i < this.points.length - 1; i++) {
+                const newTail = this.moveSegment(this.points[i], this.points[i + 1], target);
+                // This modifies the vectors. They are now in the correct positions
+                target = newTail;
+            }       
+            this.points[this.points.length - 1].set(target);
+
+            target = base;
+            for (let i = this.points.length - 1; i > 0; i--){
+                const newTail = this.moveSegment(this.points[i], this.points[i - 1], target);
+                target = newTail
+            }
+            this.points[0].set(target);
+
+            this.redraw()
+        }
+
+        moveSegment(head: Vec2, tail: Vec2, target: Coordinate){
+            const length = Vec2.distance(head, tail);
+            
+            const tempLength = Vec2.distance(tail, target);
+
+            const scale = length / tempLength;
+
+            head.set(target);
+            // returns the new tail:
+            return {
+                x: target.x + ((tail.x - target.x) * scale),
+                y: target.y + ((tail.y - target.y) * scale)
+            }
+        }
+
+
+        draw(g: Graphics): void {
+            g.clear();
+            drawPoint(g, this.points[0])
+            drawLineArray(g, this.points, 0xFF0000, false)
+        }
+
+    }
+
+    //this.addEntity(new IK())
+
 }
 
 
@@ -685,3 +753,4 @@ class ConwaysLife {
     }
 
 }
+

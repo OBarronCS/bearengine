@@ -1,4 +1,5 @@
-/* // look into use Proxy object to do swizzling
+/* 
+look into use Proxy object to do swizzling
 https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy
 
 get --> getting any property
@@ -19,7 +20,6 @@ const obj = new Proxy({}, {
   }
 });
 
-// 6 or 3 digit, hex 
 // 16.7 million options ---- 4096 options
 hex --> #FFFFFF or #FFF
 or start with 0xFFFFFF

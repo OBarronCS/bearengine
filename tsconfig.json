@@ -9,7 +9,7 @@
         //"allowSyntheticDefaultImports": true
         //"esModuleInterop": true
         //"noImplicitAny" : true,
-        //"noImplicitThis":
+        "noImplicitThis":true,
         // also one about case: and making sure you write "break;" 
         "types": [
             "webpack",

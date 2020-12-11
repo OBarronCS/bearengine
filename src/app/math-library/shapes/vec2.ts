@@ -1,11 +1,10 @@
-import { ColliderPart } from "../../core-engine/parts";
+
 import { DEG_TO_RAD, RAD_TO_DEG, dcos, dsin, floor } from "../miscmath";
 
 export interface Coordinate {
     x: number,
     y: number
 }
-
 
 export class Vec2 {
     
@@ -23,9 +22,7 @@ export class Vec2 {
     static NE: Readonly<Coordinate> = new Vec2(Math.SQRT1_2,-Math.SQRT1_2);
     static NW : Readonly<Coordinate> = new Vec2(-Math.SQRT1_2,-Math.SQRT1_2);
 
-    /**
-     * A random vector of a given length
-     */
+    /** A random vector of a given length */
     static random(length = 1): Vec2 {
         const vec = new Vec2(0,0);
         const angle = Math.random() * 360;
@@ -35,16 +32,47 @@ export class Vec2 {
         return vec;
     }
 
-    static distance(p1: Coordinate,p2: Coordinate): number {
+    static distanceSquared(p1: Coordinate, p2: Coordinate): number {
+        const dx = p1.x - p2.x;
+        const dy = p1.y - p2.y;
+        return (dx * dx) + (dy * dy);
+    }
+
+    static distance(p1: Coordinate, p2: Coordinate): number {
         const dx = p1.x - p2.x;
         const dy = p1.y - p2.y;
         return Math.sqrt(dx * dx + dy * dy);
     }
 
-    static asSub(p1: Coordinate,p2: Coordinate): Vec2 {
-        return new Vec2(p1.x - p2.x,p1.y - p2.y)
+    /** Does not alter the first two parameters. Stores result in target, which is a new vector by default */
+    static add(vec1: Coordinate, vec2: Coordinate, target: Vec2 = new Vec2(0,0)){
+        target.x = vec1.x + vec2.x;
+        target.y = vec1.y + vec2.y;
+
+        return target;
     }
 
+    /** Does not alter the first two parameters. Stores result in target, which is a new vector by default */
+    static subtract(vec1: Coordinate, vec2: Coordinate, target: Vec2 = new Vec2(0,0)){
+        target.x = vec1.x - vec2.x;
+        target.y = vec1.y - vec2.y;
+
+        return target;
+    }
+
+    static dot(vec1: Coordinate, vec2: Coordinate): number {
+        return (vec1.x * vec2.x) + (vec1.y * vec2.y);
+    }
+
+    static bounce(vec: Coordinate, normal: Coordinate, target: Vec2 = new Vec2(0,0)): Vec2 {
+        const dot = 2 * Vec2.dot(vec,normal);
+        target.x = vec.x - dot * normal.x;
+        target.y = vec.y - dot * normal.y;
+        return target;
+    }
+
+
+    
     constructor(_x: number,_y: number){
         this.x = _x;
         this.y = _y;
@@ -100,17 +128,16 @@ export class Vec2 {
     }
 
     /** Radians */
-    public angle(){
+    public angle(): number {
 		return Math.atan2(this.y, this.x);
     }
     
     /** Degrees */
-    public dangle(){
+    public dangle(): number {
 		return Math.atan2(this.y, this.x) * RAD_TO_DEG;
 	}
 
-
-    public setDirection(radians: number){
+    public setDirection(radians: number): this {
 
         const length = this.length();
 
@@ -152,10 +179,7 @@ export class Vec2 {
         return this
     }
 
-    /**
-     * Sets the length of the vector
-     * @param magnitude 
-     */
+    /** Set the length of the vector */
     public extend(magnitude: number): this {
 		this.normalize();
 		this.x *= magnitude;
@@ -164,23 +188,12 @@ export class Vec2 {
     }
     
     /** Takes in a NORMALIZED VECTOR, and converts this vector to that bounced vector */
-    bounce(normal: Coordinate): this {
+    public bounce(normal: Coordinate): this {
         Vec2.bounce(this, normal, this);
         return this;
     }
 
-    static dot(vec1: Coordinate, vec2: Coordinate): number {
-        return (vec1.x * vec2.x) + (vec1.y * vec2.y);
-    }
-
-    static bounce(vec: Coordinate, normal: Coordinate, target: Vec2 = new Vec2(0,0)): Vec2 {
-        const dot = 2 * Vec2.dot(vec,normal);
-        target.x = vec.x - dot * normal.x;
-        target.y = vec.y - dot * normal.y;
-        return target;
-    }
-    
-    public clone(){
+    clone(){
         return new Vec2(this.x, this.y)
     }
 
@@ -196,7 +209,6 @@ export class Vec2 {
 export function angleBetween(p1: Coordinate, p2: Coordinate){
     return Math.atan2(p2.y - p1.y, p2.x - p1.x);
 }
-
 
 /** [x1, y1, x2, y2] -> [vec1, vec2] */
 export function coordinateArraytoVec(array: number[]): Vec2[] {
