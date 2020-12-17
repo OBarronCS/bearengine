@@ -2,17 +2,14 @@
 import express from "express";
 import { readFile } from "fs";
 import path from "path";
-import { ViewableBuffer } from "pixi.js";
-import { start } from "repl";
 import WS from "ws"
 
 
 // Normal es6 imports work as well!
-
 const app = express();
 
 // Setting the directory which has static assets
-app.use(express.static(path.join(__dirname, "../../dist")));
+app.use(express.static(path.join(__dirname, "../../client/dist")));
 
 app.get("/", (request, response) => {
     readFile("./index.html", "utf-8", (err, html) => {

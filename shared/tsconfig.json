@@ -1,23 +1,20 @@
 {
     "compilerOptions": {
         "baseUrl":"../",
-
-        "outDir": "/build",
-        "rootDirs": [
-            "./source",
-            "../"
-        ],
-        "module": "CommonJS",
         "moduleResolution": "node",
         "target": "ESNext",
         "lib": ["DOM","ESNext"],
-        "esModuleInterop": true,
+        /*
+        Look into setting sourceMap == true for better debugging
+        */
         //"allowSyntheticDefaultImports": true
+        //"esModuleInterop": true
         //"noImplicitAny" : true,
         "noImplicitThis":true,
-        // also one about case: and making sure you write "break;" 
+        // also one about case: and making sure you write "break;"        
     },
     "exclude": [
-        "node_modules"
-    ]
+        "node_modules",
+        "**/node_modules/",
+    ],    
 }

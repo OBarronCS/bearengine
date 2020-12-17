@@ -1,8 +1,7 @@
-import { BearEngine } from "../../src/app/core-engine/bearengine";
-import { CollisionManager } from "../../src/app/core-engine/entitycollision";
-import { LevelHandler } from "../../src/app/core-engine/level";
-import { TerrainManager } from "../../src/app/core-engine/terrainmanager";
 import { ServerBearEngine } from "./serverengine";
+import { LevelHandler } from "client/src/app/core-engine/level"
+import { CollisionManager } from "client/src/app/core-engine/entitycollision";
+import { TerrainManager } from "client/src/app/core-engine/terrainmanager";
 
 
 export class ServerE  {
