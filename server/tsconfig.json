@@ -7,6 +7,7 @@
             "./source",
             "../"
         ],
+        
         "module": "CommonJS",
         "moduleResolution": "node",
         "target": "ESNext",
@@ -18,6 +19,6 @@
         // also one about case: and making sure you write "break;" 
     },
     "exclude": [
-        "node_modules"
+        "node_modules",
     ]
 }

@@ -10,14 +10,14 @@ import { LevelHandler } from "./level";
 import { EventEmitter } from "eventemitter3"
 import TypedEmitter from "typed-emitter"
 import { Entity, GMEntity, SimpleMovement, SpriteEntity } from "./entity";
-import { CustomMapFormat } from "./tiledmapeditor";
+import { CustomMapFormat } from "../../../../shared/core/tiledmapeditor";
 import { Player } from "../gamelogic/player";
 import { CreateWindow } from "../apiwrappers/windowopen";
 
 import { EngineKeyboard } from "../input/keyboard";
 import { EffectHandler } from "./effecthandler";
 import { loadTestLevel } from "../gamelogic/testlevelentities";
-import { BufferedNetwork } from "./networking/client/socket";
+import { BufferedNetwork } from "./networking/socket";
 
 
 const RESOURCES = PIXI.Loader.shared.resources

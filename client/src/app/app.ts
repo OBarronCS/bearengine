@@ -7,7 +7,7 @@ import { StartFullscreen } from "./apiwrappers/fullscreen";
 import { E } from "./core-engine/globals";
 import { LockMouse } from "./apiwrappers/pointerlock";
 import { LockKeys } from "./apiwrappers/keyboardapiwrapper";
-import { CustomMapFormat } from "./core-engine/tiledmapeditor";
+import { CustomMapFormat } from "../../../shared/core/tiledmapeditor";
 import { LinkedStack } from "../../../shared/datastructures/stack";
 import { ArrayQueue, LinkedQueue } from "../../../shared/datastructures/queue";
 import { RandomizedBag } from "../../../shared/datastructures/randomizedbag";

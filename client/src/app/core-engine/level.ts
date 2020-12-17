@@ -1,7 +1,7 @@
 
 import { Rect } from "../../../../shared/shapes/rectangle";
-import { CustomMapFormat } from "./tiledmapeditor";
-import { TerrainManager } from "./terrainmanager";
+import { CustomMapFormat } from "../../../../shared/core/tiledmapeditor";
+import { TerrainManager } from "../../../../shared/core/terrainmanager";
 import { E } from "./globals";
 import { Graphics, utils } from "pixi.js";
 import { CollisionManager } from "./entitycollision";

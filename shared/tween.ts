@@ -1,8 +1,8 @@
-import { Effect } from "../effecthandler"
-import { E } from "../globals";
+import { Effect } from "../client/src/app/core-engine/effecthandler"
+import { E } from "../client/src/app/core-engine/globals";
 import { clamp } from "shared/miscmath";
-import { Color, blend } from "../../../../../shared/datastructures/color";
-import { Vec2, mix, Coordinate } from "../../../../../shared/shapes/vec2";
+import { Color, blend } from "./datastructures/color";
+import { Vec2, mix, Coordinate } from "./shapes/vec2";
 
 
 abstract class Tween<T> extends Effect  {

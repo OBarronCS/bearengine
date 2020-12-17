@@ -3,8 +3,8 @@ import { Vec2 } from "../../../../../shared/shapes/vec2";
 import { Entity, SpriteEntity } from "../entity";
 import { Sprite, Point, graphicsUtils, Graphics } from "pixi.js";
 import { E } from "../globals";
-import { ShotInfo } from "../weapons/weaponinterfaces";
 import { SpritePart } from "../parts";
+import { ShotInfo } from "../weapons/weaponinterfaces";
 
 
 export class DefaultBulletEffect extends Effect {

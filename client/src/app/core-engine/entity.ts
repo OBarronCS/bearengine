@@ -1,11 +1,11 @@
-import { Coordinate, Vec2 } from "../../../../shared/shapes/vec2";
-import { Container, DisplayObject, Sprite, Graphics, TextureMatrix } from "pixi.js";
-import { E } from "./globals";
-import { Shape } from "../../../../shared/shapes/shapesinterfaces";
-import { min } from "../../../../shared/miscmath"
-import { random } from "../../../../shared/randomhelpers";
+import { Coordinate, Vec2 } from "shared/shapes/vec2";
+import { Graphics } from "pixi.js";
+import { min } from "shared/miscmath"
+import { random } from "shared/randomhelpers";
 import { ColliderPart, Part, SpritePart } from "./parts";
-import { dimensions } from "../../../../shared/shapes/rectangle";
+import { dimensions } from "shared/shapes/rectangle";
+
+import { E } from "./globals";
 
 
 export abstract class Entity {

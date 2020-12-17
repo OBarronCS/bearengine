@@ -1,4 +1,4 @@
-import { Vec2 } from "../../../../../shared/shapes/vec2";
+import { Vec2 } from "shared/shapes/vec2";
 import { E } from "../globals";
 import { SemiAutoController, PulseController, GunshootController, AutoController } from "./triggers";
 import { Clip, GunAddon } from "./addon";

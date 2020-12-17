@@ -1,9 +1,3 @@
-import { Vec2 } from "../../../../shared/shapes/vec2";
-import { E } from "./globals";
-import { Player } from "../gamelogic/player";
-import { Entity } from "./entity";
-import { Sprite, Point } from "pixi.js";
-
 
 
 

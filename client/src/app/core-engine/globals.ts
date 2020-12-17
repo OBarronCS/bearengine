@@ -1,7 +1,7 @@
 import { BearEngine } from "./bearengine";
 import { MouseInput } from "../input/mouse";
 import { LevelHandler } from "./level";
-import { TerrainManager } from "./terrainmanager";
+import { TerrainManager } from "../../../../shared/core/terrainmanager";
 import { EngineKeyboard } from "../input/keyboard";
 import { CollisionManager } from "./entitycollision";
 

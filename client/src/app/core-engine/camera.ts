@@ -1,6 +1,6 @@
 import { Container, Point } from "pixi.js";
 import { Renderer } from "./renderer";
-import { Coordinate, Vec2 } from "../../../../shared/shapes/vec2";
+import { Coordinate } from "../../../../shared/shapes/vec2";
 import { E } from "./globals";
 import { Rect } from "../../../../shared/shapes/rectangle";
 

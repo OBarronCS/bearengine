@@ -1,3 +1,4 @@
+
 import { DefaultBulletEffect } from "../effects/effects";
 import { ShotInfo } from "./weaponinterfaces";
 

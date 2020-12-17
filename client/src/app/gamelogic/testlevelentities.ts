@@ -1,30 +1,28 @@
-import { Graphics, Sprite, TilingSprite, TimeLimiter } from "pixi.js";
+import { Graphics } from "pixi.js";
 import { BearEngine } from "../core-engine/bearengine";
 import { Entity, GMEntity, SimpleKeyboardCheck, SimpleMovement, SpriteEntity } from "../core-engine/entity";
 import { E } from "../core-engine/globals";
 import { ColliderPart } from "../core-engine/parts";
-import { Tilemap } from "../core-engine/tilemap";
-import { ColorTween } from "../core-engine/tweening/tween";
-import { range } from "../../../../shared/datastructures/arrayshelper";
-import { rgb, Color } from "../../../../shared/datastructures/color";
-import { DynamicAABBTree } from "../../../../shared/datastructures/dynaabbtree";
-import { GraphNode, LiveGridGraph } from "../../../../shared/datastructures/graphs";
-import { SparseGrid } from "../../../../shared/datastructures/hashtable";
-import { HermiteCurve } from "../../../../shared/datastructures/paths";
-import { GridQuadNode, GridQuadTree, LiveGridQuadTree, QuadTree } from "../../../../shared/datastructures/quadtree";
-import { chance, fillFunction, random, randomRangeSet, random_range } from "../../../../shared/randomhelpers";
-import { Ellipse } from "../../../../shared/shapes/ellipse";
-import { Line } from "../../../../shared/shapes/line";
-import { Polygon } from "../../../../shared/shapes/polygon";
-import { Rect, dimensions } from "../../../../shared/shapes/rectangle";
-import { drawLineArray, drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "../../../../shared/shapes/shapedrawing";
-import { Vec2, Coordinate, angleBetween, mix } from "../../../../shared/shapes/vec2";
-import { LinkedStack } from "../../../../shared/datastructures/stack";
-import { TickTimer } from "../math-library/ticktimer";
+
+
+import { Tilemap } from "shared/datastructures/tilemap";
+import { rgb, Color } from "shared/datastructures/color";
+import { DynamicAABBTree } from "shared/datastructures/dynaabbtree";
+import { GraphNode, LiveGridGraph } from "shared/datastructures/graphs";
+import { SparseGrid } from "shared/datastructures/hashtable";
+import { HermiteCurve } from "shared/datastructures/paths";
+import { GridQuadNode, GridQuadTree, LiveGridQuadTree, QuadTree } from "shared/datastructures/quadtree";
+import { chance, fillFunction, random, randomRangeSet, random_range } from "shared/randomhelpers";
+import { Ellipse } from "shared/shapes/ellipse";
+import { Line } from "shared/shapes/line";
+import { Polygon } from "shared/shapes/polygon";
+import { Rect, dimensions } from "shared/shapes/rectangle";
+import { drawLineArray, drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "shared/shapes/shapedrawing";
+import { Vec2, Coordinate, angleBetween, mix } from "shared/shapes/vec2";
 import { Player } from "./player";
 import { floor, PI } from "shared/miscmath";
-
-
+import { ColorTween } from "shared/tween"
+import { TickTimer } from "shared/ticktimer"
 
 
 

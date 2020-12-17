@@ -1,16 +1,10 @@
-import { GUI } from "dat.gui";
-import { Renderer } from "pixi.js";
-import { CreateWindow } from "../../src/app/apiwrappers/windowopen";
-import { EngineSettings } from "../../src/app/core-engine/bearengine";
-import { CameraSystem } from "../../src/app/core-engine/camera";
-import { EffectHandler } from "../../src/app/core-engine/effecthandler";
-import { Entity } from "../../src/app/core-engine/entity"
-import { LevelHandler } from "../../src/app/core-engine/level";
-import { BufferedNetwork } from "../../src/app/core-engine/networking/client/socket";
-import { CustomMapFormat } from "../../src/app/core-engine/tiledmapeditor";
-import { loadTestLevel } from "../../src/app/gamelogic/testlevelentities";
-import { EngineKeyboard } from "../../src/app/input/keyboard";
-import { InternalMouse } from "../../src/app/input/mouse";
+
+import { EngineSettings } from "client/src/app/core-engine/bearengine";
+import { EffectHandler } from "client/src/app/core-engine/effecthandler";
+import { Entity } from "client/src/app/core-engine/entity";
+import { LevelHandler } from "client/src/app/core-engine/level";
+import { CustomMapFormat } from "client/src/app/core-engine/tiledmapeditor";
+import { loadTestLevel } from "client/src/app/gamelogic/testlevelentities";
 import { ServerE } from "./serverglobal";
 
 
