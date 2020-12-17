@@ -1,17 +1,24 @@
 {
     "compilerOptions": {
         "outDir": "/build",
-        "rootDir": "./",
+        "rootDir": "c:/dev/bearengine",
+        "rootDirs": [
+            "./source",
+            "../src"
+        ],
         "module": "CommonJS",
         "moduleResolution": "node",
         "target": "ESNext",
         "lib": ["DOM","ESNext"],
-        "esModuleInterop": true
+        "esModuleInterop": true,
         //"allowSyntheticDefaultImports": true
         //"noImplicitAny" : true,
-        //"noImplicitThis":
+        "noImplicitThis":true,
         // also one about case: and making sure you write "break;" 
     },
+    "include": [
+        "../src"
+    ],
     "exclude": [
         "node_modules"
     ]

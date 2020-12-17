@@ -14,6 +14,10 @@ export class BufferWriterStream extends DataView {
     private littleEndian = false;
     byteOffset: number = 0;
 
+    constructor(buffer: ArrayBufferLike){
+        super(buffer);
+    }
+
     // getFloat32(byteOffset: number, littleEndian?: boolean): number {
     //     return super.getFloat32(byteOffset, littleEndian);
     // }

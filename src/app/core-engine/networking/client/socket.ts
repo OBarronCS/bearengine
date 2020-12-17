@@ -7,7 +7,7 @@
         Recieving buffers
 */
 
-import { ceil } from "../../../math-library/miscmath";
+import { abs, ceil } from "../../../math-library/miscmath";
 import { LinkedQueue } from "../../../math-library/queue";
 
 
@@ -178,7 +178,15 @@ export class BufferedNetwork extends Network {
         const serverStamp = view.getBigInt64(9);
 
         const currentTime = BigInt(Date.now());
-        this.ping = ceil(Number((currentTime - originalStamp)) / 2);
+
+        const pingThisTime = ceil(Number((currentTime - originalStamp)) / 2);
+        
+        // only adjust the ping if it has changed sufficintely 
+        if(abs(this.ping - pingThisTime) > 5){
+            this.ping = pingThisTime;
+        }
+
+         
 
         console.log("Ping:" + this.ping);
 

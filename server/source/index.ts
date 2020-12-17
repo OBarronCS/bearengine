@@ -6,6 +6,9 @@ import { ViewableBuffer } from "pixi.js";
 import { start } from "repl";
 import WS from "ws"
 
+
+// Normal es6 imports work as well!
+
 const app = express();
 
 // Setting the directory which has static assets
@@ -22,7 +25,6 @@ app.get("/", (request, response) => {
         response.send(html);
 
     })
-   
 
 });
 
@@ -36,7 +38,7 @@ let tick = 0;
 let referenceTime: bigint = 0n;
 let referenceTick = 0;
 
-// Currently I don't deal with wrap over of tick why is 16 bit number
+// Currently I don't deal with wrap over of tick
 ws.on("connection", (socket) => {
     console.log("New connection")
     sockets.push(socket);
