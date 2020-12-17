@@ -32,15 +32,18 @@ export class TerrainManager {
 		this.height = world_height;    
     }
 
-	addDraw(){
-		const graphics = new Graphics();
-
+	draw(g: Graphics){
 		this.terrains.forEach((t) => {
-			t.draw(graphics);
+			t.draw(g);
 		});
 
-		E.Engine.renderer.addSprite(graphics);
-	}	
+		// this.grid.draw(g); // Draws it with grid lines included, but with the aabbs of the lines
+		// const point_test = this.terrains.get(0).pointInPolygon(E.Mouse.position.x, E.Mouse.position.y
+		// // green if in, c_red if not!
+		// const col = point_test ? "#00FF00" : "#FF0000";
+		// drawPoint(E.Mouse.position, utils.string2hex(col));
+			// }
+	}
 	
 	/// Adds all terrain info --> adds to grid buckets
 	addTerrain(_points: number[], _normals: number[]): void{
@@ -63,7 +66,7 @@ export class TerrainManager {
 	}
 	
 	// Terrain Raycast
-	/// return null if no collision, Point of intersection otherwise
+	// return null if no collision, Point of intersection otherwise
 	lineCollision(A: Coordinate,B: Coordinate): {point:Vec2,normal:Vec2} {
 		const box = (new Line(A,B)).getAABB();
 		
@@ -106,16 +109,7 @@ export class TerrainManager {
 		
 		return answer;
 	}
-	
-	draw(){		
-		// this.grid.draw(g);
-		// const point_test = this.terrains.get(0).pointInPolygon(E.Mouse.position.x, E.Mouse.position.y)
 
-		// // green if in, c_red if not!
-		// const col = point_test ? "#00FF00" : "#FF0000";
-
-		// drawPoint(E.Mouse.position, utils.string2hex(col));
-	}
 }
 
 // Right now this does nothing special. TODO: make it a polygon wrapper with extra functionality special for colliding, mostly static, terrain
@@ -135,10 +129,7 @@ class TerrainMesh  {
     }
 	
 	// translate(_dx: number, _dy: number){
-	// 	for(let i = 0; i < this.points.length; i += 2){
-	// 		this.points[i] += _dx;
-	// 		this.points[i + 1] += _dy
-	// 	}
+
 	// }
 	
 	//https://wrf.ecse.rpi.edu//Research/Short_Notes/pnpoly.html

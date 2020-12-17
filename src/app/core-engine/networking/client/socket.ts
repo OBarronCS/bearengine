@@ -58,8 +58,6 @@ interface BufferedPacket {
     id: number;
 }
 
-//instead of calling callback immediately, buffer it for a moment
-//this means that main game loop needs to tick this up to hold internal timer
 export class BufferedNetwork extends Network {
 
     private packets = new LinkedQueue<BufferedPacket>();
@@ -93,6 +91,10 @@ export class BufferedNetwork extends Network {
 
     onopen(): void {
         this.sendPing();
+
+        setInterval(() => {
+            this.sendPing();
+        }, 2000)
     }
 
     onclose(): void {}
@@ -183,9 +185,7 @@ export class BufferedNetwork extends Network {
         this.latencyBuffer = ceil((this.ping / 1000) * this.SERVER_SEND_RATE);
         console.log("LatencyBuffer: " + this.latencyBuffer)
 
-        
     
-
         // This method assume latency is equal both ways
         const delta = serverStamp - currentTime + BigInt(this.ping);
 

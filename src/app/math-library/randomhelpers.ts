@@ -10,7 +10,7 @@ look into chancejs
 export function random(max: number = 1): number {
     return Math.random() * max;
 }
-
+/** [min,max) */
 export function random_range(min: number, max: number): number {
     return min + Math.random() * (max - min);
 }

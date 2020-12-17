@@ -28,11 +28,9 @@ import { Player } from "./player";
 
 
 
-
-
 export function loadTestLevel(this: BearEngine): void {
 
-    //this.addEntity(new Player())
+    this.addEntity(new Player())
 
     class TestCollision extends Entity {
         private line: Line;
@@ -92,7 +90,7 @@ export function loadTestLevel(this: BearEngine): void {
 
         draw(g: PIXI.Graphics): void {
             g.clear();
-            g.lineStyle(3, rgb(255,0,0).value());
+            g.lineStyle(3, rgb(255,0,0).hex());
             this.rec1.draw(g, 0xFF0000);
     
             const rec2 = Rect.fromPoints(this.anchorPoint, E.Mouse.position);
@@ -140,13 +138,12 @@ export function loadTestLevel(this: BearEngine): void {
 
         draw(g: PIXI.Graphics): void {
             g.clear();
-            this.points.draw(g, this.color.value());
+            this.points.draw(g, this.color.hex());
         }
     }
     //this.addEntity(new Test2())
 
     // GRID QUADTREE
-
     class Quadquadtest extends Entity {
         
         private q = new LiveGridQuadTree(128);
@@ -434,8 +431,6 @@ export function loadTestLevel(this: BearEngine): void {
     }
     //this.addEntity(new conwaytest())
 
-
-
     class LightningTest extends Entity {
 
         private startPoint = Vec2.ZERO;
@@ -498,7 +493,6 @@ export function loadTestLevel(this: BearEngine): void {
         }
 
     }
-
     //this.addEntity(new LightningTest());
     
     // Quadtree drawing test
@@ -536,7 +530,6 @@ export function loadTestLevel(this: BearEngine): void {
         }
 
     }
-
     //this.addEntity(new LineCloseTest());
 
 
@@ -559,7 +552,6 @@ export function loadTestLevel(this: BearEngine): void {
         }
 
     }
-    
     //this.addEntity(new DynAABBTest());
 
 
@@ -625,9 +617,10 @@ export function loadTestLevel(this: BearEngine): void {
         }
 
     }
-
     //this.addEntity(new IK())
 
+
+    
 }
 
 

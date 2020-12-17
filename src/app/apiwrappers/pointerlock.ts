@@ -22,7 +22,7 @@ WHEN LOCKED
     --> zero when not in browser window
 */
 
-
+// Presas escape to cancel
 export function LockMouse(doc: Document, element: Element){
     element.requestPointerLock();
 }

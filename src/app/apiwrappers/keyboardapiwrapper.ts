@@ -97,7 +97,7 @@ const codes= [
     "Home",
     "PageDown",
     "PageUp",
-    // ARRAY KEYS
+    // ARROW KEYS
     "ArrowDown",
     "ArrowLeft",
     "ArrowRight",
@@ -118,7 +118,7 @@ const codes= [
     "F12",
     "Fn", // --> bot left for me
     "FnLock",
-    "PrintScreen", // for me save as insert
+    "PrintScreen",
 
 
     ] as const;

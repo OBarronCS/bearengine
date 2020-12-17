@@ -3,7 +3,7 @@ import { Rect } from "../math-library/shapes/rectangle";
 import { CustomMapFormat } from "./tiledmapeditor";
 import { TerrainManager } from "./terrainmanager";
 import { E } from "./globals";
-import { utils } from "pixi.js";
+import { Graphics, utils } from "pixi.js";
 import { CollisionManager } from "./entitycollision";
 
 // Current level accessible by "E.Level"
@@ -14,7 +14,6 @@ export class LevelHandler {
 	bbox: Rect;
 	
     backgroundColor: string;
-
 
 	terrainManager: TerrainManager = null;
 	collisionManager: CollisionManager = null;
@@ -46,7 +45,12 @@ export class LevelHandler {
 		});
 		
 		this.loaded = true
-		this.terrainManager.addDraw();
+
+		const g = new Graphics();
+
+		this.terrainManager.draw(g);
+
+		E.Engine.renderer.addSprite(g);
 	}
 
 	debugDraw(){

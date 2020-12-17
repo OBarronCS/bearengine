@@ -661,7 +661,7 @@ export class LiveGridGraph {
 
             const index = this.one2two(key);
             g.lineStyle(3,0xff0000);
-            g.beginFill(blend(rgb(25,255,0),rgb(255,0,0),percent).value());
+            g.beginFill(blend(rgb(25,255,0),rgb(255,0,0),percent).hex());
             g.drawRect(index[0] * scale, index[1] *scale, scale, scale);
         }
 

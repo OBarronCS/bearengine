@@ -67,15 +67,17 @@ class BearEngine {
     public mouse_info = new PIXI.Text("",new PIXI.TextStyle({"fill": "white"}));
     public gui: GUI;
     
+
     // Total simulated time, in seconds
     public totalTime = 0;
 
-
-    // Things that should be globally accessable by E
+    // Things that should be globally accessible by E
     private mouse: EngineMouse;
     private keyboard: EngineKeyboard;
     private current_level: LevelHandler = null;
+
     public effectHandler = new EffectHandler();
+
 
     private updateList: Entity[] = [];
 
@@ -85,19 +87,15 @@ class BearEngine {
     constructor(settings: EngineSettings){
         E.Engine = this;
         
-
         this.network = new BufferedNetwork("ws://127.0.0.1:8080");
         this.network.connect();
-
-        setInterval(() => {
-            this.network.sendPing();
-        }, 2000)
 
         this.mouse = new InternalMouse();
 
         if(!settings.popup){
             this.keyboard = new EngineKeyboard(window)
             E.Keyboard = this.keyboard;
+
             this.mouse.addWindowListeners(window);
             E.Mouse = this.mouse;
 
@@ -138,13 +136,11 @@ class BearEngine {
         gui_layer.addChild(this.mouse_info)
     }
 
-    async initRenderer(){
-        
-    }
 
 	startLevel(level_struct: CustomMapFormat){
 		this.current_level = new LevelHandler(level_struct);
         this.current_level.load();
+
         E.Level = this.current_level;
         E.Terrain = this.current_level.terrainManager;
         E.Collision = this.current_level.collisionManager;
@@ -158,7 +154,12 @@ class BearEngine {
         (this.loop.bind(this))()
     }
 
-    // Loads assets from server
+    // Creates the WebGL view using PIXI.js, so the game can be rendered
+    async startRenderer(settings: EngineSettings){
+        
+    }
+
+    // Loads all assets from server
     async preload(): Promise<typeof RESOURCES>{
         return new Promise((resolve) => this.renderer.initTextures(ALL_TEXTURES, () => {
             resolve(RESOURCES)

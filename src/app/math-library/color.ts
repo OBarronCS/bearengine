@@ -20,10 +20,6 @@ const obj = new Proxy({}, {
   }
 });
 
-// 16.7 million options ---- 4096 options
-hex --> #FFFFFF or #FFF
-or start with 0xFFFFFF
-
 hsl --> rbg under the hood but different way to thing about it
 HUE, SATURATION, LIGHTNESS
 0 - 360, 0 - 100%, 0 - 100%
@@ -31,29 +27,44 @@ HUE, SATURATION, LIGHTNESS
 HUE
     --> position on color wheel (an angle)
     --> the base tone
-
 SATURATION -->
 LIGHTNESS/DARKNESS
     0 is black
     .5 is pretty much just the hue
     1 is white
-
-hex with alpha --> two more digits, scaled 0-1 between 0 - 255
-    #ffff000f
-
 has hsl conversion algorithm
 https://drafts.csswg.org/css-color/#funcdef-hsl
 */
 
-import { lerp } from "./miscmath";
+import { utils } from "pixi.js";
+import { floor, lerp } from "./miscmath";
+import { randomInt } from "./randomhelpers";
 
-
-// export function rgb(rgb: [number,number,number]): Color;
 export function rgb(r: number,g: number,b: number,a = 1): Color{
     return new Color([r,g,b,a]);
 }
 
 export class Color {
+
+    static RED = new Color([255,0,0,1]);
+    static GREEN = new Color([0,255,0,1]);
+    static BLUE = new Color([0,0,255,1]);
+
+    static random(): Color {
+        return new Color([randomInt(0,256), randomInt(0,256), randomInt(0,256), 1]);
+    }
+
+    static fromString(str: string): Color {
+        return this.fromNumber(utils.string2hex(str));
+    }
+
+    static fromNumber(num: number): Color {
+        const rgb = utils.hex2rgb(num).map(v => floor(v * 255));
+        
+        // @ts-expect-error
+        return new Color([...rgb, 1]);
+    }
+
     constructor(
         public values: [number, number, number, number]
     ){};
@@ -61,6 +72,19 @@ export class Color {
     clone(): Color {
         return new Color([...this.values])
     }
+
+    copyFrom(color: Color): this {
+        this.values[0] = color.values[0];
+        this.values[1] = color.values[1];
+        this.values[2] = color.values[2];
+        this.values[3] = color.values[3];
+        return this;
+    }
+
+    set r(val: number){ this.values[0] = val; }
+    set g(val: number){ this.values[1] = val; }
+    set b(val: number){ this.values[2] = val; }
+    set a(val: number){ this.values[3] = val; }
 
     get r(){ return this.values[0]; }
     get g(){ return this.values[1]; }
@@ -73,13 +97,15 @@ export class Color {
         return hex;
     }
 
-    hex(): string {
+    string(): string {
         return "#" + this.valToHexString(this.r) + this.valToHexString(this.g) + this.valToHexString(this.b);
     }
 
-    value(): number {
+    hex(): number {
         return (this.r*65536)+(this.g*256)+this.b;
     }
+
+    // equals?
 }
 //* mix for colors */
 export function blend(color1: Color, color2: Color, percent: number, target: Color = new Color([0,0,0,0])){

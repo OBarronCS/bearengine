@@ -13,6 +13,9 @@ import { ColliderPart, SpritePart } from "../core-engine/parts";
 import { dimensions, Rect } from "../math-library/shapes/rectangle";
 import { drawPoint } from "../math-library/shapes/shapedrawing";
 
+
+
+
 enum PlayerStates {
     Ground,
     Air

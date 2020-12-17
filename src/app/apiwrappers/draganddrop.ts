@@ -14,7 +14,7 @@ interface Entry {
 }
 
 interface FileEntry extends Entry {
-    file(func: (file: File) => void): void
+    file(func: (file: File) => void, error: (error: Error) => void): void
 }
 
 interface DirectoryEntry extends Entry {
@@ -22,7 +22,7 @@ interface DirectoryEntry extends Entry {
 }
 
 interface DirectoryReader {
-    readEntries(callback: (fileEntries: FileEntry[]) => void): void
+    readEntries(callback: (fileEntries: FileEntry[]) => void,  error: (error: Error) => void): void
 }
 
 /**
@@ -45,8 +45,7 @@ export class DropTarget {
         const targetElement = target as HTMLElement;
 
         if(targetElement === null){
-            console.log("No DOM element found: " + targetAsString)
-            return;
+            throw Error("No DOM element found: " + targetAsString)
         }
         
         this.targetElement = targetElement;
@@ -123,28 +122,27 @@ export class DropTarget {
 }
 
 // Wrapping File and Directory API With promises
-async function getFileFromFileEntry(fileEntry: FileEntry): Promise<File> {
+async function getFileFromFileEntry(fileEntry: FileEntry): Promise<File> { 
     try {
-        // TODO --> Error handling
-        return await new Promise((resolve) => fileEntry.file(resolve));
+        return await new Promise((resolve, reject) => fileEntry.file(resolve,reject));
     } catch (err) {
-        console.log("AHHH Couldn't get file from FileEntry")
+        // If promise is rejected, this is called 
+        console.log(err, "Error while getting file")
     }
 }
 
 async function getDirectoryReaderEntries(directoryReader: DirectoryReader): Promise<FileEntry[]> {
     try {
-        // TODO --> Error handling
-        return await new Promise((resolve) => directoryReader.readEntries(resolve));
+        return await new Promise((resolve, reject) => directoryReader.readEntries(resolve,reject));
     } catch (err) {
-        console.log("AHHH Couldn't get files from directoryReaderEntries")
+        console.log(err, "Directory scan failed");
     }
 }
 
 /**
      * @description Recursively reads the directory returns a list of files
      * @param directory 
-     */
+*/
 async function scanDirectory(directory: DirectoryEntry){
     const files: File[] = [];
     const directoryReader = directory.createReader();
@@ -164,7 +162,6 @@ async function scanDirectory(directory: DirectoryEntry){
     return files;
 }
 
-// Has to be async because the file system API uses callbacks
 async function getItemListFiles(itemList: DataTransferItemList): Promise<File[]>{
     const files: File[] = [];
     
@@ -180,6 +177,14 @@ async function getItemListFiles(itemList: DataTransferItemList): Promise<File[]>
 
     for (let i = 0; i < list.length; i++){
         const entry = list[i];
+
+        // In some situations, this is null (when you drag something not a file or folder)
+        // If one null, most likely all null though.
+        if(entry === null) { 
+            console.log("Invalid thing dropped")
+            continue; 
+        }
+
 
         if(entry.isFile){
             const fileEntry = entry as FileEntry;
@@ -198,7 +203,8 @@ async function getItemListFiles(itemList: DataTransferItemList): Promise<File[]>
     return files;
 }
 
-// folders not natively supported everywhere, use this then
+
+// Use this if folders are not supported.
 function getFilesFromFileList(fileList: FileList){    
     const files: File[] = []
 

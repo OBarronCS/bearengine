@@ -11,6 +11,8 @@ export class SpatialGrid<T> {
     // Could maybe convert this to just a 1d array of lists, by mapping each 2d coord to a 1d location
     private grid: T[][][] = [];
 
+    // recommened side length of square root of n where n is number of things inserted. 
+
     private worldWidth: number;
     private worldHeight: number;
 

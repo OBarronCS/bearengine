@@ -2,7 +2,7 @@
 
 
 // WARNING --> This MUST be called as a result of some user action, else it will always fail
-// on CHROME --> escape will always leave fullscreen
+// on CHROME --> escape will always leave fullscreen. hold escape if escape key is locked.
 
 export function StartFullscreen(doc: Document, target: Element){
     if(doc.fullscreenEnabled){

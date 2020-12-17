@@ -550,7 +550,7 @@ export class GridQuadTree {
     private _draw(g: Graphics, scale: number, minx = 0, miny = 0, maxx = this.width, maxy = this.width, node = this.root){
         if(node === null) return;
 
-        g.lineStyle(4,rgb(0,0,0).value())
+        g.lineStyle(4,rgb(0,0,0).hex())
 
         if(node.walkable === false && node.NE === null){
             g.beginFill(0x000000)
@@ -1103,7 +1103,7 @@ export class LiveGridQuadTree {
     private _draw(g: Graphics, scale: number, minx = 0, miny = 0, maxx = this.width, maxy = this.width, node = this.root){
         if(node === null) return;
 
-        g.lineStyle(4,rgb(0,0,0).value())
+        g.lineStyle(4,rgb(0,0,0).hex())
 
         if(node.walkable === false && node.NE === null){
             g.beginFill(0x000000)
