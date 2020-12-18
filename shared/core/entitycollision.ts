@@ -14,9 +14,8 @@ import { Line } from "shared/shapes/line";
 import { Rect } from "shared/shapes/rectangle";
 import { SpatialGrid } from "shared/datastructures/spatialgrid";
 import { AbstractEntity } from "shared/core/abstractentity";
-
-import { ColliderPart } from "./parts";
-
+import { PartQuery } from "shared/core/partquery";
+import { ColliderPart } from "shared/core/sharedparts"
 
 
 // E.Collision
@@ -24,13 +23,17 @@ export class CollisionManager {
     
     // In the future, with lots of entities, this will probably become a bottleneck. Research more efficient data structures
     // Rebuild the grid every step
-
     private colliders: ColliderPart[] = [];
-
     private grid: SpatialGrid<ColliderPart>;
 
+    public partQuery = new PartQuery(ColliderPart, e => {
+            this.add(e)
+        }, e => {
+            this.remove(e)
+        });
+
     constructor(worldWidth: number, worldHeight: number){
-        this.grid = new SpatialGrid<ColliderPart>(worldWidth, worldHeight, 6,6,(collider) => collider.rect);
+        this.grid = new SpatialGrid<ColliderPart>(worldWidth, worldHeight, 6,6,(collider) => collider.rect);   
     }
 
     update(dt: number): void {
@@ -61,6 +64,7 @@ export class CollisionManager {
         const i = this.colliders.indexOf(c);
         if(i !== -1){
             this.colliders.splice(i,1);
+
             // Dont bother removing it from the grid yet.
             // It just won't be added back when I rebuild next step
             // This might be a cause of bugs tho! we'll see

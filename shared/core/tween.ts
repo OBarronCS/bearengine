@@ -1,10 +1,10 @@
+import { Color, blend } from "shared/datastructures/color";
 import { clamp } from "shared/miscmath";
-import { Color, blend } from "./datastructures/color";
-import { Vec2, mix, Coordinate } from "./shapes/vec2";
+import { Coordinate, mix } from "shared/shapes/vec2";
+import { Effect } from "./effecthandler";
 
 
-import { Effect } from "../client/src/app/core-engine/effecthandler"
-import { E } from "../client/src/app/core-engine/globals";
+
 
 
 abstract class Tween<T> extends Effect  {
@@ -46,7 +46,7 @@ abstract class Tween<T> extends Effect  {
     
                 if(this.t >= 1){
                     if(this.nextChain){
-                        E.Engine.effectHandler.addEffect(this.nextChain)
+                        this.effectHandler.addEffect(this.nextChain)
                         this.nextChain.active = true;
                         this.destroy_effect = true;
                     }

@@ -3,11 +3,12 @@ import { Vec2, rotatePoint } from "shared/shapes/vec2";
 import { random_range, random } from "shared/randomhelpers";
 import { dimensions } from "shared/shapes/rectangle";
 import { drawPoint } from "shared/shapes/shapedrawing";
+import { ColliderPart } from "shared/core/sharedparts"
 import { clamp } from "shared/miscmath";
 
 import { E } from "../core-engine/globals";
 import { DefaultBulletEffect } from "../core-engine/effects/effects";
-import { ColliderPart, SpritePart } from "../core-engine/parts";
+import { SpritePart } from "../core-engine/parts";
 import { AddOnType } from "../core-engine/weapons/addon";
 import { DefaultGun } from "../core-engine/weapons/weapon";
 

@@ -1,26 +1,27 @@
 
 import { EngineMouse, InternalMouse } from "../input/mouse";
-import * as PIXI from "pixi.js";
-
 import { GUI } from "dat.gui";
 import { Renderer } from "./renderer";
 import { CameraSystem } from "./camera";
 import { E } from "./globals";
-import { LevelHandler } from "./level";
 import { EventEmitter } from "eventemitter3"
 import TypedEmitter from "typed-emitter"
 import { Entity, GMEntity, SimpleMovement, SpriteEntity } from "./entity";
-import { CustomMapFormat } from "../../../../shared/core/tiledmapeditor";
 import { Player } from "../gamelogic/player";
 import { CreateWindow } from "../apiwrappers/windowopen";
-
 import { EngineKeyboard } from "../input/keyboard";
-import { EffectHandler } from "./effecthandler";
 import { loadTestLevel } from "../gamelogic/testlevelentities";
 import { BufferedNetwork } from "./networking/socket";
 
+import { CustomMapFormat } from "shared/core/tiledmapeditor";
+import { LevelHandler } from "shared/core/level";
+import { EffectHandler } from "shared/core/effecthandler";
+import { PartQuery } from "shared/core/partquery";
+import { Text, Graphics, Loader, TextStyle, utils, Point } from "pixi.js";
 
-const RESOURCES = PIXI.Loader.shared.resources
+
+
+const RESOURCES = Loader.shared.resources
 
 let lastFrameTimeMs = 0;
 let maxFPS = 60;
@@ -51,7 +52,7 @@ class BearEngine {
     public camera: CameraSystem;
 
     //
-    public mouse_info = new PIXI.Text("",new PIXI.TextStyle({"fill": "white"}));
+    public mouse_info = new Text("",new TextStyle({"fill": "white"}));
     public gui: GUI;
     
 
@@ -67,6 +68,8 @@ class BearEngine {
 
 
     private updateList: Entity[] = [];
+
+    private partQueries: PartQuery<any>[] = []
 
 
     private network: BufferedNetwork;
@@ -128,11 +131,20 @@ class BearEngine {
 		this.current_level = new LevelHandler(level_struct);
         this.current_level.load();
 
+        this.renderer.pixiapp.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundColor)
+
         E.Level = this.current_level;
         E.Terrain = this.current_level.terrainManager;
         E.Collision = this.current_level.collisionManager;
         
+        const g = new Graphics()
+        this.current_level.draw(g)
+        this.renderer.addSprite(g);
+
+        this.partQueries.push(this.current_level.collisionManager.partQuery);
     
+
+
         loadTestLevel.call(this);
     }
 
@@ -158,12 +170,25 @@ class BearEngine {
         if(index !== -1){
             this.updateList.splice(index,1);
             e.parts.forEach(part => part.onRemove());
+
+            this.renderer.removeSprite(e.graphics);
+
+            this.partQueries.forEach(q => {
+                q.deleteEntity(e)
+            })
         }
+
+ 
     }
 
     addEntity(e: Entity): Entity {
         this.updateList.push(e);
         this.renderer.addSprite(e.graphics);
+
+        this.partQueries.forEach(q => {
+            q.addEntity(e)
+        })
+
         return e;
     }
    
@@ -172,7 +197,7 @@ class BearEngine {
         accumulated += timestamp - lastFrameTimeMs;
 
         /// Setting mouse world position values
-        const canvasPoint = new PIXI.Point();
+        const canvasPoint = new Point();
         this.renderer.pixiapp.renderer.plugins.interaction.mapPositionToPoint(canvasPoint,this.mouse.screenPosition.x,this.mouse.screenPosition.y);
         /// @ts-expect-error
         this.renderer.mainContainer.toLocal(canvasPoint,undefined,this.mouse.position);
@@ -199,11 +224,8 @@ class BearEngine {
             // divide by 1000 to get seconds
             const dt = simulation_time / 1000;
 
-
-
             this.current_level.collisionManager.update(dt);
 
-            
             for (let i = 0; i < this.updateList.length; i++) {
                 const entity = this.updateList[i];
                 entity.update(dt);
@@ -235,6 +257,8 @@ class BearEngine {
         for(let i = this.updateList.length - 1; i >= 0; --i){
             this.destroyEntity(this.updateList[i]);
         }
+
+        this.partQueries = [];
 
         const children = this.renderer.mainContainer.removeChildren();
         // This is crucial --> otherwise there is a memory leak

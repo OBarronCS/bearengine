@@ -1,4 +1,4 @@
-import { Container, RenderTexture, Sprite, DisplayObject, Loader, Application, utils } from "pixi.js";
+import { Container, DisplayObject, Loader, Application, utils } from "pixi.js";
 
 
 const resources = Loader.shared.resources;

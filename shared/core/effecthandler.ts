@@ -22,12 +22,13 @@ export class EffectHandler {
 
     addEffect<T extends Effect>(effect: T): T{
 
-        this.effectsLog.push("Started effect: " + effect.toString());
+		this.effectsLog.push("Started effect: " + effect.toString());
+
+		effect.effectHandler = this;
+
 		effect.start();
 		// Don't add it do the list if it only has a start callback
-        if(effect.updateFunctions.length === 0 && effect.finishFunctions.length === 0 && effect.intervalFunctions.length === 0 && effect.delayFunctions.length === 0){
-            
-        } else {
+        if(!effect.hasOnlyStart()){
 			this.effects.push(effect);
 		}
 		return effect;
@@ -42,17 +43,24 @@ export class EffectHandler {
 
 
 export class Effect {
-	destroy_effect: boolean = false;
 
-	startFunctions: (() => void)[] = [];
-	updateFunctions: ((dt: number) => void)[] = [];
-	finishFunctions:(() => void)[] = [];
+	// The thing that is ticking this. Set by the effectHandler onAdd
+	public effectHandler: EffectHandler = null;
+	public destroy_effect: boolean = false;
+
+	private startFunctions: (() => void)[] = [];
+	private updateFunctions: ((dt: number) => void)[] = [];
+	private finishFunctions:(() => void)[] = [];
 	
-	intervalFunctions: [number, (lap: number) => void, number, number][] = [];
-	delayFunctions: ([number,() => void])[] = [];
+	private intervalFunctions: [number, (lap: number) => void, number, number][] = [];
+	private delayFunctions: ([number,() => void])[] = [];
 	
 	time_alive = 0;
 	
+	hasOnlyStart(): boolean {
+		return this.updateFunctions.length === 0 && this.finishFunctions.length === 0 && this.intervalFunctions.length === 0 && this.delayFunctions.length === 0;
+	}
+
 	onStart(func:(() => void)){
 		const boundedFunc = func.bind(this);
 		this.startFunctions.push(boundedFunc)

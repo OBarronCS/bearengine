@@ -1,13 +1,13 @@
-import { Coordinate, Vec2 } from "shared/shapes/vec2";
 import { Graphics } from "pixi.js";
+import { Coordinate, Vec2 } from "shared/shapes/vec2";
 import { min } from "shared/miscmath"
 import { random } from "shared/randomhelpers";
-import { ColliderPart, SpritePart } from "./parts";
-
-import { E } from "./globals";
-
+import { ColliderPart } from "shared/core/sharedparts"
 import { dimensions } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
+
+import { SpritePart } from "./parts";
+import { E } from "./globals";
 
 // Client specific entity
 export abstract class Entity extends AbstractEntity {
@@ -39,6 +39,7 @@ export abstract class SpriteEntity extends Entity {
         this.addPart(this.image);
 
         this.collider = new ColliderPart(dimensions(this.image.width, this.image.height), this.image.origin);
+        this.collider.setPosition(spot)
         this.addPart(this.collider);
     }
 

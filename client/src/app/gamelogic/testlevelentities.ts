@@ -1,10 +1,11 @@
-import { Graphics } from "pixi.js";
+
 import { BearEngine } from "../core-engine/bearengine";
 import { Entity, GMEntity, SimpleKeyboardCheck, SimpleMovement, SpriteEntity } from "../core-engine/entity";
 import { E } from "../core-engine/globals";
-import { ColliderPart } from "../core-engine/parts";
+import { Player } from "./player";
 
-
+import { Graphics } from "pixi.js";
+import { ColliderPart } from "shared/core/sharedparts"
 import { Tilemap } from "shared/datastructures/tilemap";
 import { rgb, Color } from "shared/datastructures/color";
 import { DynamicAABBTree } from "shared/datastructures/dynaabbtree";
@@ -19,9 +20,8 @@ import { Polygon } from "shared/shapes/polygon";
 import { Rect, dimensions } from "shared/shapes/rectangle";
 import { drawLineArray, drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "shared/shapes/shapedrawing";
 import { Vec2, Coordinate, angleBetween, mix } from "shared/shapes/vec2";
-import { Player } from "./player";
 import { floor, PI } from "shared/miscmath";
-import { ColorTween } from "shared/tween"
+import { ColorTween } from "shared/core/tween"
 import { TickTimer } from "shared/ticktimer"
 
 
@@ -29,6 +29,32 @@ import { TickTimer } from "shared/ticktimer"
 export function loadTestLevel(this: BearEngine): void {
 
     this.addEntity(new Player())
+
+
+    class MouseRectCollider extends Entity {
+        private r: ColliderPart;
+
+        constructor(){
+            super();
+            this.addPart(this.r = new ColliderPart(dimensions(50,50), new Vec2(20,20)))
+        }
+
+        update(dt: number): void {
+            this.position.set(E.Mouse.position);
+
+            if(E.Keyboard.isDown("KeyK")) E.Engine.destroyEntity(this)
+
+            this.redraw();
+        }
+        
+        draw(g: PIXI.Graphics): void {
+            g.clear();
+            this.r.rect.draw(g,0xFF0000)
+
+        }
+    }
+
+    // this.addEntity(new MouseRectCollider());
 
     class TestCollision extends Entity {
         private line: Line;
@@ -40,23 +66,19 @@ export function loadTestLevel(this: BearEngine): void {
             this.line = new Line(new Vec2(0,0), new Vec2(0,0));
         }
 
-        
-        
         update(dt: number): void {
             this.line.B.set(E.Mouse.position);
             if(E.Mouse.wasPressed("left")){
                 this.line.A.set(E.Mouse.position);
             }
 
-           
-
             this.redraw();
         }
         
         draw(g: PIXI.Graphics): void {
             g.clear();
-            this.r.draw(g)
-            this.line.draw(g,Rect.CollidesWithLine(this.r, this.line.A.x, this.line.A.y, this.line.B.x, this.line.B.y) ? "#FF0000":"#0000FF" );
+            //this.r.draw(g)
+            //this.line.draw(g,Rect.CollidesWithLine(this.r, this.line.A.x, this.line.A.y, this.line.B.x, this.line.B.y) ? "#FF0000":"#0000FF" );
         }
     }
     //this.addEntity(new TestCollision())
@@ -71,7 +93,7 @@ export function loadTestLevel(this: BearEngine): void {
             E.Collision.draw(g);
         }
     }
-    //this.addEntity(new Debug())
+    this.addEntity(new Debug())
 
     // Rectangle overlap test
     class Test extends Entity {
