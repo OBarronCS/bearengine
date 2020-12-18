@@ -1,22 +1,18 @@
-import { Container, DEG_TO_RAD, Sprite, TilingSprite } from "pixi.js";
+import { DEG_TO_RAD, Sprite } from "pixi.js";
 import { abs, angleDifference, min, sign } from "shared/miscmath"
 import { Dimension, Rect } from "shared/shapes/rectangle";
 import { angleBetween, Coordinate } from "shared/shapes/vec2";
-import { Entity } from "./entity";
+import { Part } from "shared/core/abstractpart"
+
+
 import { E } from "./globals";
 
-export abstract class Part {
-    public owner: Entity 
 
-    abstract onAdd(): void;
-    abstract onRemove(): void;
-    abstract update(dt: number): void;
-}
 
 // If these get too annoying to write, just change the system
 // so there is a pre update and post update (optional?) method on entities
 
-// Non in use right now
+// None in use right now
 export class ScriptPart extends Part {
     private script: (dt: number) => void;
 

@@ -1,8 +1,6 @@
 import { Graphics } from "pixi.js";
 import { swap } from "./arrayshelper";
-import { LinearPath } from "./paths";
 import { Rect } from "../shapes/rectangle";
-import { LinkedStack } from "./stack";
 import { clamp } from "shared/miscmath";
 import { drawLineBetweenPoints } from "shared/shapes/shapedrawing";
 

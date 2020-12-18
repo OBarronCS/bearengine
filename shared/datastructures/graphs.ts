@@ -1,11 +1,10 @@
 
-import { Graphics, Text } from "pixi.js";
+import { Graphics } from "pixi.js";
 import { blend, rgb } from "./color";
 
-import { ModifiablePQ, PQ } from "./priorityqueue";
+import { ModifiablePQ } from "./priorityqueue";
 import { LinkedQueue } from "./queue";
 import { LinkedStack, LightLinkedBag } from "./stack";
-import { distanceSquared } from "../shapes/vec2";
 import { abs, max, min } from "shared/miscmath";
 
 

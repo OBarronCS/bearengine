@@ -1,8 +1,9 @@
 import { Container, Point } from "pixi.js";
-import { Renderer } from "./renderer";
-import { Coordinate } from "../../../../shared/shapes/vec2";
+import { Coordinate } from "shared/shapes/vec2";
+import { Rect } from "shared/shapes/rectangle";
+
 import { E } from "./globals";
-import { Rect } from "../../../../shared/shapes/rectangle";
+import { Renderer } from "./renderer";
 
 export class CameraSystem {
     

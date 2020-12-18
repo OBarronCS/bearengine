@@ -2,49 +2,27 @@ import { Coordinate, Vec2 } from "shared/shapes/vec2";
 import { Graphics } from "pixi.js";
 import { min } from "shared/miscmath"
 import { random } from "shared/randomhelpers";
-import { ColliderPart, Part, SpritePart } from "./parts";
-import { dimensions } from "shared/shapes/rectangle";
+import { ColliderPart, SpritePart } from "./parts";
 
 import { E } from "./globals";
 
+import { dimensions } from "shared/shapes/rectangle";
+import { AbstractEntity } from "shared/core/abstractentity";
 
-export abstract class Entity {
-    readonly position: Vec2 = new Vec2(0,0)
-    readonly parts: Part[] = [];
+// Client specific entity
+export abstract class Entity extends AbstractEntity {
     readonly graphics: Graphics
 
-    get x() { return this.position.x; }
-    get y() { return this.position.y; }
-
-    set x(_x) { this.position.x = _x; }
-    set y(_y) { this.position.y = _y; }
-
     constructor() {
+        super()
         this.graphics = new Graphics();
-    }
-    
-    addPart(part: Part){
-        this.parts.push(part);
-        part.owner = this;
-        part.onAdd(); 
-    }
-
-    updateParts(dt: number){
-        for (let i = 0; i < this.parts.length; i++) {
-            const part = this.parts[i];
-            part.update(dt);
-        }
     }
 
     redraw(){
         this.draw(this.graphics);
     }
 
-    abstract update(dt: number): void;
     abstract draw(g: Graphics): void;
-    
-    // Intended for us by abstract classes for behind the scenes work
-    public postUpdate(): void {}
 }
 
 export abstract class SpriteEntity extends Entity {

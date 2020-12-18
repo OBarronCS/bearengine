@@ -1,11 +1,13 @@
 
-import { EngineSettings } from "client/src/app/core-engine/bearengine";
+
+
 import { EffectHandler } from "client/src/app/core-engine/effecthandler";
 import { Entity } from "client/src/app/core-engine/entity";
 import { LevelHandler } from "client/src/app/core-engine/level";
-import { CustomMapFormat } from "client/src/app/core-engine/tiledmapeditor";
-import { loadTestLevel } from "client/src/app/gamelogic/testlevelentities";
-import { ServerE } from "./serverglobal";
+
+
+import { CustomMapFormat } from "./core/tiledmapeditor";
+import { SE } from "./serverglobal";
 
 
 let lastFrameTimeMs = 0;
@@ -26,9 +28,8 @@ class ServerBearEngine {
     private updateList: Entity[] = [];
 
 
-    constructor(settings: EngineSettings){
-        ServerE.Engine = this;
-        
+    constructor(){
+        SE.Engine = this;
     }
 
 
@@ -36,11 +37,9 @@ class ServerBearEngine {
 		this.current_level = new LevelHandler(level_struct);
         this.current_level.load();
 
-        ServerE.Level = this.current_level;
-        ServerE.Terrain = this.current_level.terrainManager;
-        ServerE.Collision = this.current_level.collisionManager;
-        
-        loadTestLevel.call(this);
+        SE.Level = this.current_level;
+        SE.Terrain = this.current_level.terrainManager;
+        SE.Collision = this.current_level.collisionManager;
     }
 
 

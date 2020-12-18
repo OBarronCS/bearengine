@@ -10,11 +10,13 @@ Only for collision detection for AABB's. No resolution.
 */
 
 import { Graphics } from "pixi.js";
-import { Line } from "../../../../shared/shapes/line";
-import { Rect } from "../../../../shared/shapes/rectangle";
-import { SpatialGrid } from "../../../../shared/datastructures/spatialgrid";
-import { Entity } from "./entity";
+import { Line } from "shared/shapes/line";
+import { Rect } from "shared/shapes/rectangle";
+import { SpatialGrid } from "shared/datastructures/spatialgrid";
+import { AbstractEntity } from "shared/core/abstractentity";
+
 import { ColliderPart } from "./parts";
+
 
 
 // E.Collision
@@ -66,8 +68,8 @@ export class CollisionManager {
     }
     
     // ----    QUERIES
-    circleQuery(x: number, y: number, r: number): Entity[] {
-        const entities: Entity[] = [];
+    circleQuery(x: number, y: number, r: number): AbstractEntity[] {
+        const entities: AbstractEntity[] = [];
         const possible = this.grid.region(new Rect(x - r, y - r, r * 2, r * 2));
         for(const p of possible){
             if(Rect.CollidesWithSphere(p.rect, x, y, r)) entities.push(p.owner);
@@ -76,7 +78,7 @@ export class CollisionManager {
     }
 
     lineQuery(line: Line){
-        const entities: Entity[] = [];
+        const entities: AbstractEntity[] = [];
         const possible = this.grid.region(line.getAABB());
         for(const p of possible){
             if(Rect.CollidesWithLine(p.rect,line.A.x, line.A.y,line.B.x,line.B.y)) entities.push(p.owner);

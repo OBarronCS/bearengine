@@ -1,6 +1,5 @@
 
 /*
-
     Client side socket connection to a server:
         Deals with connecting to server,
         Sending, 
@@ -9,7 +8,6 @@
 
 import { abs, ceil } from "shared/miscmath";
 import { LinkedQueue } from "shared/datastructures/queue";
-
 
 
 export abstract class Network {

@@ -28,7 +28,7 @@ let accumulated = 0;
 let simulation_time = 1000 / maxFPS;
 
 // Returns names of files!
-// r is the require functio
+// r is the require function
 function importAll(r: any): [] {
     const webpackObjs = r.keys().map(r);
     return webpackObjs.map((v:any) => v.default)

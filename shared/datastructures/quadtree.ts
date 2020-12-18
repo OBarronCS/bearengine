@@ -1,16 +1,14 @@
 
 
-import { GUI } from "dat.gui";
-import { Graphics, ParticleContainer, TilingSprite, utils } from "pixi.js";
+
+import { Graphics, utils } from "pixi.js";
 import { rgb } from "./color";
-import { GraphNode } from "./graphs";
-import { Grid } from "./grid";
 import { clamp } from "shared/miscmath";
 import { ModifiablePQ } from "./priorityqueue";
 import { Rect } from "../shapes/rectangle";
 import { drawLineBetweenPoints } from "shared/shapes/shapedrawing";
 import { Vec2 } from "../shapes/vec2";
-import { LinkedStack, StackNode } from "./stack";
+import { LinkedStack } from "./stack";
 
 
 export class QuadTree<T> {

@@ -3,7 +3,6 @@
 
 import { Graphics } from "pixi.js";
 import { PQ } from "./priorityqueue";
-import { LinkedQueue } from "./queue";
 import { Ellipse } from "../shapes/ellipse";
 import { Rect } from "../shapes/rectangle";
 import { Coordinate } from "../shapes/vec2";

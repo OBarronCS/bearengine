@@ -1,18 +1,17 @@
-import { Entity } from "../core-engine/entity";
-import { Sprite, Point, RAD_TO_DEG, Graphics } from "pixi.js";
-import { E } from "../core-engine/globals";
-import { Vec2, rotatePoint } from "../../../../shared/shapes/vec2";
-import { NormalModuleReplacementPlugin } from "webpack";
-import { DefaultBulletEffect } from "../core-engine/effects/effects";
-import { random_range, random } from "../../../../shared/randomhelpers";
-import { ColliderPart, SpritePart } from "../core-engine/parts";
-import { dimensions, Rect } from "../../../../shared/shapes/rectangle";
-import { drawPoint } from "../../../../shared/shapes/shapedrawing";
+import { RAD_TO_DEG, Graphics } from "pixi.js";
+import { Vec2, rotatePoint } from "shared/shapes/vec2";
+import { random_range, random } from "shared/randomhelpers";
+import { dimensions } from "shared/shapes/rectangle";
+import { drawPoint } from "shared/shapes/shapedrawing";
 import { clamp } from "shared/miscmath";
+
+import { E } from "../core-engine/globals";
+import { DefaultBulletEffect } from "../core-engine/effects/effects";
+import { ColliderPart, SpritePart } from "../core-engine/parts";
 import { AddOnType } from "../core-engine/weapons/addon";
 import { DefaultGun } from "../core-engine/weapons/weapon";
 
-
+import { Entity } from "../core-engine/entity";
 
 
 enum PlayerStates {

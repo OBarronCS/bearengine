@@ -4,17 +4,16 @@ import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { Graphics, utils } from "pixi.js";
 
-import { E } from "./globals";
 import { CollisionManager } from "./entitycollision";
 
-// Current level accessible by "E.Level"
+
+
+// Current level accessible by "SE.Level"
 export class LevelHandler {
 
     data_struct: CustomMapFormat
     loaded = false;
 	bbox: Rect;
-	
-    backgroundColor: string;
 
 	terrainManager: TerrainManager = null;
 	collisionManager: CollisionManager = null;
@@ -30,9 +29,6 @@ export class LevelHandler {
 		const worldInfo = info_struct.world;
 		const width = worldInfo.width;
 		const height = worldInfo.height;
-		const bg = this.backgroundColor = worldInfo.backgroundColor		
-
-		E.Engine.renderer.pixiapp.renderer.backgroundColor = utils.string2hex(bg);
 		
 		this.terrainManager = new TerrainManager(width, height);
 		this.collisionManager = new CollisionManager(width,height);
@@ -46,22 +42,6 @@ export class LevelHandler {
 		});
 		
 		this.loaded = true
-
-		const g = new Graphics();
-
-		this.terrainManager.draw(g);
-
-		E.Engine.renderer.addSprite(g);
-	}
-
-	debugDraw(){
-		if(this.loaded){
-			// Outline of world
-			// this.bbox.draw();
-			
-			// // Terrain bodies drawn
-			// this.terrainManager.debugDraw();
-		}
 	}
 	
 	// Immediately ends the level 

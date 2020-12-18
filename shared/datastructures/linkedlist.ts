@@ -1,5 +1,3 @@
-import { TilingSprite } from "pixi.js";
-import { LinkedStack } from "./stack";
 
 
 
