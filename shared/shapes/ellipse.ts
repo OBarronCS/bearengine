@@ -3,6 +3,7 @@ import { Coordinate, Vec2, mix } from "./vec2";
 import { Rect } from "./rectangle";
 import { Polygon } from "./polygon";
 import { dcos, dsin, PI, sin, cos } from "../miscmath";
+import type { Graphics } from "pixi.js";
 
 
 export class Ellipse implements Shape<Ellipse>{
@@ -43,7 +44,7 @@ export class Ellipse implements Shape<Ellipse>{
         return new Rect(this.position.x - this.rx,this.position.y - this.ry,this.rx * 2, this.ry * 2);
     }
     
-    draw(g: PIXI.Graphics, color: number = 0x00F0F0): void {
+    draw(g: Graphics, color: number = 0x00F0F0): void {
         g.lineStyle(3,color);
         g.drawEllipse(this.position.x, this.position.y, this.rx, this.ry);
     }

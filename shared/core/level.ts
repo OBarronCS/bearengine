@@ -3,7 +3,7 @@ import { Rect } from "shared/shapes/rectangle";
 import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { CollisionManager } from "shared/core/entitycollision";
-import { Graphics } from "pixi.js";
+import type { Graphics } from "pixi.js";
 
 export class LevelHandler {
 

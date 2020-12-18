@@ -3,7 +3,7 @@ import { Shape } from "./shapesinterfaces";
 import { Polygon, minPoint, maxPoint } from "./polygon";
 import { min, max, clamp } from "shared/miscmath";
 import { lines_intersect } from "./line";
-
+import type { Graphics } from "pixi.js";
 
 export interface Dimension {
     width: number;
@@ -115,7 +115,7 @@ export class Rect implements Shape<Rect> {
         return new Rect(this.x, this.y, this.x2 - this.x, this.y2 - this.y);
     }
 
-    draw(g: PIXI.Graphics, color = 0x0000FF, width = 4): void {
+    draw(g: Graphics, color = 0x0000FF, width = 4): void {
         g.endFill();
         g.lineStyle(width, color);
         g.drawRect(this.x, this.y, this.x2 - this.x, this.y2 - this.y);

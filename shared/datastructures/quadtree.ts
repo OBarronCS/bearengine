@@ -1,9 +1,9 @@
 
 
 
-import { Graphics, utils } from "pixi.js";
+import type { Graphics } from "pixi.js";
 import { rgb } from "./color";
-import { clamp } from "shared/miscmath";
+import { clamp, isPow2, string2hex } from "shared/miscmath";
 import { ModifiablePQ } from "./priorityqueue";
 import { Rect } from "../shapes/rectangle";
 import { drawLineBetweenPoints } from "shared/shapes/shapedrawing";
@@ -107,7 +107,7 @@ export class QuadTree<T> {
         node.aabb.draw(g,undefined,6);
 
         for(const value of node.values){
-            this.AABBFunction(value).draw(g,utils.string2hex("#FF0000"));
+            this.AABBFunction(value).draw(g,string2hex("#FF0000"));
         }
 
         this.draw(g, node.NE);
@@ -146,7 +146,7 @@ export class GridQuadTree {
 
     // Has to be a power of 2
     constructor(width: number) {
-        if(!utils.isPow2(width)) throw new Error("GridQuadTree must have width that is power of two")
+        if(!isPow2(width)) throw new Error("GridQuadTree must have width that is power of two")
 
 
         this.width = width;
@@ -641,7 +641,7 @@ export class LiveGridQuadTree {
 
     // Has to be a power of 2
     constructor(width: number) {
-        if(!utils.isPow2(width)) throw new Error("GridQuadTree must have width that is power of two")
+        if(!isPow2(width)) throw new Error("GridQuadTree must have width that is power of two")
 
         this.width = width;
 

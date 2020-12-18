@@ -9,7 +9,7 @@ Entities are most likely things that move (player), things that can appear/dissa
 Only for collision detection for AABB's. No resolution.
 */
 
-import { Graphics } from "pixi.js";
+import type { Graphics } from "pixi.js";
 import { Line } from "shared/shapes/line";
 import { Rect } from "shared/shapes/rectangle";
 import { SpatialGrid } from "shared/datastructures/spatialgrid";

@@ -2,7 +2,7 @@ import { Line, lines_intersect } from "shared/shapes/line";
 import {  Vec2, Coordinate, distanceSquared, mix } from "shared/shapes/vec2";
 import { SpatialGrid } from "shared/datastructures/spatialgrid";
 
-import { Graphics } from "pixi.js";
+import type { Graphics } from "pixi.js";
 import { drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "shared/shapes/shapedrawing";
 
 

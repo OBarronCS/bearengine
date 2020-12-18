@@ -1,4 +1,3 @@
-import { utils } from "pixi.js";
 import { randomInt } from "./randomhelpers";
 
 export function clamp(value: number, min: number, max: number){
@@ -138,9 +137,18 @@ const colors = [
 
 export function niceColor(): number {
     const index = randomInt(0,colors.length)
-    return utils.string2hex(colors[index]);
+    return string2hex(colors[index]);
+}
+
+export function string2hex(str: string){
+    if(str[0] === "#") str = str.substr(1);
+    return Number.parseInt(str, 16);
 }
     
+export function isPow2(v: number): boolean {
+    return !(v & (v - 1)) && (!!v);
+}
+
 
 // Offset doesn't work very well
 // Takes in an angle, returns the angle that is it closest too with the offset

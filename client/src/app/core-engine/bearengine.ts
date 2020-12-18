@@ -65,8 +65,7 @@ class BearEngine {
     private current_level: LevelHandler = null;
 
     public effectHandler = new EffectHandler();
-
-
+    
     private updateList: Entity[] = [];
 
     private partQueries: PartQuery<any>[] = []

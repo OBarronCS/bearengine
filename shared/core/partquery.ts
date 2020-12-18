@@ -1,5 +1,4 @@
 
-import { SpritePart } from "client/src/app/core-engine/parts";
 import { AbstractEntity } from "./abstractentity";
 import { Part } from "./abstractpart";
 

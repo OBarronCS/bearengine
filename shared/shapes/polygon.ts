@@ -1,8 +1,12 @@
 import { Shape } from "./shapesinterfaces";
-import { Coordinate, Vec2, distanceSquared, mix, coordinateArraytoVec, flattenVecArray } from "./vec2";
+import { Coordinate, Vec2, mix, flattenVecArray } from "./vec2";
 import { Rect } from "./rectangle";
 import { abs, atan2, niceColor } from "../miscmath";
-import { Graphics, Point, utils } from "pixi.js";
+
+import type { Graphics, Point } from "pixi.js";
+
+import { default as earcut } from "earcut";
+
 import { drawVecAsArrow } from "./shapedrawing";
 
 
@@ -258,7 +262,7 @@ export class Polygon implements Shape<Polygon>{
     // Returns array of polygons that are triangles. No normals
     triangulate(): Polygon[] {
         const flatArray = flattenVecArray(this.points);
-        const coords = utils.earcut(flatArray);
+        const coords = earcut(flatArray);
         // returns the indices of new triangles
         // [0,1,3,   1,2,3]  --> two triangles, each number corresponds to an input point
         const polygons: Polygon[] = []

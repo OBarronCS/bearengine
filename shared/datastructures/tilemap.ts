@@ -4,7 +4,7 @@
 // For now, this doesn't deal with graphics yet
 // just collision
 
-import { Graphics } from "pixi.js";
+import type { Graphics } from "pixi.js";
 import { floor } from "shared/miscmath";
 import { Rect } from "shared/shapes/rectangle";
 import { Coordinate } from "shared/shapes/vec2";

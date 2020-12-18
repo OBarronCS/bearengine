@@ -1,4 +1,4 @@
-import { Graphics } from "pixi.js";
+import type { Graphics } from "pixi.js";
 import { swap } from "./arrayshelper";
 import { Rect } from "../shapes/rectangle";
 import { clamp } from "shared/miscmath";

@@ -1,5 +1,5 @@
 import { Vec2, mix, Coordinate } from "../shapes/vec2";
-import { Graphics } from "pixi.js";
+import type { Graphics } from "pixi.js";
 
 export interface Path {
     getPointAt(t: number): Coordinate
