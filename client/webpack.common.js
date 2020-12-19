@@ -1,0 +1,50 @@
+const path = require("path");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+
+
+module.exports = {
+    entry: "./src/index.ts",
+    plugins:[
+        new HtmlWebpackPlugin({
+            template:"./src/template.html",
+            favicon: "./src/favicon.png"
+        }),
+    ],
+    resolve:{
+    
+        extensions:['.ts','.js'],
+        // allows webpack to use TypeScript relative paths using baseUrl
+        modules:[
+            path.join(__dirname, "../"),
+            "node_modules"
+        ]
+    },
+    module:{
+        rules:[
+            { 
+                test: /\.ts$/,
+                use:"ts-loader",
+                exclude: /node_modules/
+            },
+            { // making this seperate for some reason made Webpack not produce an error
+                test: /\.json$/,
+                loader: 'file-loader',
+                type: 'javascript/auto',
+                options: {
+                    name: '[path][name].[ext]',
+                    context: 'src'
+                },
+            },
+            { // if later want to hash, look here for examples  https://webpack.js.org/loaders/file-loader/
+                test: /\.(png|jpe?g|gif)$/,
+                loader: 'file-loader',
+                // outputs it to where it got it from!
+                options: {
+                    name: '[path][name].[ext]',
+                    context: 'src'
+                },
+            },
+        ],
+        
+    },
+};

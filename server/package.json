@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "npm run build:live",
-    "build:live": "nodemon --watch 'source/**/*.ts' --exec \"ts-node\" source/index.ts"
+    "build:live": "nodemon --watch 'source/**/*.ts' --exec \"ts-node\" -r tsconfig-paths/register source/index.ts"
   },
   "author": "Otso",
   "license": "ISC",
@@ -15,6 +15,7 @@
     "@types/ws": "^7.4.0",
     "nodemon": "^2.0.6",
     "ts-node": "^9.1.0",
+    "tsconfig-paths": "^3.9.0",
     "typescript": "^4.1.2"
   },
   "dependencies": {
