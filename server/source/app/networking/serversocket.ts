@@ -27,7 +27,6 @@ export class ServerNetwork {
 
     public start(){
         this.socket = new WS.Server( { port:this.port } )
-
         this.socket.on("connection", this.sendStartData.bind(this));
 
         this.socket.on("close", () => {
@@ -82,6 +81,7 @@ export class ServerNetwork {
 
         this.referenceTime = BigInt(time);
         this.referenceTick = this.tick;
+        
         console.log(this.tick)
 
         const buffer = new ArrayBuffer(3);

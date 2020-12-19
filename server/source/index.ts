@@ -8,10 +8,9 @@ import { ServerBearEngine } from "./app/serverengine";
 
 const app = express();
 
-
-
 // Setting the directory which has static assets
 app.use(express.static(path.join(__dirname, "../../client/dist")));
+
 
 app.get("/", (request, response) => {
     readFile("./index.html", "utf-8", (err, html) => {
@@ -25,12 +24,11 @@ app.get("/", (request, response) => {
     })
 });
 
-const TICK_RATE = 20;
+const TICK_RATE = 5;
 
 const engine = new ServerBearEngine(TICK_RATE);
-// Opens it up to connections
-engine.start(8080);
 
+engine.start(8080);
 
 
 app.listen(8000, () => {

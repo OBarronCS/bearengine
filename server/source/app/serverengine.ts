@@ -4,14 +4,9 @@
 import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { ServerEntity } from "./serverentity";
 
-import { DRAW_TEST } from "shared/pixitest";
-console.log(DRAW_TEST)
-
 import { SE } from "./serverglobal";
 import { EffectHandler } from "shared/core/effecthandler"
 import { LevelHandler } from "shared/core/level";
-console.log(LevelHandler)
-
 import { ServerNetwork } from "./networking/serversocket";
 
 
@@ -40,6 +35,7 @@ class ServerBearEngine {
     
     start(port: number){
         this.network = new ServerNetwork(this.TICK_RATE,port)
+        this.network.start();
         this.previousTick = Date.now();
         this.loop();
     }
@@ -67,7 +63,7 @@ class ServerBearEngine {
 
         // If we have made it far enough to TICK THE GAME
         if (this.previousTick + (1000 / this.TICK_RATE) <= now) {
-            console.log(now - this.previousTick);
+            // console.log(now - this.previousTick);
         
             this.network.sendGameData(now);
     
