@@ -8,8 +8,9 @@
 
 import { abs, ceil } from "shared/miscmath";
 import { LinkedQueue } from "shared/datastructures/queue";
-
-
+import { BufferReaderStream } from "shared/datastructures/networkstream"
+import { BearEngine } from "../bearengine";
+ 
 export abstract class Network {
 
     protected socket: WebSocket = null;
@@ -52,7 +53,7 @@ export abstract class Network {
 }
 
 interface BufferedPacket {
-    buffer: ArrayBuffer;
+    buffer: BufferReaderStream;
     id: number;
 }
 
@@ -111,28 +112,30 @@ export class BufferedNetwork extends Network {
             3 data
         */
        
-        const view = new DataView(ev.data);
-        switch(view.getUint8(0)){
-            case 0: this.calculatePing(view); break;
-            case 1: this.initInfo(view); break;
-            case 2: this.prepareTicking(view); break;
-            case 3: this.processGameData(view); break;
+        const stream = new BufferReaderStream(ev.data);
+
+        const type = stream.getUint8()
+        switch(type){
+            case 0: this.calculatePing(stream); break;
+            case 1: this.initInfo(stream); break;
+            case 2: this.prepareTicking(stream); break;
+            case 3: this.processGameData(stream); break;
         }
     }
 
-    private initInfo(view: DataView){
+    private initInfo(stream: BufferReaderStream){
         //
         // [ 8bit id, 8bit rate, 64 bit timestamp, 16 bit id]
-        const rate = view.getUint8(1);
+        const rate = stream.getUint8();
         this.SERVER_SEND_RATE = rate;
         this.SERVER_SEND_INTERVAL = (1/rate);
 
         // These may desync over time. Maybe resend them every now and then if it becomes an issue?
-        this.REFERENCE_SERVER_TICK_TIME = view.getBigUint64(2);
-        this.REFERENCE_SERVER_TICK_ID = view.getInt16(10)
+        this.REFERENCE_SERVER_TICK_TIME = stream.getBigUint64();
+        this.REFERENCE_SERVER_TICK_ID = stream.getInt16()
     }
 
-    private prepareTicking(view: DataView){
+    private prepareTicking(stream: BufferReaderStream){
         // 1rst byte is 2
         // 2 and 3rd byte are 16 bit ID of 
         this.SERVER_IS_TICKING = true;
@@ -141,11 +144,11 @@ export class BufferedNetwork extends Network {
         // this.currentServerSendID = view.getUint16(1);
     }
 
-    private processGameData(view: DataView){
-        const id = view.getUint16(1);
+    private processGameData(stream: BufferReaderStream){
+        const id = stream.getUint16();
 
         // console.log("Received: " + id)
-        this.packets.enqueue({ id: id, buffer: view.buffer });
+        this.packets.enqueue({ id: id, buffer: stream });
         // console.log("Size of queue: " + this.packets.size())
     }
 
@@ -165,15 +168,13 @@ export class BufferedNetwork extends Network {
     private lastConfirmedPacketFromBuffer = 0;
 
     // Get ping, 
-    private calculatePing(view: DataView){
+    private calculatePing(stream: BufferReaderStream){
         // first byte: 1
         // next 8 bytes: the unix timestamp I sent
         // next 8 bytes: server time stamp
-
     
-        
-        const originalStamp = view.getBigInt64(1);
-        const serverStamp = view.getBigInt64(9);
+        const originalStamp = stream.getBigInt64();
+        const serverStamp = stream.getBigInt64();
 
         const currentTime = BigInt(Date.now());
 
@@ -209,7 +210,7 @@ export class BufferedNetwork extends Network {
 
     }
 
-    public tick(){
+    public tick(): BufferReaderStream | null{
 
         if(this.SERVER_IS_TICKING && this.ping !== -1){
 
@@ -245,30 +246,39 @@ export class BufferedNetwork extends Network {
                     
 ///////////////////////////// // * !ASIGAKUSVAJYSFAKUSC JACFSAJFSCAJSCJASC 0?
                     // get rid of this return statement
-                    return; 
+                    return null; 
                 }
 
                 // Okay so we are not too far in the future.
                 // Might be too far in the past though, ( ex: start of game, only one buffered but its in future)
                 if(frameToGet < this.packets.peek().id){
                     console.log("We are too far in the future")
-                    return;
+                    return null;
                 }
                 
                 // This is the one!
                 const packet = this.packets.dequeue();
-                const buffer = packet.buffer;
+
+                const stream = packet.buffer;
+
+
+                // console.log(stream.getBuffer())
                 console.log("Confirmed: " + packet.id)
-
                 console.log("Number of buffer frames: " + this.packets.size());
-
 
                 this.lastConfirmedPacketFromBuffer = frameToGet;
 
-                return buffer;
+
+                return stream;
             }
         }
+
+        return null;
     }
+
+    
+
+
 }
 
 

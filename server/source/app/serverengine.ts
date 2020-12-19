@@ -8,6 +8,8 @@ import { SE } from "./serverglobal";
 import { EffectHandler } from "shared/core/effecthandler"
 import { LevelHandler } from "shared/core/level";
 import { ServerNetwork } from "./networking/serversocket";
+import { Vec2 } from "shared/shapes/vec2";
+import { BufferWriterStream } from "shared/datastructures/networkstream";
 
 
 class ServerBearEngine {
@@ -37,6 +39,20 @@ class ServerBearEngine {
         this.network = new ServerNetwork(this.TICK_RATE,port)
         this.network.start();
         this.previousTick = Date.now();
+
+
+        class FirstETest extends ServerEntity {
+
+            private move = new Vec2(0,0).set(Vec2.RIGHT).extend(30);
+
+            update(dt: number): void {
+                this.position.add(this.move)
+            }
+
+        }
+
+        this.addEntity(new FirstETest);
+
         this.loop();
     }
 
@@ -64,9 +80,29 @@ class ServerBearEngine {
         // If we have made it far enough to TICK THE GAME
         if (this.previousTick + (1000 / this.TICK_RATE) <= now) {
             // console.log(now - this.previousTick);
+            const dt = this.TICK_RATE;
+             // this.current_level.collisionManager.update(dt);
         
-            this.network.sendGameData(now);
-    
+            const stream = new BufferWriterStream(new ArrayBuffer(30));
+            this.network.writePacketStateData(stream);
+
+            for (let i = 0; i < this.updateList.length; i++) {
+                const entity = this.updateList[i];
+                entity.update(dt);
+                entity.postUpdate();
+                entity.updateParts(dt);
+
+                stream.setFloat32(entity.x);
+                stream.setFloat32(entity.y);
+            }
+
+
+            this.effectHandler.update(dt); 
+            
+            this.network.sendGameData(stream.getBuffer(), now);
+
+
+            console.log(Date.now()  - this.previousTick)
             this.previousTick = now
         }
     
@@ -78,20 +114,7 @@ class ServerBearEngine {
         }
     }
    
-    // dt, in terms of seconds
-    update(dt: number){
-        this.current_level.collisionManager.update(dt);
-        
-        for (let i = 0; i < this.updateList.length; i++) {
-            const entity = this.updateList[i];
-            entity.update(dt);
-            entity.postUpdate();
-            entity.updateParts(dt);
-        }
 
-        this.effectHandler.update(dt);
-        this.totalTime += dt;
-    }
 
     destroyEntity(e: ServerEntity): void {
         const index = this.updateList.indexOf(e);
@@ -126,35 +149,7 @@ export {
     ServerBearEngine,
 }
 
-/*
-const TICK_RATE = 20;
-
-const engine = new ServerNetwork(TICK_RATE,8080);
-// Opens it up to connections
-engine.start();
 
 
-let previousTick = Date.now();
 
-function gameLoop(){
-    const now = Date.now();
 
-    // If we have made it far enough to TICK THE GAME
-    if (previousTick + (1000 / TICK_RATE) <= now) {
-        // console.log(now - previousTick);
-    
-        engine.sendGameData(now);
-
-        previousTick = now
-    }
-
-    // if we are more than 16 milliseconds away from the next tick
-    if(now - previousTick < (1000 / TICK_RATE) - 16) {
-        setTimeout(gameLoop) // sloppy timer
-    } else {
-        setImmediate(gameLoop) // ultra accurate method
-    }
-}
-
-gameLoop();
-*/

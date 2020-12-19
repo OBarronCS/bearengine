@@ -215,7 +215,13 @@ class BearEngine {
 
 
         // Checks buffer
-        this.network.tick();
+        const stream = this.network.tick();
+        if(stream !== null){
+            const dx = stream.getFloat32();
+
+            this.updateList[0].x = dx;
+            this.updateList[0].y = stream.getFloat32();
+        }
 
         // both of these are in ms
         while (accumulated >= (simulation_time)) {

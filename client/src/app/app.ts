@@ -1,17 +1,10 @@
 import { BearEngine } from "./core-engine/bearengine";
 import { DropTarget } from "./apiwrappers/draganddrop";
 import { Texture, BaseTexture, Sprite, Point, resources } from "pixi.js";
-import { Vec2 } from "../../../shared/shapes/vec2";
-import { Polygon } from "../../../shared/shapes/polygon";
 import { StartFullscreen } from "./apiwrappers/fullscreen";
 import { E } from "./core-engine/globals";
-import { LockMouse } from "./apiwrappers/pointerlock";
 import { LockKeys } from "./apiwrappers/keyboardapiwrapper";
-import { CustomMapFormat } from "../../../shared/core/tiledmapeditor";
-import { LinkedStack } from "../../../shared/datastructures/stack";
-import { ArrayQueue, LinkedQueue } from "../../../shared/datastructures/queue";
-import { RandomizedBag } from "../../../shared/datastructures/randomizedbag";
-
+import { CustomMapFormat } from "shared/core/tiledmapeditor";
 
 const game = new BearEngine({
     popup : false

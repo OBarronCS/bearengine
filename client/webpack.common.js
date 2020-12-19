@@ -1,6 +1,6 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-
+const BundleAnalyzerPlugin = require("webpack-bundle-analyzer").BundleAnalyzerPlugin
 
 module.exports = {
     entry: "./src/index.ts",
@@ -8,7 +8,7 @@ module.exports = {
         new HtmlWebpackPlugin({
             template:"./src/template.html",
             favicon: "./src/favicon.png"
-        }),
+        })
     ],
     resolve:{
     

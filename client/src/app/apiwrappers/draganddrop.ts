@@ -128,6 +128,8 @@ async function getFileFromFileEntry(fileEntry: FileEntry): Promise<File> {
     } catch (err) {
         // If promise is rejected, this is called 
         console.log(err, "Error while getting file")
+    } finally {
+        return null;
     }
 }
 
@@ -136,6 +138,8 @@ async function getDirectoryReaderEntries(directoryReader: DirectoryReader): Prom
         return await new Promise((resolve, reject) => directoryReader.readEntries(resolve,reject));
     } catch (err) {
         console.log(err, "Directory scan failed");
+    } finally {
+        return null;
     }
 }
 
@@ -150,6 +154,7 @@ async function scanDirectory(directory: DirectoryEntry){
     //Can only readEntries ONCE
     const entries = await getDirectoryReaderEntries(directoryReader);
     for(const entry of entries){
+        if(entry === null) continue;
         if(entry.isFile){
             const actualFile = await getFileFromFileEntry(entry);
             files.push(actualFile);

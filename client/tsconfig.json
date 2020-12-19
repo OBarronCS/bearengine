@@ -11,8 +11,9 @@
         //"allowSyntheticDefaultImports": true
         //"esModuleInterop": true
         //"noImplicitAny" : true,
+        "noImplicitReturns": true,
         "noImplicitThis":true,
-        // also one about case: and making sure you write "break;" 
+        "noFallthroughCasesInSwitch": true,
         "types": [
             "webpack",
             "webpack-env"

@@ -25,10 +25,23 @@ import { ColorTween } from "shared/core/tween"
 import { TickTimer } from "shared/ticktimer"
 
 
+class BasicSprite extends SpriteEntity {
+
+    constructor(){
+        super(Vec2.ZERO,"images/flower.png")
+    }
+
+    draw(g: Graphics): void {}
+    update(dt: number): void {}
+
+}
+
 
 export function loadTestLevel(this: BearEngine): void {
 
-    this.addEntity(new Player())
+    this.addEntity(new BasicSprite())
+
+    //this.addEntity(new Player())
 
 
     class MouseRectCollider extends Entity {

@@ -14,6 +14,7 @@ export function lerp(a: number, b: number, percent: number): number{
     return a * (1 - percent) + b * percent;
 }
 
+
 export const RAD_TO_DEG = 180 / Math.PI;
 export const DEG_TO_RAD = Math.PI / 180;
 
