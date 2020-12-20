@@ -12,14 +12,25 @@ export class BufferStreamReader  {
     private littleEndian = false;
     byteOffset: number = 0;
 
-    private dataview: DataView;
+    /** Size, in bytes */
+    public readonly size: number;
 
-    getBuffer(){
-        return this.dataview.buffer;
-    }
+    private dataview: DataView;
 
     constructor(buffer: ArrayBufferLike){
         this.dataview = new DataView(buffer);
+
+        this.size = buffer.byteLength;
+    }
+
+    /// PacketID === 0 is invalid
+    /// ASSUMES WE ARE READING GAME DATA 
+    hasMoreData(): boolean {
+        return this.byteOffset !== this.size;
+    }
+
+    getBuffer(){
+        return this.dataview.buffer;
     }
 
     getBigInt64(){
@@ -90,6 +101,15 @@ export class BufferStreamWriter {
     byteOffset: number = 0;
 
     private dataview: DataView;
+
+    size() {
+        return this.byteOffset;
+    }
+
+    // Returns a copy of the underlying ArrayBuffer, leaving no extra data
+    cutoff(): ArrayBuffer {
+        return this.dataview.buffer.slice(0,this.byteOffset);
+    }
 
     getBuffer(){
         return this.dataview.buffer;

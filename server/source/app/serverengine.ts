@@ -74,7 +74,7 @@ class ServerBearEngine {
             const dt = this.TICK_RATE;
              // this.current_level.collisionManager.update(dt);
 
-            if(chance(20)){ 
+            if(chance(15)){ 
                 console.log("NEW")
                 this.addNetworkedEntity(new FirstNetworkedEntity(new Vec2(0,0).set(Vec2.random()).extend(30)));    
             }
@@ -100,7 +100,7 @@ class ServerBearEngine {
 
 
             this.effectHandler.update(dt); 
-            this.network.sendGameData(stream.getBuffer(), now);
+            this.network.sendGameData(stream.cutoff(), now);
 
 
             console.log(Date.now()  - this.previousTick)

@@ -9,7 +9,9 @@ export abstract class ServerEntity extends AbstractEntity {}
 export abstract class NetworkedEntity extends ServerEntity {
     abstract packetType: PacketID;
 
-    protected id: number = -1;
+    static NEXT_ID = 0;
+
+    protected id = NetworkedEntity.NEXT_ID++;
 
     constructor(){
         super();

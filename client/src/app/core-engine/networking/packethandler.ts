@@ -1,11 +1,10 @@
+import { PacketID } from "shared/core/sharedlogic/packetdefinitions";
 import { BufferStreamReader } from "shared/datastructures/networkstream";
 
 
-
-
-export abstract class PacketHandler {
-
-    abstract read(stream: BufferStreamReader): void;
+export interface PacketHandler {
+    packetType: PacketID;
+    read(stream: BufferStreamReader): void;
 }
 
 
