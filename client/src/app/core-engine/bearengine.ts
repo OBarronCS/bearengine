@@ -18,6 +18,7 @@ import { LevelHandler } from "shared/core/level";
 import { EffectHandler } from "shared/core/effecthandler";
 import { PartQuery } from "shared/core/partquery";
 import { Text, Graphics, Loader, TextStyle, utils, Point } from "pixi.js";
+import { NetworkedEntityManager } from "./networking/gamemessagemanager";
 
 
 
@@ -72,12 +73,15 @@ class BearEngine {
 
 
     private network: BufferedNetwork;
+    private networkedEntityManager: NetworkedEntityManager;
 
     constructor(settings: EngineSettings){
         E.Engine = this;
         
         this.network = new BufferedNetwork("ws://127.0.0.1:8080");
         this.network.connect();
+
+        this.networkedEntityManager = new NetworkedEntityManager();
 
         this.mouse = new InternalMouse();
 
@@ -217,11 +221,11 @@ class BearEngine {
         // Checks buffer
         const stream = this.network.tick();
         if(stream !== null){
-            const dx = stream.getFloat32();
-
-            this.updateList[0].x = dx;
-            this.updateList[0].y = stream.getFloat32();
+            this.networkedEntityManager.readData(stream);
         }
+
+
+
 
         // both of these are in ms
         while (accumulated >= (simulation_time)) {

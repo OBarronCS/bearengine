@@ -7,7 +7,7 @@
 //const s = /[\x00-\x7F]/;
 //s.test(string): true if is ok
 
-export class BufferReaderStream  {
+export class BufferStreamReader  {
     
     private littleEndian = false;
     byteOffset: number = 0;
@@ -84,7 +84,7 @@ export class BufferReaderStream  {
 }
 
 
-export class BufferWriterStream {
+export class BufferStreamWriter {
 
     private littleEndian = false;
     byteOffset: number = 0;

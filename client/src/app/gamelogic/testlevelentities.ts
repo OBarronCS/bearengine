@@ -39,7 +39,7 @@ class BasicSprite extends SpriteEntity {
 
 export function loadTestLevel(this: BearEngine): void {
 
-    this.addEntity(new BasicSprite())
+    // this.addEntity(new BasicSprite())
 
     //this.addEntity(new Player())
 

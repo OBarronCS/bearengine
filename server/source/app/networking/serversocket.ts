@@ -2,11 +2,10 @@
 // Encapsulates connections to players
 
 import WS from "ws"
-import { BufferWriterStream } from "shared/datastructures/networkstream"
+import { BufferStreamWriter } from "shared/datastructures/networkstream"
 
 
 export class ServerNetwork {
-
     private readonly TICK_RATE: number;
 
     protected socket: WS.Server = null;
@@ -78,22 +77,16 @@ export class ServerNetwork {
 
     }
 
-    writePacketStateData(stream: BufferWriterStream){
+    writePacketStateData(stream: BufferStreamWriter){
         stream.setUint8(3);
         stream.setUint16(this.tick);
     }
 
     sendGameData(buffer: ArrayBuffer | ArrayBufferView, time: number){
-
         this.referenceTime = BigInt(time);
         this.referenceTick = this.tick;
         
         // console.log(this.tick)
-
-        // const buffer = new ArrayBuffer(3);
-        // const view = new DataView(buffer);
-        // view.setUint8(0,3);
-        // view.setUint16(1,this.tick);
 
         this.broadcast(buffer);
 
@@ -102,11 +95,10 @@ export class ServerNetwork {
 
     public broadcast(buffer: ArrayBuffer | ArrayBufferView){
         this.sockets.forEach((client) => {
-            ////if (client.readyState === WebSocket.OPEN) {
+            // if (client.readyState === WebSocket.OPEN)
             client.send(buffer);
             
-        })
-        
+        }) 
     }
 
     public disconnect(){

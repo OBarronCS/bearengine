@@ -8,7 +8,7 @@
 
 import { abs, ceil } from "shared/miscmath";
 import { LinkedQueue } from "shared/datastructures/queue";
-import { BufferReaderStream } from "shared/datastructures/networkstream"
+import { BufferStreamReader } from "shared/datastructures/networkstream"
 import { BearEngine } from "../bearengine";
  
 export abstract class Network {
@@ -53,7 +53,7 @@ export abstract class Network {
 }
 
 interface BufferedPacket {
-    buffer: BufferReaderStream;
+    buffer: BufferStreamReader;
     id: number;
 }
 
@@ -112,7 +112,7 @@ export class BufferedNetwork extends Network {
             3 data
         */
        
-        const stream = new BufferReaderStream(ev.data);
+        const stream = new BufferStreamReader(ev.data);
 
         const type = stream.getUint8()
         switch(type){
@@ -123,7 +123,7 @@ export class BufferedNetwork extends Network {
         }
     }
 
-    private initInfo(stream: BufferReaderStream){
+    private initInfo(stream: BufferStreamReader){
         //
         // [ 8bit id, 8bit rate, 64 bit timestamp, 16 bit id]
         const rate = stream.getUint8();
@@ -135,7 +135,7 @@ export class BufferedNetwork extends Network {
         this.REFERENCE_SERVER_TICK_ID = stream.getInt16()
     }
 
-    private prepareTicking(stream: BufferReaderStream){
+    private prepareTicking(stream: BufferStreamReader){
         // 1rst byte is 2
         // 2 and 3rd byte are 16 bit ID of 
         this.SERVER_IS_TICKING = true;
@@ -144,7 +144,7 @@ export class BufferedNetwork extends Network {
         // this.currentServerSendID = view.getUint16(1);
     }
 
-    private processGameData(stream: BufferReaderStream){
+    private processGameData(stream: BufferStreamReader){
         const id = stream.getUint16();
 
         // console.log("Received: " + id)
@@ -168,7 +168,7 @@ export class BufferedNetwork extends Network {
     private lastConfirmedPacketFromBuffer = 0;
 
     // Get ping, 
-    private calculatePing(stream: BufferReaderStream){
+    private calculatePing(stream: BufferStreamReader){
         // first byte: 1
         // next 8 bytes: the unix timestamp I sent
         // next 8 bytes: server time stamp
@@ -210,7 +210,7 @@ export class BufferedNetwork extends Network {
 
     }
 
-    public tick(): BufferReaderStream | null{
+    public tick(): BufferStreamReader | null{
 
         if(this.SERVER_IS_TICKING && this.ping !== -1){
 
@@ -230,9 +230,6 @@ export class BufferedNetwork extends Network {
             // Implement some sort of pause at very beginning of game, so it waits to start look at packets like .5 seconds after the first recieved packet.
             // , and when the latency is adjusted backwards, so that it 
             if(frameToGet !== this.lastConfirmedPacketFromBuffer){
-                console.log(Date.now())
-                console.log("Getting frame: " + frameToGet)
-                
                 //Attempt to get this frame out of the buffer
                 // First, delete all old frames
                 while(this.packets.size() > 0 && frameToGet > this.packets.peek().id){
@@ -263,7 +260,7 @@ export class BufferedNetwork extends Network {
 
 
                 // console.log(stream.getBuffer())
-                console.log("Confirmed: " + packet.id)
+                console.log("Got frame: " + packet.id)
                 console.log("Number of buffer frames: " + this.packets.size());
 
                 this.lastConfirmedPacketFromBuffer = frameToGet;

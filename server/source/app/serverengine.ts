@@ -2,14 +2,15 @@
 
 
 import { CustomMapFormat } from "shared/core/tiledmapeditor";
-import { ServerEntity } from "./serverentity";
+import { FirstNetworkedEntity, NetworkedEntity, ServerEntity } from "./serverentity";
 
 import { SE } from "./serverglobal";
 import { EffectHandler } from "shared/core/effecthandler"
 import { LevelHandler } from "shared/core/level";
 import { ServerNetwork } from "./networking/serversocket";
 import { Vec2 } from "shared/shapes/vec2";
-import { BufferWriterStream } from "shared/datastructures/networkstream";
+import { BufferStreamWriter } from "shared/datastructures/networkstream";
+import { chance } from "shared/randomhelpers";
 
 
 class ServerBearEngine {
@@ -27,6 +28,8 @@ class ServerBearEngine {
 
     private updateList: ServerEntity[] = [];
 
+    private networkedEntities: NetworkedEntity[] = [];
+
 
     private previousTick: number = 0;
 
@@ -40,18 +43,6 @@ class ServerBearEngine {
         this.network.start();
         this.previousTick = Date.now();
 
-
-        class FirstETest extends ServerEntity {
-
-            private move = new Vec2(0,0).set(Vec2.RIGHT).extend(30);
-
-            update(dt: number): void {
-                this.position.add(this.move)
-            }
-
-        }
-
-        this.addEntity(new FirstETest);
 
         this.loop();
     }
@@ -82,23 +73,33 @@ class ServerBearEngine {
             // console.log(now - this.previousTick);
             const dt = this.TICK_RATE;
              // this.current_level.collisionManager.update(dt);
-        
-            const stream = new BufferWriterStream(new ArrayBuffer(30));
-            this.network.writePacketStateData(stream);
+
+            if(chance(20)){ 
+                console.log("NEW")
+                this.addNetworkedEntity(new FirstNetworkedEntity(new Vec2(0,0).set(Vec2.random()).extend(30)));    
+            }
+
 
             for (let i = 0; i < this.updateList.length; i++) {
                 const entity = this.updateList[i];
                 entity.update(dt);
                 entity.postUpdate();
                 entity.updateParts(dt);
-
-                stream.setFloat32(entity.x);
-                stream.setFloat32(entity.y);
             }
+        
+            const stream = new BufferStreamWriter(new ArrayBuffer(256));
+            this.network.writePacketStateData(stream);
+
+            for (let i = 0; i < this.networkedEntities.length; i++) {
+                const entity = this.networkedEntities[i];
+                entity.writeEntityData(stream);
+            }
+        
+
+
 
 
             this.effectHandler.update(dt); 
-            
             this.network.sendGameData(stream.getBuffer(), now);
 
 
@@ -122,6 +123,12 @@ class ServerBearEngine {
             this.updateList.splice(index,1);
             e.parts.forEach(part => part.onRemove());
         }
+    }
+
+    addNetworkedEntity(e: NetworkedEntity){
+        this.addEntity(e);
+
+        this.networkedEntities.push(e);
     }
 
     addEntity(e: ServerEntity): ServerEntity {
