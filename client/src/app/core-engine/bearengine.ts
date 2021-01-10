@@ -52,9 +52,7 @@ class BearEngine {
 
     public camera: CameraSystem;
 
-    //
     public mouse_info = new Text("",new TextStyle({"fill": "white"}));
-    public gui: GUI;
     
 
     // Total simulated time, in seconds
@@ -118,9 +116,6 @@ class BearEngine {
                 
             });
         }
-
-        
-        this.gui = new GUI();
 
         let gui_layer = this.renderer.guiContainer;
     

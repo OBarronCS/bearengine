@@ -20,6 +20,9 @@ enum PlayerStates {
     Air
 }
 
+
+export type PlayerActions = "left" | "right" | "jump";
+
 export class Player extends Entity {
     yspd = 0;
     xspd = 0;

@@ -7,9 +7,9 @@ export abstract class ServerEntity extends AbstractEntity {}
 
 // One instance of this corresponds to one RemoteEntity client side
 export abstract class NetworkedEntity extends ServerEntity {
-    abstract packetType: PacketID;
-
     static NEXT_ID = 0;
+
+    abstract packetType: PacketID;
 
     protected id = NetworkedEntity.NEXT_ID++;
 

@@ -9,6 +9,7 @@ class ChargeController implements GunshootController {
     holdTrigger: (hold: boolean) => boolean
 }
 
+// TODO: make this also have a max time, like .2 seconds or something
 const percentToQueueShot = .4;
 
 export class SemiAutoController implements GunshootController {
