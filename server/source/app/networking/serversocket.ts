@@ -7,6 +7,7 @@ import { BufferStreamWriter } from "shared/datastructures/networkstream"
 
 export class ServerNetwork {
     private readonly TICK_RATE: number;
+    private readonly port: number;
 
     protected socket: WS.Server = null;
     
@@ -18,7 +19,6 @@ export class ServerNetwork {
     // List of connections
     protected sockets: WS[] = []
 
-    private port: number;
 
     constructor(tickRate:number, port: number){
         this.TICK_RATE = tickRate;

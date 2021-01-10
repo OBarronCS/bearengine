@@ -57,7 +57,7 @@ class SimplePositionPacketHandler implements PacketHandler {
         console.log("ID: " + id)
         let e = this.entities.get(id);
         if(e === undefined){
-            console.log("creating new server");
+            console.log("creating new server entity");
             // e should be an instance of this
             e = new this.entityClassToCreate()
             this.entities.set(id, e);

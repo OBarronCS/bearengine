@@ -4,9 +4,8 @@ import { KECode } from "../apiwrappers/keyboardapiwrapper";
 
 // Things maybe to add:
 // anyDown --> if any of these keys are down
-// allDown --> if all are down (currently this is what isDown does)
 // Same thing with press and release? but only 
-// any?
+
 
 export class EngineKeyboard {
 

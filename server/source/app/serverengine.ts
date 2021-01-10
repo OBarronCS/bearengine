@@ -26,11 +26,9 @@ class ServerBearEngine {
     private current_level: LevelHandler = null;
     public effectHandler = new EffectHandler();
 
+
     private updateList: ServerEntity[] = [];
-
     private networkedEntities: NetworkedEntity[] = [];
-
-
     private previousTick: number = 0;
 
     constructor(tick_rate: number){

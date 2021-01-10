@@ -2,25 +2,21 @@
     "compilerOptions": {
         "baseUrl":"../",
         "outDir": "/build",
-
-        // "rootDirs": [
-        //     "./source",
-        //     "../shared"
-        // ],
         
         "module": "CommonJS",
         "moduleResolution": "node",
         "esModuleInterop": true,
 
-
         "target": "ESNext",
         "lib": ["DOM","ESNext"],
+
         "noImplicitThis":true,
+        
+        "noFallthroughCasesInSwitch": true,
         
         //"allowSyntheticDefaultImports": true
         //"noImplicitAny" : true,
-        
-        // also one about case: and making sure you write "break;" 
+
     },
     "exclude": [
         "node_modules",

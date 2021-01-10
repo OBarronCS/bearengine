@@ -5,15 +5,16 @@
         "moduleResolution": "node",
         "target": "ESNext",
         "lib": ["DOM","ESNext"],
-        /*
-        Look into setting sourceMap == true for better debugging
-        */
+        
+        // Look into setting sourceMap == true for better debugging
         //"allowSyntheticDefaultImports": true
         //"esModuleInterop": true
         //"noImplicitAny" : true,
-        "noImplicitReturns": true,
+
         "noImplicitThis":true,
+        "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
+
         "types": [
             "webpack",
             "webpack-env"

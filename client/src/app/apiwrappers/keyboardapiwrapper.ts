@@ -11,7 +11,7 @@
 // This only actually works in Fullscreen in chrome right now!
 
 // The Escape key is special --> in fullscreen usually click it to immediately leave fullscreen
-// But it if it locked you need to hold it to exit fullscreen
+// But if it is locked you need to hold it to exit fullscreen
 
 export async function LockKeys(codes: KECode[]){
     // @ts-expect-error
