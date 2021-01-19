@@ -3,6 +3,7 @@
 
 import WS from "ws"
 import { BufferStreamWriter } from "shared/datastructures/networkstream"
+import { ClientBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 
 
 export class ServerNetwork {
@@ -40,23 +41,24 @@ export class ServerNetwork {
     
         socket.binaryType = "arraybuffer";
 
-        // Sends start data. 
-        // TICK_RATE, and reference tick data
-        const buffer = new ArrayBuffer(12);
-        const initInfo = new DataView(buffer);
-        initInfo.setUint8(0,1);
-        initInfo.setUint8(1, this.TICK_RATE)
-        initInfo.setBigUint64(2,this.referenceTime);
-        initInfo.setInt16(10,this.referenceTick);
+        // INIT DATA. 
+        const init_writer = new BufferStreamWriter(new ArrayBuffer(12))
+        init_writer.setUint8(ClientBoundPacket.INIT);
+
+        init_writer.setUint8(this.TICK_RATE)
+        init_writer.setBigUint64(this.referenceTime);
+        init_writer.setInt16(this.referenceTick);
+        socket.send(init_writer.getBuffer());
     
-        socket.send(initInfo.buffer);
-    
-        const buffer2 = new ArrayBuffer(3);
-        const prepareTicking = new DataView(buffer2);
-        prepareTicking.setUint8(0,2);
-        prepareTicking.setUint16(1,this.tick);
+
+        // START TICKING
+        const start_tick_writer = new BufferStreamWriter(new ArrayBuffer(3))
+        start_tick_writer.setUint8(ClientBoundPacket.START_TICKING);
         
-        socket.send(prepareTicking.buffer)
+        start_tick_writer.setUint16(this.tick);
+        socket.send(start_tick_writer.getBuffer())
+
+
     
         socket.on('message', (data) => {   
             // Assumes all messages are ping for now   

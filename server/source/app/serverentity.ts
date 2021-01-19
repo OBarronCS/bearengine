@@ -1,7 +1,7 @@
 import { AbstractEntity} from "shared/core/abstractentity"
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { Vec2 } from "shared/shapes/vec2";
-import { PacketID } from "shared/core/sharedlogic/packetdefinitions"
+import { ClientBoundPacket } from "shared/core/sharedlogic/packetdefinitions"
 
 export abstract class ServerEntity extends AbstractEntity {}
 
@@ -9,7 +9,7 @@ export abstract class ServerEntity extends AbstractEntity {}
 export abstract class NetworkedEntity extends ServerEntity {
     static NEXT_ID = 0;
 
-    abstract packetType: PacketID;
+    abstract packetType: ClientBoundPacket;
 
     protected id = NetworkedEntity.NEXT_ID++;
 
@@ -29,7 +29,7 @@ export abstract class NetworkedEntity extends ServerEntity {
 
 
 export class FirstNetworkedEntity extends NetworkedEntity {
-    packetType: PacketID = PacketID.SIMPLE_POSITION;
+    packetType: ClientBoundPacket = ClientBoundPacket.SIMPLE_POSITION;
 
     private move: Vec2
 

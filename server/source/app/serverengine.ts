@@ -101,7 +101,7 @@ class ServerBearEngine {
             this.network.sendGameData(stream.cutoff(), now);
 
 
-            console.log(Date.now()  - this.previousTick)
+            console.log(this.network.tick,Date.now()  - this.previousTick)
             this.previousTick = now
         }
     
