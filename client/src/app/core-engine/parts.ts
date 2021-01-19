@@ -8,7 +8,6 @@ import { Part } from "shared/core/abstractpart"
 import { E } from "./globals";
 
 
-
 // If these get too annoying to write, just change the system
 // so there is a pre update and post update (optional?) method on entities
 
@@ -27,6 +26,7 @@ export class ScriptPart extends Part {
         this.script(dt);
     }
 }
+
 
 export class SpritePart extends Part {
 
