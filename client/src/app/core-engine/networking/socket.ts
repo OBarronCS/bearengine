@@ -11,6 +11,7 @@ import { LinkedQueue } from "shared/datastructures/queue";
 import { BufferStreamReader } from "shared/datastructures/networkstream"
 import { BearEngine } from "../bearengine";
 import { ClientBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
+import { NetworkedEntityManager } from "./gamemessagemanager";
  
 export abstract class Network {
 
@@ -89,6 +90,14 @@ export class BufferedNetwork extends Network {
     // TODO: implement failsafes so if the connecting abrubtly ends, we don't get errors in devtools, and instead notify the game engine that we are no longer connected.
     public SERVER_IS_TICKING: boolean = false;
 
+
+    private networkedEntityManager: NetworkedEntityManager;
+    constructor(url: string){
+        super(url);
+
+        this.networkedEntityManager = new NetworkedEntityManager();
+    }
+
     onopen(): void {
         this.sendPing();
 
@@ -135,6 +144,9 @@ export class BufferedNetwork extends Network {
         // console.log("Received: " + id)
         this.packets.enqueue({ id: id, buffer: stream });
         // console.log("Size of queue: " + this.packets.size())
+
+
+        this.networkedEntityManager.readData(id, stream)
     }
 
     public sendPing(){
@@ -191,7 +203,24 @@ export class BufferedNetwork extends Network {
         */
     }
 
+    public tickToSimulate(): number {
+        const serverTime = Date.now() + this.CLOCK_DELTA;
+        const referenceDelta = serverTime - Number(this.REFERENCE_SERVER_TICK_TIME);
+
+        // console.log("Ticks passed: " + (referenceDelta / BigInt((this.SERVER_SEND_INTERVAL * 1000))));
+
+
+        const currentServerTick =  ((referenceDelta / (this.SERVER_SEND_INTERVAL * 1000))) + this.REFERENCE_SERVER_TICK_ID
+
+        // Includes fractional part of tick
+        const frameToGet = Number(currentServerTick) - (this.latencyBuffer + this.additionalBuffer);
+        
+        return frameToGet;
+    }
+
     public tick(): BufferStreamReader | null{
+        return null;
+
 
         if(this.SERVER_IS_TICKING && this.ping !== -1){
 

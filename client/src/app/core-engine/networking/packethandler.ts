@@ -4,7 +4,7 @@ import { BufferStreamReader } from "shared/datastructures/networkstream";
 
 export interface PacketHandler {
     packetType: ClientBoundPacket;
-    read(stream: BufferStreamReader): void;
+    read(frame: number, stream: BufferStreamReader): void;
 }
 
 

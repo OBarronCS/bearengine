@@ -19,6 +19,7 @@ import { EffectHandler } from "shared/core/effecthandler";
 import { PartQuery } from "shared/core/partquery";
 import { Text, Graphics, Loader, TextStyle, utils, Point } from "pixi.js";
 import { NetworkedEntityManager } from "./networking/gamemessagemanager";
+import { NetworkObjectInterpolator } from "./networking/objectinterpolator";
 
 
 
@@ -71,7 +72,7 @@ class BearEngine {
 
 
     private network: BufferedNetwork;
-    private networkedEntityManager: NetworkedEntityManager;
+    private interpolator: NetworkObjectInterpolator;
 
     constructor(settings: EngineSettings){
         E.Engine = this;
@@ -79,7 +80,10 @@ class BearEngine {
         this.network = new BufferedNetwork("ws://127.0.0.1:8080");
         this.network.connect();
 
-        this.networkedEntityManager = new NetworkedEntityManager();
+
+        this.interpolator = new NetworkObjectInterpolator(this.network);
+        this.partQueries.push(this.interpolator.partQuery)
+
 
         this.mouse = new InternalMouse();
 
@@ -214,13 +218,9 @@ class BearEngine {
 
 
         // Checks buffer
-        const stream = this.network.tick();
-        if(stream !== null){
-            this.networkedEntityManager.readData(stream);
-        }
+        //const stream = this.network.tick();
 
-
-
+        this.interpolator.update();
 
         // both of these are in ms
         while (accumulated >= (simulation_time)) {
