@@ -1,9 +1,9 @@
-import { PacketID } from "shared/core/sharedlogic/packetdefinitions";
+import { ClientBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { BufferStreamReader } from "shared/datastructures/networkstream";
 
 
 export interface PacketHandler {
-    packetType: PacketID;
+    packetType: ClientBoundPacket;
     read(stream: BufferStreamReader): void;
 }
 

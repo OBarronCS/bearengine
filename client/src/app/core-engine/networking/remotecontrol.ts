@@ -1,6 +1,8 @@
 
 import { Graphics } from "pixi.js";
+import { Part } from "shared/core/abstractpart";
 import { BufferStreamReader } from "shared/datastructures/networkstream";
+import { Vec2 } from "shared/shapes/vec2";
 import { Entity } from "../entity";
 import { SpritePart } from "../parts";
 
@@ -20,6 +22,16 @@ export class SimpleNetworkedSprite extends RemoteEntity {
     }
 
     draw(g: Graphics): void {}
+    update(dt: number): void {}
+}
+
+
+export class RemoteLocations extends Part {
+
+    public locations = new Map<number,Vec2>();
+
+    onAdd(): void {}
+    onRemove(): void {}
     update(dt: number): void {}
 }
 

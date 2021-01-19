@@ -10,6 +10,7 @@ import { abs, ceil } from "shared/miscmath";
 import { LinkedQueue } from "shared/datastructures/queue";
 import { BufferStreamReader } from "shared/datastructures/networkstream"
 import { BearEngine } from "../bearengine";
+import { ClientBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
  
 export abstract class Network {
 
@@ -63,7 +64,7 @@ export class BufferedNetwork extends Network {
 
     public SERVER_SEND_RATE: number = -1;
     /** seconds, 1 / SERVER_SEND_RATE */
-    public SERVER_SEND_INTERVAL: number = -1; //    1 / SERVER_SEND_RATE
+    public SERVER_SEND_INTERVAL: number = -1; 
 
     // These are used to calculate the current tick the server is sending
     // Sent in INIT packet
@@ -99,32 +100,20 @@ export class BufferedNetwork extends Network {
     onclose(): void {}
 
     onmessage(ev: MessageEvent<any>): void {
-        //const reader = new BufferReaderStream(ev.data);
-        /* 
-        Types of packets:
-            Init packets, send server rate and other info
-            Game data
-            
-        Read first byte:
-            0 its a pong, response to client ping
-            1 its init packet
-            2 prepare for ticking
-            3 data
-        */
-       
+ 
         const stream = new BufferStreamReader(ev.data);
 
         const type = stream.getUint8()
         switch(type){
-            case 0: this.calculatePing(stream); break;
-            case 1: this.initInfo(stream); break;
-            case 2: this.prepareTicking(stream); break;
-            case 3: this.processGameData(stream); break;
+            case ClientBoundPacket.PONG: this.calculatePing(stream); break;
+            case ClientBoundPacket.INIT: this.initInfo(stream); break;
+            case ClientBoundPacket.START_TICKING: this.prepareTicking(stream); break;
+            
+            default: this.processGameData(stream); break;
         }
     }
 
     private initInfo(stream: BufferStreamReader){
-        //
         // [ 8bit id, 8bit rate, 64 bit timestamp, 16 bit id]
         const rate = stream.getUint8();
         this.SERVER_SEND_RATE = rate;
@@ -136,12 +125,8 @@ export class BufferedNetwork extends Network {
     }
 
     private prepareTicking(stream: BufferStreamReader){
-        // 1rst byte is 2
-        // 2 and 3rd byte are 16 bit ID of 
         this.SERVER_IS_TICKING = true;
-        // console.log(view)
-        // this is the next tick that will be sent
-        // this.currentServerSendID = view.getUint16(1);
+        // next 16 bits are the tick
     }
 
     private processGameData(stream: BufferStreamReader){
@@ -185,8 +170,6 @@ export class BufferedNetwork extends Network {
             this.ping = pingThisTime;
         }
 
-         
-
         console.log("Ping:" + this.ping);
 
         this.latencyBuffer = ceil((this.ping / 1000) * this.SERVER_SEND_RATE);
@@ -206,8 +189,6 @@ export class BufferedNetwork extends Network {
             than the buffer will constantly also move forward/backwards one frame and cause noticable jitter for one frame
             This might become an issue. If so, calculate ping over many frames and take average, and 
         */
-
-
     }
 
     public tick(): BufferStreamReader | null{
