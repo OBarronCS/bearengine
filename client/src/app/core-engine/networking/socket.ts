@@ -8,9 +8,9 @@
 
 import { abs, ceil } from "shared/miscmath";
 import { LinkedQueue } from "shared/datastructures/queue";
-import { BufferStreamReader } from "shared/datastructures/networkstream"
+import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/networkstream"
 import { BearEngine } from "../bearengine";
-import { ClientBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
+import { ClientBoundPacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { NetworkedEntityManager } from "./gamemessagemanager";
  
 export abstract class Network {
@@ -117,8 +117,9 @@ export class BufferedNetwork extends Network {
             case ClientBoundPacket.PONG: this.calculatePing(stream); break;
             case ClientBoundPacket.INIT: this.initInfo(stream); break;
             case ClientBoundPacket.START_TICKING: this.prepareTicking(stream); break;
+            case ClientBoundPacket.GAME_STATE_PACKET: this.processGameData(stream); break;
             
-            default: this.processGameData(stream); break;
+            default: console.log("Unknown data from server"); break;
         }
     }
 
@@ -130,7 +131,7 @@ export class BufferedNetwork extends Network {
 
         // These may desync over time. Maybe resend them every now and then if it becomes an issue?
         this.REFERENCE_SERVER_TICK_TIME = stream.getBigUint64();
-        this.REFERENCE_SERVER_TICK_ID = stream.getInt16()
+        this.REFERENCE_SERVER_TICK_ID = stream.getInt16();
     }
 
     private prepareTicking(stream: BufferStreamReader){
@@ -140,33 +141,26 @@ export class BufferedNetwork extends Network {
 
     private processGameData(stream: BufferStreamReader){
         const id = stream.getUint16();
-
         // console.log("Received: " + id)
         this.packets.enqueue({ id: id, buffer: stream });
         // console.log("Size of queue: " + this.packets.size())
-
-
         this.networkedEntityManager.readData(id, stream)
     }
 
     public sendPing(){
         // Unix time stamp in ms needs 64 bits
-        const buffer = new ArrayBuffer(9);
-        const view = new DataView(buffer);
+        const stream = new BufferStreamWriter(new ArrayBuffer(9));
 
-        view.setUint8(0,0);
+        stream.setUint8(ServerBoundPacket.PING);
+        stream.setBigInt64(BigInt(Date.now()))
 
-        const now = Date.now()
-        view.setBigInt64(1, BigInt(now))
-
-        this.socket.send(view)
+        this.socket.send(stream.getBuffer())
     }
 
     private lastConfirmedPacketFromBuffer = 0;
 
     // Get ping, 
     private calculatePing(stream: BufferStreamReader){
-        // first byte: 1
         // next 8 bytes: the unix timestamp I sent
         // next 8 bytes: server time stamp
     
@@ -207,13 +201,12 @@ export class BufferedNetwork extends Network {
         const serverTime = Date.now() + this.CLOCK_DELTA;
         const referenceDelta = serverTime - Number(this.REFERENCE_SERVER_TICK_TIME);
 
-        // console.log("Ticks passed: " + (referenceDelta / BigInt((this.SERVER_SEND_INTERVAL * 1000))));
-
-
         const currentServerTick =  ((referenceDelta / (this.SERVER_SEND_INTERVAL * 1000))) + this.REFERENCE_SERVER_TICK_ID
-
+        
+        // console.log(currentServerTick);
+        
         // Includes fractional part of tick
-        const frameToGet = Number(currentServerTick) - (this.latencyBuffer + this.additionalBuffer);
+        const frameToGet = currentServerTick - (this.latencyBuffer + this.additionalBuffer);
         
         return frameToGet;
     }

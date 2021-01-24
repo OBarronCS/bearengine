@@ -1,6 +1,6 @@
 import { BufferStreamReader } from "shared/datastructures/networkstream";
 import { PacketHandler } from "./packethandler";
-import { ClientBoundPacket } from "shared/core/sharedlogic/packetdefinitions"
+import { GameStatePacket } from "shared/core/sharedlogic/packetdefinitions"
 import { RemoteEntity, SimpleNetworkedSprite } from "./remotecontrol";
 
 
@@ -10,7 +10,7 @@ import { E } from "../globals";
 
 export class NetworkedEntityManager {
 
-    private handlers: Map<ClientBoundPacket, PacketHandler> = new Map();
+    private handlers: Map<GameStatePacket, PacketHandler> = new Map();
 
     private entities: Map<number, RemoteEntity> = new Map(); 
 
@@ -23,12 +23,9 @@ export class NetworkedEntityManager {
     
     
         //Run Time check that we have all handlers registered
-        for(const name in ClientBoundPacket){
-            if(typeof ClientBoundPacket[name] === "number"){
-                const num = ClientBoundPacket[name] as any as number;
-
-                if(num < ClientBoundPacket.SIMPLE_POSITION) continue;
-
+        for(const name in GameStatePacket){
+            if(typeof GameStatePacket[name] === "number"){
+                const num = GameStatePacket[name] as any as number;
 
                 if(this.handlers.get(num) === undefined) throw new Error("Packet Handler for: " + name + " undefined")
             }
@@ -37,7 +34,7 @@ export class NetworkedEntityManager {
 
     readData(frame: number, stream: BufferStreamReader){
         while(stream.hasMoreData()){
-            const packetID = stream.getUint16();
+            const packetID = stream.getUint8();
             const handler = this.handlers.get(packetID);
             handler.read(frame, stream);
         }
@@ -45,7 +42,7 @@ export class NetworkedEntityManager {
 }
 
 class SimplePositionPacketHandler implements PacketHandler {
-    readonly packetType = ClientBoundPacket.SIMPLE_POSITION;
+    readonly packetType = GameStatePacket.SIMPLE_POSITION;
 
     private entityClassToCreate = SimpleNetworkedSprite;
 

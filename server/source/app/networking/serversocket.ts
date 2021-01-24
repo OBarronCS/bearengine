@@ -2,8 +2,8 @@
 // Encapsulates connections to players
 
 import WS from "ws"
-import { BufferStreamWriter } from "shared/datastructures/networkstream"
-import { ClientBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
+import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/networkstream"
+import { ClientBoundPacket, GameStatePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 
 
 export class ServerNetwork {
@@ -36,6 +36,7 @@ export class ServerNetwork {
     }
 
     sendStartData(socket: WS){
+        // Sends to a particular connection, not entire socket. 
         console.log("New connection")
         this.sockets.push(socket);
     
@@ -59,28 +60,36 @@ export class ServerNetwork {
         socket.send(start_tick_writer.getBuffer())
 
 
-    
-        socket.on('message', (data) => {   
+        socket.on('message', (data: ArrayBuffer) => {
             // Assumes all messages are ping for now   
-    
-            // Copies the data over
-            const finalBuffer = new Uint8Array(new ArrayBuffer(17));
-            finalBuffer.set(new Uint8Array(data as ArrayBuffer));
-    
-            const view = new DataView(finalBuffer.buffer);
-            const now = BigInt(Date.now());
-            view.setBigInt64(9, now)
-    
-            socket.send(view)
+            const stream = new BufferStreamReader(data)
+            const type = stream.getUint8();
+
+            switch(type){
+                case ServerBoundPacket.PING: this.sendPong(socket,stream); break;
+                case ServerBoundPacket.PLAYER_POSITION: console.log("NOT PREPARED FOR PLAYER DATA"); break;
+                default: console.log("Player sent unknown data")
+            }
         })
     }
 
-    onmessage(socket: WS ,ev: MessageEvent<any>): void {
+    sendPong(socket: WS, stream: BufferStreamReader){
+        const writer = new BufferStreamWriter(new ArrayBuffer(17));
+        writer.setUint8(ClientBoundPacket.PONG);
+        // copies the timestamp that was received, sends it back
+        writer.setBigInt64(stream.getBigInt64());
+        writer.setBigInt64(BigInt(Date.now()));
+
+        socket.send(writer.getBuffer())
+    }
+
+
+    onmessage(socket: WS, ev: MessageEvent<any>): void {
 
     }
 
     writePacketStateData(stream: BufferStreamWriter){
-        stream.setUint8(3);
+        stream.setUint8(ClientBoundPacket.GAME_STATE_PACKET);
         stream.setUint16(this.tick);
     }
 

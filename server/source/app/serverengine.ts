@@ -74,7 +74,7 @@ class ServerBearEngine {
 
             if(chance(15)){ 
                 console.log("NEW")
-                this.addNetworkedEntity(new FirstNetworkedEntity(new Vec2(0,0).set(Vec2.random()).extend(30)));    
+                this.addNetworkedEntity(new FirstNetworkedEntity());    
             }
 
 
@@ -85,6 +85,7 @@ class ServerBearEngine {
                 entity.updateParts(dt);
             }
         
+            // Write all PacketData to a buffer
             const stream = new BufferStreamWriter(new ArrayBuffer(256));
             this.network.writePacketStateData(stream);
 
@@ -93,9 +94,6 @@ class ServerBearEngine {
                 entity.writeEntityData(stream);
             }
         
-
-
-
 
             this.effectHandler.update(dt); 
             this.network.sendGameData(stream.cutoff(), now);

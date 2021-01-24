@@ -121,7 +121,7 @@ class BearEngine {
             });
         }
 
-        let gui_layer = this.renderer.guiContainer;
+        const gui_layer = this.renderer.guiContainer;
     
         this.mouse_info.x = 5;
         this.mouse_info.y = this.renderer.getPercentHeight(1) - 50;
@@ -145,7 +145,6 @@ class BearEngine {
 
         this.partQueries.push(this.current_level.collisionManager.partQuery);
     
-
 
         loadTestLevel.call(this);
     }

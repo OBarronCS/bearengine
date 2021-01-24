@@ -7,9 +7,21 @@ export enum ClientBoundPacket {
     START_TICKING, // tick_number
 
     // Everything below here depends on game
-    SIMPLE_POSITION,
+    GAME_STATE_PACKET // points to GameStatePacket
 
 }
+
+export enum GameStatePacket {
+    SIMPLE_POSITION
+}
+
+
+export enum ServerBoundPacket {
+    PING = 0,
+    PLAYER_POSITION,
+}
+
+
 
 
 

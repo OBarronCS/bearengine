@@ -119,6 +119,20 @@ export class BufferStreamWriter {
         this.dataview = new DataView(buffer);
     }
 
+    // Writes the bytes of given buffer to this stream. Copies it.
+    // TODO: Assert a given length? 
+    setBuffer(buffer: ArrayBuffer): void {
+        // Creates a temp Uint8 view of the buffer held by this stream
+        // this object allows writing another buffer to it.
+        // the underlying buffer of this stream is edited
+
+        // Probably very slow
+        const newView = new Uint8Array(this.getBuffer());
+        newView.set(new Uint8Array(buffer), this.byteOffset);
+        this.byteOffset += buffer.byteLength;
+
+    }
+
 
     setBigInt64(value: bigint){
         this.dataview.setBigInt64(this.byteOffset, value, this.littleEndian)

@@ -39,7 +39,6 @@ export class RemoteLocations extends Part {
     }
 
     setPosition(frame: number){
-        console.log("POs")
         const first = this.positions.get(floor(frame));
         const second = this.positions.get(ceil(frame));
 
