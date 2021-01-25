@@ -41,7 +41,7 @@ export function loadTestLevel(this: BearEngine): void {
 
     // this.addEntity(new BasicSprite())
 
-    this.addEntity(new Player())
+   
 
 
     class MouseRectCollider extends Entity {

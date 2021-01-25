@@ -72,11 +72,13 @@ class ServerBearEngine {
             const dt = this.TICK_RATE;
              // this.current_level.collisionManager.update(dt);
 
-            if(chance(15)){ 
-                console.log("NEW")
-                this.addNetworkedEntity(new FirstNetworkedEntity());    
-            }
-
+            // if(chance(15)){ 
+            //     console.log("NEW")
+            //     this.addNetworkedEntity(new FirstNetworkedEntity());    
+            // }
+            
+            // Update stuff from network
+            
 
             for (let i = 0; i < this.updateList.length; i++) {
                 const entity = this.updateList[i];

@@ -21,7 +21,7 @@ export class SimpleNetworkedSprite extends RemoteEntity {
         
         this.addPart(this.locations)
 
-        this.image = new SpritePart("images/tree.gif");
+        this.image = new SpritePart("images/flower.png");
         this.addPart(this.image);
     }
 

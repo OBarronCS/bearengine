@@ -45,13 +45,7 @@ export class FirstNetworkedEntity extends NetworkedEntity {
 }
 
 
-export class RemotePlayer extends NetworkedEntity {
-    packetType: GameStatePacket = GameStatePacket.SIMPLE_POSITION;
-
-    protected write(stream: BufferStreamWriter): void {
-        stream.setFloat32(this.x);
-        stream.setFloat32(this.y);
-    }
+export class RemotePlayer extends FirstNetworkedEntity {
 
     update(dt: number): void {}
 }
