@@ -24,14 +24,15 @@ app.get("/", (request, response) => {
     })
 });
 
-const TICK_RATE = 5;
+const TICK_RATE = 10;
 
 const engine = new ServerBearEngine(TICK_RATE);
 
 engine.start(8080);
 
 
-app.listen(8000, () => {
+
+app.listen(8000,() => {
     console.log("we are good to goo!")
 })
 

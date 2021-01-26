@@ -20,6 +20,8 @@ import { PartQuery } from "shared/core/partquery";
 import { Text, Graphics, Loader, TextStyle, utils, Point } from "pixi.js";
 import { NetworkedEntityManager } from "./networking/gamemessagemanager";
 import { NetworkObjectInterpolator } from "./networking/objectinterpolator";
+import { BufferStreamWriter } from "shared/datastructures/networkstream";
+import { ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 
 
 
@@ -70,9 +72,11 @@ class BearEngine {
 
     private partQueries: PartQuery<any>[] = []
 
-
     private network: BufferedNetwork;
     private interpolator: NetworkObjectInterpolator;
+
+
+    private player: Player;
 
     constructor(settings: EngineSettings){
         E.Engine = this;
@@ -147,6 +151,7 @@ class BearEngine {
     
 
         loadTestLevel.call(this);
+        this.addEntity(this.player = new Player())
     }
 
 
@@ -241,7 +246,19 @@ class BearEngine {
             this.totalTime += dt;
             accumulated -= simulation_time;
         }
+        
+        // Purely for testing. 
+        {
+            if(this.network.SERVER_IS_TICKING){
+                const stream = new BufferStreamWriter(new ArrayBuffer(1 + 4 + 4));
 
+                stream.setUint8(ServerBoundPacket.PLAYER_POSITION);
+                stream.setFloat32(this.player.x);
+                stream.setFloat32(this.player.y);
+
+                this.network.send(stream.getBuffer())
+            }
+        }
 
         this.renderer.update((timestamp - lastFrameTimeMs) / 1000);
 

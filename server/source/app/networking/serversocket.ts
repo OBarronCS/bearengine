@@ -4,7 +4,9 @@
 import WS from "ws"
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/networkstream"
 import { ClientBoundPacket, GameStatePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
-
+import { LinkedQueue } from "shared/datastructures/queue"
+import { RemotePlayer } from "../serverentity";
+import { SE } from "../serverglobal";
 
 export class ServerNetwork {
     private readonly TICK_RATE: number;
@@ -21,6 +23,8 @@ export class ServerNetwork {
     protected sockets: WS[] = []
 
 
+    private playerMap = new Map<WS,RemotePlayer>();
+
     constructor(tickRate:number, port: number){
         this.TICK_RATE = tickRate;
         this.port = port;
@@ -35,7 +39,14 @@ export class ServerNetwork {
         });
     }
 
+
+
     sendStartData(socket: WS){
+        const p = new RemotePlayer()
+        this.playerMap.set(socket,p);
+
+        SE.Engine.addNetworkedEntity(p);
+
         // Sends to a particular connection, not entire socket. 
         console.log("New connection")
         this.sockets.push(socket);
@@ -67,10 +78,16 @@ export class ServerNetwork {
 
             switch(type){
                 case ServerBoundPacket.PING: this.sendPong(socket,stream); break;
-                case ServerBoundPacket.PLAYER_POSITION: console.log("NOT PREPARED FOR PLAYER DATA"); break;
+                case ServerBoundPacket.PLAYER_POSITION: this.playerPosition(socket, stream); break;
                 default: console.log("Player sent unknown data")
             }
         })
+    }
+
+    playerPosition(socket: WS, stream: BufferStreamReader){
+        const p = this.playerMap.get(socket);
+        p.x = stream.getFloat32();
+        p.y = stream.getFloat32();
     }
 
     sendPong(socket: WS, stream: BufferStreamReader){
