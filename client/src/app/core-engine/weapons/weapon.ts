@@ -1,9 +1,10 @@
 import { Vec2 } from "shared/shapes/vec2";
-import { E } from "../globals";
 import { SemiAutoController, PulseController, GunshootController, AutoController } from "./triggers";
 import { Clip, GunAddon } from "./addon";
-import { DefaultBulletEffect } from "../effects/effects";
+import { DefaultBulletEffect } from "../clienteffects";
 import { GunInfo, CreateGunInfoStruct } from "./weaponinterfaces";
+import { Entity } from "../entity";
+import { Graphics } from "pixi.js";
 
 
 interface Gun {
@@ -12,7 +13,10 @@ interface Gun {
     gunInfo: GunInfo
 }
 
-export class DefaultGun implements Gun {
+export class DefaultGun extends Entity implements Gun {
+	draw(g: Graphics): void {}
+	update(dt: number): void {}
+
 	gunInfo = CreateGunInfoStruct({
 	    name : "Default",
 	    crosshair : "",
@@ -73,7 +77,7 @@ export class DefaultGun implements Gun {
 					addon.modifyShot(defaultInfo, shotEffect);
 				}
 			
-				E.Engine.effectHandler.addEffect(shotEffect);
+				this.Scene.addEntity(shotEffect);
 			}
 		}
 	}

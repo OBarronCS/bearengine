@@ -3,10 +3,9 @@ import { EngineMouse, InternalMouse } from "../input/mouse";
 import { GUI } from "dat.gui";
 import { Renderer } from "./renderer";
 import { CameraSystem } from "./camera";
-import { E } from "./globals";
 import { EventEmitter } from "eventemitter3"
 import TypedEmitter from "typed-emitter"
-import { Entity, GMEntity, SimpleMovement, SpriteEntity } from "./entity";
+import { Entity, GMEntity, SpriteEntity } from "./entity";
 import { Player } from "../gamelogic/player";
 import { CreateWindow } from "../apiwrappers/windowopen";
 import { EngineKeyboard } from "../input/keyboard";
@@ -15,13 +14,13 @@ import { BufferedNetwork } from "./networking/socket";
 
 import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { LevelHandler } from "shared/core/level";
-import { EffectHandler } from "shared/core/effecthandler";
 import { PartQuery } from "shared/core/partquery";
 import { Text, Graphics, Loader, TextStyle, utils, Point } from "pixi.js";
 import { NetworkedEntityManager } from "./networking/gamemessagemanager";
 import { NetworkObjectInterpolator } from "./networking/objectinterpolator";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
+import { AbstractEntity } from "shared/core/abstractentity";
 
 
 
@@ -62,13 +61,12 @@ class BearEngine {
     public totalTime = 0;
 
     // Things that should be globally accessible by E
-    private mouse: EngineMouse;
-    private keyboard: EngineKeyboard;
-    private current_level: LevelHandler = null;
+    public mouse: EngineMouse;
+    public keyboard: EngineKeyboard;
+    public current_level: LevelHandler = null;
 
-    public effectHandler = new EffectHandler();
     
-    private updateList: Entity[] = [];
+    private updateList: AbstractEntity[] = [];
 
     private partQueries: PartQuery<any>[] = []
 
@@ -78,10 +76,8 @@ class BearEngine {
 
     private player: Player;
 
-    constructor(settings: EngineSettings){
-        E.Engine = this;
-        
-        this.network = new BufferedNetwork("ws://127.0.0.1:8080");
+    constructor(settings: EngineSettings){        
+        this.network = new BufferedNetwork("ws://127.0.0.1:8080", this);
         this.network.connect();
 
 
@@ -93,10 +89,7 @@ class BearEngine {
 
         if(!settings.popup){
             this.keyboard = new EngineKeyboard(window)
-            E.Keyboard = this.keyboard;
-
             this.mouse.addWindowListeners(window);
-            E.Mouse = this.mouse;
 
             const div = document.querySelector("#display") as HTMLElement;
 
@@ -108,19 +101,19 @@ class BearEngine {
             ////////////
 
             this.renderer = new Renderer(div, window);
-            const mainCamera = this.camera = new CameraSystem(this.renderer,this.renderer.mainContainer, window);
+            this.partQueries.push(this.renderer.partQuery);
+
+            this.camera = new CameraSystem(this.renderer,this.renderer.mainContainer, window, this.mouse, this.keyboard);
         } else { // creates a pop up display
             CreateWindow("Game", {width:400, height:300,center:true}).then(new_window => {
                 this.keyboard = new EngineKeyboard(new_window);
-                E.Keyboard = this.keyboard;
                 this.mouse.addWindowListeners(new_window);
-                E.Mouse = this.mouse;
                 
                 const displayDiv = new_window.document.createElement("div")
                 new_window.document.body.appendChild(displayDiv);
 
                 this.renderer = new Renderer(displayDiv, new_window);
-                const camera = this.camera = new CameraSystem(this.renderer,this.renderer.mainContainer, new_window)
+                this.camera = new CameraSystem(this.renderer,this.renderer.mainContainer, new_window, this.mouse, this.keyboard)
                 
             });
         }
@@ -139,9 +132,15 @@ class BearEngine {
 
         this.renderer.pixiapp.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundColor)
 
-        E.Level = this.current_level;
-        E.Terrain = this.current_level.terrainManager;
-        E.Collision = this.current_level.collisionManager;
+        // Global Data
+        AbstractEntity.GLOBAL_DATA_STRUCT = {
+            Level:this.current_level,
+            Collision:this.current_level.collisionManager,
+            Scene:this,
+            Terrain:this.current_level.terrainManager,
+        }
+
+        Entity.BEAR_ENGINE = this;
         
         const g = new Graphics()
         this.current_level.draw(g)
@@ -171,25 +170,22 @@ class BearEngine {
         }));
     }
 
-    destroyEntity(e: Entity): void {
+    destroyEntity<T extends AbstractEntity>(e: T): void {
         const index = this.updateList.indexOf(e);
         if(index !== -1){
+            e.onDestroy();
             this.updateList.splice(index,1);
             e.parts.forEach(part => part.onRemove());
-
-            this.renderer.removeSprite(e.graphics);
 
             this.partQueries.forEach(q => {
                 q.deleteEntity(e)
             })
         }
-
- 
     }
 
-    addEntity(e: Entity): Entity {
+    addEntity<T extends AbstractEntity>(e: T): T {
         this.updateList.push(e);
-        this.renderer.addSprite(e.graphics);
+        e.onAdd();
 
         this.partQueries.forEach(q => {
             q.addEntity(e)
@@ -241,8 +237,6 @@ class BearEngine {
                 entity.updateParts(dt);
             }
 
-            this.effectHandler.update(dt);
-
             this.totalTime += dt;
             accumulated -= simulation_time;
         }
@@ -261,6 +255,9 @@ class BearEngine {
         }
 
         this.renderer.update((timestamp - lastFrameTimeMs) / 1000);
+        
+        //simulation and render time
+        console.log(performance.now() - timestamp)
 
         requestAnimationFrame(t => this.loop(t))
     }

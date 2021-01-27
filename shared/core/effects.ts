@@ -1,51 +1,8 @@
+import { AbstractEntity } from "./abstractentity";
 
+// USE: Subclass this!
+export class Effect extends AbstractEntity {
 
-
-export class EffectHandler {
-
-    private effectsLog: string[] = [];
-    private effects: Effect[] = [];
-
-
-    update(dt: number){
-        for(let i = this.effects.length - 1; i >= 0; --i){
-            const effect = this.effects[i];
-            effect.update(dt);
-
-            if(effect.destroy_effect){
-                effect.finish();
-                this.effects.splice(i,1);
-                this.effectsLog.push("Ended effect: " + effect.toString())
-            }
-        }
-    }
-
-    addEffect<T extends Effect>(effect: T): T{
-
-		this.effectsLog.push("Started effect: " + effect.toString());
-
-		effect.effectHandler = this;
-
-		effect.start();
-		// Don't add it do the list if it only has a start callback
-        if(!effect.hasOnlyStart()){
-			this.effects.push(effect);
-		}
-		return effect;
-    }
-
-    dispose(){
-        this.effectsLog = [];
-        this.effects = [];
-    }
-
-}
-
-
-export class Effect {
-
-	// The thing that is ticking this. Set by the effectHandler onAdd
-	public effectHandler: EffectHandler = null;
 	public destroy_effect: boolean = false;
 
 	private startFunctions: (() => void)[] = [];
@@ -102,8 +59,25 @@ export class Effect {
 		    this.finishFunctions[i]();
 		}
 	}
-	
+
+	// Used in main engine
+	onAdd(){
+		this.start();
+		if(this.hasOnlyStart()) this.destroy_effect;
+	}
+
+	onDestroy(){
+		this.finish();
+	}
+
 	update(dt: number){
+		
+		if(this.destroy_effect){
+			this.finish();
+			this.Scene.destroyEntity(this);
+			return;
+		}
+
 		this.time_alive += 1;
 	
 		// functions that run after a delay!

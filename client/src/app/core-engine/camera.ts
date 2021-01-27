@@ -2,15 +2,16 @@ import { Container, Point } from "pixi.js";
 import { Coordinate } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
 
-import { E } from "./globals";
 import { Renderer } from "./renderer";
+import { EngineKeyboard } from "../input/keyboard";
+import { EngineMouse } from "../input/mouse";
 
 export class CameraSystem {
     
     public renderer: Renderer;
     public container: Container;
 
-    constructor(renderer: Renderer, container: Container, targetWindow: Window) {
+    constructor(renderer: Renderer, container: Container, targetWindow: Window, mouse: EngineMouse,keyboard: EngineKeyboard) {
 
         this.renderer = renderer;
         this.container = container;
@@ -22,7 +23,7 @@ export class CameraSystem {
 
 
 
-        E.Keyboard.bind("space", () => {
+        keyboard.bind("space", () => {
             this.center = {x: 500, y:500}
             this.renderer.mainContainer.scale.x = .4;
             this.renderer.mainContainer.scale.y = .4;
@@ -36,9 +37,9 @@ export class CameraSystem {
             const point = new Point(0,0);
             renderer.pixiapp.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y)
 
-            if(!E.Mouse.isDown("middle")){
-                if(!E.Mouse.isDown("left")) return
-                if(!E.Keyboard.isDown("ShiftLeft")) return
+            if(!mouse.isDown("middle")){
+                if(!mouse.isDown("left")) return
+                if(!keyboard.isDown("ShiftLeft")) return
             } 
 
             const speed = 1;

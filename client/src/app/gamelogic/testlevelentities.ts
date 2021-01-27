@@ -1,7 +1,6 @@
 
 import { BearEngine } from "../core-engine/bearengine";
-import { Entity, GMEntity, SimpleKeyboardCheck, SimpleMovement, SpriteEntity } from "../core-engine/entity";
-import { E } from "../core-engine/globals";
+import { DrawableEntity, Entity, GMEntity, SpriteEntity } from "../core-engine/entity";
 import { Player } from "./player";
 
 import { Graphics } from "pixi.js";
@@ -44,7 +43,7 @@ export function loadTestLevel(this: BearEngine): void {
    
 
 
-    class MouseRectCollider extends Entity {
+    class MouseRectCollider extends DrawableEntity {
         private r: ColliderPart;
 
         constructor(){
@@ -53,9 +52,9 @@ export function loadTestLevel(this: BearEngine): void {
         }
 
         update(dt: number): void {
-            this.position.set(E.Mouse.position);
+            this.position.set(this.Mouse.position);
 
-            if(E.Keyboard.isDown("KeyK")) E.Engine.destroyEntity(this)
+            if(this.Keyboard.isDown("KeyK")) this.Engine.destroyEntity(this)
 
             this.redraw();
         }
@@ -69,7 +68,7 @@ export function loadTestLevel(this: BearEngine): void {
 
     // this.addEntity(new MouseRectCollider());
 
-    class TestCollision extends Entity {
+    class TestCollision extends DrawableEntity {
         private line: Line;
         private r: Rect;
         constructor(){
@@ -80,9 +79,9 @@ export function loadTestLevel(this: BearEngine): void {
         }
 
         update(dt: number): void {
-            this.line.B.set(E.Mouse.position);
-            if(E.Mouse.wasPressed("left")){
-                this.line.A.set(E.Mouse.position);
+            this.line.B.set(this.Mouse.position);
+            if(this.Mouse.wasPressed("left")){
+                this.line.A.set(this.Mouse.position);
             }
 
             this.redraw();
@@ -97,26 +96,26 @@ export function loadTestLevel(this: BearEngine): void {
     //this.addEntity(new TestCollision())
 
     // Drawing the collision grid
-    class Debug extends Entity {
+    class Debug extends DrawableEntity {
         update(dt: number): void {
             this.redraw();
         }
         draw(g: PIXI.Graphics): void {
             g.clear();
-            E.Collision.draw(g);
+            this.Collision.draw(g);
         }
     }
     this.addEntity(new Debug())
 
     // Rectangle overlap test
-    class Test extends Entity {
+    class Test extends DrawableEntity {
         
         private rec1 = new Rect(400,400,100,100);
         private anchorPoint = new Vec2(0,0);
 
         update(dt: number): void {
-            if(E.Mouse.wasPressed("left")){
-                this.anchorPoint.set(E.Mouse.position);
+            if(this.Mouse.wasPressed("left")){
+                this.anchorPoint.set(this.Mouse.position);
             }
             this.redraw()
         }
@@ -126,7 +125,7 @@ export function loadTestLevel(this: BearEngine): void {
             g.lineStyle(3, rgb(255,0,0).hex());
             this.rec1.draw(g, 0xFF0000);
     
-            const rec2 = Rect.fromPoints(this.anchorPoint, E.Mouse.position);
+            const rec2 = Rect.fromPoints(this.anchorPoint, this.Mouse.position);
             rec2.draw(g, 0x00FF00)
 
             const overlap =  this.rec1.intersection(rec2);
@@ -137,7 +136,7 @@ export function loadTestLevel(this: BearEngine): void {
     //this.addEntity(new Test())
 
     // Color blend of hermite curve
-    class Test2 extends Entity {
+    class Test2 extends DrawableEntity {
         private bez = new HermiteCurve([
             new Vec2(0,0), 
             new Vec2(500,0), 
@@ -158,13 +157,13 @@ export function loadTestLevel(this: BearEngine): void {
             super();
             this.color = rgb(255,255,255);
 
-            E.Engine.effectHandler.addEffect(
+            this.Scene.addEntity(
                 new ColorTween(this, "color", 5).from(this.color.clone()).to(rgb(255,5,5)).go()
             ).chain(new ColorTween(this, "color", 2).from((rgb(255,5,5))).to(rgb(1,0,255)))
         }
 
         update(dt: number): void {
-            this.percent += +E.Mouse.isDown("left") * .01;
+            this.percent += +this.Mouse.isDown("left") * .01;
             this.percent %= 1;
             this.redraw()
         }
@@ -177,7 +176,7 @@ export function loadTestLevel(this: BearEngine): void {
     //this.addEntity(new Test2())
 
     // GRID QUADTREE
-    class Quadquadtest extends Entity {
+    class Quadquadtest extends DrawableEntity {
         
         private q = new LiveGridQuadTree(128);
         private scale = 16;
@@ -186,7 +185,7 @@ export function loadTestLevel(this: BearEngine): void {
             super();
             this.q.calculateEdges();
             this.redraw();
-            this.graphics.addChild(this.hoverGraphic)
+            this.canvas.graphics.addChild(this.hoverGraphic)
         }
 
         private hoverGraphic = new Graphics();
@@ -198,10 +197,10 @@ export function loadTestLevel(this: BearEngine): void {
 
 
         update(dt: number): void {
-            if(E.Mouse.isDown("left")){
+            if(this.Mouse.isDown("left")){
 
-                const x = floor(E.Mouse.position.x / this.scale);
-                const y = floor(E.Mouse.position.y / this.scale)
+                const x = floor(this.Mouse.position.x / this.scale);
+                const y = floor(this.Mouse.position.y / this.scale)
 
                 this.q.insert(x,y);
                 
@@ -221,9 +220,9 @@ export function loadTestLevel(this: BearEngine): void {
                 this.q.startPath(this.start.x, this.start.y, this.target.x, this.target.y);
 
                 this.redraw();
-            } else if(E.Keyboard.wasPressed("KeyE")){
-                const x = floor(E.Mouse.position.x / this.scale);
-                const y = floor(E.Mouse.position.y / this.scale);
+            } else if(this.Keyboard.wasPressed("KeyE")){
+                const x = floor(this.Mouse.position.x / this.scale);
+                const y = floor(this.Mouse.position.y / this.scale);
 
                 if(!this.flip)
                     this.start.set({x: x, y: y});
@@ -234,7 +233,7 @@ export function loadTestLevel(this: BearEngine): void {
                 this.flip = !this.flip;
                 this.q.startPath(this.start.x, this.start.y, this.target.x, this.target.y)
                 this.redraw();
-            } else if(E.Mouse.isDown("right")){
+            } else if(this.Mouse.isDown("right")){
                  
 
                 this.q.stepPath();
@@ -244,8 +243,8 @@ export function loadTestLevel(this: BearEngine): void {
 
             this.hoverGraphic.clear();
 
-            const x = floor(E.Mouse.position.x / this.scale);
-            const y = floor(E.Mouse.position.y / this.scale);
+            const x = floor(this.Mouse.position.x / this.scale);
+            const y = floor(this.Mouse.position.y / this.scale);
 
             const node = this.q.getNode(x,y)
             if(node !== null) node.draw(this.hoverGraphic,this.scale, 9, 0x0000FF);
@@ -262,7 +261,7 @@ export function loadTestLevel(this: BearEngine): void {
     //this.addEntity(new Quadquadtest())
 
     // ASTAR GRID
-    class Test3 extends Entity {
+    class Test3 extends DrawableEntity {
 
         private grid = new LiveGridGraph(128,128);
 
@@ -282,9 +281,9 @@ export function loadTestLevel(this: BearEngine): void {
         private flip = false;
 
         update(dt: number): void {
-            if(E.Mouse.isDown("left")){
-                const x = floor(E.Mouse.position.x / this.scale);
-                const y = floor(E.Mouse.position.y / this.scale);
+            if(this.Mouse.isDown("left")){
+                const x = floor(this.Mouse.position.x / this.scale);
+                const y = floor(this.Mouse.position.y / this.scale);
                 
                 this.grid.blockcell(x,y);
 
@@ -301,9 +300,9 @@ export function loadTestLevel(this: BearEngine): void {
                 this.grid.start_astar(this.start.x, this.start.y, this.target.x, this.target.y);
                 
                 this.redraw();
-            } else if(E.Keyboard.wasPressed("KeyE")){
-                const x = floor(E.Mouse.position.x / this.scale);
-                const y = floor(E.Mouse.position.y / this.scale);
+            } else if(this.Keyboard.wasPressed("KeyE")){
+                const x = floor(this.Mouse.position.x / this.scale);
+                const y = floor(this.Mouse.position.y / this.scale);
 
                 if(!this.flip)
                     this.start.set({x: x, y: y});
@@ -315,7 +314,7 @@ export function loadTestLevel(this: BearEngine): void {
                 this.grid.start_astar(this.start.x, this.start.y, this.target.x, this.target.y)
                 this.redraw();
                 
-            } else if(E.Mouse.isDown("right")){
+            } else if(this.Mouse.isDown("right")){
                 this.grid.step_astar();
                 this.redraw();
             }
@@ -337,8 +336,8 @@ export function loadTestLevel(this: BearEngine): void {
 
         update(dt: number): void {
             // SimpleMovement(this,250 * dt);
-            this.moveTowards(E.Mouse.position,21);
-            this.image.angleTowardsPoint(E.Mouse.position, PI / 30);
+            this.moveTowards(this.Mouse.position,21);
+            this.image.angleTowardsPoint(this.Mouse.position, PI / 30);
         }
 
         draw(g: PIXI.Graphics): void {
@@ -349,13 +348,13 @@ export function loadTestLevel(this: BearEngine): void {
 
 
     // Quadtree drawing test
-    class Q extends Entity {
+    class Q extends DrawableEntity {
         private tree = new QuadTree<Vec2>(2000,2000, a => new Rect(a.x, a.y,4,4));
         private nope = this.redraw();
     
         update(dt: number): void {
-            if(E.Keyboard.wasPressed("KeyF")){
-                this.tree.insert(E.Mouse.position.clone());
+            if(this.Keyboard.wasPressed("KeyF")){
+                this.tree.insert(this.Mouse.position.clone());
                 this.redraw();
             }
         }
@@ -367,7 +366,7 @@ export function loadTestLevel(this: BearEngine): void {
     //this.addEntity(new Q())
 
     // Clockwise test
-    class PolygonTest extends Entity {
+    class PolygonTest extends DrawableEntity {
 
         public p = Polygon.from([new Vec2(0,170),  new Vec2(150,0), new Vec2(0,0)]);
 
@@ -385,7 +384,7 @@ export function loadTestLevel(this: BearEngine): void {
     // this.addEntity(new PolygonTest());
 
     // TileMap collision
-    class Tilemaptest extends Entity {
+    class Tilemaptest extends DrawableEntity {
 
         private map = new Tilemap(30,30,80,80);
         private testobject: SpriteEntity;
@@ -399,7 +398,7 @@ export function loadTestLevel(this: BearEngine): void {
             }
 
             this.testobject =  new test3(Vec2.ZERO, "images/flower.png");
-            E.Engine.addEntity(this.testobject);
+            this.Engine.addEntity(this.testobject);
 
             for(let i = 1; i < 30; i++){
                 for(const index of randomRangeSet(0,30,30)){
@@ -407,12 +406,12 @@ export function loadTestLevel(this: BearEngine): void {
                 }
             }
 
-            this.graphics.zIndex = -10000;
+            this.canvas.graphics.zIndex = -10000;
         }
 
         update(dt: number): void {
             this.redraw();
-            const testMove = SimpleKeyboardCheck(6);
+            const testMove = this.simpleKeyboardCheck(6);
             this.testobject.position.add(this.map.potentialMove(this.testobject.collider.rect, testMove));
         }
 
@@ -423,7 +422,7 @@ export function loadTestLevel(this: BearEngine): void {
             this.testobject.collider.rect.draw(g);
             
 
-            drawPoint(g,E.Mouse.position, this.map.isSolid(E.Mouse.position.x, E.Mouse.position.y) ? "0xFF0000":"0x0000FF");
+            drawPoint(g,this.Mouse.position, this.map.isSolid(this.Mouse.position.x, this.Mouse.position.y) ? "0xFF0000":"0x0000FF");
         }
 
 
@@ -432,7 +431,7 @@ export function loadTestLevel(this: BearEngine): void {
     //this.addEntity(new Tilemaptest());
 
 
-    class conwaytest extends Entity {
+    class conwaytest extends DrawableEntity {
 
         private conway = new ConwaysLife(60,60);
         private accumulation = -.5;
@@ -464,7 +463,7 @@ export function loadTestLevel(this: BearEngine): void {
     }
     //this.addEntity(new conwaytest())
 
-    class LightningTest extends Entity {
+    class LightningTest extends DrawableEntity {
 
         private startPoint = Vec2.ZERO;
 
@@ -475,10 +474,10 @@ export function loadTestLevel(this: BearEngine): void {
         update(dt: number): void {
             if(!this.ticker.tick()) return;
             this.lines = [];
-            if(E.Mouse.wasPressed("left")){
-                this.startPoint = E.Mouse.position.clone();
+            if(this.Mouse.wasPressed("left")){
+                this.startPoint = this.Mouse.position.clone();
             }
-            const mousePoint = E.Mouse.position.clone();
+            const mousePoint = this.Mouse.position.clone();
 
             this.lines.push(new Line(this.startPoint, mousePoint));
             
@@ -529,13 +528,13 @@ export function loadTestLevel(this: BearEngine): void {
     //this.addEntity(new LightningTest());
     
     // Quadtree drawing test
-    class SpatialTest extends Entity {
+    class SpatialTest extends DrawableEntity {
         private sparse = new SparseGrid<Vec2>(1000,1000,10,10,a => new Rect(a.x, a.y,4,4));
         private nope = this.redraw();
     
         update(dt: number): void {
-            if(E.Keyboard.wasPressed("KeyF")){
-                this.sparse.insert(E.Mouse.position.clone());
+            if(this.Keyboard.wasPressed("KeyF")){
+                this.sparse.insert(this.Mouse.position.clone());
                 this.redraw();
                 console.log(this.sparse["hashmap"]["arr"])
             }
@@ -548,7 +547,7 @@ export function loadTestLevel(this: BearEngine): void {
     // this.addEntity(new SpatialTest())
 
 
-    class LineCloseTest extends Entity {
+    class LineCloseTest extends DrawableEntity {
 
         private line = new Line(new Vec2(100,60), new Vec2(10,200));
         private p = this.redraw()
@@ -559,25 +558,25 @@ export function loadTestLevel(this: BearEngine): void {
         draw(g: Graphics): void {
             g.clear();
             this.line.draw(g);
-            drawPoint(g,this.line.pointClosestTo(E.Mouse.position));
+            drawPoint(g,this.line.pointClosestTo(this.Mouse.position));
         }
 
     }
     //this.addEntity(new LineCloseTest());
 
 
-    class DynAABBTest extends Entity {
+    class DynAABBTest extends DrawableEntity {
         
         private tree = new DynamicAABBTree();
 
         update(dt: number): void {
-            if(E.Mouse.wasPressed("left")){
-                this.tree.insert(new Ellipse(E.Mouse.position.clone(),40,40))
+            if(this.Mouse.wasPressed("left")){
+                this.tree.insert(new Ellipse(this.Mouse.position.clone(),40,40))
                 console.log(this.tree["root"])
                 this.redraw();
             }
 
-            this.tree.pointQueryTestNodes(E.Mouse.position).forEach(e => e.aabb.draw(this.graphics,0x00F0FF));
+            this.tree.pointQueryTestNodes(this.Mouse.position).forEach(e => e.aabb.draw(this.canvas.graphics,0x00F0FF));
         }
         draw(g: Graphics): void {
             g.clear();
@@ -588,7 +587,7 @@ export function loadTestLevel(this: BearEngine): void {
     //this.addEntity(new DynAABBTest());
 
 
-    class IK extends Entity {
+    class IK extends DrawableEntity {
         
         private points: Vec2[] = []
 
@@ -607,7 +606,7 @@ export function loadTestLevel(this: BearEngine): void {
 
         update(dt: number): void {
 
-            let target = E.Mouse.position.clone() as Coordinate;
+            let target = this.Mouse.position.clone() as Coordinate;
             const base = this.points[this.points.length - 1].clone();
 
             for (let i = 0; i < this.points.length - 1; i++) {

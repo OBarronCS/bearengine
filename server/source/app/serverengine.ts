@@ -4,13 +4,12 @@
 import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { FirstNetworkedEntity, NetworkedEntity, ServerEntity } from "./serverentity";
 
-import { SE } from "./serverglobal";
-import { EffectHandler } from "shared/core/effecthandler"
 import { LevelHandler } from "shared/core/level";
 import { ServerNetwork } from "./networking/serversocket";
 import { Vec2 } from "shared/shapes/vec2";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { chance } from "shared/randomhelpers";
+import { AbstractEntity } from "shared/core/abstractentity";
 
 
 class ServerBearEngine {
@@ -24,20 +23,17 @@ class ServerBearEngine {
 
     // Things that should be globally accessible by SE
     private current_level: LevelHandler = null;
-    public effectHandler = new EffectHandler();
 
-
-    private updateList: ServerEntity[] = [];
+    private updateList: AbstractEntity[] = [];
     private networkedEntities: NetworkedEntity[] = [];
     private previousTick: number = 0;
 
     constructor(tick_rate: number){
         this.TICK_RATE = tick_rate;
-        SE.Engine = this;
     }
     
     start(port: number){
-        this.network = new ServerNetwork(this.TICK_RATE,port)
+        this.network = new ServerNetwork(this.TICK_RATE,port, this)
         this.network.start();
         this.previousTick = Date.now();
 
@@ -49,9 +45,12 @@ class ServerBearEngine {
 		this.current_level = new LevelHandler(level_struct);
         this.current_level.load();
 
-        SE.Level = this.current_level;
-        SE.Terrain = this.current_level.terrainManager;
-        SE.Collision = this.current_level.collisionManager;
+        AbstractEntity.GLOBAL_DATA_STRUCT = {
+            Scene: this,
+            Level: this.current_level,
+            Collision: this.current_level.collisionManager,           
+            Terrain: this.current_level.terrainManager
+        }
     }
 
     // Need to load the game files. Create Abstraction for that 
@@ -97,7 +96,6 @@ class ServerBearEngine {
             }
         
 
-            this.effectHandler.update(dt); 
             this.network.sendGameData(stream.cutoff(), now);
 
 
@@ -113,9 +111,12 @@ class ServerBearEngine {
         }
     }
    
+    addEntity<T extends AbstractEntity>(e: T): T {
+        this.updateList.push(e);
+        return e;
+    }
 
-
-    destroyEntity(e: ServerEntity): void {
+    destroyEntity<T extends AbstractEntity>(e: T): void {
         const index = this.updateList.indexOf(e);
         if(index !== -1){
             this.updateList.splice(index,1);
@@ -125,13 +126,7 @@ class ServerBearEngine {
 
     addNetworkedEntity(e: NetworkedEntity){
         this.addEntity(e);
-
         this.networkedEntities.push(e);
-    }
-
-    addEntity(e: ServerEntity): ServerEntity {
-        this.updateList.push(e);
-        return e;
     }
     
     restartCurrentLevel(){
@@ -153,8 +148,5 @@ class ServerBearEngine {
 export {
     ServerBearEngine,
 }
-
-
-
 
 

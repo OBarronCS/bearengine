@@ -1,4 +1,7 @@
 import { Container, DisplayObject, Loader, Application, utils } from "pixi.js";
+import { PartQuery } from "shared/core/partquery";
+import { DrawableEntity } from "./entity";
+import { GraphicsPart } from "./parts";
 
 
 const resources = Loader.shared.resources;
@@ -22,6 +25,10 @@ export class Renderer {
     
     public targetWindow: Window;
     public targetDiv: HTMLElement;
+
+    public partQuery = new PartQuery(GraphicsPart,
+            g => this.addSprite(g.graphics),
+            g => this.removeSprite(g.graphics))
 
     constructor(targetDiv: HTMLElement, targetWindow: Window){
         this.targetWindow = targetWindow;

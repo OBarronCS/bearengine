@@ -1,10 +1,9 @@
 import { Coordinate, Vec2 } from "shared/shapes/vec2";
 import { Graphics } from "pixi.js";
-import { Effect } from "shared/core/effecthandler";
+import { Effect } from "shared/core/effects";
 
-import { Entity, SpriteEntity } from "../entity";
-import { E } from "../globals";
-import { ShotInfo } from "../weapons/weaponinterfaces";
+import { Entity, SpriteEntity } from "./entity";
+import { ShotInfo } from "./weapons/weaponinterfaces";
 
 
 // Temp class here for testing
@@ -30,20 +29,20 @@ export class DefaultBulletEffect extends Effect {
         this.velocity = velocityVec;
 
         this.onStart(() => {
-            this.bullet = E.Engine.addEntity(new Bullet(this.position));
+            this.bullet = this.Scene.addEntity(new Bullet(this.position));
             this.bullet.position.set(this.position);
         })
         
         this.onUpdate(() => {
             this.bullet.position.add(this.velocity);
             
-            if(!E.Level.bbox.contains(this.bullet.position)){
+            if(!this.Level.bbox.contains(this.bullet.position)){
                 this.destroy_effect = true;
             }
         })
         
         this.onFinish( () => {
-            E.Engine.destroyEntity(this.bullet)
+            this.Scene.destroyEntity(this.bullet)
         })
     }	
 }
