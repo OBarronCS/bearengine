@@ -1,12 +1,11 @@
 
-// Encapsulates connections to players
 
 import WS from "ws"
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/networkstream"
 import { ClientBoundPacket, GameStatePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { LinkedQueue } from "shared/datastructures/queue"
 import { RemotePlayer } from "../serverentity";
-import { SE } from "../serverglobal";
+import { ServerBearEngine } from "../serverengine";
 
 export class ServerNetwork {
     private readonly TICK_RATE: number;
@@ -22,10 +21,9 @@ export class ServerNetwork {
     // List of connections
     protected sockets: WS[] = []
 
-
     private playerMap = new Map<WS,RemotePlayer>();
 
-    constructor(tickRate:number, port: number){
+    constructor(tickRate:number, port: number, public engine: ServerBearEngine){
         this.TICK_RATE = tickRate;
         this.port = port;
     }
@@ -45,7 +43,7 @@ export class ServerNetwork {
         const p = new RemotePlayer()
         this.playerMap.set(socket,p);
 
-        SE.Engine.addNetworkedEntity(p);
+        this.engine.addNetworkedEntity(p);
 
         // Sends to a particular connection, not entire socket. 
         console.log("New connection")
