@@ -1,11 +1,10 @@
-import { DEG_TO_RAD, Sprite } from "pixi.js";
+import { DEG_TO_RAD, Graphics, Sprite } from "pixi.js";
 import { abs, angleDifference, min, sign } from "shared/miscmath"
 import { Dimension, Rect } from "shared/shapes/rectangle";
 import { angleBetween, Coordinate } from "shared/shapes/vec2";
 import { Part } from "shared/core/abstractpart"
+import { Entity } from "./entity";
 
-
-import { E } from "./globals";
 
 
 // If these get too annoying to write, just change the system
@@ -28,13 +27,21 @@ export class ScriptPart extends Part {
 }
 
 
+export class GraphicsPart extends Part {
+    readonly graphics: Graphics = new Graphics();
+
+    onAdd(): void {}
+    onRemove(): void {}
+    update(dt: number): void {}
+}
+
 export class SpritePart extends Part {
 
     sprite: Sprite;
 
     constructor(spr_source: string){
         super();
-        this.sprite = new Sprite(E.Engine.renderer.getTexture(spr_source));
+        this.sprite = new Sprite(Entity.BEAR_ENGINE.renderer.getTexture(spr_source));
     }
 
     /** Sets point on the sprite that sits on position vector */
@@ -88,11 +95,11 @@ export class SpritePart extends Part {
     }
 
     onAdd(): void {
-        E.Engine.renderer.addSprite(this.sprite);
+        Entity.BEAR_ENGINE.renderer.addSprite(this.sprite);
     }
 
     onRemove(): void {
-        E.Engine.renderer.removeSprite(this.sprite);
+        Entity.BEAR_ENGINE.renderer.removeSprite(this.sprite);
 
         this.sprite.destroy({
             children: true,

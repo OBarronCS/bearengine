@@ -6,13 +6,13 @@ import { drawPoint } from "shared/shapes/shapedrawing";
 import { ColliderPart } from "shared/core/sharedparts"
 import { clamp } from "shared/miscmath";
 
-import { E } from "../core-engine/globals";
-import { DefaultBulletEffect } from "../core-engine/effects/effects";
+
+import { DefaultBulletEffect } from "../core-engine/clienteffects";
 import { SpritePart } from "../core-engine/parts";
 import { AddOnType } from "../core-engine/weapons/addon";
 import { DefaultGun } from "../core-engine/weapons/weapon";
 
-import { Entity } from "../core-engine/entity";
+import { DrawableEntity, Entity } from "../core-engine/entity";
 
 
 enum PlayerStates {
@@ -23,7 +23,7 @@ enum PlayerStates {
 
 export type PlayerActions = "left" | "right" | "jump";
 
-export class Player extends Entity {
+export class Player extends DrawableEntity {
     yspd = 0;
     xspd = 0;
     
@@ -129,8 +129,8 @@ export class Player extends Entity {
 
     update(dt: number): void {
         this.redraw()
-        this.gun.setLocation(this.position, (new Vec2(0,0).set(E.Mouse.position).sub(this.position)));
-        this.gun.operate(E.Mouse.isDown("left"));
+        this.gun.setLocation(this.position, (new Vec2(0,0).set(this.Mouse.position).sub(this.position)));
+        this.gun.operate(this.Mouse.isDown("left"));
 
         const start_x = this.position.x;
         const angle = Math.atan2(this.slope_normal.y, this.slope_normal.x) * RAD_TO_DEG;
@@ -140,7 +140,7 @@ export class Player extends Entity {
             this.time_to_jump = 6;
         }
 
-        if(E.Keyboard.isDown("KeyW")){
+        if(this.Keyboard.isDown("KeyW")){
             this.space_time_to_jump = 5;
         }
 
@@ -207,7 +207,7 @@ export class Player extends Entity {
         this.downRayBot.set({ x: this.position.x, y : this.feetRayDY + this.position.y + this.test_height / 2});
         rotatePoint(this.downRayBot,this.position,this.slope_normal)
         
-        const rightRay = E.Terrain.lineCollision(this.downRayTop, this.downRayBot);
+        const rightRay = this.Terrain.lineCollision(this.downRayTop, this.downRayBot);
         
         if(rightRay != null){
             // @ts-expect-error
@@ -227,7 +227,7 @@ export class Player extends Entity {
 
 
     Ground_State(){	
-        const horz_move = +E.Keyboard.isDown("KeyD") - +E.Keyboard.isDown("KeyA");
+        const horz_move = +this.Keyboard.isDown("KeyD") - +this.Keyboard.isDown("KeyA");
         
         if (horz_move == -1) {
             if (this.gspd > 0) {
@@ -279,7 +279,7 @@ export class Player extends Entity {
     Air_State(){
         // gravity
         const grav = 1.2;
-        const horz_move = +E.Keyboard.isDown("KeyD") - +E.Keyboard.isDown("KeyA");   
+        const horz_move = +this.Keyboard.isDown("KeyD") - +this.Keyboard.isDown("KeyA");   
 
         if (horz_move == -1) {
             if (this.xspd > 0) {

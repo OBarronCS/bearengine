@@ -2,7 +2,6 @@ import { BearEngine } from "./core-engine/bearengine";
 import { DropTarget } from "./apiwrappers/draganddrop";
 import { Texture, BaseTexture, Sprite, Point, resources } from "pixi.js";
 import { StartFullscreen } from "./apiwrappers/fullscreen";
-import { E } from "./core-engine/globals";
 import { LockKeys } from "./apiwrappers/keyboardapiwrapper";
 import { CustomMapFormat } from "shared/core/tiledmapeditor";
 
@@ -17,16 +16,16 @@ game.preload().then(RESOURCES => {
     game.start()
 })
 
-E.Keyboard.bind("p",() => {
-    StartFullscreen(document,game.renderer.pixiapp.renderer.view);
+// E.Keyboard.bind("p",() => {
+//     StartFullscreen(document,game.renderer.pixiapp.renderer.view);
 
-    //LockMouse(document,game.renderer.pixiapp.renderer.view);
-});
+//     //LockMouse(document,game.renderer.pixiapp.renderer.view);
+// });
 
-E.Keyboard.bind("r",() => {
-    game.restartCurrentLevel();
-    //LockMouse(document,game.renderer.pixiapp.renderer.view);
-});
+// E.Keyboard.bind("r",() => {
+//     game.restartCurrentLevel();
+//     //LockMouse(document,game.renderer.pixiapp.renderer.view);
+// });
 
 LockKeys([
     "KeyW", 

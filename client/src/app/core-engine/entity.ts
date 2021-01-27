@@ -6,20 +6,45 @@ import { ColliderPart } from "shared/core/sharedparts"
 import { dimensions } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 
-import { SpritePart } from "./parts";
-import { E } from "./globals";
+import { GraphicsPart, SpritePart } from "./parts";
+import { BearEngine } from "./bearengine";
+import { MouseInput } from "../input/mouse";
+import { EngineKeyboard } from "../input/keyboard";
+
 
 // Client specific entity
 export abstract class Entity extends AbstractEntity {
-    readonly graphics: Graphics
+    
+    static BEAR_ENGINE: BearEngine = null;
 
-    constructor() {
-        super()
-        this.graphics = new Graphics();
+    get Engine(): BearEngine { return Entity.BEAR_ENGINE }
+    get Mouse(): MouseInput { return Entity.BEAR_ENGINE.mouse }
+    get Keyboard(): EngineKeyboard { return Entity.BEAR_ENGINE.keyboard }
+
+    // Used for quick movement implementation
+    simpleMovement(speed: number){
+        const check = this.simpleKeyboardCheck();
+
+        this.x += check.x * speed;
+        this.y += check.y * speed;
     }
 
-    redraw(){
-        this.draw(this.graphics);
+    simpleKeyboardCheck(magnitude: number = 1): Coordinate {
+        return {
+            x: magnitude * (+this.Keyboard.isDown("KeyD") - +this.Keyboard.isDown("KeyA")), 
+            y: magnitude * (+this.Keyboard.isDown("KeyS") - +this.Keyboard.isDown("KeyW"))
+        }
+    }
+
+}
+
+export abstract class DrawableEntity extends Entity {
+    
+    protected canvas: GraphicsPart = this.addPart(new GraphicsPart());
+
+    redraw(clear = true){
+        if(clear) this.canvas.graphics.clear();
+        this.draw(this.canvas.graphics);
     }
 
     abstract draw(g: Graphics): void;
@@ -85,19 +110,4 @@ export abstract class GMEntity extends SpriteEntity {
 
 
 
-// Used for quick movement implementing
-export function SimpleMovement(e: Entity, speed: number){
-    const horz_move = +E.Keyboard.isDown("KeyD") - +E.Keyboard.isDown("KeyA");
-    const vert_move = +E.Keyboard.isDown("KeyS") - +E.Keyboard.isDown("KeyW");
-
-    e.x += horz_move * speed;
-    e.y += vert_move * speed;
-}
-
-export function SimpleKeyboardCheck(magnitude: number = 1): Coordinate {
-    return {
-        x: magnitude * (+E.Keyboard.isDown("KeyD") - +E.Keyboard.isDown("KeyA")), 
-        y: magnitude * (+E.Keyboard.isDown("KeyS") - +E.Keyboard.isDown("KeyW"))
-    }
-}
 

@@ -1,5 +1,5 @@
 
-import { DefaultBulletEffect } from "../effects/effects";
+import { DefaultBulletEffect } from "../clienteffects";
 import { ShotInfo } from "./weaponinterfaces";
 
 export interface GunAddon {

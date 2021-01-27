@@ -92,10 +92,10 @@ export class BufferedNetwork extends Network {
 
 
     private networkedEntityManager: NetworkedEntityManager;
-    constructor(url: string){
+    constructor(url: string, public engine: BearEngine){
         super(url);
 
-        this.networkedEntityManager = new NetworkedEntityManager();
+        this.networkedEntityManager = new NetworkedEntityManager(engine);
     }
 
     onopen(): void {
