@@ -45,9 +45,6 @@ export class PartQuery<T extends Part>{
             }
         }  
     }
-
-    
-
 }
 
 
