@@ -21,15 +21,18 @@ import { NetworkObjectInterpolator } from "./networking/objectinterpolator";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { AbstractEntity } from "shared/core/abstractentity";
+import { Subsystem } from "shared/core/subsystem";
+import { round } from "shared/miscmath";
 
 
 
-const RESOURCES = Loader.shared.resources
+const SHARED_RESOURCES = Loader.shared.resources;
+const SHARED_LOADER = Loader.shared;
 
 let lastFrameTimeMs = 0;
-let maxFPS = 60;
 let accumulated = 0;
-let simulation_time = 1000 / maxFPS;
+const maxFPS = 60;
+const simulation_time = 1000 / maxFPS;
 
 // Returns names of files!
 // r is the require function
@@ -38,7 +41,7 @@ function importAll(r: any): [] {
     return webpackObjs.map((v:any) => v.default)
 }
 const images = importAll(require.context('../../images', true, /\.(json|png|jpe?g|gif)$/));
-const ALL_TEXTURES = images.slice(0);
+const ALL_TEXTURES: string[] = images.slice(0);
 console.log(ALL_TEXTURES)
 
 
@@ -60,15 +63,13 @@ class BearEngine {
     // Total simulated time, in seconds
     public totalTime = 0;
 
-    // Things that should be globally accessible by E
-    public mouse: EngineMouse;
-    public keyboard: EngineKeyboard;
+    public mouse: EngineMouse = null;
+    public keyboard: EngineKeyboard = null;
     public current_level: LevelHandler = null;
 
     
     private updateList: AbstractEntity[] = [];
-
-    private partQueries: PartQuery<any>[] = []
+    private partQueries: PartQuery<any>[] = [];
 
     private network: BufferedNetwork;
     private interpolator: NetworkObjectInterpolator;
@@ -80,10 +81,17 @@ class BearEngine {
         this.network = new BufferedNetwork("ws://127.0.0.1:8080", this);
         this.network.connect();
 
+        // E.Keyboard.bind("p",() => {
+        //     StartFullscreen(document,game.renderer.pixiapp.renderer.view);
 
-        this.interpolator = new NetworkObjectInterpolator(this.network);
-        this.partQueries.push(this.interpolator.partQuery)
+        //     //LockMouse(document,game.renderer.pixiapp.renderer.view);
+        // });
 
+        // E.Keyboard.bind("r",() => {
+        //     game.restartCurrentLevel();
+        //     //LockMouse(document,game.renderer.pixiapp.renderer.view);
+        // });
+        this.interpolator = this.registerSystem(new NetworkObjectInterpolator(this.network));
 
         this.mouse = new InternalMouse();
 
@@ -93,7 +101,7 @@ class BearEngine {
 
             const div = document.querySelector("#display") as HTMLElement;
 
-            /////////// CONTEXT MENU
+            /////////// Stops right click CONTEXT MENU from showing
             div.addEventListener('contextmenu', function(ev) {
                 ev.preventDefault();
                 return false;
@@ -125,12 +133,17 @@ class BearEngine {
         gui_layer.addChild(this.mouse_info)
     }
 
+    registerSystem<T extends Subsystem>(system: T) {
+        this.partQueries.push(...system.queries);
+        return system;
+    }
+
 
 	startLevel(level_struct: CustomMapFormat){
 		this.current_level = new LevelHandler(level_struct);
         this.current_level.load();
 
-        this.renderer.pixiapp.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundColor)
+        this.renderer.pixiapp.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundColor);
 
         // Global Data
         AbstractEntity.GLOBAL_DATA_STRUCT = {
@@ -142,8 +155,9 @@ class BearEngine {
 
         Entity.BEAR_ENGINE = this;
         
-        const g = new Graphics()
-        this.current_level.draw(g)
+        const g = new Graphics();
+        this.current_level.draw(g);
+
         this.renderer.addSprite(g);
 
         this.partQueries.push(this.current_level.collisionManager.partQuery);
@@ -158,47 +172,30 @@ class BearEngine {
         (this.loop.bind(this))()
     }
 
-    // Creates the WebGL view using PIXI.js, so the game can be rendered
-    async startRenderer(settings: EngineSettings){
+    // // Creates the WebGL view using PIXI.js, so the game can be rendered
+    // async startRenderer(settings: EngineSettings){
         
-    }
+    // }
 
     // Loads all assets from server
-    async preload(): Promise<typeof RESOURCES>{
-        return new Promise((resolve) => this.renderer.initTextures(ALL_TEXTURES, () => {
-            resolve(RESOURCES)
-        }));
+    async loadAssets(): Promise<typeof SHARED_RESOURCES>{
+        return new Promise( (resolve) => {
+
+            SHARED_LOADER.add(ALL_TEXTURES);
+    
+            SHARED_LOADER.load(() => {
+                console.log('PIXI.Loader.shared.resources :>> ', SHARED_RESOURCES);
+                resolve(SHARED_RESOURCES);
+            });
+        });
     }
 
-    destroyEntity<T extends AbstractEntity>(e: T): void {
-        const index = this.updateList.indexOf(e);
-        if(index !== -1){
-            e.onDestroy();
-            this.updateList.splice(index,1);
-            e.parts.forEach(part => part.onRemove());
-
-            this.partQueries.forEach(q => {
-                q.deleteEntity(e)
-            })
-        }
-    }
-
-    addEntity<T extends AbstractEntity>(e: T): T {
-        this.updateList.push(e);
-        e.onAdd();
-
-        this.partQueries.forEach(q => {
-            q.addEntity(e)
-        })
-
-        return e;
-    }
-   
 
     loop(timestamp: number = performance.now()){
         accumulated += timestamp - lastFrameTimeMs;
 
-        /// Setting mouse world position values
+        // Setting mouse world position, requires the renderer to map the point
+
         const canvasPoint = new Point();
         this.renderer.pixiapp.renderer.plugins.interaction.mapPositionToPoint(canvasPoint,this.mouse.screenPosition.x,this.mouse.screenPosition.y);
         /// @ts-expect-error
@@ -254,12 +251,37 @@ class BearEngine {
             }
         }
 
+        //simulation time
+        // console.log(performance.now() - timestamp)
         this.renderer.update((timestamp - lastFrameTimeMs) / 1000);
         
-        //simulation and render time
-        console.log(performance.now() - timestamp)
+        
 
         requestAnimationFrame(t => this.loop(t))
+    }
+
+    destroyEntity<T extends AbstractEntity>(e: T): void {
+        const index = this.updateList.indexOf(e);
+        if(index !== -1){
+            e.onDestroy();
+            this.updateList.splice(index,1);
+            e.parts.forEach(part => part.onRemove());
+
+            this.partQueries.forEach(q => {
+                q.deleteEntity(e)
+            })
+        }
+    }
+
+    addEntity<T extends AbstractEntity>(e: T): T {
+        this.updateList.push(e);
+        e.onAdd();
+
+        this.partQueries.forEach(q => {
+            q.addEntity(e)
+        })
+
+        return e;
     }
 
     restartCurrentLevel(){
@@ -271,9 +293,16 @@ class BearEngine {
     endCurrentLevel(){
         this.current_level.end();
 
-        for(let i = this.updateList.length - 1; i >= 0; --i){
-            this.destroyEntity(this.updateList[i]);
-        }
+        this.updateList.forEach( e => {
+            e.onDestroy();
+            e.parts.forEach(part => part.onRemove());
+
+            this.partQueries.forEach(q => {
+                q.deleteEntity(e)
+            })
+        })
+
+        this.updateList = [];
 
         this.partQueries = [];
 
@@ -285,10 +314,7 @@ class BearEngine {
 }
 
 
-function round(num: number, val = 0) {
-    const rounder = Math.pow(10, val);
-    return Math.round(num * rounder) / rounder
-}
+
 
 
 export {

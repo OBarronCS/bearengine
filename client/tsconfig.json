@@ -9,8 +9,8 @@
         // Look into setting sourceMap == true for better debugging
         //"allowSyntheticDefaultImports": true
         //"esModuleInterop": true
+        
         //"noImplicitAny" : true,
-
         "noImplicitThis":true,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,

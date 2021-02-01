@@ -1,7 +1,6 @@
 import { BearEngine } from "./core-engine/bearengine";
 import { DropTarget } from "./apiwrappers/draganddrop";
 import { Texture, BaseTexture, Sprite, Point, resources } from "pixi.js";
-import { StartFullscreen } from "./apiwrappers/fullscreen";
 import { LockKeys } from "./apiwrappers/keyboardapiwrapper";
 import { CustomMapFormat } from "shared/core/tiledmapeditor";
 
@@ -10,22 +9,11 @@ const game = new BearEngine({
 });
 
 // Loads assets from server
-game.preload().then(RESOURCES => {
-    console.log("PRELOAD FINISHED")
+game.loadAssets().then(RESOURCES => {
+    console.log("ALL ASSETS DOWNLOADED")
     game.startLevel(RESOURCES["images/level.json"].data as CustomMapFormat)
     game.start()
 })
-
-// E.Keyboard.bind("p",() => {
-//     StartFullscreen(document,game.renderer.pixiapp.renderer.view);
-
-//     //LockMouse(document,game.renderer.pixiapp.renderer.view);
-// });
-
-// E.Keyboard.bind("r",() => {
-//     game.restartCurrentLevel();
-//     //LockMouse(document,game.renderer.pixiapp.renderer.view);
-// });
 
 LockKeys([
     "KeyW", 
@@ -40,10 +28,9 @@ LockKeys([
 const element = game.renderer.pixiapp.renderer.view
 
 initDropTarget(element)
-// Same div as the one the PIXI app is on
+
 function initDropTarget(id:string|HTMLElement){
 
-    /// @ts-ignore
     const dropTarget = new DropTarget(id)
     dropTarget.enable();
 

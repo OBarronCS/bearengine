@@ -18,7 +18,6 @@ import { PartQuery } from "shared/core/partquery";
 import { ColliderPart } from "shared/core/sharedparts"
 
 
-// E.Collision
 export class CollisionManager {
     
     // In the future, with lots of entities, this will probably become a bottleneck. Research more efficient data structures
@@ -33,7 +32,7 @@ export class CollisionManager {
         });
 
     constructor(worldWidth: number, worldHeight: number){
-        this.grid = new SpatialGrid<ColliderPart>(worldWidth, worldHeight, 6,6,(collider) => collider.rect);   
+        this.grid = new SpatialGrid<ColliderPart>(worldWidth,worldHeight,6,6,(collider) => collider.rect);   
     }
 
     update(dt: number): void {
@@ -48,6 +47,17 @@ export class CollisionManager {
         this.grid.insert(c);
     }
 
+    remove(c: ColliderPart){
+        const i = this.colliders.indexOf(c);
+        if(i !== -1){
+            this.colliders.splice(i,1);
+
+            // Dont bother removing it from the grid yet.
+            // It just won't be added back when I rebuild next step
+            // This will have no bugs when I implement the deferal of entity deletion
+        }
+    }
+
     // return the first thing that it finds that this collides with
     collision(c: ColliderPart): ColliderPart {
         const possible = this.grid.region(c.rect);
@@ -60,17 +70,6 @@ export class CollisionManager {
         return null;
     }
 
-    remove(c: ColliderPart){
-        const i = this.colliders.indexOf(c);
-        if(i !== -1){
-            this.colliders.splice(i,1);
-
-            // Dont bother removing it from the grid yet.
-            // It just won't be added back when I rebuild next step
-            // This might be a cause of bugs tho! we'll see
-        }
-    }
-    
     // ----    QUERIES
     circleQuery(x: number, y: number, r: number): AbstractEntity[] {
         const entities: AbstractEntity[] = [];

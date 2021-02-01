@@ -33,9 +33,6 @@ export class DropTarget {
     public targetElement: HTMLElement;
     public enabled: boolean; 
 
-    constructor(target: string);
-    constructor(target: HTMLElement);
-
     constructor(target: string | HTMLElement){
         const targetAsString = target;
         if(typeof target === "string"){

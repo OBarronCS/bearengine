@@ -1,13 +1,15 @@
 import { Container, DisplayObject, Loader, Application, utils } from "pixi.js";
 import { PartQuery } from "shared/core/partquery";
-import { DrawableEntity } from "./entity";
 import { GraphicsPart } from "./parts";
 
 
-const resources = Loader.shared.resources;
+const SHARED_RESOURCES = Loader.shared.resources;
+const SHARED_LOADER = Loader.shared;
+
+
 
 // arbitrary, but make it high enough so it looks good --> this is the base render texture height!
-// so things are actually renderer to THIS thing
+// so things are actually rendered to THIS resolution
 const DEFAULT_RESOLUTION_HEIGHT = 1200 //768;
 
 const MIN_RATIO = 4/3;
@@ -61,10 +63,8 @@ export class Renderer {
         targetDiv.appendChild(this.pixiapp.view);
 
 
-        const self = this
-        this.targetWindow.onresize = function (event: any){
-            self.fitToScreen();
-        }
+        this.targetWindow.onresize = (e) => this.fitToScreen();
+        
 
         this.mainContainer.zIndex = 0;
         this.mainContainer.sortableChildren = true;
@@ -104,12 +104,10 @@ export class Renderer {
         // this is wrong if zoom in on chrome, or on a macbook.
         // use this to scale accordingly
         // https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio
-        let window_height: number;
-        let window_width: number;
 
         // works in fullscreen perfeclty
-        window_width = this.targetWindow.innerWidth;
-        window_height = this.targetWindow.innerHeight;
+        let window_width = this.targetWindow.innerWidth;
+        let window_height = this.targetWindow.innerHeight;
 
         console.log(window_width, window_height)
 
@@ -149,22 +147,10 @@ export class Renderer {
         this.pixiapp.renderer.view.style.width = ideal_width  + 'px';
         this.pixiapp.renderer.view.style.height = ideal_height  + 'px';
     }
-
-    // Calls callback once all textures are loaded
-    initTextures(fileNames: string[], callback: () => void){
-        const realPaths = fileNames.map(v => v);
-
-        Loader.shared.add(realPaths);
-
-        Loader.shared.load(() => {
-            console.log('PIXI.Loader.shared.resources :>> ', Loader.shared.resources);
-            callback()
-        });
-    } 
      
     getTexture(_name: string){
         const _str = _name 
-        return resources[_str].texture
+        return SHARED_RESOURCES[_str].texture
     }
     
     getPercentWidth(percent: number){

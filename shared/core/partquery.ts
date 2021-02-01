@@ -3,22 +3,18 @@ import { AbstractEntity } from "./abstractentity";
 import { Part } from "./abstractpart";
 
 
-// Can be used by various game systems to listen for entities that are created that have a certain part
-// uses constructor.name to identify them
-
 export class PartQuery<T extends Part>{
-    public name: string;
-
-    //public parts: T[]
-    //public partSet = new Set<T>();
-
+    
+    public parts: T[] = [];
+    
+    name: string;
     onAdd: (part: T) => void;
     onRemove: (part: T) => void;
 
     constructor(
             partClass: new(...args:any[]) => T,
-            onAdd: (part: T) => void,
-            onRemove: (part: T) => void
+            onAdd: (part: T) => void = (a) => {},
+            onRemove: (part: T) => void = (a) => {}
         ){
         this.name = partClass.name;
         this.onAdd = onAdd;
@@ -30,6 +26,7 @@ export class PartQuery<T extends Part>{
         for(const p of e.parts){
             if(p.constructor.name === this.name){
                 this.onAdd(p as T);
+                this.parts.push(p as T);
                 return;
             }
         }  
@@ -39,6 +36,15 @@ export class PartQuery<T extends Part>{
     deleteEntity(e: AbstractEntity){
         for(const p of e.parts){
             if(p.constructor.name === this.name){
+                
+                const i = this.parts.indexOf(p as T);
+                if(i !== -1){
+                    // This should always run... But just in case I check
+                    // TODO: if this becomes a performance issue, create a sparse set
+                    this.parts.splice(i,1);
+                } else {
+                    console.error("Part query didn't find part to delete, but it should contain it")
+                }
 
                 this.onRemove(p as T);
                 return;

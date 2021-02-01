@@ -1,41 +1,25 @@
-import { PartQuery } from "shared/core/partquery";
+
 import { RemoteLocations } from "./remotecontrol";
 import { BufferedNetwork } from "./socket";
+import { Subsystem } from "shared/core/subsystem";
 
 
+export class NetworkObjectInterpolator extends Subsystem {
 
-export class NetworkObjectInterpolator {
-
-    private objects: RemoteLocations[] = [];
-
-    public partQuery = new PartQuery(RemoteLocations, e => {
-        this.add(e)
-    }, e => {
-        this.remove(e)
-    });
+    public remotelocations = this.addQuery(RemoteLocations)
 
     private network: BufferedNetwork;
 
     constructor(network: BufferedNetwork){
+        super();
         this.network = network;
     }
 
     update(){
         const frame = this.network.tickToSimulate();
 
-        for(const obj of this.objects){
+        for(const obj of this.remotelocations.parts){
             obj.setPosition(frame)
-        }
-    }
-
-    add(c: RemoteLocations){
-        this.objects.push(c);
-    }
-
-    remove(c: RemoteLocations){
-        const i = this.objects.indexOf(c);
-        if(i !== -1){
-            this.objects.splice(i,1);
         }
     }
 }

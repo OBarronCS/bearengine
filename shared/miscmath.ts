@@ -39,6 +39,11 @@ export const sqrt = Math.sqrt;
 // Math.trunc?
 export const fract = (value: number): number => value % 1;
 
+export function round(num: number, numbersAfterDecimal = 0): number {
+    const rounder = Math.pow(10, numbersAfterDecimal);
+    return Math.round(num * rounder) / rounder
+}
+
 export function arrayMin(array: number[]){
     let min = array[0];
     for(let i = 1; i < array.length; i++){

@@ -3,6 +3,8 @@ import { Rect } from "shared/shapes/rectangle";
 import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { CollisionManager } from "shared/core/entitycollision";
+
+
 import type { Graphics } from "pixi.js";
 
 export class LevelHandler {
@@ -27,10 +29,10 @@ export class LevelHandler {
 		const height = worldInfo.height;	
 
 		
-		this.terrainManager = new TerrainManager(width, height);
+		this.terrainManager = new TerrainManager(width,height);
 		this.collisionManager = new CollisionManager(width,height);
 
-		this.bbox = new Rect(0,0,width, height);
+		this.bbox = new Rect(0,0,width,height);
 		
 		const bodies = info_struct.bodies // list of bodies
 
@@ -39,7 +41,6 @@ export class LevelHandler {
 		});
 		
 		this.loaded = true
-
 	}
 
 	draw(g: Graphics){

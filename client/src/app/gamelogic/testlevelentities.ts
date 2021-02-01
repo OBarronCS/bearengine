@@ -105,7 +105,7 @@ export function loadTestLevel(this: BearEngine): void {
             this.Collision.draw(g);
         }
     }
-    this.addEntity(new Debug())
+    //this.addEntity(new Debug())
 
     // Rectangle overlap test
     class Test extends DrawableEntity {
