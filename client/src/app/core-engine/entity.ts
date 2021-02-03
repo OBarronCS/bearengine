@@ -97,7 +97,6 @@ export abstract class GMEntity extends SpriteEntity {
     // A temporary vector used for convenience so no need to create a new one each time
     private static moveTowards = new Vec2(0,0);
     // Move this to vector class?
-    // Does NOT overshoot
     moveTowards(point: Coordinate, distance: number){
         GMEntity.moveTowards.x = point.x - this.position.x;
         GMEntity.moveTowards.y = point.y - this.position.y;

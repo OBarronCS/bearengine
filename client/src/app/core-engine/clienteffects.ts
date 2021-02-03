@@ -2,14 +2,13 @@ import { Coordinate, Vec2 } from "shared/shapes/vec2";
 import { Graphics } from "pixi.js";
 import { Effect } from "shared/core/effects";
 
-import { Entity, SpriteEntity } from "./entity";
+import { SpriteEntity } from "./entity";
 import { ShotInfo } from "./weapons/weaponinterfaces";
 
 
-// Temp class here for testing
 class Bullet extends SpriteEntity {
     constructor(pos: Coordinate){
-        super(pos,"images/flower.png");
+        super(pos,"images/test2.png");
         this.image.originPercent = new Vec2(.5,.5);
     }
 
@@ -22,10 +21,11 @@ export class DefaultBulletEffect extends Effect {
     public velocity: Vec2;
     public bullet: Bullet;
 
-    constructor(posVec: Vec2, velocityVec: Vec2, shotInfo: ShotInfo){
+    constructor(posVec: Readonly<Vec2>, velocityVec: Vec2, shotInfo: ShotInfo){
         super();
-        // INITIAL POSITION ONLY AS OF NOW
-        this.position = posVec;
+
+        // Initial position
+        this.position = posVec.clone();
         this.velocity = velocityVec;
 
         this.onStart(() => {

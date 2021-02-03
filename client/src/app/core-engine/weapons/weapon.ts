@@ -1,23 +1,22 @@
-import { Vec2 } from "shared/shapes/vec2";
-import { SemiAutoController, PulseController, GunshootController, AutoController } from "./triggers";
-import { Clip, GunAddon } from "./addon";
+import { Coordinate, Vec2 } from "shared/shapes/vec2";
+import { GunAddon } from "./addon";
 import { DefaultBulletEffect } from "../clienteffects";
 import { GunInfo, CreateGunInfoStruct } from "./weaponinterfaces";
-import { Entity } from "../entity";
+import { SpriteEntity } from "../entity";
 import { Graphics } from "pixi.js";
 
-
 interface Gun {
-    setLocation: (position: Vec2, dir:Vec2) => void,
+    setLocation: (position:Vec2, dir:Vec2) => void,
     operate: (holding: boolean) => void,
     gunInfo: GunInfo
 }
 
-export class DefaultGun extends Entity implements Gun {
+export class SimpleGun extends SpriteEntity implements Gun {
 	draw(g: Graphics): void {}
 	update(dt: number): void {}
 
-	// The backing information of this entity
+	constructor(){ super(Vec2.ZERO,"images/weapon1.png") }
+
 	gunInfo = CreateGunInfoStruct({
 	    name : "Default",
 	    crosshair : "",
@@ -56,7 +55,7 @@ export class DefaultGun extends Entity implements Gun {
 	
 	dir = new Vec2(1,0)
 
-	setLocation(_position:Vec2, _dir:Vec2): void{
+	setLocation(_position:Coordinate, _dir:Coordinate): void{
 		this.position.set(_position);
 		this.dir.set(_dir);
 	}

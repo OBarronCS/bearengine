@@ -241,10 +241,9 @@ class BearEngine {
         }
 
         //simulation time
-        // console.log(performance.now() - timestamp)
+        //console.log(performance.now() - timestamp)
         this.camera.update();
         this.renderer.update((timestamp - lastFrameTimeMs) / 1000);
-        
         
 
         requestAnimationFrame(t => this.loop(t))
@@ -266,6 +265,8 @@ class BearEngine {
     addEntity<T extends AbstractEntity>(e: T): T {
         this.updateList.push(e);
         e.onAdd();
+
+        e.parts.forEach(p => p.onAdd())
 
         this.partQueries.forEach(q => {
             q.addEntity(e)

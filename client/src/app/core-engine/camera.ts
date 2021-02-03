@@ -5,7 +5,7 @@ import { Rect } from "shared/shapes/rectangle";
 import { RendererSystem } from "./renderer";
 import { EngineKeyboard } from "../input/keyboard";
 import { EngineMouse } from "../input/mouse";
-import { lerp } from "shared/miscmath";
+import { lerp, smoothNoise } from "shared/miscmath";
 
 export class CameraSystem {
     
@@ -14,6 +14,9 @@ export class CameraSystem {
 
     public targetMiddle: Vec2;
     public mode: "free" | "follow" = "free"
+
+    // Used for camera shake [0,1]
+    private trauma = 0;
 
     constructor(renderer: RendererSystem, container: Container, targetWindow: Window, mouse: EngineMouse,keyboard: EngineKeyboard) {
 
@@ -24,9 +27,12 @@ export class CameraSystem {
         container.position.x = renderer.renderer.width / 2;
         container.position.y = renderer.renderer.height / 2;
 
+        keyboard.bind("h", () => {
+            this.trauma = .5;
+        });
 
         keyboard.bind("space", () => {
-            this.center = {x: 500, y:500}
+            this.center.set({x: 500, y:500});
             this.renderer.mainContainer.scale.x = 1;
             this.renderer.mainContainer.scale.y = 1;
         });
@@ -34,25 +40,28 @@ export class CameraSystem {
         // Dragging the layer around
         let startMouse: Coordinate;
         let startPoint: Coordinate;
+
+        // start drag
+        targetWindow.addEventListener("mousedown", (event) => {
+            startPoint = this.center.clone();
+            startMouse = renderer.mouse.clone()
+        });
+
+        // while dragging
         targetWindow.addEventListener("mousemove",event => {
             const point = new Point(0,0);
             renderer.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y)
 
             if(!mouse.isDown("middle")){
-                if(!mouse.isDown("left")) return
-                if(!keyboard.isDown("ShiftLeft")) return
+                if(!mouse.isDown("left")) return;
+                if(!keyboard.isDown("ShiftLeft")) return;
             } 
 
             const speed = 1;
 
-            container.pivot.x = startPoint.x - (((point.x - startMouse.x) / container.scale.x) * speed)
-            container.pivot.y = startPoint.y - (((point.y - startMouse.y) / container.scale.y) * speed) 
-        })
-
-        targetWindow.addEventListener("mousedown", (event) => {
-            startPoint = this.container.pivot.copyTo(new Point(0,0));
-            startMouse = renderer.mouse.clone()
-        })
+            this.center.x = startPoint.x - (((point.x - startMouse.x) / container.scale.x) * speed)
+            this.center.y = startPoint.y - (((point.y - startMouse.y) / container.scale.y) * speed) 
+        });
 
         // ZOOM
         targetWindow.addEventListener("wheel", (event) => {
@@ -61,7 +70,7 @@ export class CameraSystem {
             const con = this.container;
 
             // makes it so the mousepoint stays the same after and before zoom
-            let mousePoint = con.toLocal(new Point(point.x, point.y));
+            const mousePoint = con.toLocal(new Point(point.x, point.y));
 
             con.scale.x += event.deltaY * -1 * .001
             con.scale.y += event.deltaY * -1 * .001
@@ -70,17 +79,14 @@ export class CameraSystem {
                 con.scale.y = .05
             }
 
-            let newMousePoint = con.toLocal(new Point(point.x, point.y));
+            const newMousePoint = con.toLocal(new Point(point.x, point.y));
 
-            con.pivot.x += mousePoint.x - newMousePoint.x
-            con.pivot.y += mousePoint.y - newMousePoint.y
-            
-        })
+            this.center.x += mousePoint.x - newMousePoint.x
+            this.center.y += mousePoint.y - newMousePoint.y
+        });
     }
 
-
-    set center(point: Coordinate) { this.container.pivot.copyFrom(point); }
-    get center(): Coordinate { return this.container.pivot }
+    public center: Vec2 = new Vec2(0,0);
 
     set left(x: number) { this.container.pivot.x = x + (this.container.position.x / this.container.scale.x); }
     get left(): number {return this.container.pivot.x - (this.container.position.x / this.container.scale.x); }
@@ -94,10 +100,12 @@ export class CameraSystem {
     set bot(y: number) { this.container.pivot.y = y - (this.container.position.y / this.container.scale.y); }
     get bot(): number { return this.container.pivot.y + (this.container.position.y / this.container.scale.y); }
 
-    // Takes into account zoom. How many pixels are being rendered
+    // Takes into account zoom. How many pixels are being shown on screen
     get viewWidth(){ return 2 * this.container.position.x / this.container.scale.x; }
     get viewHeight(){ return 2 * this.container.position.y / this.container.scale.y; }
 
+    // base degree angle
+    private baseDangle = 0;
 
     follow(vec: Vec2){
         this.targetMiddle = vec;
@@ -105,6 +113,23 @@ export class CameraSystem {
     }
 
     update(){
+        const maxAngle = 20;
+        const maxOffset = 40;
+        
+        const seed = Date.now();
+
+        const shake =  (this.trauma**2);
+
+        const shakeAngle = maxAngle * shake * smoothNoise(seed);
+        const dx = maxOffset * shake * smoothNoise(seed + 1000);
+        const dy = maxOffset * shake * smoothNoise(seed + 2000);
+
+        // shake is actually broken. It rotates around the position, which is not center of screen
+        this.container.angle = this.baseDangle + shakeAngle;
+        this.container.pivot.copyFrom({x: this.center.x + dx,y: this.center.y + dy});
+
+        this.trauma -= .007;
+        if(this.trauma < 0) this.trauma = 0;
         if(this.mode === "follow") this.center = mix(this.center, this.targetMiddle, .40);
     }
     
@@ -117,4 +142,5 @@ export class CameraSystem {
         return new Rect(this.left, this.top, this.viewWidth, this.viewHeight);
     }
 }
+
 

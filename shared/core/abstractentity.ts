@@ -40,7 +40,6 @@ export abstract class AbstractEntity {
     addPart<T extends Part>(part: T): T {
         this.parts.push(part);
         part.owner = this;
-        part.onAdd(); 
         return part;
     }
 

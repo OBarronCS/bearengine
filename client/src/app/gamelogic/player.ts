@@ -1,5 +1,5 @@
 import { RAD_TO_DEG, Graphics } from "pixi.js";
-import { Vec2, rotatePoint } from "shared/shapes/vec2";
+import { Vec2, rotatePoint, angleBetween } from "shared/shapes/vec2";
 import { random_range, random } from "shared/randomhelpers";
 import { dimensions } from "shared/shapes/rectangle";
 import { drawPoint } from "shared/shapes/shapedrawing";
@@ -10,9 +10,9 @@ import { clamp } from "shared/miscmath";
 import { DefaultBulletEffect } from "../core-engine/clienteffects";
 import { SpritePart } from "../core-engine/parts";
 import { AddOnType } from "../core-engine/weapons/addon";
-import { DefaultGun } from "../core-engine/weapons/weapon";
+import { SimpleGun } from "../core-engine/weapons/weapon";
 
-import { DrawableEntity, Entity } from "../core-engine/entity";
+import { DrawableEntity } from "../core-engine/entity";
 
 enum PlayerStates {
     Ground,
@@ -85,6 +85,7 @@ export class Player extends DrawableEntity {
         
         
         // LEFT AND RIGHT sensors
+        // Not in use right now
         this.leftRayRight = new Vec2(x, y);
         this.leftRayLeft = new Vec2(-3 + x - width / 2, y);
         
@@ -92,7 +93,7 @@ export class Player extends DrawableEntity {
         this.rightRayLeft = new Vec2(3 + x + width / 2,y);
 
 
-        this.gun = new DefaultGun();
+        this.gun = new SimpleGun();
         this.gun.addons.push({
             addontype: AddOnType.SPECIAL,
             modifyShot : function(shotInfo, effect){
@@ -103,16 +104,14 @@ export class Player extends DrawableEntity {
                     // this.velocity.extend(10 + random(10));
                 })
                 
-                effect.destroyAfter(10000);
+                effect.destroyAfter(100);
             }
         })
 
-        // E.Engine.effectHandler.addEffect(
-        //     new VecTween(this, "position", 5).from({x: 0, y:0 }).to({x: 50, y: 700}).go()
-        // ).chain(new VecTween(this, "position", 2).from({x: 50, y: 700}).to({x: 500, y: 0}))
+        this.Scene.addEntity(this.gun);
     }
 
-    private gun: DefaultGun;
+    private gun: SimpleGun;
     
     // setSensorLocations(){
     //     const dy = 0; 
@@ -126,7 +125,8 @@ export class Player extends DrawableEntity {
     // }
 
     update(dt: number): void {
-        this.gun.setLocation(this.position, (new Vec2(0,0).set(this.Mouse.position).sub(this.position)));
+        this.gun.setLocation({x: this.x, y: this.y - 20}, (new Vec2(0,0).set(this.Mouse.position).sub(this.position)));
+        this.gun.image.angle = angleBetween(this.gun.position, this.Mouse.position)
         this.gun.operate(this.Mouse.isDown("left"));
 
         const start_x = this.position.x;
