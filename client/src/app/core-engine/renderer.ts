@@ -1,4 +1,4 @@
-import { Container, DisplayObject, Loader, Application, utils, Texture, Sprite, TextureLoader } from "pixi.js";
+import { autoDetectRenderer, Renderer, Container, DisplayObject, Loader, utils } from "pixi.js";
 import { PartQuery } from "shared/core/partquery";
 import { GraphicsPart } from "./parts";
 
@@ -17,12 +17,12 @@ const MAX_RATIO = 21/9;
 //https://pixijs.download/dev/docs/PIXI.utils.html#.isMobile
 const isMobile = utils.isMobile.any;
 
-export class Renderer {
-    public pixiapp: Application;
+export class RendererSystem {
+    public renderer: Renderer;
 
-
-    public guiContainer: Container = new Container();
-    public mainContainer: Container = new Container();
+    public stage = new Container();
+    public guiContainer = new Container();
+    public mainContainer = new Container();
     
     public targetWindow: Window;
     public targetDiv: HTMLElement;
@@ -38,55 +38,48 @@ export class Renderer {
         
         // These numbers mean nothing --> the second the screen is resized in the fitToScreen call
         // these are overridden
-        let width = targetWindow.innerWidth;
-        let height = targetWindow.innerHeight;
+        const width = targetWindow.innerWidth;
+        const height = targetWindow.innerHeight;
 
-        const bgColor: string = "#bfbdae";
-
-        this.pixiapp = new Application({
+        this.renderer = autoDetectRenderer({
             width: width, 
             height: height, 
-            backgroundColor : utils.string2hex(bgColor),
-            //autoDensity:true, --> pixi docs are pretty bad --> i have no idea what this does
+            //autoDensity:true, --> i have no idea what this does
             //maybe something to do with mac (retina) display have 2x pixel resolution
-            autoStart: false
         });
 
-        //document.body.style.backgroundColor = bgColor;
-        this.fitToScreen()
-    
         targetDiv.style.transformOrigin = "0 0";
         targetDiv.style.margin = 0 + "px";
         targetDiv.style.padding = 0 + "px";
 
-        targetDiv.appendChild(this.pixiapp.view);
+        this.fitToScreen()
 
+        targetDiv.appendChild(this.renderer.view);
 
         this.targetWindow.onresize = (e) => this.fitToScreen();
         
-
-        this.setCursorSprite("images/flower.png")
-            
 
         this.mainContainer.zIndex = 0;
         this.mainContainer.sortableChildren = true;
 
         this.guiContainer.zIndex = 100
 
-        this.pixiapp.stage.addChild(this.mainContainer);
-        this.pixiapp.stage.addChild(this.guiContainer);
+        this.stage.addChild(this.mainContainer);
+        this.stage.addChild(this.guiContainer);
+
+        this.setCursorSprite("images/flower.png")
     }
 
     setCursorSprite(path: string){
         // format: 
         // "url('images/flower.png'),auto";
         const css = `url('${path}'),auto`
-        this.pixiapp.renderer.plugins.interaction.cursorStyles.default = css;
+        this.renderer.plugins.interaction.cursorStyles.default = css;
     }
 
     update(delta_s: number){
         // Draws the stage to the screen!
-        this.pixiapp.renderer.render(this.pixiapp.stage)
+        this.renderer.render(this.stage)
     }
 
     addGUI<T extends DisplayObject>(sprite: T){
@@ -149,12 +142,12 @@ export class Renderer {
         const new_surface_width = aspect_ratio * DEFAULT_RESOLUTION_HEIGHT;
         const new_surface_height = DEFAULT_RESOLUTION_HEIGHT;
 
-        this.pixiapp.renderer.resize(new_surface_width, new_surface_height);
+        this.renderer.resize(new_surface_width, new_surface_height);
         
         // console.log(ideal_width,ideal_height)
 
-        this.pixiapp.renderer.view.style.width = ideal_width  + 'px';
-        this.pixiapp.renderer.view.style.height = ideal_height  + 'px';
+        this.renderer.view.style.width = ideal_width  + 'px';
+        this.renderer.view.style.height = ideal_height  + 'px';
     }
      
     getTexture(_name: string){
@@ -163,15 +156,15 @@ export class Renderer {
     }
     
     getPercentWidth(percent: number){
-        return percent * this.pixiapp.renderer.view.width
+        return percent * this.renderer.view.width
     }
     
     getPercentHeight(percent: number){
-        return percent * this.pixiapp.renderer.view.height
+        return percent * this.renderer.view.height
     }
 
     get mouse(){
-        return this.pixiapp.renderer.plugins.interaction.mouse.global
+        return this.renderer.plugins.interaction.mouse.global
     }
 }
 

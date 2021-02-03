@@ -1,7 +1,7 @@
 
 import { EngineMouse, InternalMouse } from "../input/mouse";
 import { GUI } from "dat.gui";
-import { Renderer } from "./renderer";
+import { RendererSystem } from "./renderer";
 import { CameraSystem } from "./camera";
 import { EventEmitter } from "eventemitter3"
 import TypedEmitter from "typed-emitter"
@@ -53,7 +53,7 @@ export interface EngineSettings {
 
 class BearEngine {
 
-    public renderer: Renderer;
+    public renderer: RendererSystem;
 
     public camera: CameraSystem;
 
@@ -92,7 +92,7 @@ class BearEngine {
 
             const div = document.querySelector("#display") as HTMLElement;
             
-            this.renderer = new Renderer(div, window);
+            this.renderer = new RendererSystem(div, window);
             this.camera = new CameraSystem(this.renderer,this.renderer.mainContainer, window, this.mouse, this.keyboard);
             /////////// Stops right click CONTEXT MENU from showing
             div.addEventListener('contextmenu', function(ev) {
@@ -111,7 +111,7 @@ class BearEngine {
                 const displayDiv = new_window.document.createElement("div")
                 new_window.document.body.appendChild(displayDiv);
 
-                this.renderer = new Renderer(displayDiv, new_window);
+                this.renderer = new RendererSystem(displayDiv, new_window);
                 this.camera = new CameraSystem(this.renderer,this.renderer.mainContainer, new_window, this.mouse, this.keyboard);
             });
         }
@@ -155,7 +155,7 @@ class BearEngine {
 		this.current_level = new LevelHandler(level_struct);
         this.current_level.load();
 
-        this.renderer.pixiapp.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundColor);
+        this.renderer.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundColor);
 
         // Global Data
         AbstractEntity.GLOBAL_DATA_STRUCT = {
@@ -186,7 +186,7 @@ class BearEngine {
         // Setting mouse world position, requires the renderer to map the point
 
         const canvasPoint = new Point();
-        this.renderer.pixiapp.renderer.plugins.interaction.mapPositionToPoint(canvasPoint,this.mouse.screenPosition.x,this.mouse.screenPosition.y);
+        this.renderer.renderer.plugins.interaction.mapPositionToPoint(canvasPoint,this.mouse.screenPosition.x,this.mouse.screenPosition.y);
         /// @ts-expect-error
         this.renderer.mainContainer.toLocal(canvasPoint,undefined,this.mouse.position);
 

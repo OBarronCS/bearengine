@@ -2,27 +2,27 @@ import { Container, Point } from "pixi.js";
 import { Coordinate, mix, Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
 
-import { Renderer } from "./renderer";
+import { RendererSystem } from "./renderer";
 import { EngineKeyboard } from "../input/keyboard";
 import { EngineMouse } from "../input/mouse";
 import { lerp } from "shared/miscmath";
 
 export class CameraSystem {
     
-    public renderer: Renderer;
+    public renderer: RendererSystem;
     public container: Container;
 
     public targetMiddle: Vec2;
     public mode: "free" | "follow" = "free"
 
-    constructor(renderer: Renderer, container: Container, targetWindow: Window, mouse: EngineMouse,keyboard: EngineKeyboard) {
+    constructor(renderer: RendererSystem, container: Container, targetWindow: Window, mouse: EngineMouse,keyboard: EngineKeyboard) {
 
         this.renderer = renderer;
         this.container = container;
 
         // pivot should be at center of screen at all times. Allows rotation around the middle
-        container.position.x = renderer.pixiapp.renderer.width / 2;
-        container.position.y = renderer.pixiapp.renderer.height / 2;
+        container.position.x = renderer.renderer.width / 2;
+        container.position.y = renderer.renderer.height / 2;
 
 
         keyboard.bind("space", () => {
@@ -36,7 +36,7 @@ export class CameraSystem {
         let startPoint: Coordinate;
         targetWindow.addEventListener("mousemove",event => {
             const point = new Point(0,0);
-            renderer.pixiapp.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y)
+            renderer.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y)
 
             if(!mouse.isDown("middle")){
                 if(!mouse.isDown("left")) return
@@ -57,7 +57,7 @@ export class CameraSystem {
         // ZOOM
         targetWindow.addEventListener("wheel", (event) => {
             const point = new Point(0,0);
-            renderer.pixiapp.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y)
+            renderer.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y)
             const con = this.container;
 
             // makes it so the mousepoint stays the same after and before zoom
