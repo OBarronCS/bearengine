@@ -36,7 +36,7 @@ LockKeys([
         // });
 
 // Testing drag and drop!
-const element = game.renderer.pixiapp.renderer.view
+const element = game.renderer.renderer.view
 
 initDropTarget(element)
 
@@ -70,7 +70,7 @@ function initDropTarget(id:string|HTMLElement){
                     // --> mapPositionToPoint --> maps CSS point to PIXI Canvas point
                     // then i need to convert that to the container point so things get dropped on the mouse
                     const point = new Point(0,0);
-                    game.renderer.pixiapp.renderer.plugins.interaction.mapPositionToPoint(point, e.x, e.y)
+                    game.renderer.renderer.plugins.interaction.mapPositionToPoint(point, e.x, e.y)
 
                     spr.position = game.renderer.mainContainer.toLocal(point);
                     spr.position.x += num * 500;
@@ -96,7 +96,7 @@ function initDropTarget(id:string|HTMLElement){
                     game.renderer.addSprite(spr);
 
                     const point = new Point(0,0);
-                    game.renderer.pixiapp.renderer.plugins.interaction.mapPositionToPoint(point, e.x, e.y)
+                    game.renderer.renderer.plugins.interaction.mapPositionToPoint(point, e.x, e.y)
 
                     spr.position = game.renderer.mainContainer.toLocal(point);
                     spr.position.x += num * 500;
