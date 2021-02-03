@@ -1,15 +1,19 @@
 import { Container, Point } from "pixi.js";
-import { Coordinate } from "shared/shapes/vec2";
+import { Coordinate, mix, Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
 
 import { Renderer } from "./renderer";
 import { EngineKeyboard } from "../input/keyboard";
 import { EngineMouse } from "../input/mouse";
+import { lerp } from "shared/miscmath";
 
 export class CameraSystem {
     
     public renderer: Renderer;
     public container: Container;
+
+    public targetMiddle: Vec2;
+    public mode: "free" | "follow" = "free"
 
     constructor(renderer: Renderer, container: Container, targetWindow: Window, mouse: EngineMouse,keyboard: EngineKeyboard) {
 
@@ -17,19 +21,16 @@ export class CameraSystem {
         this.container = container;
 
         // pivot should be at center of screen at all times. Allows rotation around the middle
-        // set it to half the renderer width
         container.position.x = renderer.pixiapp.renderer.width / 2;
         container.position.y = renderer.pixiapp.renderer.height / 2;
 
 
-
         keyboard.bind("space", () => {
             this.center = {x: 500, y:500}
-            this.renderer.mainContainer.scale.x = .4;
-            this.renderer.mainContainer.scale.y = .4;
+            this.renderer.mainContainer.scale.x = 1;
+            this.renderer.mainContainer.scale.y = 1;
         });
 
-        
         // Dragging the layer around
         let startMouse: Coordinate;
         let startPoint: Coordinate;
@@ -93,13 +94,21 @@ export class CameraSystem {
     set bot(y: number) { this.container.pivot.y = y - (this.container.position.y / this.container.scale.y); }
     get bot(): number { return this.container.pivot.y + (this.container.position.y / this.container.scale.y); }
 
-
     // Takes into account zoom. How many pixels are being rendered
     get viewWidth(){ return 2 * this.container.position.x / this.container.scale.x; }
     get viewHeight(){ return 2 * this.container.position.y / this.container.scale.y; }
 
 
-    // checks whether a point is in the view
+    follow(vec: Vec2){
+        this.targetMiddle = vec;
+        this.mode = "follow";
+    }
+
+    update(){
+        if(this.mode === "follow") this.center = mix(this.center, this.targetMiddle, .40);
+    }
+    
+
     inView(point: Coordinate){
         return point.x >= this.left && point.x <= this.right && point.y >= this.top && point.y <= this.bot;
     }

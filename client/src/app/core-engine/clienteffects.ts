@@ -20,7 +20,7 @@ class Bullet extends SpriteEntity {
 export class DefaultBulletEffect extends Effect {
     public position: Vec2;
     public velocity: Vec2;
-    public bullet: Entity;
+    public bullet: Bullet;
 
     constructor(posVec: Vec2, velocityVec: Vec2, shotInfo: ShotInfo){
         super();

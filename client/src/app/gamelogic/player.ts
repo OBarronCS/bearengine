@@ -14,12 +14,10 @@ import { DefaultGun } from "../core-engine/weapons/weapon";
 
 import { DrawableEntity, Entity } from "../core-engine/entity";
 
-
 enum PlayerStates {
     Ground,
     Air
 }
-
 
 export type PlayerActions = "left" | "right" | "jump";
 
@@ -67,7 +65,7 @@ export class Player extends DrawableEntity {
         super();
         this.position.set({x : 500, y: 100})
 
-        this.spritePart = new SpritePart("images/flower.png")
+        this.spritePart = new SpritePart("images/vector.jpg")
         this.spritePart.originPercent = {x:.5 ,y:.5};
         this.addPart(this.spritePart);
         
@@ -99,10 +97,10 @@ export class Player extends DrawableEntity {
             addontype: AddOnType.SPECIAL,
             modifyShot : function(shotInfo, effect){
                 effect.onInterval(2, function(this: DefaultBulletEffect, times){
-                    this.velocity.drotate(random_range(-22,22))
+                    this.velocity.drotate(random_range(-6,6))
                 })
                 effect.onInterval(4, function(this: DefaultBulletEffect,lap){
-                    this.velocity.extend(10 + random(10));
+                    // this.velocity.extend(10 + random(10));
                 })
                 
                 effect.destroyAfter(10000);
@@ -128,7 +126,6 @@ export class Player extends DrawableEntity {
     // }
 
     update(dt: number): void {
-        this.redraw()
         this.gun.setLocation(this.position, (new Vec2(0,0).set(this.Mouse.position).sub(this.position)));
         this.gun.operate(this.Mouse.isDown("left"));
 
@@ -190,11 +187,12 @@ export class Player extends DrawableEntity {
         //         x = wall_test.point.x - (3 + sprite_width / 2)
         //     }
         // }
+        this.redraw();
     }
 
     getFeetCollisionPoint():{
-        point: Vec2
-        normal: Vec2
+        point: Vec2,
+        normal: Vec2,
         collision: boolean
     } {
         const height =  this.test_height;
@@ -204,7 +202,7 @@ export class Player extends DrawableEntity {
         this.downRayTop.set(this.position);
         rotatePoint(this.downRayTop,this.position,this.slope_normal)
         
-        this.downRayBot.set({ x: this.position.x, y : this.feetRayDY + this.position.y + this.test_height / 2});
+        this.downRayBot.set({ x: this.position.x, y: this.feetRayDY + this.position.y + this.test_height / 2});
         rotatePoint(this.downRayBot,this.position,this.slope_normal)
         
         const rightRay = this.Terrain.lineCollision(this.downRayTop, this.downRayBot);
@@ -344,7 +342,6 @@ export class Player extends DrawableEntity {
 
 
     draw(g: Graphics) {
-        g.clear();
         drawPoint(g,this.position);
     }
 }

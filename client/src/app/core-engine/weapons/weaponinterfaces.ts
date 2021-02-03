@@ -39,8 +39,21 @@ export interface GunCreationDefinition {
     shotInfo: ShotInfo
 }
 
+// This is an actual object that holds info for a weapon, above is the definition to create 
+export interface GunInfo {
+	name : string;
+	crosshair : string; // a sprite or something to reference a sprite
+	sprite : string;
 
-// Default
+	// I need to create extra types for these --> CreateGunShootController type 
+	defaultTrigger : GunshootController;
+	defaultClip : Clip;
+
+	// All stuff related to a single SHOT is in here!
+	shotInfo : ShotInfo;
+}
+
+
 const emptyGunInfo: GunInfo = {
     name : "name",
 	crosshair : "",
@@ -76,21 +89,6 @@ export function CreateGunInfoStruct(json_struct: GunCreationDefinition){
     gunInfo.shotInfo = json_struct.shotInfo;
 
 	return gunInfo;
-}
-
-
-// Defining features of a gun 
-export interface GunInfo {
-	name : string;
-	crosshair : string; // a sprite or something to reference a sprite
-	sprite : string;
-
-	// I need to create extra types for these --> CreateGunShootController type 
-	defaultTrigger : GunshootController;
-	defaultClip : Clip;
-
-	// All stuff related to a single SHOT is in here!
-	shotInfo : ShotInfo;
 }
 
 

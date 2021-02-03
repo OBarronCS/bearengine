@@ -1,4 +1,4 @@
-import { Vec2 } from "../../../../shared/shapes/vec2";
+import { Vec2 } from "shared/shapes/vec2";
 import { sign } from "shared/miscmath";
 
 export type MouseButton = "left" | "middle" | "right" 
@@ -73,7 +73,7 @@ export class InternalMouse implements EngineMouse {
                 element(this.position, this.screenPosition);
             });
 
-            // this is only called onces unlike key presses
+            // this is only called once unlike key presses
             this.down[index] = true;
         })
 

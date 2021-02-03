@@ -17,6 +17,7 @@ export class DefaultGun extends Entity implements Gun {
 	draw(g: Graphics): void {}
 	update(dt: number): void {}
 
+	// The backing information of this entity
 	gunInfo = CreateGunInfoStruct({
 	    name : "Default",
 	    crosshair : "",
@@ -46,23 +47,21 @@ export class DefaultGun extends Entity implements Gun {
 			sprite:""
 		}
 	});
-	
+
 	trigger = this.gunInfo.defaultTrigger;
 	clip = this.gunInfo.defaultClip;
 	
-	// Upon the trigger returning true and shooting, a data struct is sent through the clip and all add-ons
+	// Upon the trigger returning true and shooting, struct is sent through the clip and all add-ons
 	addons: GunAddon[] = [];
 	
-	position = new Vec2(0,0)
 	dir = new Vec2(1,0)
-
 
 	setLocation(_position:Vec2, _dir:Vec2): void{
 		this.position.set(_position);
 		this.dir.set(_dir);
 	}
 
-	operate(holding: boolean): void{
+	operate(holding: boolean): void {
 		if(this.trigger.holdTrigger(holding)){
 			const bulletAmount = this.clip.getBullets();
 			if(bulletAmount > 0){

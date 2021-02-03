@@ -1,12 +1,6 @@
 
 
 
-
-
-export const log = (a: any) => console.log(a);
-
-
-
 // runs a function a couple times and checks how long on average each iteration takes
 
 export function benchmarch(func: () => void, iterations: number) {

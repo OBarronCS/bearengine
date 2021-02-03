@@ -80,18 +80,9 @@ class BearEngine {
     constructor(settings: EngineSettings){        
         this.network = new BufferedNetwork("ws://127.0.0.1:8080", this);
         this.network.connect();
-
-        // E.Keyboard.bind("p",() => {
-        //     StartFullscreen(document,game.renderer.pixiapp.renderer.view);
-
-        //     //LockMouse(document,game.renderer.pixiapp.renderer.view);
-        // });
-
-        // E.Keyboard.bind("r",() => {
-        //     game.restartCurrentLevel();
-        //     //LockMouse(document,game.renderer.pixiapp.renderer.view);
-        // });
         this.interpolator = this.registerSystem(new NetworkObjectInterpolator(this.network));
+
+        
 
         this.mouse = new InternalMouse();
 
@@ -100,7 +91,9 @@ class BearEngine {
             this.mouse.addWindowListeners(window);
 
             const div = document.querySelector("#display") as HTMLElement;
-
+            
+            this.renderer = new Renderer(div, window);
+            this.camera = new CameraSystem(this.renderer,this.renderer.mainContainer, window, this.mouse, this.keyboard);
             /////////// Stops right click CONTEXT MENU from showing
             div.addEventListener('contextmenu', function(ev) {
                 ev.preventDefault();
@@ -108,10 +101,8 @@ class BearEngine {
             }, false);
             ////////////
 
-            this.renderer = new Renderer(div, window);
             this.partQueries.push(this.renderer.partQuery);
-
-            this.camera = new CameraSystem(this.renderer,this.renderer.mainContainer, window, this.mouse, this.keyboard);
+            
         } else { // creates a pop up display
             CreateWindow("Game", {width:400, height:300,center:true}).then(new_window => {
                 this.keyboard = new EngineKeyboard(new_window);
@@ -121,8 +112,7 @@ class BearEngine {
                 new_window.document.body.appendChild(displayDiv);
 
                 this.renderer = new Renderer(displayDiv, new_window);
-                this.camera = new CameraSystem(this.renderer,this.renderer.mainContainer, new_window, this.mouse, this.keyboard)
-                
+                this.camera = new CameraSystem(this.renderer,this.renderer.mainContainer, new_window, this.mouse, this.keyboard);
             });
         }
 
@@ -130,14 +120,36 @@ class BearEngine {
     
         this.mouse_info.x = 5;
         this.mouse_info.y = this.renderer.getPercentHeight(1) - 50;
-        gui_layer.addChild(this.mouse_info)
+        gui_layer.addChild(this.mouse_info);
+    }
+
+    // Creates the WebGL view using PIXI.js, so the game can be rendered
+    // Connects keyboard and mouse listeners
+    startRenderer(settings: EngineSettings){
+        
+    }
+
+    // Loads all assets from server
+    async loadAssets(): Promise<typeof SHARED_RESOURCES>{
+        return new Promise( (resolve) => {
+
+            SHARED_LOADER.add(ALL_TEXTURES);
+    
+            SHARED_LOADER.load(() => {
+                console.log('PIXI.Loader.shared.resources :>> ', SHARED_RESOURCES);
+                resolve(SHARED_RESOURCES);
+            });
+        });
+    }
+
+    start(){
+        (this.loop.bind(this))()
     }
 
     registerSystem<T extends Subsystem>(system: T) {
         this.partQueries.push(...system.queries);
         return system;
     }
-
 
 	startLevel(level_struct: CustomMapFormat){
 		this.current_level = new LevelHandler(level_struct);
@@ -165,31 +177,8 @@ class BearEngine {
 
         loadTestLevel.call(this);
         this.addEntity(this.player = new Player())
+        // this.camera.follow(this.player.position)
     }
-
-
-    start(){
-        (this.loop.bind(this))()
-    }
-
-    // // Creates the WebGL view using PIXI.js, so the game can be rendered
-    // async startRenderer(settings: EngineSettings){
-        
-    // }
-
-    // Loads all assets from server
-    async loadAssets(): Promise<typeof SHARED_RESOURCES>{
-        return new Promise( (resolve) => {
-
-            SHARED_LOADER.add(ALL_TEXTURES);
-    
-            SHARED_LOADER.load(() => {
-                console.log('PIXI.Loader.shared.resources :>> ', SHARED_RESOURCES);
-                resolve(SHARED_RESOURCES);
-            });
-        });
-    }
-
 
     loop(timestamp: number = performance.now()){
         accumulated += timestamp - lastFrameTimeMs;
@@ -253,6 +242,7 @@ class BearEngine {
 
         //simulation time
         // console.log(performance.now() - timestamp)
+        this.camera.update();
         this.renderer.update((timestamp - lastFrameTimeMs) / 1000);
         
         

@@ -3,8 +3,8 @@ import { DefaultBulletEffect } from "../clienteffects";
 import { ShotInfo } from "./weaponinterfaces";
 
 export interface GunAddon {
-	modifyShot : (struct: ShotInfo, effect: DefaultBulletEffect) => void,
-	addontype : AddOnType;
+	modifyShot: (struct: ShotInfo, effect: DefaultBulletEffect) => void,
+	addontype: AddOnType;
 }
 
 export enum AddOnType {
@@ -38,10 +38,5 @@ export class Clip implements GunAddon {
 	
 	reload(){}
 }
-
-
-
-
-
 
 

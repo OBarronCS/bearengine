@@ -1,11 +1,10 @@
-import { Container, DisplayObject, Loader, Application, utils } from "pixi.js";
+import { Container, DisplayObject, Loader, Application, utils, Texture, Sprite, TextureLoader } from "pixi.js";
 import { PartQuery } from "shared/core/partquery";
 import { GraphicsPart } from "./parts";
 
 
 const SHARED_RESOURCES = Loader.shared.resources;
 const SHARED_LOADER = Loader.shared;
-
 
 
 // arbitrary, but make it high enough so it looks good --> this is the base render texture height!
@@ -66,6 +65,9 @@ export class Renderer {
         this.targetWindow.onresize = (e) => this.fitToScreen();
         
 
+        this.setCursorSprite("images/flower.png")
+            
+
         this.mainContainer.zIndex = 0;
         this.mainContainer.sortableChildren = true;
 
@@ -73,6 +75,13 @@ export class Renderer {
 
         this.pixiapp.stage.addChild(this.mainContainer);
         this.pixiapp.stage.addChild(this.guiContainer);
+    }
+
+    setCursorSprite(path: string){
+        // format: 
+        // "url('images/flower.png'),auto";
+        const css = `url('${path}'),auto`
+        this.pixiapp.renderer.plugins.interaction.cursorStyles.default = css;
     }
 
     update(delta_s: number){
