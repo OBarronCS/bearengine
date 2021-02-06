@@ -1,47 +1,21 @@
 import { DEG_TO_RAD, Graphics, Sprite } from "pixi.js";
 import { abs, angleDifference, min, sign } from "shared/miscmath"
-import { Dimension, Rect } from "shared/shapes/rectangle";
 import { angleBetween, Coordinate } from "shared/shapes/vec2";
 import { Part } from "shared/core/abstractpart"
-import { Entity } from "./entity";
-
-
-
-// If these get too annoying to write, just change the system
-// so there is a pre update and post update (optional?) method on entities
-
-// None in use right now
-export class ScriptPart extends Part {
-    private script: (dt: number) => void;
-
-    constructor(onUpdate: (dt: number) => void){
-        super();
-        this.script = onUpdate;
-    }
-
-    onAdd(): void { }
-    onRemove(): void { }
-    update(dt: number): void {
-        this.script(dt);
-    }
-}
 
 
 export class GraphicsPart extends Part {
     readonly graphics: Graphics = new Graphics();
-
-    onAdd(): void {}
-    onRemove(): void {}
-    update(dt: number): void {}
 }
 
 export class SpritePart extends Part {
-
-    sprite: Sprite;
+    public file_path: string;
+    public sprite: Sprite;
 
     constructor(spr_source: string){
         super();
-        this.sprite = new Sprite(Entity.BEAR_ENGINE.renderer.getTexture(spr_source));
+        this.file_path = spr_source;
+        this.sprite = new Sprite();
     }
 
     /** Sets point on the sprite that sits on position vector */
@@ -92,24 +66,6 @@ export class SpritePart extends Part {
     /** DEGREES */
     dangleTowards(angle: number, speed: number){
         this.angleTowards(angle * DEG_TO_RAD, speed);
-    }
-
-    onAdd(): void {
-        Entity.BEAR_ENGINE.renderer.addSprite(this.sprite);
-    }
-
-    onRemove(): void {
-        Entity.BEAR_ENGINE.renderer.removeSprite(this.sprite);
-
-        this.sprite.destroy({
-            children: true,
-            baseTexture: false,
-            texture: false
-        });
-    }
-
-    update(dt: number): void {
-        this.sprite.position.copyFrom(this.owner.position);
     }
 }
 

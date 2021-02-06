@@ -44,6 +44,7 @@ class ServerBearEngine {
 		this.current_level = new LevelHandler(level_struct);
         this.current_level.load();
 
+        //@ts-expect-error
         AbstractEntity.GLOBAL_DATA_STRUCT = {
             Scene: this,
             Level: this.current_level,
@@ -80,7 +81,6 @@ class ServerBearEngine {
                 const entity = this.updateList[i];
                 entity.update(dt);
                 entity.postUpdate();
-                entity.updateParts(dt);
             }
         
             // Write all PacketData to a buffer
@@ -119,7 +119,6 @@ class ServerBearEngine {
         const index = this.updateList.indexOf(e);
         if(index !== -1){
             this.updateList.splice(index,1);
-            e.parts.forEach(part => part.onRemove());
         }
     }
 

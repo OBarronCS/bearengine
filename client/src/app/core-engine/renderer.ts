@@ -1,6 +1,6 @@
 import { autoDetectRenderer, Renderer, Container, DisplayObject, Loader, utils } from "pixi.js";
 import { PartQuery } from "shared/core/partquery";
-import { GraphicsPart } from "./parts";
+import { GraphicsPart, SpritePart } from "./parts";
 
 
 const SHARED_RESOURCES = Loader.shared.resources;
@@ -27,9 +27,24 @@ export class RendererSystem {
     public targetWindow: Window;
     public targetDiv: HTMLElement;
 
-    public partQuery = new PartQuery(GraphicsPart,
+    public graphicsQuery = new PartQuery(GraphicsPart,
             g => this.addSprite(g.graphics),
             g => this.removeSprite(g.graphics))
+
+    public spriteQuery = new PartQuery(SpritePart,
+        s => {
+            s.sprite.texture = this.getTexture(s.file_path);
+            this.addSprite(s.sprite)
+        },
+        s => { 
+            this.removeSprite(s.sprite);
+        
+            s.sprite.destroy({
+                children: true,
+                baseTexture: false,
+                texture: false
+        });
+    })
 
     constructor(targetDiv: HTMLElement, targetWindow: Window){
         this.targetWindow = targetWindow;
@@ -77,8 +92,12 @@ export class RendererSystem {
         this.renderer.plugins.interaction.cursorStyles.default = css;
     }
 
-    update(delta_s: number){
+    render(delta_s: number){
         // Draws the stage to the screen!
+
+        for(const sprite of this.spriteQuery){
+            sprite.sprite.position.copyFrom(sprite.owner.position);
+        }
         this.renderer.render(this.stage)
     }
 

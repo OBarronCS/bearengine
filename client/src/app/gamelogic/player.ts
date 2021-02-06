@@ -3,7 +3,6 @@ import { Vec2, rotatePoint, angleBetween } from "shared/shapes/vec2";
 import { random_range, random } from "shared/randomhelpers";
 import { dimensions } from "shared/shapes/rectangle";
 import { drawPoint } from "shared/shapes/shapedrawing";
-import { ColliderPart } from "shared/core/sharedparts"
 import { clamp, PI } from "shared/miscmath";
 
 
@@ -13,6 +12,7 @@ import { AddOnType } from "../core-engine/weapons/addon";
 import { SimpleGun } from "../core-engine/weapons/weapon";
 
 import { DrawableEntity } from "../core-engine/entity";
+import { ColliderPart } from "shared/core/abstractpart";
 
 enum PlayerStates {
     Ground,
@@ -355,6 +355,7 @@ export class Player extends DrawableEntity {
 
 
     draw(g: Graphics) {
+        g.drawCircle(this.x, this.y, 312)
         drawPoint(g,this.position);
     }
 }

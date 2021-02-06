@@ -15,7 +15,7 @@ import { Rect } from "shared/shapes/rectangle";
 import { SpatialGrid } from "shared/datastructures/spatialgrid";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { PartQuery } from "shared/core/partquery";
-import { ColliderPart } from "shared/core/sharedparts"
+import { ColliderPart } from "./abstractpart";
 
 
 export class CollisionManager {
@@ -36,6 +36,10 @@ export class CollisionManager {
     }
 
     update(dt: number): void {
+        for(const collider of this.colliders){
+            collider.setPosition(collider.owner.position)
+        }
+
         this.grid.clear();
         for (let i = 0; i < this.colliders.length; i++) {
             this.grid.insert(this.colliders[i]);

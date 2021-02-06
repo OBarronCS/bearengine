@@ -25,7 +25,6 @@ export class SimpleNetworkedSprite extends RemoteEntity {
         this.addPart(this.image);
     }
 
-    draw(g: Graphics): void {}
     update(dt: number): void {}
 }
 
@@ -46,10 +45,5 @@ export class RemoteLocations extends Part {
 
         mix(first, second, frame % 1,this.owner.position)
     }
-
-
-    onAdd(): void {}
-    onRemove(): void {}
-    update(dt: number): void {}
 }
 

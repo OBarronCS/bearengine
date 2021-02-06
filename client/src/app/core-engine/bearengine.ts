@@ -16,14 +16,12 @@ import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { LevelHandler } from "shared/core/level";
 import { PartQuery } from "shared/core/partquery";
 import { Text, Graphics, Loader, TextStyle, utils, Point } from "pixi.js";
-import { NetworkedEntityManager } from "./networking/gamemessagemanager";
 import { NetworkObjectInterpolator } from "./networking/objectinterpolator";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { Subsystem } from "shared/core/subsystem";
 import { round } from "shared/miscmath";
-
 
 
 const SHARED_RESOURCES = Loader.shared.resources;
@@ -71,6 +69,7 @@ class BearEngine {
     private updateList: AbstractEntity[] = [];
     private partQueries: PartQuery<any>[] = [];
 
+
     private network: BufferedNetwork;
     private interpolator: NetworkObjectInterpolator;
 
@@ -94,6 +93,7 @@ class BearEngine {
             
             this.renderer = new RendererSystem(div, window);
             this.camera = new CameraSystem(this.renderer,this.renderer.mainContainer, window, this.mouse, this.keyboard);
+            
             /////////// Stops right click CONTEXT MENU from showing
             div.addEventListener('contextmenu', function(ev) {
                 ev.preventDefault();
@@ -101,7 +101,8 @@ class BearEngine {
             }, false);
             ////////////
 
-            this.partQueries.push(this.renderer.partQuery);
+            this.partQueries.push(this.renderer.graphicsQuery);
+            this.partQueries.push(this.renderer.spriteQuery);
             
         } else { // creates a pop up display
             CreateWindow("Game", {width:400, height:300,center:true}).then(new_window => {
@@ -158,6 +159,7 @@ class BearEngine {
         this.renderer.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundColor);
 
         // Global Data
+        // @ts-expect-error
         AbstractEntity.GLOBAL_DATA_STRUCT = {
             Level:this.current_level,
             Collision:this.current_level.collisionManager,
@@ -182,7 +184,7 @@ class BearEngine {
 
     loop(timestamp: number = performance.now()){
         accumulated += timestamp - lastFrameTimeMs;
-
+        lastFrameTimeMs = timestamp;
         // Setting mouse world position, requires the renderer to map the point
 
         const canvasPoint = new Point();
@@ -193,7 +195,7 @@ class BearEngine {
         this.mouse_info.text = `${ round(this.mouse.position.x, 1)},${round( this.mouse.position.y, 1)}`
 
 
-        lastFrameTimeMs = timestamp;
+        
         // if we are more than a second behind, probably lost focus on page (rAF doesn't get called if the tab is not in focus)
         if(accumulated > 1000){
             accumulated = 0;
@@ -202,9 +204,6 @@ class BearEngine {
         this.keyboard.update();
         this.mouse.update();
 
-
-        // Checks buffer
-        //const stream = this.network.tick();
 
         this.interpolator.update();
 
@@ -220,7 +219,6 @@ class BearEngine {
                 const entity = this.updateList[i];
                 entity.update(dt);
                 entity.postUpdate();
-                entity.updateParts(dt);
             }
 
             this.totalTime += dt;
@@ -243,7 +241,7 @@ class BearEngine {
         //simulation time
         //console.log(performance.now() - timestamp)
         this.camera.update();
-        this.renderer.update((timestamp - lastFrameTimeMs) / 1000);
+        this.renderer.render((timestamp - lastFrameTimeMs) / 1000);
         
 
         requestAnimationFrame(t => this.loop(t))
@@ -254,7 +252,6 @@ class BearEngine {
         if(index !== -1){
             e.onDestroy();
             this.updateList.splice(index,1);
-            e.parts.forEach(part => part.onRemove());
 
             this.partQueries.forEach(q => {
                 q.deleteEntity(e)
@@ -265,8 +262,6 @@ class BearEngine {
     addEntity<T extends AbstractEntity>(e: T): T {
         this.updateList.push(e);
         e.onAdd();
-
-        e.parts.forEach(p => p.onAdd())
 
         this.partQueries.forEach(q => {
             q.addEntity(e)
@@ -286,7 +281,6 @@ class BearEngine {
 
         this.updateList.forEach( e => {
             e.onDestroy();
-            e.parts.forEach(part => part.onRemove());
 
             this.partQueries.forEach(q => {
                 q.deleteEntity(e)
