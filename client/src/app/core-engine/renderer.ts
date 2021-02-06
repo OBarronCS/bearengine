@@ -67,7 +67,7 @@ export class RendererSystem {
         this.stage.addChild(this.mainContainer);
         this.stage.addChild(this.guiContainer);
 
-        this.setCursorSprite("images/flower.png")
+        //this.setCursorSprite("images/flower.png")
     }
 
     setCursorSprite(path: string){

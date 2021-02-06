@@ -15,7 +15,10 @@ export class SimpleGun extends SpriteEntity implements Gun {
 	draw(g: Graphics): void {}
 	update(dt: number): void {}
 
-	constructor(){ super(Vec2.ZERO,"images/weapon1.png") }
+	constructor(){ 
+		super(Vec2.ZERO,"images/weapon1.png") 
+		this.image.originPercent = {x:.5, y:.5}
+	}
 
 	gunInfo = CreateGunInfoStruct({
 	    name : "Default",

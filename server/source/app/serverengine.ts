@@ -37,7 +37,6 @@ class ServerBearEngine {
         this.network.start();
         this.previousTick = Date.now();
 
-
         this.loop();
     }
 
@@ -67,7 +66,6 @@ class ServerBearEngine {
 
         // If we have made it far enough to TICK THE GAME
         if (this.previousTick + (1000 / this.TICK_RATE) <= now) {
-            // console.log(now - this.previousTick);
             const dt = this.TICK_RATE;
              // this.current_level.collisionManager.update(dt);
 
@@ -76,7 +74,6 @@ class ServerBearEngine {
             //     this.addNetworkedEntity(new FirstNetworkedEntity());    
             // }
             
-            // Update stuff from network
             
 
             for (let i = 0; i < this.updateList.length; i++) {
@@ -99,15 +96,17 @@ class ServerBearEngine {
             this.network.sendGameData(stream.cutoff(), now);
 
 
-            console.log(this.network.tick,Date.now()  - this.previousTick)
+            console.log(this.network.tick,Date.now()  - this.previousTick);
+
             this.previousTick = now
         }
     
         // if we are more than 16 milliseconds away from the next tick
+        // This  avoids blocking like in a while loop. while keeping the timer somewhat accurate
         if(now - this.previousTick < (1000 / this.TICK_RATE) - 16) {
-            setTimeout(  this._boundLoop  ) // sloppy timer
+            setTimeout(this._boundLoop) // not accurate to the millisecond
         } else {
-            setImmediate( this._boundLoop  ) // ultra accurate method
+            setImmediate(this._boundLoop) // ultra accurate method
         }
     }
    

@@ -53,6 +53,7 @@ export class Tilemap {
         return !this.grid[ this.two2one(floor(x/this.tileWidth),floor(y/this.tileHeight)) ]
     }
 
+    /** Grid values, not pixels */
     cellIsSolid(x: number,y: number){
         return !this.grid[ this.two2one(x,y) ]
     }

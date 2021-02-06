@@ -4,7 +4,7 @@ import { random_range, random } from "shared/randomhelpers";
 import { dimensions } from "shared/shapes/rectangle";
 import { drawPoint } from "shared/shapes/shapedrawing";
 import { ColliderPart } from "shared/core/sharedparts"
-import { clamp } from "shared/miscmath";
+import { clamp, PI } from "shared/miscmath";
 
 
 import { DefaultBulletEffect } from "../core-engine/clienteffects";
@@ -125,8 +125,21 @@ export class Player extends DrawableEntity {
     // }
 
     update(dt: number): void {
-        this.gun.setLocation({x: this.x, y: this.y - 20}, (new Vec2(0,0).set(this.Mouse.position).sub(this.position)));
-        this.gun.image.angle = angleBetween(this.gun.position, this.Mouse.position)
+        
+        
+        this.gun.setLocation({x: this.x, y: this.y - 50}, (new Vec2(0,0).set(this.Mouse.position).sub(this.position)));
+
+        const difference = Vec2.subtract(this.Mouse.position, this.gun.position);
+        const angleToMouse = angleBetween(this.gun.position, this.Mouse.position)
+        
+        if(difference.x > 0){
+            this.gun.image["sprite"].scale.x = 1;
+            this.gun.image.angle = angleToMouse;
+        } else {
+            this.gun.image["sprite"].scale.x = -1;
+            this.gun.image.angle = angleToMouse + PI;
+        }
+
         this.gun.operate(this.Mouse.isDown("left"));
 
         const start_x = this.position.x;

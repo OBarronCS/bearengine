@@ -77,7 +77,7 @@ export class SpritePart extends Part {
     get dangle(){ return this.sprite.angle; }
 
 
-    /** Moves this image angle to look towards a point, relative to the position of the entitiy */
+    /** Rotates image to look towards a point, relative to the position of the entitiy */
     angleTowardsPoint(point: Coordinate, speed: number){
         this.angleTowards(angleBetween(this.owner.position,point),speed)
     }

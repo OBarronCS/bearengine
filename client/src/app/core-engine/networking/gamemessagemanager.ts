@@ -51,7 +51,7 @@ class SimplePositionPacketHandler implements PacketHandler {
     }
 
     read(frame: number, stream: BufferStreamReader): void {
-        // Find correct entity, gove
+        // Find correct entity
         const id = stream.getUint16();
        //  console.log("ID: " + id)
         let e = this.entities.get(id);

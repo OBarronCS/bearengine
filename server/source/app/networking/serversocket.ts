@@ -37,27 +37,28 @@ export class ServerNetwork {
         });
     }
 
-
-
     sendStartData(socket: WS){
+        socket.binaryType = "arraybuffer";
+        this.sockets.push(socket);
+        
         const p = new RemotePlayer()
         this.playerMap.set(socket,p);
 
+        socket.on("close", () => {
+
+        })
+
         this.engine.addNetworkedEntity(p);
 
-        // Sends to a particular connection, not entire socket. 
         console.log("New connection")
-        this.sockets.push(socket);
-    
-        socket.binaryType = "arraybuffer";
-
+        
         // INIT DATA. 
         const init_writer = new BufferStreamWriter(new ArrayBuffer(12))
         init_writer.setUint8(ClientBoundPacket.INIT);
 
         init_writer.setUint8(this.TICK_RATE)
         init_writer.setBigUint64(this.referenceTime);
-        init_writer.setInt16(this.referenceTick);
+        init_writer.setUint16(this.referenceTick);
         socket.send(init_writer.getBuffer());
     
 

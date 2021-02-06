@@ -72,15 +72,15 @@ export class BufferedNetwork extends Network {
     public REFERENCE_SERVER_TICK_ID: number = 0;
     public REFERENCE_SERVER_TICK_TIME: bigint = -1n;
 
-    /** milliseconds */
+    /** milliseconds, adjusted on ping packets */
     public CLOCK_DELTA = 0;
 
     // How much buffer caused by latency
     private latencyBuffer: number = -1;
     
     // Buffer by default
-    // MAYBE: Change this to big in terms of ms? Because if tick rate is slow (10fps) than this only really needs to be 1, because clumping is less of an issue
-    private additionalBuffer = 3;
+    // TODO: Change this to big in terms of ms? Because if tick rate is slow (10fps) than this only really needs to be 1, because clumping is less of an issue
+    private additionalBuffer = 2;
 
     // Generous, default ping
     // TODO: set it to -1 and don't start ticking until we actually know it. Right now it starts ticking and then 100ms seconds later the ping is adjusted
@@ -124,14 +124,14 @@ export class BufferedNetwork extends Network {
     }
 
     private initInfo(stream: BufferStreamReader){
-        // [ 8bit id, 8bit rate, 64 bit timestamp, 16 bit id]
+        // [ 8 bit rate, 64 bit timestamp, 16 bit id]
         const rate = stream.getUint8();
         this.SERVER_SEND_RATE = rate;
         this.SERVER_SEND_INTERVAL = (1/rate);
 
         // These may desync over time. Maybe resend them every now and then if it becomes an issue?
         this.REFERENCE_SERVER_TICK_TIME = stream.getBigUint64();
-        this.REFERENCE_SERVER_TICK_ID = stream.getInt16();
+        this.REFERENCE_SERVER_TICK_ID = stream.getUint16();
     }
 
     private prepareTicking(stream: BufferStreamReader){
@@ -158,8 +158,7 @@ export class BufferedNetwork extends Network {
     }
 
     private lastConfirmedPacketFromBuffer = 0;
-
-    // Get ping, 
+ 
     private calculatePing(stream: BufferStreamReader){
         // next 8 bytes: the unix timestamp I sent
         // next 8 bytes: server time stamp
@@ -171,8 +170,9 @@ export class BufferedNetwork extends Network {
 
         const pingThisTime = ceil(Number((currentTime - originalStamp)) / 2);
         
+        //TODO: implement some sort of smoothing of the ping. Sample it multiple times
         // only adjust the ping if it has changed sufficintely 
-        if(abs(this.ping - pingThisTime) > 5){
+        if(abs(this.ping - pingThisTime) > 4){
             this.ping = pingThisTime;
         }
 
