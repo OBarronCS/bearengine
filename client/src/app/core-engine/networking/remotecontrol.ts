@@ -13,6 +13,11 @@ export class SimpleNetworkedSprite extends RemoteEntity {
     public locations = this.addPart(new RemoteLocations());
     public image = this.addPart(new SpritePart("images/flower.png"));
 
+    constructor(){
+        super();
+        this.image.originPercent = Vec2.HALFHALF;
+    }
+
     update(dt: number): void {}
 }
 

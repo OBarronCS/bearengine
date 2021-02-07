@@ -44,7 +44,7 @@ export class NetworkedEntityManager {
 class SimplePositionPacketHandler implements PacketHandler {
     readonly packetType = GameStatePacket.SIMPLE_POSITION;
 
-    private entities: Map<number, SimpleNetworkedSprite>
+    private entities: Map<number, SimpleNetworkedSprite>;
     
     constructor(public engine: BearEngine, es: Map<number, RemoteEntity>){
         ///@ts-expect-error

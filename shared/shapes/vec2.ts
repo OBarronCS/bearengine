@@ -11,8 +11,10 @@ export class Vec2 {
     public x: number
     public y: number
 
-    // Maybe make these getters so you can take a mutable one
+    // Maybe make these getters so you can take a mutable one, instead of having to call .clone()
     static ZERO: Readonly<Coordinate> = new Vec2(0,0);
+
+    // Direction relative to screen, so all Y values are flipped
     static RIGHT: Readonly<Coordinate> = new Vec2(1,0);
     static LEFT: Readonly<Coordinate> = new Vec2(-1,0);
     static UP: Readonly<Coordinate> = new Vec2(0,-1);
@@ -20,7 +22,8 @@ export class Vec2 {
     static SE: Readonly<Coordinate> = new Vec2(Math.SQRT1_2,Math.SQRT1_2);
     static SW: Readonly<Coordinate> = new Vec2(-Math.SQRT1_2,Math.SQRT1_2);
     static NE: Readonly<Coordinate> = new Vec2(Math.SQRT1_2,-Math.SQRT1_2);
-    static NW : Readonly<Coordinate> = new Vec2(-Math.SQRT1_2,-Math.SQRT1_2);
+    static NW: Readonly<Coordinate> = new Vec2(-Math.SQRT1_2,-Math.SQRT1_2);
+    static HALFHALF: Readonly<Coordinate> = new Vec2(0.5,0.5);
 
     /** A random vector of a given length */
     static random(length = 1): Vec2 {
@@ -45,18 +48,16 @@ export class Vec2 {
     }
 
     /** Does not alter the first two parameters. Stores result in target, which is a new vector by default */
-    static add(vec1: Coordinate, vec2: Coordinate, target: Vec2 = new Vec2(0,0)){
+    static add(vec1: Readonly<Coordinate>, vec2: Readonly<Coordinate>, target: Vec2 = new Vec2(0,0)){
         target.x = vec1.x + vec2.x;
         target.y = vec1.y + vec2.y;
-
         return target;
     }
 
     /** Does not alter the first two parameters. Stores result in target, which is a new vector by default */
-    static subtract(vec1: Coordinate, vec2: Coordinate, target: Vec2 = new Vec2(0,0)){
+    static subtract(vec1: Readonly<Coordinate>, vec2: Readonly<Coordinate>, target: Vec2 = new Vec2(0,0)){
         target.x = vec1.x - vec2.x;
         target.y = vec1.y - vec2.y;
-
         return target;
     }
 
@@ -138,7 +139,6 @@ export class Vec2 {
 	}
 
     public setDirection(radians: number): this {
-
         const length = this.length();
 
 		this.x = length * Math.cos(radians);
@@ -179,7 +179,9 @@ export class Vec2 {
         return this
     }
 
-    /** Set the length of the vector */
+    /** Set the length of the vector
+     *  TODO: change this to a more intuitive name 
+     */
     public extend(magnitude: number): this {
 		this.normalize();
 		this.x *= magnitude;
@@ -194,7 +196,7 @@ export class Vec2 {
     }
 
     clone(){
-        return new Vec2(this.x, this.y)
+        return new Vec2(this.x, this.y);
     }
 
     toArray(): [number, number]{

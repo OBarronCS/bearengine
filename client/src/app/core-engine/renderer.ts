@@ -97,7 +97,7 @@ export class RendererSystem {
         (this.renderer.plugins.interaction as InteractionManager).cursorStyles.default = css;
     }
 
-    render(delta_s: number){
+    render(){
         for(const sprite of this.spriteQuery){
             sprite.sprite.position.copyFrom(sprite.owner.position);
         }

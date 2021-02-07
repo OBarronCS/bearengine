@@ -8,9 +8,7 @@
 import { abs, ceil } from "shared/miscmath";
 import { LinkedQueue } from "shared/datastructures/queue";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/networkstream"
-import { BearEngine } from "../bearengine";
 import { ClientBoundPacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
-import { NetworkedEntityManager } from "./gamemessagemanager";
  
 export abstract class Network {
 
@@ -75,6 +73,7 @@ export class BufferedNetwork extends Network {
     public CLOCK_DELTA = 0;
 
     // How much buffer caused by latency
+    // TODO: don't actually have this be a set numbre of packets, but a time in ms
     private latencyBuffer: number = -1;
     
     // Buffer by default
@@ -90,12 +89,8 @@ export class BufferedNetwork extends Network {
     public SERVER_IS_TICKING: boolean = false;
 
 
-    private networkedEntityManager: NetworkedEntityManager;
-
-    constructor(url: string, public engine: BearEngine){
+    constructor(url: string){
         super(url);
-
-        this.networkedEntityManager = new NetworkedEntityManager(engine);
     }
 
     onopen(): void {
@@ -109,7 +104,6 @@ export class BufferedNetwork extends Network {
     onclose(): void {}
 
     onmessage(ev: MessageEvent<any>): void {
-        console.log(Date.now());
         const stream = new BufferStreamReader(ev.data);
 
         const type = stream.getUint8();
@@ -144,7 +138,6 @@ export class BufferedNetwork extends Network {
         // console.log("Received: " + id)
         this.packets.enqueue({ id: id, buffer: stream });
         // console.log("Size of queue: " + this.packets.size())
-        this.networkedEntityManager.readData(id, stream)
     }
 
     public sendPing(){
@@ -156,8 +149,6 @@ export class BufferedNetwork extends Network {
 
         this.socket.send(stream.getBuffer());
     }
-
-    private lastConfirmedPacketFromBuffer = 0;
  
     private calculatePing(stream: BufferStreamReader){
         // next 8 bytes: the unix timestamp I sent
@@ -211,7 +202,14 @@ export class BufferedNetwork extends Network {
         return frameToGet;
     }
 
-    public tick(): BufferStreamReader | null{
+    newPacketQueue(){
+        return this.packets;
+    }
+
+    private lastConfirmedPacketFromBuffer = 0;
+
+    public tick(): BufferStreamReader | null {
+        throw new Error("Don't call this method");
         return null;
 
 

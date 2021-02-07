@@ -16,12 +16,13 @@ import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { LevelHandler } from "shared/core/level";
 import { PartQuery } from "shared/core/partquery";
 import { Text, Graphics, Loader, TextStyle, utils, Point } from "pixi.js";
-import { NetworkObjectInterpolator } from "./networking/objectinterpolator";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { Subsystem } from "shared/core/subsystem";
 import { round } from "shared/miscmath";
+import { NetworkedEntityManager } from "./networking/gamemessagemanager";
+import { RemoteLocations } from "./networking/remotecontrol";
 
 
 const SHARED_RESOURCES = Loader.shared.resources;
@@ -71,15 +72,17 @@ class BearEngine {
 
 
     private network: BufferedNetwork;
-    private interpolator: NetworkObjectInterpolator;
-
+    private networkMessageHandler = new NetworkedEntityManager(this);
+    public remotelocations: PartQuery<RemoteLocations>;
+    
 
     private player: Player;
 
     constructor(settings: EngineSettings){        
-        this.network = new BufferedNetwork("ws://127.0.0.1:8080", this);
+        this.network = new BufferedNetwork("ws://127.0.0.1:8080");
         this.network.connect();
-        this.interpolator = this.registerSystem(new NetworkObjectInterpolator(this.network));
+        this.remotelocations = new PartQuery(RemoteLocations);
+        this.partQueries.push(this.remotelocations);
 
         
 
@@ -182,6 +185,23 @@ class BearEngine {
         // this.camera.follow(this.player.position)
     }
 
+
+    updateNetwork(){
+        const packets = this.network.newPacketQueue();
+
+        while(!packets.isEmpty()){
+            const packet = packets.dequeue();
+            this.networkMessageHandler.readData(packet.id, packet.buffer);
+        }
+
+        // Interpolation of entities
+        const frameToSimulate = this.network.tickToSimulate();
+
+        for(const obj of this.remotelocations){
+            obj.setPosition(frameToSimulate)
+        }
+    }
+
     loop(timestamp: number = performance.now()){
         accumulated += timestamp - lastFrameTimeMs;
         lastFrameTimeMs = timestamp;
@@ -204,8 +224,8 @@ class BearEngine {
         this.keyboard.update();
         this.mouse.update();
 
+        this.updateNetwork();
 
-        this.interpolator.update();
 
         // both of these are in ms
         while (accumulated >= (simulation_time)) {
@@ -234,14 +254,14 @@ class BearEngine {
                 stream.setFloat32(this.player.x);
                 stream.setFloat32(this.player.y);
 
-                this.network.send(stream.getBuffer())
+                this.network.send(stream.getBuffer());
             }
         }
 
         //simulation time
         // console.log(performance.now() - timestamp)
         this.camera.update();
-        this.renderer.render((timestamp - lastFrameTimeMs) / 1000);
+        this.renderer.render();
         
 
         requestAnimationFrame(t => this.loop(t))
