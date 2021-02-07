@@ -23,18 +23,6 @@ LockKeys([
     //"Escape"
 ]);
 
-
-        // this.keyboard.bind("p",() => {
-        //     StartFullscreen(document,game.renderer.pixiapp.renderer.view);
-
-        //     //LockMouse(document,game.renderer.pixiapp.renderer.view);
-        // });
-
-        // this.keyboard.bind("r",() => {
-        //     game.restartCurrentLevel();
-        //     //LockMouse(document,game.renderer.pixiapp.renderer.view);
-        // });
-
 // Testing drag and drop!
 const element = game.renderer.renderer.view
 

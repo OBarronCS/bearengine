@@ -239,7 +239,7 @@ class BearEngine {
         }
 
         //simulation time
-        //console.log(performance.now() - timestamp)
+        // console.log(performance.now() - timestamp)
         this.camera.update();
         this.renderer.render((timestamp - lastFrameTimeMs) / 1000);
         

@@ -1,18 +1,18 @@
 import { RAD_TO_DEG, Graphics } from "pixi.js";
+
 import { Vec2, rotatePoint, angleBetween } from "shared/shapes/vec2";
 import { random_range, random } from "shared/randomhelpers";
 import { dimensions } from "shared/shapes/rectangle";
 import { drawPoint } from "shared/shapes/shapedrawing";
 import { clamp, PI } from "shared/miscmath";
-
+import { ColliderPart } from "shared/core/abstractpart";
 
 import { DefaultBulletEffect } from "../core-engine/clienteffects";
 import { SpritePart } from "../core-engine/parts";
 import { AddOnType } from "../core-engine/weapons/addon";
 import { SimpleGun } from "../core-engine/weapons/weapon";
-
 import { DrawableEntity } from "../core-engine/entity";
-import { ColliderPart } from "shared/core/abstractpart";
+
 
 enum PlayerStates {
     Ground,
@@ -64,6 +64,9 @@ export class Player extends DrawableEntity {
     constructor(){
         super();
         this.position.set({x : 500, y: 100})
+        this.Keyboard.bind("r", ()=> {
+            this.position.set({x : 500, y: 100});
+        });
 
         this.spritePart = new SpritePart("images/vector.jpg")
         this.spritePart.originPercent = {x:.5 ,y:.5};
@@ -72,12 +75,13 @@ export class Player extends DrawableEntity {
         this.colliderPart = new ColliderPart(dimensions(50,50),{x:20, y: 20});
         this.addPart(this.colliderPart);
 
+        // width not initialized yet
 
-        this.test_width = this.spritePart.width;
-        this.test_height = this.spritePart.height;
+        this.test_width = 32//this.spritePart.width;
+        this.test_height = 32//this.spritePart.height;
         
         
-        const {width, height} = this.spritePart.sprite
+        const {width, height} = {width:32, height:32}//this.spritePart.sprite
         const {x, y} = this.position
 
         this.downRayTop = new Vec2(x,y);
@@ -108,6 +112,7 @@ export class Player extends DrawableEntity {
             }
         })
 
+        // TODO: move to onAdd
         this.Scene.addEntity(this.gun);
     }
 
@@ -355,7 +360,6 @@ export class Player extends DrawableEntity {
 
 
     draw(g: Graphics) {
-        g.drawCircle(this.x, this.y, 312)
         drawPoint(g,this.position);
     }
 }

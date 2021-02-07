@@ -61,8 +61,7 @@ export function loadTestLevel(this: BearEngine): void {
         
         draw(g: PIXI.Graphics): void {
             g.clear();
-            this.r.rect.draw(g,0xFF0000)
-
+            this.r.rect.draw(g,0xFF0000);
         }
     }
 

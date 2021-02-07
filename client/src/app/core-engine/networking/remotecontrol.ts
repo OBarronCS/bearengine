@@ -1,29 +1,17 @@
 
-import { Graphics } from "pixi.js";
 import { Part } from "shared/core/abstractpart";
-import { BufferStreamReader } from "shared/datastructures/networkstream";
 import { ceil, floor } from "shared/miscmath";
 import { mix, Vec2 } from "shared/shapes/vec2";
 import { Entity } from "../entity";
 import { SpritePart } from "../parts";
 
-// TODO: Make the part system de-coupled from the update system... maybe
-export abstract class RemoteEntity extends Entity {
-} 
+
+export abstract class RemoteEntity extends Entity {} 
 
 export class SimpleNetworkedSprite extends RemoteEntity {
     
-    public locations = new RemoteLocations();
-    private image: SpritePart;
-
-    constructor(){
-        super();
-        
-        this.addPart(this.locations)
-
-        this.image = new SpritePart("images/flower.png");
-        this.addPart(this.image);
-    }
+    public locations = this.addPart(new RemoteLocations());
+    public image = this.addPart(new SpritePart("images/flower.png"));
 
     update(dt: number): void {}
 }

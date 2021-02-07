@@ -2,8 +2,7 @@
 /*
     Client side socket connection to a server:
         Deals with connecting to server,
-        Sending, 
-        Recieving buffers
+        Sending, Receiving buffers
 */
 
 import { abs, ceil } from "shared/miscmath";
@@ -83,7 +82,7 @@ export class BufferedNetwork extends Network {
     private additionalBuffer = 2;
 
     // Generous, default ping
-    // TODO: set it to -1 and don't start ticking until we actually know it. Right now it starts ticking and then 100ms seconds later the ping is adjusted
+    // TODO: set it to -1 and don't start ticking until we actually know it. Right now it starts ticking and then some time later the ping is adjusted
     public ping: number = 150;
 
     // Used if join a game, and its a lobby phase where the server is not sending real data. Or if server sends a message that says its DONE
@@ -92,6 +91,7 @@ export class BufferedNetwork extends Network {
 
 
     private networkedEntityManager: NetworkedEntityManager;
+
     constructor(url: string, public engine: BearEngine){
         super(url);
 
@@ -109,10 +109,10 @@ export class BufferedNetwork extends Network {
     onclose(): void {}
 
     onmessage(ev: MessageEvent<any>): void {
- 
+        console.log(Date.now());
         const stream = new BufferStreamReader(ev.data);
 
-        const type = stream.getUint8()
+        const type = stream.getUint8();
         switch(type){
             case ClientBoundPacket.PONG: this.calculatePing(stream); break;
             case ClientBoundPacket.INIT: this.initInfo(stream); break;
@@ -124,7 +124,7 @@ export class BufferedNetwork extends Network {
     }
 
     private initInfo(stream: BufferStreamReader){
-        // [ 8 bit rate, 64 bit timestamp, 16 bit id]
+        // [ 8 bit rate, 64 bit timestamp, 16 bit id ]
         const rate = stream.getUint8();
         this.SERVER_SEND_RATE = rate;
         this.SERVER_SEND_INTERVAL = (1/rate);
@@ -152,9 +152,9 @@ export class BufferedNetwork extends Network {
         const stream = new BufferStreamWriter(new ArrayBuffer(9));
 
         stream.setUint8(ServerBoundPacket.PING);
-        stream.setBigInt64(BigInt(Date.now()))
+        stream.setBigInt64(BigInt(Date.now()));
 
-        this.socket.send(stream.getBuffer())
+        this.socket.send(stream.getBuffer());
     }
 
     private lastConfirmedPacketFromBuffer = 0;
@@ -182,7 +182,7 @@ export class BufferedNetwork extends Network {
         console.log("LatencyBuffer: " + this.latencyBuffer)
 
     
-        // This method assume latency is equal both ways
+        // This method assumes latency is equal both ways
         const delta = serverStamp - currentTime + BigInt(this.ping);
 
         // LOCAL TIME + CLOCK_DELTA === TIME_ON_SERVER
@@ -192,7 +192,7 @@ export class BufferedNetwork extends Network {
         /*
         ONE HUGE ISSUE HERE:
             If we are constantly re-adjusting ping (it will flucuate)
-            than the buffer will constantly also move forward/backwards one frame and cause noticable jitter for one frame
+            than the buffer will constantly move forward/backwards one frame and cause noticable jitter for one frame
             This might become an issue. If so, calculate ping over many frames and take average, and 
         */
     }
@@ -275,9 +275,6 @@ export class BufferedNetwork extends Network {
 
         return null;
     }
-
-    
-
 
 }
 

@@ -1,5 +1,6 @@
-import { autoDetectRenderer, Renderer, Container, DisplayObject, Loader, utils } from "pixi.js";
+import { autoDetectRenderer, Renderer, Container, DisplayObject, Loader, utils, InteractionManager } from "pixi.js";
 import { PartQuery } from "shared/core/partquery";
+import { clamp } from "shared/miscmath";
 import { GraphicsPart, SpritePart } from "./parts";
 
 
@@ -8,7 +9,7 @@ const SHARED_LOADER = Loader.shared;
 
 
 // arbitrary, but make it high enough so it looks good --> this is the base render texture height!
-// so things are actually rendered to THIS resolution
+// so things are actually rendered to THIS resolution, and then the entire canvas is scaled
 const DEFAULT_RESOLUTION_HEIGHT = 1200 //768;
 
 const MIN_RATIO = 4/3;
@@ -28,23 +29,27 @@ export class RendererSystem {
     public targetDiv: HTMLElement;
 
     public graphicsQuery = new PartQuery(GraphicsPart,
-            g => this.addSprite(g.graphics),
-            g => this.removeSprite(g.graphics))
+            g => {
+                g.graphics.zIndex = 1;
+                this.addSprite(g.graphics)
+                },
+            g => this.removeSprite(g.graphics)
+        );
 
     public spriteQuery = new PartQuery(SpritePart,
-        s => {
-            s.sprite.texture = this.getTexture(s.file_path);
-            this.addSprite(s.sprite)
-        },
-        s => { 
-            this.removeSprite(s.sprite);
-        
-            s.sprite.destroy({
-                children: true,
-                baseTexture: false,
-                texture: false
+            s => {
+                s.sprite.texture = this.getTexture(s.file_path);
+                this.addSprite(s.sprite)
+            },
+            s => { 
+                this.removeSprite(s.sprite);
+            
+                s.sprite.destroy({
+                    children: true,
+                    baseTexture: false,
+                    texture: false
+                });
         });
-    })
 
     constructor(targetDiv: HTMLElement, targetWindow: Window){
         this.targetWindow = targetWindow;
@@ -67,7 +72,7 @@ export class RendererSystem {
         targetDiv.style.margin = 0 + "px";
         targetDiv.style.padding = 0 + "px";
 
-        this.fitToScreen()
+        this.fitToScreen();
 
         targetDiv.appendChild(this.renderer.view);
 
@@ -77,7 +82,7 @@ export class RendererSystem {
         this.mainContainer.zIndex = 0;
         this.mainContainer.sortableChildren = true;
 
-        this.guiContainer.zIndex = 100
+        this.guiContainer.zIndex = 100;
 
         this.stage.addChild(this.mainContainer);
         this.stage.addChild(this.guiContainer);
@@ -86,19 +91,18 @@ export class RendererSystem {
     }
 
     setCursorSprite(path: string){
-        // format: 
+        // css format: 
         // "url('images/flower.png'),auto";
-        const css = `url('${path}'),auto`
-        this.renderer.plugins.interaction.cursorStyles.default = css;
+        const css = `url('${path}'),auto`;
+        (this.renderer.plugins.interaction as InteractionManager).cursorStyles.default = css;
     }
 
     render(delta_s: number){
-        // Draws the stage to the screen!
-
         for(const sprite of this.spriteQuery){
             sprite.sprite.position.copyFrom(sprite.owner.position);
         }
-        this.renderer.render(this.stage)
+
+        this.renderer.render(this.stage);
     }
 
     addGUI<T extends DisplayObject>(sprite: T){
@@ -127,8 +131,8 @@ export class RendererSystem {
         // https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio
 
         // works in fullscreen perfeclty
-        let window_width = this.targetWindow.innerWidth;
-        let window_height = this.targetWindow.innerHeight;
+        const window_width = this.targetWindow.innerWidth;
+        const window_height = this.targetWindow.innerHeight;
 
         console.log(window_width, window_height)
 
@@ -141,9 +145,9 @@ export class RendererSystem {
 
         // clamped aspect ratio
         let aspect_ratio = window_width / window_height;
-        aspect_ratio = Math.min(Math.max(aspect_ratio, MIN_RATIO), MAX_RATIO)
+        aspect_ratio = clamp(aspect_ratio, MIN_RATIO, MAX_RATIO);
 
-        ideal_width = Math.round(ideal_height * aspect_ratio) 
+        ideal_width = Math.round(ideal_height * aspect_ratio);
         if(ideal_width % 2 != 0) ideal_width--;
 
         if(ideal_width > window_width){
@@ -151,7 +155,7 @@ export class RendererSystem {
             ideal_height = 0 // or whatever I want
     
             // clamped aspect ratio
-            ideal_height = Math.round(ideal_width / aspect_ratio) 
+            ideal_height = Math.round(ideal_width / aspect_ratio);
     
             if(ideal_height % 2 != 0) ideal_height--;
         }
@@ -170,20 +174,20 @@ export class RendererSystem {
     }
      
     getTexture(_name: string){
-        const _str = _name 
-        return SHARED_RESOURCES[_str].texture
+        const _str = _name;
+        return SHARED_RESOURCES[_str].texture;
     }
     
     getPercentWidth(percent: number){
-        return percent * this.renderer.view.width
+        return percent * this.renderer.view.width;
     }
     
     getPercentHeight(percent: number){
-        return percent * this.renderer.view.height
+        return percent * this.renderer.view.height;
     }
 
     get mouse(){
-        return this.renderer.plugins.interaction.mouse.global
+        return this.renderer.plugins.interaction.mouse.global;
     }
 }
 
