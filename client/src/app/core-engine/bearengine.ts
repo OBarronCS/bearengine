@@ -16,14 +16,13 @@ import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { LevelHandler } from "shared/core/level";
 import { PartQuery } from "shared/core/partquery";
 import { Text, Graphics, Loader, TextStyle, utils, Point } from "pixi.js";
-import { NetworkedEntityManager } from "./networking/gamemessagemanager";
-import { NetworkObjectInterpolator } from "./networking/objectinterpolator";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { Subsystem } from "shared/core/subsystem";
 import { round } from "shared/miscmath";
-
+import { NetworkedEntityManager } from "./networking/gamemessagemanager";
+import { RemoteLocations } from "./networking/remotecontrol";
 
 
 const SHARED_RESOURCES = Loader.shared.resources;
@@ -71,16 +70,19 @@ class BearEngine {
     private updateList: AbstractEntity[] = [];
     private partQueries: PartQuery<any>[] = [];
 
-    private network: BufferedNetwork;
-    private interpolator: NetworkObjectInterpolator;
 
+    private network: BufferedNetwork;
+    private networkMessageHandler = new NetworkedEntityManager(this);
+    public remotelocations: PartQuery<RemoteLocations>;
+    
 
     private player: Player;
 
     constructor(settings: EngineSettings){        
-        this.network = new BufferedNetwork("ws://127.0.0.1:8080", this);
+        this.network = new BufferedNetwork("ws://127.0.0.1:8080");
         this.network.connect();
-        this.interpolator = this.registerSystem(new NetworkObjectInterpolator(this.network));
+        this.remotelocations = new PartQuery(RemoteLocations);
+        this.partQueries.push(this.remotelocations);
 
         
 
@@ -94,6 +96,7 @@ class BearEngine {
             
             this.renderer = new RendererSystem(div, window);
             this.camera = new CameraSystem(this.renderer,this.renderer.mainContainer, window, this.mouse, this.keyboard);
+            
             /////////// Stops right click CONTEXT MENU from showing
             div.addEventListener('contextmenu', function(ev) {
                 ev.preventDefault();
@@ -101,7 +104,8 @@ class BearEngine {
             }, false);
             ////////////
 
-            this.partQueries.push(this.renderer.partQuery);
+            this.partQueries.push(this.renderer.graphicsQuery);
+            this.partQueries.push(this.renderer.spriteQuery);
             
         } else { // creates a pop up display
             CreateWindow("Game", {width:400, height:300,center:true}).then(new_window => {
@@ -158,6 +162,7 @@ class BearEngine {
         this.renderer.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundColor);
 
         // Global Data
+        // @ts-expect-error
         AbstractEntity.GLOBAL_DATA_STRUCT = {
             Level:this.current_level,
             Collision:this.current_level.collisionManager,
@@ -180,9 +185,26 @@ class BearEngine {
         // this.camera.follow(this.player.position)
     }
 
+
+    updateNetwork(){
+        const packets = this.network.newPacketQueue();
+
+        while(!packets.isEmpty()){
+            const packet = packets.dequeue();
+            this.networkMessageHandler.readData(packet.id, packet.buffer);
+        }
+
+        // Interpolation of entities
+        const frameToSimulate = this.network.tickToSimulate();
+
+        for(const obj of this.remotelocations){
+            obj.setPosition(frameToSimulate)
+        }
+    }
+
     loop(timestamp: number = performance.now()){
         accumulated += timestamp - lastFrameTimeMs;
-
+        lastFrameTimeMs = timestamp;
         // Setting mouse world position, requires the renderer to map the point
 
         const canvasPoint = new Point();
@@ -193,7 +215,7 @@ class BearEngine {
         this.mouse_info.text = `${ round(this.mouse.position.x, 1)},${round( this.mouse.position.y, 1)}`
 
 
-        lastFrameTimeMs = timestamp;
+        
         // if we are more than a second behind, probably lost focus on page (rAF doesn't get called if the tab is not in focus)
         if(accumulated > 1000){
             accumulated = 0;
@@ -202,11 +224,8 @@ class BearEngine {
         this.keyboard.update();
         this.mouse.update();
 
+        this.updateNetwork();
 
-        // Checks buffer
-        //const stream = this.network.tick();
-
-        this.interpolator.update();
 
         // both of these are in ms
         while (accumulated >= (simulation_time)) {
@@ -220,7 +239,6 @@ class BearEngine {
                 const entity = this.updateList[i];
                 entity.update(dt);
                 entity.postUpdate();
-                entity.updateParts(dt);
             }
 
             this.totalTime += dt;
@@ -236,14 +254,14 @@ class BearEngine {
                 stream.setFloat32(this.player.x);
                 stream.setFloat32(this.player.y);
 
-                this.network.send(stream.getBuffer())
+                this.network.send(stream.getBuffer());
             }
         }
 
         //simulation time
-        //console.log(performance.now() - timestamp)
+        // console.log(performance.now() - timestamp)
         this.camera.update();
-        this.renderer.update((timestamp - lastFrameTimeMs) / 1000);
+        this.renderer.render();
         
 
         requestAnimationFrame(t => this.loop(t))
@@ -254,7 +272,6 @@ class BearEngine {
         if(index !== -1){
             e.onDestroy();
             this.updateList.splice(index,1);
-            e.parts.forEach(part => part.onRemove());
 
             this.partQueries.forEach(q => {
                 q.deleteEntity(e)
@@ -265,8 +282,6 @@ class BearEngine {
     addEntity<T extends AbstractEntity>(e: T): T {
         this.updateList.push(e);
         e.onAdd();
-
-        e.parts.forEach(p => p.onAdd())
 
         this.partQueries.forEach(q => {
             q.addEntity(e)
@@ -286,7 +301,6 @@ class BearEngine {
 
         this.updateList.forEach( e => {
             e.onDestroy();
-            e.parts.forEach(part => part.onRemove());
 
             this.partQueries.forEach(q => {
                 q.deleteEntity(e)

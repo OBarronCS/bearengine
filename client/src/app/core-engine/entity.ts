@@ -2,7 +2,6 @@ import { Graphics } from "pixi.js";
 import { Coordinate, Vec2 } from "shared/shapes/vec2";
 import { min } from "shared/miscmath"
 import { random } from "shared/randomhelpers";
-import { ColliderPart } from "shared/core/sharedparts"
 import { dimensions } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 
@@ -10,6 +9,7 @@ import { GraphicsPart, SpritePart } from "./parts";
 import { BearEngine } from "./bearengine";
 import { MouseInput } from "../input/mouse";
 import { EngineKeyboard } from "../input/keyboard";
+import { ColliderPart } from "shared/core/abstractpart";
 
 
 // Client specific entity

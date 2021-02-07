@@ -23,31 +23,22 @@ export abstract class AbstractEntity {
     readonly parts: Part[] = [];
 
     get x() { return this.position.x; }
-    get y() { return this.position.y; }
-
     set x(_x) { this.position.x = _x; }
+
+    get y() { return this.position.y; }
     set y(_y) { this.position.y = _y; }
 
-
-    static GLOBAL_DATA_STRUCT: GlobalData = null;
+    protected static GLOBAL_DATA_STRUCT: GlobalData = null;
 
     get Scene(){ return AbstractEntity.GLOBAL_DATA_STRUCT.Scene }
     get Level(){ return AbstractEntity.GLOBAL_DATA_STRUCT.Level }
     get Terrain(){ return AbstractEntity.GLOBAL_DATA_STRUCT.Terrain }
     get Collision(){ return AbstractEntity.GLOBAL_DATA_STRUCT.Collision }
 
-    
     addPart<T extends Part>(part: T): T {
         this.parts.push(part);
         part.owner = this;
         return part;
-    }
-
-    updateParts(dt: number){
-        for (let i = 0; i < this.parts.length; i++) {
-            const part = this.parts[i];
-            part.update(dt);
-        }
     }
 
     abstract update(dt: number): void;

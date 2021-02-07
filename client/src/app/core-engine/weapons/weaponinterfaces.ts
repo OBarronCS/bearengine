@@ -44,8 +44,7 @@ export interface GunInfo {
 	name : string;
 	crosshair : string; // a sprite or something to reference a sprite
 	sprite : string;
-
-	// I need to create extra types for these --> CreateGunShootController type 
+ 
 	defaultTrigger : GunshootController;
 	defaultClip : Clip;
 
@@ -61,7 +60,7 @@ const emptyGunInfo: GunInfo = {
     
 	defaultTrigger : null,
 	defaultClip : null,
-	// All stuff related to a single SHOT is in here!
+
 	shotInfo : null,
 }
 

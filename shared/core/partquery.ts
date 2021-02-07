@@ -21,6 +21,9 @@ export class PartQuery<T extends Part>{
         this.onRemove = onRemove;
     }
 
+    [Symbol.iterator](): Iterator<T> {
+        return this.parts[Symbol.iterator]();
+    }
 
     addEntity(e: AbstractEntity){
         for(const p of e.parts){
@@ -51,6 +54,7 @@ export class PartQuery<T extends Part>{
             }
         }  
     }
+
 }
 
 

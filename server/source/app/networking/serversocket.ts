@@ -3,7 +3,6 @@
 import WS from "ws"
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/networkstream"
 import { ClientBoundPacket, GameStatePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
-import { LinkedQueue } from "shared/datastructures/queue"
 import { RemotePlayer } from "../serverentity";
 import { ServerBearEngine } from "../serverengine";
 
@@ -14,13 +13,14 @@ export class ServerNetwork {
     protected socket: WS.Server = null;
     
     public referenceTime: bigint = 0n;
-    public referenceTick = 0;
+    public referenceTick: number = 0;
 
     public tick = 0;
 
     // List of connections
     protected sockets: WS[] = []
 
+    // TODO: move this out of the server network class
     private playerMap = new Map<WS,RemotePlayer>();
 
     constructor(tickRate:number, port: number, public engine: ServerBearEngine){

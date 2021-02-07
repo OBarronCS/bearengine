@@ -1,9 +1,12 @@
 import { BufferStreamReader } from "shared/datastructures/networkstream";
-import { PacketHandler } from "./packethandler";
 import { GameStatePacket } from "shared/core/sharedlogic/packetdefinitions"
 import { RemoteEntity, SimpleNetworkedSprite } from "./remotecontrol";
 import { BearEngine } from "../bearengine";
 
+export interface PacketHandler {
+    readonly packetType: GameStatePacket;
+    read(frame: number, stream: BufferStreamReader): void;
+}
 
 export class NetworkedEntityManager {
 
@@ -41,9 +44,7 @@ export class NetworkedEntityManager {
 class SimplePositionPacketHandler implements PacketHandler {
     readonly packetType = GameStatePacket.SIMPLE_POSITION;
 
-    private entityClassToCreate = SimpleNetworkedSprite;
-
-    private entities: Map<number, SimpleNetworkedSprite>
+    private entities: Map<number, SimpleNetworkedSprite>;
     
     constructor(public engine: BearEngine, es: Map<number, RemoteEntity>){
         ///@ts-expect-error
@@ -58,7 +59,7 @@ class SimplePositionPacketHandler implements PacketHandler {
         if(e === undefined){
             console.log("creating new server entity");
             // e should be an instance of this
-            e = new this.entityClassToCreate()
+            e = new SimpleNetworkedSprite()
             this.entities.set(id, e);
             this.engine.addEntity(e);
         }

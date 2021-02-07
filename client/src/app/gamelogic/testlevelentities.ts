@@ -4,7 +4,6 @@ import { DrawableEntity, Entity, GMEntity, SpriteEntity } from "../core-engine/e
 import { Player } from "./player";
 
 import { Graphics } from "pixi.js";
-import { ColliderPart } from "shared/core/sharedparts"
 import { Tilemap } from "shared/datastructures/tilemap";
 import { rgb, Color } from "shared/datastructures/color";
 import { DynamicAABBTree } from "shared/datastructures/dynaabbtree";
@@ -22,6 +21,7 @@ import { Vec2, Coordinate, angleBetween, mix } from "shared/shapes/vec2";
 import { floor, PI } from "shared/miscmath";
 import { ColorTween } from "shared/core/tween"
 import { TickTimer } from "shared/ticktimer"
+import { ColliderPart } from "shared/core/abstractpart";
 
 
 class BasicSprite extends SpriteEntity {
@@ -61,8 +61,7 @@ export function loadTestLevel(this: BearEngine): void {
         
         draw(g: PIXI.Graphics): void {
             g.clear();
-            this.r.rect.draw(g,0xFF0000)
-
+            this.r.rect.draw(g,0xFF0000);
         }
     }
 
