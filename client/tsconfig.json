@@ -6,9 +6,7 @@
         "target": "ESNext",
         "lib": ["DOM","ESNext"],
         
-        // Look into setting sourceMap == true for better debugging
-        //"allowSyntheticDefaultImports": true
-        //"esModuleInterop": true
+        // Look into setting sourceMap = true for better debugging
         
         //"noImplicitAny" : true,
         "noImplicitThis":true,
@@ -23,6 +21,5 @@
     "exclude": [
         "node_modules",
         "**/node_modules/",
-        "../server"
     ],    
 }

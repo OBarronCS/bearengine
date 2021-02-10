@@ -23,7 +23,7 @@ export class Polygon implements Shape<Polygon>{
         this.normals = normals;
     }
 
-    // Deals with creating normals automatically. Creates clockwise ordered polygon
+    /** Automatically create normals, puts points into clockwise ordered */
     static from(points: Vec2[]): Polygon {
         // Clockwise here is not same as real life clockwise, because the coordinate system is flipped across y axis.
         if(!Polygon.isClockwise(points)){

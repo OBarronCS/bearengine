@@ -6,21 +6,18 @@
         "module": "CommonJS",
         "moduleResolution": "node",
         "esModuleInterop": true,
+        //"allowSyntheticDefaultImports": true
 
         "target": "ESNext",
         "lib": ["DOM","ESNext"],
-
-        "noImplicitThis":true,
         
-        "noFallthroughCasesInSwitch": true,
-        
-        //"allowSyntheticDefaultImports": true
         //"noImplicitAny" : true,
-
+        "noImplicitThis":true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
     },
     "exclude": [
         "node_modules",
         "**/node_modules/",
-        "../client"
     ]
 }

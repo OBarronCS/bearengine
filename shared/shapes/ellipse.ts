@@ -56,7 +56,7 @@ export class Ellipse implements Shape<Ellipse>{
 
         const points: Vec2[] = [];
         const normals: Vec2[] = [];
-        const STEP = (360 / Ellipse.POLYGON_POINT_COUNT)
+        const STEP = (360 / Ellipse.POLYGON_POINT_COUNT);
         for(let i = 0; i < 360; i += STEP ){
             const x = this.position.x + dcos(i) * this.rx;
             const y = this.position.y + dsin(i) * this.ry;
@@ -66,7 +66,6 @@ export class Ellipse implements Shape<Ellipse>{
             points.push(new Vec2(x,y));
             normals.push(normal);
         }
-
 
         return new Polygon(points, normals);
     }

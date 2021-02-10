@@ -12,7 +12,7 @@ import { EngineKeyboard } from "../input/keyboard";
 import { loadTestLevel } from "../gamelogic/testlevelentities";
 import { BufferedNetwork } from "./networking/socket";
 
-import { CustomMapFormat } from "shared/core/tiledmapeditor";
+import { CustomMapFormat, ParseTiledMapData } from "shared/core/tiledmapeditor";
 import { LevelHandler } from "shared/core/level";
 import { PartQuery } from "shared/core/partquery";
 import { Text, Graphics, Loader, TextStyle, utils, Point } from "pixi.js";
@@ -156,10 +156,11 @@ class BearEngine {
     }
 
 	startLevel(level_struct: CustomMapFormat){
+        level_struct = ParseTiledMapData(<any>level_struct);
 		this.current_level = new LevelHandler(level_struct);
         this.current_level.load();
 
-        this.renderer.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundColor);
+        this.renderer.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundcolor);
 
         // Global Data
         // @ts-expect-error

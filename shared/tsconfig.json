@@ -1,17 +1,15 @@
 {
     "compilerOptions": {
         "baseUrl":"../",
+
         "moduleResolution": "node",
         "target": "ESNext",
         "lib": ["DOM","ESNext"],
-        /*
-        Look into setting sourceMap == true for better debugging
-        */
-        //"allowSyntheticDefaultImports": true
-        //"esModuleInterop": true
+
         //"noImplicitAny" : true,
         "noImplicitThis":true,
-        // also one about case: and making sure you write "break;"        
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,       
     },
     "exclude": [
         "node_modules",

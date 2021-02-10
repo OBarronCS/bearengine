@@ -33,14 +33,14 @@ export class Rect implements Shape<Rect> {
     get right() { return this.x2; }
     get top() { return this.y; }
     get bot() { return this.y2; }
-    
-    get width() {return this.x2 - this.x; }
-    get height() { return this.y2 - this.y; }
 
     set left(x: number) { this.x = x; }
     set right(x: number) { this.x2 = x; }
     set top(y: number) { this.y = y; }
     set bot(y: number) { this.y2 = y; }
+
+    get width() {return this.x2 - this.x; }
+    get height() { return this.y2 - this.y; }
 
     constructor(x: number, y: number, width: number, height: number) {
         this.x = x;
@@ -163,13 +163,11 @@ export class Rect implements Shape<Rect> {
     }
 
     translate(point: Coordinate){
-        const w = this.width;
-        const h = this.height;
         this.x += point.x;
         this.y += point.y;
 
-        this.x2 = this.x + w;
-        this.y2 = this.y + h;
+        this.x2 += point.x;
+        this.y2 += point.y;
     }
 
 

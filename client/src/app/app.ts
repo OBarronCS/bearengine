@@ -11,7 +11,7 @@ const game = new BearEngine({
 // Loads assets from server
 game.loadAssets().then(RESOURCES => {
     console.log("ALL ASSETS DOWNLOADED")
-    game.startLevel(RESOURCES["images/level.json"].data as CustomMapFormat)
+    game.startLevel(RESOURCES["images/firsttest.json"].data as CustomMapFormat)
     game.start()
 })
 
