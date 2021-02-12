@@ -19,7 +19,7 @@ export async function CreateWindow(id:string, settings: CreateWindowSettings): P
     const height = settings.fullscreen ?  max_height : settings.height;
 
     const left = settings.fullscreen ? -10 : (settings.center ? max_width / 2 - width / 2  : settings.left);
-    const top = settings.fullscreen ? -10 :(settings.center ?  max_height / 2 - height / 2  : settings.top);
+    const top = settings.fullscreen ? -10 : (settings.center ?  max_height / 2 - height / 2  : settings.top);
 
     const new_window = window.open("",id,
         `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,scrollbars=no,status=no`

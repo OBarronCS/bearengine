@@ -4,7 +4,7 @@ import { Rect } from "shared/shapes/rectangle";
 
 import { RendererSystem } from "./renderer";
 import { EngineKeyboard } from "../input/keyboard";
-import { EngineMouse } from "../input/mouse";
+import { InternalMouse } from "../input/mouse";
 import { lerp, smoothNoise } from "shared/miscmath";
 
 export class CameraSystem {
@@ -18,7 +18,7 @@ export class CameraSystem {
     // Used for camera shake [0,1]
     private trauma = 0;
 
-    constructor(renderer: RendererSystem, container: Container, targetWindow: Window, mouse: EngineMouse,keyboard: EngineKeyboard) {
+    constructor(renderer: RendererSystem, container: Container, targetWindow: Window, mouse: InternalMouse,keyboard: EngineKeyboard) {
 
         this.renderer = renderer;
         this.container = container;
