@@ -73,7 +73,7 @@ export class BufferedNetwork extends Network {
     public CLOCK_DELTA = 0;
 
     // How much buffer caused by latency
-    // TODO: don't actually have this be a set numbre of packets, but a time in ms
+    // TODO: don't actually have this be a set number of packets, but a time in ms
     private latencyBuffer: number = -1;
     
     // Buffer by default

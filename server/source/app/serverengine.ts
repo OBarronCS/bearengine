@@ -53,13 +53,6 @@ class ServerBearEngine {
         }
     }
 
-    // Need to load the game files. Create Abstraction for that 
-    // async preload(): Promise<>{
-    //     return new Promise((resolve) => this.renderer.initTextures(ALL_TEXTURES, () => {
-    //         resolve(RESOURCES)
-    //     }));
-    // }
-
     private _boundLoop = this.loop.bind(this);
 
     loop(){
@@ -76,7 +69,6 @@ class ServerBearEngine {
             // }
             
             
-
             for (let i = 0; i < this.updateList.length; i++) {
                 const entity = this.updateList[i];
                 entity.update(dt);
@@ -102,11 +94,11 @@ class ServerBearEngine {
         }
     
         // if we are more than 16 milliseconds away from the next tick
-        // This  avoids blocking like in a while loop. while keeping the timer somewhat accurate
+        // This avoids blocking like in a while loop. while keeping the timer somewhat accurate
         if(now - this.previousTick < (1000 / this.TICK_RATE) - 16) {
             setTimeout(this._boundLoop) // not accurate to the millisecond
         } else {
-            setImmediate(this._boundLoop) // ultra accurate method
+            setImmediate(this._boundLoop) // ultra accurate, sub millisecond
         }
     }
    

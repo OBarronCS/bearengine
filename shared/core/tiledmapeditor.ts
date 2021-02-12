@@ -1,17 +1,17 @@
 import { Coordinate } from "shared/shapes/vec2";
 
 export interface CustomMapFormat {
-    world: {
+    world:{
         width: number,
         height:number,
         backgroundcolor:string
     },
     // Polygons and Rectangles are turned into this!
-    bodies: {
+    bodies:{
         normals: number[],
         points: number[]
     }[],
-    sprites: {
+    sprites:{
         name: string // name of collection in tiled. Not instance name for now
         x: number,
         y: number,

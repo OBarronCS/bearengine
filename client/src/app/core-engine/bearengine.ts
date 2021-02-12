@@ -3,8 +3,8 @@ import { EngineMouse, InternalMouse } from "../input/mouse";
 import { GUI } from "dat.gui";
 import { RendererSystem } from "./renderer";
 import { CameraSystem } from "./camera";
-import { EventEmitter } from "eventemitter3"
-import TypedEmitter from "typed-emitter"
+import { EventEmitter } from "eventemitter3";
+import TypedEmitter from "typed-emitter";
 import { Entity, GMEntity, SpriteEntity } from "./entity";
 import { Player } from "../gamelogic/player";
 import { CreateWindow } from "../apiwrappers/windowopen";
@@ -52,9 +52,9 @@ export interface EngineSettings {
 
 class BearEngine {
 
-    public renderer: RendererSystem;
+    public renderer: RendererSystem = null;
 
-    public camera: CameraSystem;
+    public camera: CameraSystem = null;
 
     public mouse_info = new Text("",new TextStyle({"fill": "white"}));
     
@@ -71,9 +71,9 @@ class BearEngine {
     private partQueries: PartQuery<any>[] = [];
 
 
-    private network: BufferedNetwork;
+    private network: BufferedNetwork = null;
     private networkMessageHandler = new NetworkedEntityManager(this);
-    public remotelocations: PartQuery<RemoteLocations>;
+    public remotelocations: PartQuery<RemoteLocations> = new PartQuery(RemoteLocations);
     
 
     private player: Player;
@@ -81,10 +81,10 @@ class BearEngine {
     constructor(settings: EngineSettings){        
         this.network = new BufferedNetwork("ws://127.0.0.1:8080");
         this.network.connect();
-        this.remotelocations = new PartQuery(RemoteLocations);
+
         this.partQueries.push(this.remotelocations);
 
-        
+
 
         this.mouse = new InternalMouse();
 
@@ -112,7 +112,7 @@ class BearEngine {
                 this.keyboard = new EngineKeyboard(new_window);
                 this.mouse.addWindowListeners(new_window);
                 
-                const displayDiv = new_window.document.createElement("div")
+                const displayDiv = new_window.document.createElement("div");
                 new_window.document.body.appendChild(displayDiv);
 
                 this.renderer = new RendererSystem(displayDiv, new_window);
@@ -155,6 +155,7 @@ class BearEngine {
         return system;
     }
 
+    // it doesn't actually take this in as CustomMapFormat. It turns a Tiled struct into it
 	startLevel(level_struct: CustomMapFormat){
         level_struct = ParseTiledMapData(<any>level_struct);
 		this.current_level = new LevelHandler(level_struct);
@@ -223,10 +224,8 @@ class BearEngine {
         /// @ts-expect-error
         this.renderer.mainContainer.toLocal(canvasPoint,undefined,this.mouse.position);
 
-        this.mouse_info.text = `${ round(this.mouse.position.x, 1)},${round( this.mouse.position.y, 1)}`
+        this.mouse_info.text = `${ round(this.mouse.position.x, 1)},${round( this.mouse.position.y, 1)}`;
 
-
-        
         // if we are more than a second behind, probably lost focus on page (rAF doesn't get called if the tab is not in focus)
         if(accumulated > 1000){
             accumulated = 0;
@@ -286,7 +285,7 @@ class BearEngine {
 
             this.partQueries.forEach(q => {
                 q.deleteEntity(e)
-            })
+            });
         }
     }
 
@@ -296,7 +295,7 @@ class BearEngine {
 
         this.partQueries.forEach(q => {
             q.addEntity(e)
-        })
+        });
 
         return e;
     }

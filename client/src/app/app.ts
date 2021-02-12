@@ -90,7 +90,7 @@ function initDropTarget(id:string|HTMLElement){
                 });
 
                 vid.src = url;
-                setTimeout(() => console.log(vid),10)
+                //setTimeout(() => console.log(vid),10)
             }
         }
     })

@@ -59,7 +59,7 @@ export function loadTestLevel(this: BearEngine): void {
             this.redraw();
         }
         
-        draw(g: PIXI.Graphics): void {
+        draw(g: Graphics): void {
             g.clear();
             this.r.rect.draw(g,0xFF0000);
         }
@@ -86,7 +86,7 @@ export function loadTestLevel(this: BearEngine): void {
             this.redraw();
         }
         
-        draw(g: PIXI.Graphics): void {
+        draw(g: Graphics): void {
             g.clear();
             //this.r.draw(g)
             //this.line.draw(g,Rect.CollidesWithLine(this.r, this.line.A.x, this.line.A.y, this.line.B.x, this.line.B.y) ? "#FF0000":"#0000FF" );
@@ -99,7 +99,7 @@ export function loadTestLevel(this: BearEngine): void {
         update(dt: number): void {
             this.redraw();
         }
-        draw(g: PIXI.Graphics): void {
+        draw(g: Graphics): void {
             g.clear();
             this.Collision.draw(g);
         }
@@ -119,7 +119,7 @@ export function loadTestLevel(this: BearEngine): void {
             this.redraw()
         }
 
-        draw(g: PIXI.Graphics): void {
+        draw(g: Graphics): void {
             g.clear();
             g.lineStyle(3, rgb(255,0,0).hex());
             this.rec1.draw(g, 0xFF0000);
@@ -167,7 +167,7 @@ export function loadTestLevel(this: BearEngine): void {
             this.redraw()
         }
 
-        draw(g: PIXI.Graphics): void {
+        draw(g: Graphics): void {
             g.clear();
             this.points.draw(g, this.color.hex());
         }
@@ -319,7 +319,7 @@ export function loadTestLevel(this: BearEngine): void {
             }
         }
 
-        draw(g: PIXI.Graphics): void {
+        draw(g: Graphics): void {
             g.clear();
             g.x = this.scale * 128;   
             this.grid.draw(g,this.scale);
@@ -339,7 +339,7 @@ export function loadTestLevel(this: BearEngine): void {
             this.image.angleTowardsPoint(this.Mouse.position, PI / 30);
         }
 
-        draw(g: PIXI.Graphics): void {
+        draw(g: Graphics): void {
             
         }
     }
@@ -357,7 +357,7 @@ export function loadTestLevel(this: BearEngine): void {
                 this.redraw();
             }
         }
-        draw(g: PIXI.Graphics): void {
+        draw(g: Graphics): void {
             g.clear();
             this.tree.draw(g);
         }
@@ -371,13 +371,11 @@ export function loadTestLevel(this: BearEngine): void {
 
         constructor(){super(); this.redraw();}
 
-        update(dt: number): void {
-        
-        }
-        draw(g: PIXI.Graphics): void {
+        update(dt: number): void {}
+
+        draw(g: Graphics): void {
             this.p.draw(g);
         }
-
     }
     
     // this.addEntity(new PolygonTest());
@@ -393,7 +391,7 @@ export function loadTestLevel(this: BearEngine): void {
             
             class test3 extends SpriteEntity {
                 update(dt: number): void {}
-                draw(g: PIXI.Graphics): void {}
+                draw(g: Graphics): void {}
             }
 
             this.testobject =  new test3(Vec2.ZERO, "images/flower.png");
@@ -414,7 +412,7 @@ export function loadTestLevel(this: BearEngine): void {
             this.testobject.position.add(this.map.potentialMove(this.testobject.collider.rect, testMove));
         }
 
-        draw(g: PIXI.Graphics): void {
+        draw(g: Graphics): void {
             g.clear();
            
             this.map.draw(g);
@@ -538,7 +536,7 @@ export function loadTestLevel(this: BearEngine): void {
                 console.log(this.sparse["hashmap"]["arr"])
             }
         }
-        draw(g: PIXI.Graphics): void {
+        draw(g: Graphics): void {
             g.clear();
             this.sparse.draw(g);
         }
