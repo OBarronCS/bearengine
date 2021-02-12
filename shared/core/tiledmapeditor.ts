@@ -10,7 +10,15 @@ export interface CustomMapFormat {
     bodies: {
         normals: number[],
         points: number[]
-    }[];
+    }[],
+    sprites: {
+        name: string // name of collection in tiled. Not instance name for now
+        x: number,
+        y: number,
+        file_path: string,
+        width: number,
+        height: number,
+    }[]
 }
 
 /*
@@ -26,7 +34,7 @@ sprite = []
 
 // Infinite maps have additional properties
 interface TiledMap  {
-    backgroundcolor : string, //#RRGGBB, if alpha is not 255 its #AARRGGBB
+    backgroundcolor?: string, //#RRGGBB, if alpha is not 255 its #AARRGGBB
     height: number, // tile rows,
     width: number, // tile columns,
     tileheight: number, // width of each tile,
@@ -40,7 +48,12 @@ interface TiledMap  {
 // has lots more, but if just images this is good enough
 interface Tileset {
     firstgid: number, // connected to gid of image objects
-    source: string // filepath, relative from current folder
+    name: string // name of 'collection'
+    tiles: {
+        // has a local id, have to test how
+        image: string // // filepath, relative from current folder
+                    // if in same folder as map file, its just file name
+    }[] // will have only one in most cases
 }
 
 interface Property {
@@ -71,7 +84,7 @@ interface ObjectLayer extends Layer {
 interface TiledObject {
     id: number;
     name: string;
-    type: string;
+    type: string; // blank string unless otherwise stated
     rotation: number;
     x: number;
     y: number;
@@ -81,9 +94,10 @@ interface TiledObject {
 
 // #region Object types
 interface ImageObject extends TiledObject {
-    gid: number; // connects it to a tileset
+    gid: number; // connects it to a tilesets firstgid
     height: number;
     width: number;
+    // IMPORTANT: x and y is BOTTOM left, of image, NOT TOP LEFT
 }
 
 function isImageObject(object: any): object is ImageObject {
@@ -99,7 +113,7 @@ function isPolyline(object: any): object is PolylineObject {
 }
 
 interface PolygonObject extends TiledObject{
-    polygon: Coordinate[]
+    polygon: Coordinate[] // first and last point do not repeat
 }
 
 function isPolygon(object: any): object is PolygonObject {
@@ -132,30 +146,26 @@ interface RectangleObject extends TiledObject {
 function isRectangle(object: any): object is RectangleObject {
     return !isPoint(object) && !isEllipse(object) && !isImageObject(object) && !isPolygon(object) && !isPolyline(object);
 }
-
 //#endregion
-
-
 
 
 
 export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
     console.log(map)
-    const worldData = {
+    const worldData: CustomMapFormat["world"] = {
         width: map.width * map.tilewidth,
         height: map.height * map.tileheight,
-        backgroundcolor: map.backgroundcolor
+        // ideally, this would be a nullish ?? coalescing operator, but doesn't work if target is ESNext because webpacket parser cannot read it
+        backgroundcolor: map.backgroundcolor || "#FFFFFF"
     }
 
-    const bodies: {
-        normals: number[],
-        points: number[]
-    }[] = []
+    const bodies: CustomMapFormat["bodies"] = [];
+    const sprites: CustomMapFormat["sprites"] = [];
 
     for (const layer of map.layers as (ObjectLayer|GroupLayer)[]) { 
        
         if(layer.type === "objectgroup"){
-            
+
             for(const obj of layer.objects){
         
                 if(isPolygon(obj)){
@@ -186,13 +196,7 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
 
                     // Clockwise as in FLIPPED clockwise
                     // so actually not clockwise
-                    let clockwise: boolean;
-                    if(sum < 0){
-                        //CLOCK WISE
-                        clockwise = true
-                    } else {
-                        clockwise = false
-                    }
+                    const clockwise: boolean = sum < 0 ? true : false;
 
                     const normals = []
                     let m: number;
@@ -202,11 +206,11 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
                             m = 0
                         }
 
-                        const x1 = points[n]
-                        const y1 = points[n + 1]
+                        const x1 = points[n];
+                        const y1 = points[n + 1];
 
-                        const x2 = points[m]
-                        const y2 = points[m + 1]
+                        const x2 = points[m];
+                        const y2 = points[m + 1];
 
                         const dx = x2 - x1;
                         const dy = y2 - y1;
@@ -222,7 +226,29 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
                     bodies.push({
                         normals:normals,
                         points:points
-                    })
+                    });
+
+                } else if(isImageObject(obj)){
+                    
+                    let tileset: Tileset;
+
+                    for(const potentialTileset of map.tilesets){
+                        if(potentialTileset.firstgid === obj.gid){
+                            tileset = potentialTileset;
+                            break;
+                        }
+                    }
+
+                    const sprite: CustomMapFormat["sprites"][number] = {
+                        file_path:tileset.tiles[0].image,
+                        name:tileset.name,
+                        height:obj.height,
+                        width:obj.width,
+                        x:obj.x,
+                        y:obj.y - obj.height
+                    }
+
+                    sprites.push(sprite);
 
                 } else if(isRectangle(obj)){
                     const left = obj.x;
@@ -245,7 +271,7 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
                     bodies.push({
                         normals:normals,
                         points:points
-                    })
+                    });
                 }
             }
         }
@@ -254,7 +280,8 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
 
     return {
         world:worldData,
-        bodies:bodies
+        bodies:bodies,
+        sprites:sprites
     }
 }
 

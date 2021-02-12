@@ -240,8 +240,8 @@ export class Polygon implements Shape<Polygon>{
 
         // return true if three points are clockwise 
         function clockwise(point1: Vec2, point2: Vec2, point3: Vec2): boolean {
-            let angleTo3 = atan2(point3.y - point1.y, point3.x - point1.x); 
-            let angleTo2 = atan2(point2.y - point1.y, point2.x - point1.x);
+            const angleTo3 = atan2(point3.y - point1.y, point3.x - point1.x); 
+            const angleTo2 = atan2(point2.y - point1.y, point2.x - point1.x);
             return angleTo3 <= angleTo2;
         }
 

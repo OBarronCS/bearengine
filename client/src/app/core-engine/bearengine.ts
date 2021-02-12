@@ -15,7 +15,7 @@ import { BufferedNetwork } from "./networking/socket";
 import { CustomMapFormat, ParseTiledMapData } from "shared/core/tiledmapeditor";
 import { LevelHandler } from "shared/core/level";
 import { PartQuery } from "shared/core/partquery";
-import { Text, Graphics, Loader, TextStyle, utils, Point } from "pixi.js";
+import { Text, Graphics, Loader, TextStyle, utils, Point, Sprite } from "pixi.js";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { AbstractEntity } from "shared/core/abstractentity";
@@ -161,6 +161,16 @@ class BearEngine {
         this.current_level.load();
 
         this.renderer.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundcolor);
+
+        level_struct.sprites.forEach(s => {
+            const sprite = new Sprite(this.renderer.getTexture("images/" + s.file_path));
+            sprite.x = s.x;
+            sprite.y = s.y;
+            sprite.width = s.width;
+            sprite.height = s.height;
+            this.renderer.addSprite(sprite)
+        })
+        
 
         // Global Data
         // @ts-expect-error

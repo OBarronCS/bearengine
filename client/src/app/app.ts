@@ -2,7 +2,7 @@ import { BearEngine } from "./core-engine/bearengine";
 import { DropTarget } from "./apiwrappers/draganddrop";
 import { Texture, BaseTexture, Sprite, Point, resources } from "pixi.js";
 import { LockKeys } from "./apiwrappers/keyboardapiwrapper";
-import { CustomMapFormat } from "shared/core/tiledmapeditor";
+import { CustomMapFormat, ParseTiledMapData } from "shared/core/tiledmapeditor";
 
 const game = new BearEngine({
     popup : false
@@ -42,9 +42,7 @@ function initDropTarget(id:string|HTMLElement){
                     game.endCurrentLevel();
                     game.startLevel(JSON.parse(string));
                 })
-            }
-
-            else if(file.type.startsWith("image")){
+            } else if(file.type.startsWith("image")){
                 const img = new Image();
                 const url = URL.createObjectURL(file);
 

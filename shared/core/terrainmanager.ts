@@ -87,20 +87,12 @@ export class TerrainManager {
 				const dist = distanceSquared(A.x, A.y, _x, _y);
 				
 				// If no answer yet, choose this
-				if(answer === null) {
+				if(answer === null || dist < answer_dist) {
 					answer_dist = dist
 			
 					answer = {
-						point: new Vec2(_x, _y),
+						point:new Vec2(_x, _y),
 						normal:line.normal
-					}
-				} else { // If we already found a collision, check to make sure this one is closer
-					if(dist < answer_dist){
-						answer_dist = dist;
-						answer = {
-							point: new Vec2(_x, _y),
-							normal:line.normal
-						}
 					}
 				}
 			}

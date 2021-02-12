@@ -125,7 +125,6 @@ async function getFileFromFileEntry(fileEntry: FileEntry): Promise<File> {
     } catch (err) {
         // If promise is rejected, this is called 
         console.log(err, "Error while getting file")
-    } finally {
         return null;
     }
 }
@@ -135,9 +134,8 @@ async function getDirectoryReaderEntries(directoryReader: DirectoryReader): Prom
         return await new Promise((resolve, reject) => directoryReader.readEntries(resolve,reject));
     } catch (err) {
         console.log(err, "Directory scan failed");
-    } finally {
         return null;
-    }
+    } 
 }
 
 /**
