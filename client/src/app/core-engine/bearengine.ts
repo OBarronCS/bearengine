@@ -1,5 +1,5 @@
 
-import { EngineMouse, InternalMouse } from "../input/mouse";
+import { InternalMouse, EngineMouse } from "../input/mouse";
 import { GUI } from "dat.gui";
 import { RendererSystem } from "./renderer";
 import { CameraSystem } from "./camera";
@@ -47,7 +47,7 @@ console.log(ALL_TEXTURES)
 export interface CoreEvents  {}
 
 export interface EngineSettings {
-    popup: boolean
+    popup: false
 }
 
 class BearEngine {
@@ -56,13 +56,13 @@ class BearEngine {
 
     public camera: CameraSystem = null;
 
-    public mouse_info = new Text("",new TextStyle({"fill": "white"}));
+    public mouse_info: Text = null;
     
 
     // Total simulated time, in seconds
     public totalTime = 0;
 
-    public mouse: EngineMouse = null;
+    public mouse: InternalMouse = null;
     public keyboard: EngineKeyboard = null;
     public current_level: LevelHandler = null;
 
@@ -78,59 +78,55 @@ class BearEngine {
 
     private player: Player;
 
-    constructor(settings: EngineSettings){        
+    constructor(){        
         this.network = new BufferedNetwork("ws://127.0.0.1:8080");
-        this.network.connect();
+    }
 
-        this.partQueries.push(this.remotelocations);
-
-
-
-        this.mouse = new InternalMouse();
-
+    private async initRenderer(settings: EngineSettings): Promise<RendererSystem> {
         if(!settings.popup){
-            this.keyboard = new EngineKeyboard(window)
-            this.mouse.addWindowListeners(window);
-
+            
             const div = document.querySelector("#display") as HTMLElement;
             
-            this.renderer = new RendererSystem(div, window);
-            this.camera = new CameraSystem(this.renderer,this.renderer.mainContainer, window, this.mouse, this.keyboard);
-            
-            /////////// Stops right click CONTEXT MENU from showing
-            div.addEventListener('contextmenu', function(ev) {
-                ev.preventDefault();
-                return false;
-            }, false);
-            ////////////
+            return new RendererSystem(div, window);
 
-            this.partQueries.push(this.renderer.graphicsQuery);
-            this.partQueries.push(this.renderer.spriteQuery);
-            
         } else { // creates a pop up display
-            CreateWindow("Game", {width:400, height:300,center:true}).then(new_window => {
-                this.keyboard = new EngineKeyboard(new_window);
-                this.mouse.addWindowListeners(new_window);
+            throw new Error("Not implemented")
+            // I scraped it for now because in reality, I need to load the entire page in the seperate window for it to work properly
+            // const new_window = await CreateWindow("Game", {width:400,height:300,center:true});
+            // console.log(new_window)
+            // const displayDiv = new_window.document.createElement("div");
+            // new_window.document.body.appendChild(displayDiv);
                 
-                const displayDiv = new_window.document.createElement("div");
-                new_window.document.body.appendChild(displayDiv);
-
-                this.renderer = new RendererSystem(displayDiv, new_window);
-                this.camera = new CameraSystem(this.renderer,this.renderer.mainContainer, new_window, this.mouse, this.keyboard);
-            });
+            // return new RendererSystem(displayDiv, new_window);
         }
-
-        const gui_layer = this.renderer.guiContainer;
-    
-        this.mouse_info.x = 5;
-        this.mouse_info.y = this.renderer.getPercentHeight(1) - 50;
-        gui_layer.addChild(this.mouse_info);
     }
 
     // Creates the WebGL view using PIXI.js, so the game can be rendered
     // Connects keyboard and mouse listeners
-    startRenderer(settings: EngineSettings){
+    async startRenderer(settings: EngineSettings): Promise<void> {
+        this.renderer = await this.initRenderer(settings);
+
+        const targetWindow = this.renderer.targetWindow;
+        const targetDiv = this.renderer.targetDiv;
+
+        this.mouse = new EngineMouse();
+        this.mouse.addWindowListeners(targetWindow);
+
+        this.keyboard = new EngineKeyboard(targetWindow)
+
+        this.camera = new CameraSystem(this.renderer,this.renderer.mainContainer, targetWindow, this.mouse, this.keyboard);
         
+
+        this.mouse_info = new Text("",new TextStyle({"fill": "white"}));
+        this.mouse_info.x = 5;
+        this.mouse_info.y = this.renderer.getPercentHeight(1) - 50;
+        this.renderer.addGUI(this.mouse_info);
+
+                                
+        targetDiv.addEventListener('contextmenu', function(ev) {
+            ev.preventDefault();
+            return false;
+        }, false);
     }
 
     // Loads all assets from server
@@ -146,7 +142,12 @@ class BearEngine {
         });
     }
 
+    /** Starts main loop. Connects to server */
     start(){
+        if(this.renderer === null) console.error("RENDERER NOT INITIALIZED");
+        
+        this.network.connect();
+
         (this.loop.bind(this))()
     }
 
@@ -190,7 +191,9 @@ class BearEngine {
         this.renderer.addSprite(g);
 
         this.partQueries.push(this.current_level.collisionManager.partQuery);
-    
+        this.partQueries.push(this.renderer.graphicsQuery);
+        this.partQueries.push(this.renderer.spriteQuery);
+        this.partQueries.push(this.remotelocations);
 
         loadTestLevel.call(this);
         this.addEntity(this.player = new Player())

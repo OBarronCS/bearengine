@@ -23,12 +23,12 @@ export interface MouseInput {
     onmousemove(func: (worldPoint:Vec2,screenPoint:Vec2) => void): void,
 }
 
-export interface EngineMouse extends MouseInput {
+export interface InternalMouse extends MouseInput {
     update(): void;
     addWindowListeners(window: Window): void
 }
 
-export class InternalMouse implements EngineMouse {
+export class EngineMouse implements InternalMouse {
     position: Vec2 = new Vec2(0,0);
     screenPosition: Vec2 = new Vec2(0,0);
     velocity: Vec2 = new Vec2(0,0);
