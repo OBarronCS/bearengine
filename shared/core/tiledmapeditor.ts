@@ -33,7 +33,7 @@ sprite = []
 
 
 // Infinite maps have additional properties
-interface TiledMap  {
+export interface TiledMap  {
     backgroundcolor?: string, //#RRGGBB, if alpha is not 255 its #AARRGGBB
     height: number, // tile rows,
     width: number, // tile columns,

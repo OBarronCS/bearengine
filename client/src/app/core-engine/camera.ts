@@ -18,7 +18,7 @@ export class CameraSystem {
     // Used for camera shake [0,1]
     private trauma = 0;
 
-    constructor(renderer: RendererSystem, container: Container, targetWindow: Window, mouse: InternalMouse,keyboard: EngineKeyboard) {
+    constructor(renderer: RendererSystem, container: Container, targetWindow: Window, mouse: InternalMouse, keyboard: EngineKeyboard) {
 
         this.renderer = renderer;
         this.container = container;
@@ -50,7 +50,7 @@ export class CameraSystem {
         // while dragging
         targetWindow.addEventListener("mousemove",event => {
             const point = new Point(0,0);
-            renderer.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y)
+            renderer.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y);
 
             if(!mouse.isDown("middle")){
                 if(!mouse.isDown("left")) return;
@@ -66,7 +66,7 @@ export class CameraSystem {
         // ZOOM
         targetWindow.addEventListener("wheel", (event) => {
             const point = new Point(0,0);
-            renderer.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y)
+            renderer.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y);
             const con = this.container;
 
             // makes it so the mousepoint stays the same after and before zoom
@@ -86,13 +86,17 @@ export class CameraSystem {
         });
     }
 
-    public center: Vec2 = new Vec2(0,0);
+    public zoom(factor: Coordinate){
+        this.container.scale.copyFrom(factor);
+    }
+
+    private center: Vec2 = new Vec2(0,0);
 
     set left(x: number) { this.container.pivot.x = x + (this.container.position.x / this.container.scale.x); }
-    get left(): number {return this.container.pivot.x - (this.container.position.x / this.container.scale.x); }
+    get left(): number { return this.container.pivot.x - (this.container.position.x / this.container.scale.x); }
 
     set right(x: number) { this.container.pivot.x = x - (this.container.position.x / this.container.scale.x); }
-    get right(): number {return this.container.pivot.x + (this.container.position.x / this.container.scale.x); }
+    get right(): number { return this.container.pivot.x + (this.container.position.x / this.container.scale.x); }
 
     set top(y: number) { this.container.pivot.y = y + (this.container.position.y / this.container.scale.y); }
     get top(): number { return this.container.pivot.y - (this.container.position.y / this.container.scale.y); }

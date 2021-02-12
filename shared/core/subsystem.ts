@@ -2,6 +2,7 @@ import { Part } from "./abstractpart";
 import { PartQuery } from "./partquery";
 
 
+// none in use, going to remove this as soon as I think of a better alternative
 export abstract class Subsystem {
     queries: PartQuery<any>[] = [];
     

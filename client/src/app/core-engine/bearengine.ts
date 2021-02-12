@@ -12,7 +12,7 @@ import { EngineKeyboard } from "../input/keyboard";
 import { loadTestLevel } from "../gamelogic/testlevelentities";
 import { BufferedNetwork } from "./networking/socket";
 
-import { CustomMapFormat, ParseTiledMapData } from "shared/core/tiledmapeditor";
+import { CustomMapFormat, ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { LevelHandler } from "shared/core/level";
 import { PartQuery } from "shared/core/partquery";
 import { Text, Graphics, Loader, TextStyle, utils, Point, Sprite } from "pixi.js";
@@ -23,6 +23,7 @@ import { Subsystem } from "shared/core/subsystem";
 import { round } from "shared/miscmath";
 import { NetworkedEntityManager } from "./networking/gamemessagemanager";
 import { RemoteLocations } from "./networking/remotecontrol";
+import { Vec2 } from "shared/shapes/vec2";
 
 
 const SHARED_RESOURCES = Loader.shared.resources;
@@ -56,7 +57,7 @@ class BearEngine {
 
     public camera: CameraSystem = null;
 
-    public mouse_info: Text = null;
+    private mouse_info: Text = null;
     
 
     // Total simulated time, in seconds
@@ -76,7 +77,7 @@ class BearEngine {
     public remotelocations: PartQuery<RemoteLocations> = new PartQuery(RemoteLocations);
     
 
-    private player: Player;
+    private player: Player = null;
 
     constructor(){        
         this.network = new BufferedNetwork("ws://127.0.0.1:8080");
@@ -91,7 +92,7 @@ class BearEngine {
 
         } else { // creates a pop up display
             throw new Error("Not implemented")
-            // I scraped it for now because in reality, I need to load the entire page in the seperate window for it to work properly
+            // In reality, I need to load the entire codebase in the seperate window for it to work properly
             // const new_window = await CreateWindow("Game", {width:400,height:300,center:true});
             // console.log(new_window)
             // const displayDiv = new_window.document.createElement("div");
@@ -148,7 +149,7 @@ class BearEngine {
         
         this.network.connect();
 
-        (this.loop.bind(this))()
+        (this.loop.bind(this))();
     }
 
     registerSystem<T extends Subsystem>(system: T) {
@@ -157,8 +158,9 @@ class BearEngine {
     }
 
     // it doesn't actually take this in as CustomMapFormat. It turns a Tiled struct into it
-	startLevel(level_struct: CustomMapFormat){
-        level_struct = ParseTiledMapData(<any>level_struct);
+	startLevel(levelData: CustomMapFormat){
+        const level_struct = levelData;
+
 		this.current_level = new LevelHandler(level_struct);
         this.current_level.load();
 
@@ -171,8 +173,7 @@ class BearEngine {
             sprite.width = s.width;
             sprite.height = s.height;
             this.renderer.addSprite(sprite)
-        })
-        
+        });
 
         // Global Data
         // @ts-expect-error
@@ -187,7 +188,6 @@ class BearEngine {
         
         const g = new Graphics();
         this.current_level.draw(g);
-
         this.renderer.addSprite(g);
 
         this.partQueries.push(this.current_level.collisionManager.partQuery);
@@ -197,6 +197,8 @@ class BearEngine {
 
         loadTestLevel.call(this);
         this.addEntity(this.player = new Player())
+        this.camera["center"].set(this.player.position);
+        this.camera.zoom(Vec2.HALFHALF)
         // this.camera.follow(this.player.position)
     }
 
@@ -251,7 +253,7 @@ class BearEngine {
             for (let i = 0; i < this.updateList.length; i++) {
                 const entity = this.updateList[i];
                 entity.update(dt);
-                entity.postUpdate();
+                entity.postUpdate(); // Maybe get rid of this, swap it with systems that I call after step
             }
 
             this.totalTime += dt;

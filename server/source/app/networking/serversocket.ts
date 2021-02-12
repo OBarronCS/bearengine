@@ -80,7 +80,7 @@ export class ServerNetwork {
                 case ServerBoundPacket.PLAYER_POSITION: this.playerPosition(socket, stream); break;
                 default: console.log("Player sent unknown data")
             }
-        })
+        });
     }
 
     playerPosition(socket: WS, stream: BufferStreamReader){
@@ -90,7 +90,7 @@ export class ServerNetwork {
     }
 
     sendPong(socket: WS, stream: BufferStreamReader){
-        const writer = new BufferStreamWriter(new ArrayBuffer(17));
+        const writer = new BufferStreamWriter(new ArrayBuffer(1 + 8 + 8));
         writer.setUint8(ClientBoundPacket.PONG);
         // copies the timestamp that was received, sends it back
         writer.setBigInt64(stream.getBigInt64());
