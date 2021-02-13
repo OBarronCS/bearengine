@@ -169,6 +169,10 @@ export class BufferStreamWriter {
         this.byteOffset += 4;
     }
 
+    // setEnum(value: number){
+    //     this.setUint8(value);
+    // }
+
     setUint8(value: number): void {
         this.dataview.setUint8(this.byteOffset,value);
         this.byteOffset += 1;
