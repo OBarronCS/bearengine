@@ -8,8 +8,9 @@
 import { abs, ceil } from "shared/miscmath";
 import { LinkedQueue } from "shared/datastructures/queue";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/networkstream"
-import { ClientBoundPacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
- 
+import { ClientBoundPacket, ClientPacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
+import { AssertUnreachable } from "shared/assertstatements"
+
 export abstract class Network {
 
     protected socket: WebSocket = null;
@@ -94,6 +95,12 @@ export class BufferedNetwork extends Network {
     }
 
     onopen(): void {
+        const stream = new BufferStreamWriter(new ArrayBuffer(2))
+        stream.setUint8(ServerBoundPacket.CLIENT_STATE_PACKET);
+        stream.setUint8(ClientPacket.JOIN_GAME);
+
+        this.send(stream.getBuffer());
+
         this.sendPing();
 
         setInterval(() => {
@@ -106,14 +113,14 @@ export class BufferedNetwork extends Network {
     onmessage(ev: MessageEvent<any>): void {
         const stream = new BufferStreamReader(ev.data);
 
-        const type = stream.getUint8();
+        const type: ClientBoundPacket = stream.getUint8();
+
         switch(type){
             case ClientBoundPacket.PONG: this.calculatePing(stream); break;
             case ClientBoundPacket.INIT: this.initInfo(stream); break;
             case ClientBoundPacket.START_TICKING: this.prepareTicking(stream); break;
             case ClientBoundPacket.GAME_STATE_PACKET: this.processGameData(stream); break;
-            
-            default: console.log("Unknown data from server"); break;
+            default: AssertUnreachable(type);
         }
     }
 

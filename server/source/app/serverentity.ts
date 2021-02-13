@@ -1,23 +1,20 @@
 import { AbstractEntity} from "shared/core/abstractentity"
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { Vec2 } from "shared/shapes/vec2";
-import { GameStatePacket } from "shared/core/sharedlogic/packetdefinitions"
+import { GamePacket } from "shared/core/sharedlogic/packetdefinitions"
 
 export abstract class ServerEntity extends AbstractEntity {}
 
 // One instance of this corresponds to one RemoteEntity client side
 export abstract class NetworkedEntity extends ServerEntity {
-    static NEXT_ID = 0;
 
-    abstract packetType: GameStatePacket;
+    readonly id = -1;
 
-    protected readonly id = NetworkedEntity.NEXT_ID++;
-
-    constructor(){
-        super();
-    }
+    abstract packetType: GamePacket;
 
     writeEntityData(stream: BufferStreamWriter){
+        if(this.id === -1) throw new Error("THIS SHOULDN'T BE HAPPENING")
+
         stream.setUint8(this.packetType);
         stream.setUint16(this.id);
         this.write(stream);
@@ -28,11 +25,7 @@ export abstract class NetworkedEntity extends ServerEntity {
 
 
 export class FirstNetworkedEntity extends NetworkedEntity {
-    packetType: GameStatePacket = GameStatePacket.SIMPLE_POSITION;
-
-    constructor(){
-        super();
-    }
+    packetType: GamePacket = GamePacket.SIMPLE_POSITION;
 
     update(dt: number): void {
         this.position.add(Vec2.random().extend(200));
@@ -42,12 +35,6 @@ export class FirstNetworkedEntity extends NetworkedEntity {
         stream.setFloat32(this.x);
         stream.setFloat32(this.y);
     }
-}
-
-
-export class RemotePlayer extends FirstNetworkedEntity {
-
-    update(dt: number): void {}
 }
 
 

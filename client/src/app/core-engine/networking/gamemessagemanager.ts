@@ -1,16 +1,16 @@
 import { BufferStreamReader } from "shared/datastructures/networkstream";
-import { GameStatePacket } from "shared/core/sharedlogic/packetdefinitions"
+import { GamePacket } from "shared/core/sharedlogic/packetdefinitions"
 import { RemoteEntity, SimpleNetworkedSprite } from "./remotecontrol";
 import { BearEngine } from "../bearengine";
 
 export interface PacketHandler {
-    readonly packetType: GameStatePacket;
+    readonly packetType: GamePacket;
     read(frame: number, stream: BufferStreamReader): void;
 }
 
 export class NetworkedEntityManager {
 
-    private handlers: Map<GameStatePacket, PacketHandler> = new Map();
+    private handlers: Map<GamePacket, PacketHandler> = new Map();
 
     private entities: Map<number, RemoteEntity> = new Map(); 
 
@@ -19,13 +19,13 @@ export class NetworkedEntityManager {
     }
 
     constructor(public engine: BearEngine){
-        this.registerHandler(new SimplePositionPacketHandler(this.engine, this.entities))
-    
+        this.registerHandler(new SimplePositionPacketHandler(this.engine, this.entities));
+        this.registerHandler(new PlayerPacketHandler(this.engine, this.entities));
     
         //Run Time check that we have all handlers registered
-        for(const name in GameStatePacket){
-            if(typeof GameStatePacket[name] === "number"){
-                const num = GameStatePacket[name] as any as number;
+        for(const name in GamePacket){
+            if(typeof GamePacket[name] === "number"){
+                const num = GamePacket[name] as any as number;
 
                 if(this.handlers.get(num) === undefined) throw new Error("Packet Handler for: " + name + " undefined")
             }
@@ -42,7 +42,7 @@ export class NetworkedEntityManager {
 }
 
 class SimplePositionPacketHandler implements PacketHandler {
-    readonly packetType = GameStatePacket.SIMPLE_POSITION;
+    readonly packetType = GamePacket.SIMPLE_POSITION;
 
     private entities: Map<number, SimpleNetworkedSprite>;
     
@@ -68,5 +68,9 @@ class SimplePositionPacketHandler implements PacketHandler {
     }
 } 
 
+class PlayerPacketHandler extends SimplePositionPacketHandler {
+    // @ts-expect-error
+    readonly packetType = GamePacket.PLAYER_POSITION;
+}
 
 

@@ -2,9 +2,20 @@
 
 import WS from "ws"
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/networkstream"
-import { ClientBoundPacket, GameStatePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
-import { RemotePlayer } from "../serverentity";
+import { ClientBoundPacket, GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { ServerBearEngine } from "../serverengine";
+import { LinkedQueue } from "shared/datastructures/queue";
+import { AssertUnreachable } from "shared/assertstatements";
+
+export class ClientConnection {
+    id: number;
+    ping: number;
+}
+
+interface BufferedPacket {
+    client: ClientConnection;
+    buffer: BufferStreamReader;
+}
 
 export class ServerNetwork {
     private readonly TICK_RATE: number;
@@ -20,8 +31,9 @@ export class ServerNetwork {
     // List of connections
     protected sockets: WS[] = []
 
-    // TODO: move this out of the server network class
-    private playerMap = new Map<WS,RemotePlayer>();
+    private packets = new LinkedQueue<BufferedPacket>();
+
+    private clientMap = new Map<WS,ClientConnection>();
 
     constructor(tickRate:number, port: number, public engine: ServerBearEngine){
         this.TICK_RATE = tickRate;
@@ -32,6 +44,7 @@ export class ServerNetwork {
         this.socket = new WS.Server( { port:this.port } )
         this.socket.on("connection", this.sendStartData.bind(this));
 
+
         this.socket.on("close", () => {
             console.log("Disconected")
         });
@@ -40,15 +53,12 @@ export class ServerNetwork {
     sendStartData(socket: WS){
         socket.binaryType = "arraybuffer";
         this.sockets.push(socket);
-        
-        const p = new RemotePlayer()
-        this.playerMap.set(socket,p);
+
+        this.clientMap.set(socket, new ClientConnection());
 
         socket.on("close", () => {
 
         })
-
-        this.engine.addNetworkedEntity(p);
 
         console.log("New connection")
         
@@ -73,21 +83,34 @@ export class ServerNetwork {
         socket.on('message', (data: ArrayBuffer) => {
             // Assumes all messages are ping for now   
             const stream = new BufferStreamReader(data)
-            const type = stream.getUint8();
+
+            const type: ServerBoundPacket = stream.getUint8();
 
             switch(type){
                 case ServerBoundPacket.PING: this.sendPong(socket,stream); break;
-                case ServerBoundPacket.PLAYER_POSITION: this.playerPosition(socket, stream); break;
-                default: console.log("Player sent unknown data")
+                case ServerBoundPacket.CLIENT_STATE_PACKET: this.processGameData(socket, stream); break;
+                default: AssertUnreachable(type);
             }
         });
     }
 
-    playerPosition(socket: WS, stream: BufferStreamReader){
-        const p = this.playerMap.get(socket);
-        p.x = stream.getFloat32();
-        p.y = stream.getFloat32();
+    private processGameData(socket: WS, stream: BufferStreamReader){
+
+        const client = this.clientMap.get(socket);
+
+        if(client === undefined) throw new Error("Processing game data from unknown client. If this error goes off then there is something deeply wrong");
+
+        this.packets.enqueue({
+            client:client,
+            buffer: stream,
+        });
     }
+
+    public packetQueue(){
+        return this.packets;
+    }
+
+
 
     sendPong(socket: WS, stream: BufferStreamReader){
         const writer = new BufferStreamWriter(new ArrayBuffer(1 + 8 + 8));
@@ -110,6 +133,8 @@ export class ServerNetwork {
     }
 
     sendGameData(buffer: ArrayBuffer | ArrayBufferView, time: number){
+        // TODO: Move this to the beginning of the tick, not the end; If simulation takes a while, this will be completely innaccurate
+        // However, will be fine if simulation consistantly takes the same amount of time
         this.referenceTime = BigInt(time);
         this.referenceTick = this.tick;
         

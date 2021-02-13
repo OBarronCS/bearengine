@@ -17,7 +17,7 @@ import { LevelHandler } from "shared/core/level";
 import { PartQuery } from "shared/core/partquery";
 import { Text, Graphics, Loader, TextStyle, utils, Point, Sprite } from "pixi.js";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
-import { ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
+import { ClientPacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { Subsystem } from "shared/core/subsystem";
 import { round } from "shared/miscmath";
@@ -263,9 +263,10 @@ class BearEngine {
         // Purely for testing. 
         {
             if(this.network.SERVER_IS_TICKING){
-                const stream = new BufferStreamWriter(new ArrayBuffer(1 + 4 + 4));
+                const stream = new BufferStreamWriter(new ArrayBuffer(1 + 1 + 4 + 4));
 
-                stream.setUint8(ServerBoundPacket.PLAYER_POSITION);
+                stream.setUint8(ServerBoundPacket.CLIENT_STATE_PACKET);
+                stream.setUint8(ClientPacket.PLAYER_POSITION)
                 stream.setFloat32(this.player.x);
                 stream.setFloat32(this.player.y);
 
