@@ -78,6 +78,10 @@ export class BufferedNetwork extends Network {
     /** milliseconds, adjusted on ping packets */
     public CLOCK_DELTA = 0;
 
+    // Generous, default ping
+    // TODO: set it to -1 and don't start ticking until we actually know it. Right now it starts ticking and then some time later the ping is adjusted
+    public ping: number = 150;
+
     // How much buffer caused by latency
     // TODO: don't actually have this be a set number of packets, but a time in ms
     private latencyBuffer: number = -1;
@@ -86,12 +90,6 @@ export class BufferedNetwork extends Network {
     // TODO: Change this to big in terms of ms? Because if tick rate is slow (10fps) than this only really needs to be 1, because clumping is less of an issue
     private additionalBuffer = 2;
 
-    // Generous, default ping
-    // TODO: set it to -1 and don't start ticking until we actually know it. Right now it starts ticking and then some time later the ping is adjusted
-    public ping: number = 150;
-
-    // Used if join a game, and its a lobby phase where the server is not sending real data. Or if server sends a message that says its DONE
-    // TODO: implement failsafes so if the connecting abrubtly ends, we don't get errors in devtools, and instead notify the game engine that we are no longer connected.
     public SERVER_IS_TICKING: boolean = false;
 
 
@@ -184,7 +182,7 @@ export class BufferedNetwork extends Network {
         console.log("Ping:" + this.ping);
 
         this.latencyBuffer = ceil((this.ping / 1000) * this.SERVER_SEND_RATE);
-        console.log("LatencyBuffer: " + this.latencyBuffer)
+        console.log("LatencyBuffer: " + this.latencyBuffer);
 
     
         // This method assumes latency is equal both ways

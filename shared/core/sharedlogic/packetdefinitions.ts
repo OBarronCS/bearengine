@@ -16,12 +16,11 @@ export enum GamePacket {
 
 
 
+
 export enum ServerBoundPacket {
     PING = 0,
     CLIENT_STATE_PACKET // envelopes ClienPacket's
 }
-
-// Server Bound, think of better name
 
 // Make sure to recompile client after changing these, or else
 // everything will break and the bug will be impossible to track down

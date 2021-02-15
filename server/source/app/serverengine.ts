@@ -2,10 +2,7 @@
 
 
 import { CustomMapFormat } from "shared/core/tiledmapeditor";
-import { FirstNetworkedEntity, NetworkedEntity, ServerEntity } from "./serverentity";
-
 import { LevelHandler } from "shared/core/level";
-import { ClientConnection, ServerNetwork } from "./networking/serversocket";
 import { Vec2 } from "shared/shapes/vec2";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { chance } from "shared/randomhelpers";
@@ -14,6 +11,8 @@ import { ClientPacket, GamePacket } from "shared/core/sharedlogic/packetdefiniti
 import { AssertUnreachable } from "shared/assertstatements";
 import { LinkedQueue } from "shared/datastructures/queue";
 
+import { FirstNetworkedEntity, NetworkedEntity, ServerEntity } from "./serverentity";
+import { ClientConnection, ServerNetwork } from "./networking/serversocket";
 
 export class RemotePlayer {
     readonly id: number = -1;
@@ -22,18 +21,15 @@ export class RemotePlayer {
 
 
 class ServerBearEngine {
-    // Total simulated time, in seconds
+
+    public network: ServerNetwork = null;
+    public readonly TICK_RATE: number;
 
     private NEXT_ENTITY_ID = 0;
 
     public totalTime = 0;
 
-    public network: ServerNetwork = null;
 
-
-    public TICK_RATE: number;
-
-    // Things that should be globally accessible by SE
     private current_level: LevelHandler = null;
 
     private updateList: AbstractEntity[] = [];
@@ -41,6 +37,7 @@ class ServerBearEngine {
     private previousTick: number = 0;
 
     
+    // Maybe just turn this into a stream that is written to.
     private networkMessageQueue = new LinkedQueue<{id: number}>();
 
 

@@ -203,7 +203,7 @@ class BearEngine {
     }
 
 
-    updateNetwork(){
+    readFromNetwork(){
         const packets = this.network.newPacketQueue();
 
         while(!packets.isEmpty()){
@@ -239,7 +239,7 @@ class BearEngine {
         this.keyboard.update();
         this.mouse.update();
 
-        this.updateNetwork();
+        this.readFromNetwork();
 
 
         // both of these are in ms
@@ -266,7 +266,7 @@ class BearEngine {
                 const stream = new BufferStreamWriter(new ArrayBuffer(1 + 1 + 4 + 4));
 
                 stream.setUint8(ServerBoundPacket.CLIENT_STATE_PACKET);
-                stream.setUint8(ClientPacket.PLAYER_POSITION)
+                stream.setUint8(ClientPacket.PLAYER_POSITION);
                 stream.setFloat32(this.player.x);
                 stream.setFloat32(this.player.y);
 
