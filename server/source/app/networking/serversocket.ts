@@ -2,7 +2,7 @@
 
 import WS from "ws"
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/networkstream"
-import { ClientBoundPacket, GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
+import { ClientBoundPacket, ClientPacket, GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { ServerBearEngine } from "../serverengine";
 import { LinkedQueue } from "shared/datastructures/queue";
 import { AssertUnreachable } from "shared/assertstatements";
@@ -28,12 +28,11 @@ export class ServerNetwork {
 
     public tick = 0;
 
-    // List of connections
-    protected sockets: WS[] = []
-
-    private packets = new LinkedQueue<BufferedPacket>();
-
+    // List of connections. WS also has some built into way to do this...
+    protected sockets: WS[] = [];
     private clientMap = new Map<WS,ClientConnection>();
+    
+    private packets = new LinkedQueue<BufferedPacket>();
 
     constructor(tickRate:number, port: number, public engine: ServerBearEngine){
         this.TICK_RATE = tickRate;
@@ -43,7 +42,6 @@ export class ServerNetwork {
     public start(){
         this.socket = new WS.Server( { port:this.port } )
         this.socket.on("connection", this.sendStartData.bind(this));
-
 
         this.socket.on("close", () => {
             console.log("Disconected")
@@ -57,7 +55,24 @@ export class ServerNetwork {
         this.clientMap.set(socket, new ClientConnection());
 
         socket.on("close", () => {
+            
+            const client = this.clientMap.get(socket);
 
+            if(client === undefined) throw new Error("Closing socket from unknown client. If this error goes off then there is something deeply wrong");
+
+            const stream = new BufferStreamWriter(new ArrayBuffer(3))
+            stream.setUint8(ServerBoundPacket.CLIENT_STATE_PACKET);
+            stream.setUint8(ClientPacket.LEAVE_GAME);
+
+            this.packets.enqueue({
+                client:client,
+                buffer: new BufferStreamReader(stream.getBuffer()),
+            });
+
+            // This is the last message associated with this socket
+            this.clientMap.delete(socket);
+            const index = this.sockets.indexOf(socket);
+            this.sockets.splice(index,1);
         })
 
         console.log("New connection")

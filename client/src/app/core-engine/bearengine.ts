@@ -262,7 +262,7 @@ class BearEngine {
         
         // Purely for testing. 
         {
-            if(this.network.SERVER_IS_TICKING){
+            if(this.network.CONNECTED && this.network.SERVER_IS_TICKING){
                 const stream = new BufferStreamWriter(new ArrayBuffer(1 + 1 + 4 + 4));
 
                 stream.setUint8(ServerBoundPacket.CLIENT_STATE_PACKET);

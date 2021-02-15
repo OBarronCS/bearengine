@@ -1,4 +1,3 @@
-
 /*
     Client side socket connection to a server:
         Deals with connecting to server,
@@ -16,6 +15,8 @@ export abstract class Network {
     protected socket: WebSocket = null;
     private url: string;
 
+    public CONNECTED: boolean = false;
+
     constructor(url: string){
         this.url = url;
     }
@@ -26,11 +27,16 @@ export abstract class Network {
 
         this.socket.onopen = () => {
             console.log("Socket connected");
+            this.CONNECTED = true;
             this.onopen();
         }
 
         this.socket.onclose = () => {
-            console.log("Disconected")
+            console.log("Socket closed");
+            this.CONNECTED = false;
+            // this.socket.close() will initiate closing on client side, and will go into closing state (2)
+            // this is not the case here but may be helpful in the future
+            // At this point, socket is in state "3", closed. 
             this.onclose();
         }
 
@@ -41,7 +47,6 @@ export abstract class Network {
     abstract onopen(): void;
     abstract onclose(): void;
     abstract onmessage(ev: MessageEvent<any>): void;
-
 
     public send(buffer: ArrayBuffer | ArrayBufferView){
         this.socket.send(buffer);
@@ -103,6 +108,8 @@ export class BufferedNetwork extends Network {
 
         this.sendPing();
 
+        // TODO: stop this from being in setInterval, put it into tick 
+        // Possible issues: tick is run in rAF, which is not run if the tab is not in focus/view. Pinging still stop in those cases
         setInterval(() => {
             this.sendPing();
         }, 2000)

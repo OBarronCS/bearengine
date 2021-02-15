@@ -12,6 +12,7 @@ import { chance } from "shared/randomhelpers";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { ClientPacket, GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { AssertUnreachable } from "shared/assertstatements";
+import { LinkedQueue } from "shared/datastructures/queue";
 
 
 export class RemotePlayer {
@@ -38,6 +39,9 @@ class ServerBearEngine {
     private updateList: AbstractEntity[] = [];
     private networkedEntities: NetworkedEntity[] = [];
     private previousTick: number = 0;
+
+    
+    private networkMessageQueue = new LinkedQueue<{id: number}>();
 
 
     private players = new Map<ClientConnection,RemotePlayer>();
@@ -80,21 +84,29 @@ class ServerBearEngine {
             const stream = packet.buffer;
 
             const type: ClientPacket = stream.getUint8();
+
             switch(type){
                 case ClientPacket.JOIN_GAME: {
+                    // Maybe: first check that it hasn't been created. Don't want join packet being sent twice on accident
                     const player = new RemotePlayer();
                     //@ts-expect-error
                     player.id = this.NEXT_ENTITY_ID++;
                     this.players.set(client, player);
                     break;
                 }
+                case ClientPacket.LEAVE_GAME: {
+                    const player = this.players.get(client);
+                    this.players.delete(client);
+                    this.networkMessageQueue.enqueue({id: player.id })
+                    break;
+                }
                 case ClientPacket.PLAYER_POSITION: {
                     const p = this.players.get(client);
                     p.position.x = stream.getFloat32();
                     p.position.y = stream.getFloat32();
-
                     break;
                 }
+                
 
                 default: AssertUnreachable(type);
             }
@@ -107,6 +119,11 @@ class ServerBearEngine {
         const stream = new BufferStreamWriter(new ArrayBuffer(256));
 
         this.network.writePacketStateData(stream);
+
+        while(!this.networkMessageQueue.isEmpty()){
+            stream.setUint8(GamePacket.ENTITY_DESTROY);
+            stream.setUint16(this.networkMessageQueue.dequeue().id);
+        }
 
         for (let i = 0; i < this.networkedEntities.length; i++) {
             const entity = this.networkedEntities[i];

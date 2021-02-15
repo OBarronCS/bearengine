@@ -6,6 +6,12 @@ const MiniCSSExtractPlugin = require("mini-css-extract-plugin")
 
 module.exports = merge(common, {
     "mode":"production",
+
+    // I'm using this to speed up builds for testing
+    optimization: {
+        minimize: false,
+    },
+
     output:{
         filename: "main.[contentHash].js",
         path: path.resolve(__dirname,"dist")

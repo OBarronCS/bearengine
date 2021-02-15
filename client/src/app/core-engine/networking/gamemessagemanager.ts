@@ -2,6 +2,7 @@ import { BufferStreamReader } from "shared/datastructures/networkstream";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions"
 import { RemoteEntity, SimpleNetworkedSprite } from "./remotecontrol";
 import { BearEngine } from "../bearengine";
+import { AbstractEntity } from "shared/core/abstractentity";
 
 export interface PacketHandler {
     readonly packetType: GamePacket;
@@ -21,7 +22,8 @@ export class NetworkedEntityManager {
     constructor(public engine: BearEngine){
         this.registerHandler(new SimplePositionPacketHandler(this.engine, this.entities));
         this.registerHandler(new PlayerPacketHandler(this.engine, this.entities));
-    
+        this.registerHandler(new EntityDestroyerHandler(this.engine, this.entities));
+
         //Run Time check that we have all handlers registered
         for(const name in GamePacket){
             if(typeof GamePacket[name] === "number"){
@@ -73,4 +75,27 @@ class PlayerPacketHandler extends SimplePositionPacketHandler {
     readonly packetType = GamePacket.PLAYER_POSITION;
 }
 
+
+class EntityDestroyerHandler implements PacketHandler {
+    readonly packetType = GamePacket.ENTITY_DESTROY;
+
+    private entities: Map<number, AbstractEntity>;
+    
+    constructor(public engine: BearEngine, es: Map<number, RemoteEntity>){
+        this.entities = es;
+    }
+
+    read(frame: number, stream: BufferStreamReader): void {
+        // Find correct entity
+        const id = stream.getUint16();
+
+        let e = this.entities.get(id);
+        if(e !== undefined){
+            console.log("Destroying entity: " + id);
+
+            this.engine.destroyEntity(e);
+        }
+    
+    } 
+}
 
