@@ -1,6 +1,6 @@
 import { AbstractEntity } from "./abstractentity";
 
-// USE: Subclass this!
+// USE: Subclass, or provide functions in 'on' functions!
 export class Effect extends AbstractEntity {
 
 	public destroy_effect: boolean = false;
@@ -18,28 +18,28 @@ export class Effect extends AbstractEntity {
 		return this.updateFunctions.length === 0 && this.finishFunctions.length === 0 && this.intervalFunctions.length === 0 && this.delayFunctions.length === 0;
 	}
 
-	onStart(func:(() => void)){
+	onStart(func:((this:this) => void)){
 		const boundedFunc = func.bind(this);
 		this.startFunctions.push(boundedFunc)
 	}
 	
-	onUpdate(func: ((dt: number) => void)){
+	onUpdate(func: ((this:this, dt: number) => void)){
 		const boundedFunc = func.bind(this);
 		this.updateFunctions.push(boundedFunc)
 	}
 	
-	onFinish(func: () => void){
+	onFinish(func: (this:this) => void){
 		const boundedFunc = func.bind(this);
 		this.finishFunctions.push(boundedFunc)
 	}
 
 	/// max_times = 0 does not work as of now... Just don't do that
-	onInterval(time: number, func: (lap: number) => void, max_times = -1){
+	onInterval(time: number, func: (this:this, lap: number) => void, max_times = -1){
 		const boundedFunc = func.bind(this);
 		this.intervalFunctions.push([time, boundedFunc, 0, max_times]);
 	}
 	
-	onDelay(time: number, func:() => void){
+	onDelay(time: number, func: (this:this) => void){
 		const boundedFunc = func.bind(this);
 		this.delayFunctions.push([time, boundedFunc]);
 	}
@@ -48,13 +48,13 @@ export class Effect extends AbstractEntity {
 		this.onDelay(time, () => this.destroy_effect = true);
 	}
 
-	start(){
+	private start(){
 		for (let i = 0; i < this.startFunctions.length; ++i) {
 			this.startFunctions[i]();
 		}
 	}
 
-	finish(){
+	private finish(){
 		for (let i = 0; i < this.finishFunctions.length; ++i) {
 		    this.finishFunctions[i]();
 		}

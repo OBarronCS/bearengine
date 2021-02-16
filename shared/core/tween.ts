@@ -4,9 +4,6 @@ import { Coordinate, mix } from "shared/shapes/vec2";
 import { Effect } from "./effects";
 
 
-
-
-
 abstract class Tween<T> extends Effect  {
     public object: object
     public property: string
@@ -52,7 +49,7 @@ abstract class Tween<T> extends Effect  {
                     }
                 }
             }
-        })
+        });
     }
 
 
@@ -75,9 +72,9 @@ abstract class Tween<T> extends Effect  {
         return this;
     }
 
-    chain<T extends Tween<any>>(tween: T) {
+    chain<T extends Tween<any>>(tween: T): T {
         this.nextChain = tween;
-        return this.nextChain
+        return tween;
     } 
 
     // Sets the initial state

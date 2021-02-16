@@ -1,13 +1,12 @@
 import { RAD_TO_DEG, Graphics } from "pixi.js";
 
 import { Vec2, rotatePoint, angleBetween } from "shared/shapes/vec2";
-import { random_range, random } from "shared/randomhelpers";
+import { random_range } from "shared/randomhelpers";
 import { dimensions } from "shared/shapes/rectangle";
 import { drawPoint } from "shared/shapes/shapedrawing";
 import { clamp, PI } from "shared/miscmath";
 import { ColliderPart } from "shared/core/abstractpart";
 
-import { DefaultBulletEffect } from "../core-engine/clienteffects";
 import { SpritePart } from "../core-engine/parts";
 import { AddOnType } from "../core-engine/weapons/addon";
 import { SimpleGun } from "../core-engine/weapons/weapon";
@@ -63,26 +62,26 @@ export class Player extends DrawableEntity {
 
     constructor(){
         super();
-        this.position.set({x : 500, y: 100})
+        this.position.set({x : 500, y: 100});
         this.Keyboard.bind("r", ()=> {
             this.position.set({x : 500, y: 100});
         });
 
-        this.spritePart = new SpritePart("images/vector.jpg")
+        this.spritePart = new SpritePart("images/vector.jpg");
         this.spritePart.originPercent = {x:.5 ,y:.5};
         this.addPart(this.spritePart);
         
-        this.colliderPart = new ColliderPart(dimensions(50,50),{x:20, y: 20});
+        this.colliderPart = new ColliderPart(dimensions(32,32),{x:16, y:16});
         this.addPart(this.colliderPart);
 
-        // width not initialized yet
-
+        // sprite not initialized yet
+        // Maybe make textures globally accessible, since they don't actually depend on the renderer
         this.test_width = 32//this.spritePart.width;
         this.test_height = 32//this.spritePart.height;
         
         
         const {width, height} = {width:32, height:32}//this.spritePart.sprite
-        const {x, y} = this.position
+        const {x, y} = this.position;
 
         this.downRayTop = new Vec2(x,y);
         this.downRayBot = new Vec2(x,y + height / 2);
@@ -101,10 +100,14 @@ export class Player extends DrawableEntity {
         this.gun.addons.push({
             addontype: AddOnType.SPECIAL,
             modifyShot : function(shotInfo, effect){
-                effect.onInterval(2, function(this: DefaultBulletEffect, times){
+                effect.onStart(function(){
+                    this
+                });
+
+                effect.onInterval(2, function(times){
                     this.velocity.drotate(random_range(-6,6))
                 })
-                effect.onInterval(4, function(this: DefaultBulletEffect,lap){
+                effect.onInterval(4, function(lap){
                     // this.velocity.extend(10 + random(10));
                 })
                 
