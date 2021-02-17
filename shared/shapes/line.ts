@@ -26,6 +26,12 @@ export class Line {
         //How it works:
         // Finds the point on the line that when passed through p, is normal to the line.
         //http://paulbourke.net/geometry/pointlineplane/ 
+
+        // if points lay on top of each other, there's a divide by zero so just return the point itself
+        if(A.x === B.x && A.y === B.y) {
+            return new Vec2(A.x, A.y);
+        }
+
         const dx = B.x - A.x;
         const dy = B.y - A.y;
 
@@ -33,7 +39,7 @@ export class Line {
         const denominator = Vec2.distanceSquared(B, A);
         const u = clamp(numerator / denominator,0,1);
 
-        return new Vec2(A.x + u * (dx), A.y + u * (dy));
+        return new Vec2(A.x + u * dx, A.y + u * dy);
     }
 
     static CircleLineIntersection(p1: Coordinate,p2: Coordinate, x: number, y: number, r: number, infiniteLine = false): Vec2[]{
@@ -83,17 +89,7 @@ export class Line {
 
 
     pointClosestTo(p: Coordinate): Vec2 {
-        //How it works:
-        // Finds the point on the line that when passed through p, is normal to the line.
-        //http://paulbourke.net/geometry/pointlineplane/ 
-        const dx = this.B.x - this.A.x;
-        const dy = this.B.y - this.A.y;
-
-        const numerator = (p.x - this.A.x)*(dx) +  (p.y - this.A.y)*(dy)
-        const denominator = Vec2.distanceSquared(this.B, this.A);
-        const u = clamp(numerator / denominator,0,1);
-
-        return new Vec2(this.A.x + u * (dx), this.A.y + u * (dy));
+        return Line.PointClosestToLine(this.A, this.B, p)
     }
 
     /**

@@ -75,9 +75,14 @@ export function loadTestLevel(this: BearEngine): void {
         private point: Vec2;
 
         private radius = 50;
+        constructor(){
+            super();
+            console.log(this.poly.polygon.points);
+        }
 
         update(dt: number): void {
             this.point = this.poly.polygon.closestPoint(this.Mouse.position);
+           //console.log(this.point)
             if(this.Mouse.wasPressed("left")) this.poly.carveCircle(this.point.x, this.point.y, this.radius)
             
             this.redraw(true);
@@ -763,14 +768,19 @@ class PolygonCarving {
         let startAngle = atan2(p1.y - y,p1.x - x);
         let endAngle = atan2(p2.y - y,p2.x - x);
         
+        const initialOffset =  Math.PI * 2 / VERTICES // used to make sure points don't repeat
+
         // Test so see which way is right way to go
+
         const testOffset = .3
         if(this.polygon.contains(new Vec2(x + cos(startAngle - testOffset) * r, y + sin(startAngle - testOffset) * r))){
             // go counter clockwise from 1 to two
             if(endAngle > startAngle) endAngle -= 2 * PI;
 
-            for(let i = startAngle; i > endAngle; i -= Math.PI * 2 / VERTICES)
+            for(let i = startAngle - initialOffset; i > endAngle; i -= Math.PI * 2 / VERTICES)
                 circlePoints.push(new Vec2(x + cos(i) * r, y + sin(i) * r));
+
+                
             console.log(circlePoints);
             circlePoints.reverse();
             newPoints.splice(addedIndices[1] + 1, 0, ...circlePoints);
@@ -778,7 +788,7 @@ class PolygonCarving {
             // else go clockwise from one to two;
             if(endAngle < startAngle) endAngle += 2 * PI;
 
-            for(let i = startAngle; i < endAngle; i += Math.PI * 2 / VERTICES)
+            for(let i = startAngle + initialOffset; i < endAngle; i += Math.PI * 2 / VERTICES)
                 circlePoints.push(new Vec2(x + cos(i) * r, y + sin(i) * r));
 
                 newPoints.splice(addedIndices[0] + 1, 0, ...circlePoints);
@@ -789,7 +799,8 @@ class PolygonCarving {
         
         this.polygon = Polygon.from(newPoints);
 
-        console.log("AREA: " + this.polygon.signedArea())
+        console.log("Polygon Points")
+        console.log(this.polygon.points)
     }   
 
     draw(g: Graphics){

@@ -28,10 +28,8 @@ export class Polygon implements Shape<Polygon>{
     static from(points: Vec2[]): Polygon {
 
         if(!Polygon.isClockwise(points)){
-            console.log(Polygon.SignedArea(points))
-            console.log("NOT CLOCKWISE")
+            // console.log("NOT CLOCKWISE")
             points.reverse();
-            console.log(points)
         }
 
         const normals: Vec2[] = []
@@ -54,7 +52,6 @@ export class Polygon implements Shape<Polygon>{
         return new Polygon(points,normals);
     }
 
-    
     static SignedArea(points: Vec2[]): number {
         //http://paulbourke.net/geometry/polygonmesh/ 
         let area = 0;
