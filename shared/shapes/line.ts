@@ -1,7 +1,7 @@
-import { Vec2, Coordinate } from "./vec2";
+import { Vec2, Coordinate, mix } from "./vec2";
 import { Rect } from "./rectangle";
 import type { Graphics } from "pixi.js";
-import { clamp } from "../miscmath";
+import { clamp, sqrt } from "../miscmath";
 import { drawLineBetweenPoints } from "shared/shapes/shapedrawing";
 
 
@@ -20,6 +20,49 @@ export class Line {
         const magnitude = Math.sqrt((dx * dx) + (dy * dy));
 
         return new Vec2(dy/magnitude, -dx/magnitude);
+    }
+
+    static PointClosestToLine(A:Coordinate, B:Coordinate, p: Coordinate): Vec2 {
+        //How it works:
+        // Finds the point on the line that when passed through p, is normal to the line.
+        //http://paulbourke.net/geometry/pointlineplane/ 
+        const dx = B.x - A.x;
+        const dy = B.y - A.y;
+
+        const numerator = (p.x - A.x)*(dx) +  (p.y - A.y)*(dy)
+        const denominator = Vec2.distanceSquared(B, A);
+        const u = clamp(numerator / denominator,0,1);
+
+        return new Vec2(A.x + u * (dx), A.y + u * (dy));
+    }
+
+    static CircleLineIntersection(p1: Coordinate,p2: Coordinate, x: number, y: number, r: number, infiniteLine = false): Vec2[]{
+        //http://paulbourke.net/geometry/circlesphere/
+
+        const a = (p2.x - p1.x)**2 + (p2.y - p1.y)**2;
+        const b = 2*( ((p2.x - p1.x)*(p1.x - x)) + ((p2.y - p1.y)*(p1.y - y)) )
+        const c = x**2 + y**2 + p1.x**2 + p1.y**2 - 2*((x * p1.x) + y*p1.y) - r**2;
+
+        // Quadtratic equation
+        const h = b**2 - 4*a*c;
+        if(h < 0) return [];
+
+        // Im pretty sure this returns the points in order from p1 to p2
+        // Maybe do explicit test, first smallest one first
+        const u1 = (-b - sqrt(h))/(2*a);
+        const u2 = (-b + sqrt(h))/(2*a);
+        
+        if(infiniteLine)
+            return [mix(p1,p2, u1), mix(p1,p2, u2)];
+        else {
+            // Make sure the points are actually between the two points
+            const points = [];
+            const point1 = (u1 > 0 && u1 < 1) ? mix(p1,p2, u1) : null;
+            const point2 = (u2 > 0 && u2 < 1) ? mix(p1,p2, u2) : null;
+            if(point1 !== null) points.push(point1);
+            if(point2 !== null) points.push(point2);
+            return points;
+        }   
     }
 
     constructor(p1: Coordinate, p2: Coordinate, normal: Coordinate = {x: 0, y: -1}){

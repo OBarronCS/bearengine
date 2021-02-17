@@ -135,18 +135,19 @@ export class Rect implements Shape<Rect> {
         return new Rect(_x, _y, _x2 - _x, _y2 - _y);
     }
 
+    /** Returns a clockwise polygon */
     toPolygon(): Polygon {
         const points: Vec2[] = [];
         points.push(new Vec2(this.left, this.top));
-        points.push(new Vec2(this.right, this.top));
-        points.push(new Vec2(this.right, this.bot));
         points.push(new Vec2(this.left, this.bot));
+        points.push(new Vec2(this.right, this.bot));
+        points.push(new Vec2(this.right, this.top));
 
         const normals: Vec2[] = [];
-        normals.push(new Vec2(0, -1));
-        normals.push(new Vec2(1, 0));
-        normals.push(new Vec2(0, 1));
         normals.push(new Vec2(-1, 0));
+        normals.push(new Vec2(0, 1)); 
+        normals.push(new Vec2(1, 0));
+        normals.push(new Vec2(0, -1));
 
         return new Polygon(points, normals);
     }

@@ -16,9 +16,9 @@ import { Ellipse } from "shared/shapes/ellipse";
 import { Line } from "shared/shapes/line";
 import { Polygon } from "shared/shapes/polygon";
 import { Rect, dimensions } from "shared/shapes/rectangle";
-import { drawLineArray, drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "shared/shapes/shapedrawing";
+import { drawCircle, drawLineArray, drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "shared/shapes/shapedrawing";
 import { Vec2, Coordinate, angleBetween, mix } from "shared/shapes/vec2";
-import { floor, PI } from "shared/miscmath";
+import { atan2, cos, floor, PI, second, sin } from "shared/miscmath";
 import { ColorTween } from "shared/core/tween"
 import { TickTimer } from "shared/ticktimer"
 import { ColliderPart } from "shared/core/abstractpart";
@@ -40,7 +40,66 @@ export function loadTestLevel(this: BearEngine): void {
 
     // this.addEntity(new BasicSprite())
 
-   
+    class CircleLineIntersectionTest extends DrawableEntity {
+        
+        private circle = new Vec2(0,0);
+        
+        private point = new Vec2(0,0);
+
+        draw(g: Graphics): void {
+            drawCircle(g, this.circle, 50)
+
+            if(this.Mouse.wasPressed("left")) this.point = this.Mouse.position.clone();
+
+            const otherPoint = this.Mouse.position.clone();
+
+            drawLineBetweenPoints(g,this.point,otherPoint);
+
+            const points = Line.CircleLineIntersection(this.point, otherPoint, this.circle.x, this.circle.y, 50);
+            for(const point of points){
+                drawPoint(g,point);
+            }
+        }
+        update(dt: number): void {
+            this.redraw()
+        }
+
+    }
+
+    //this.addEntity(new CircleLineIntersectionTest);
+
+
+    class PolygonCarveTest extends DrawableEntity {
+       
+        private poly = new PolygonCarving();
+        private point: Vec2;
+
+        private radius = 50;
+
+        update(dt: number): void {
+            this.point = this.poly.polygon.closestPoint(this.Mouse.position);
+            if(this.Mouse.wasPressed("left")) this.poly.carveCircle(this.point.x, this.point.y, this.radius)
+            
+            this.redraw(true);
+        }
+
+        draw(g: Graphics): void {
+            if(this.Keyboard.isDown("ArrowUp")) this.radius += 1
+            if(this.Keyboard.isDown("ArrowDown")) this.radius -= 1
+        
+            drawCircle(g,this.point, this.radius)
+
+            drawPoint(g,this.point,"#FF0000");
+            
+            
+            this.poly.draw(g);
+            
+           
+        }
+
+   }
+
+   this.addEntity(new PolygonCarveTest());
 
 
     class MouseRectCollider extends DrawableEntity {
@@ -651,6 +710,95 @@ export function loadTestLevel(this: BearEngine): void {
 
     
 }
+
+
+
+
+class PolygonCarving {
+
+
+    polygon = (new Rect(0,0,300,300).toPolygon())
+
+    
+    public carveCircle(x: number,y: number, r: number){
+        /*
+        1) Add points into the polygon point array into the right spots
+        2) Delete all original points that are inside the circle
+        3) Add circle points in the correct place
+
+        */
+        const circle = new Ellipse(new Vec2(x,y),r,r);
+
+        // contains the points of the resulting polygon
+        const newPoints: Vec2[] = []
+
+        // contains the indices in the newPoints array of the new collision points'
+        const addedIndices: number[] = [];
+
+        for(let i = 0; i < this.polygon.points.length; i++){
+            const point =  this.polygon.points[i];
+            const secondPoint = this.polygon.points[(i + 1) % this.polygon.points.length];
+            const collisionPoints = Line.CircleLineIntersection(point, secondPoint, x, y, r);
+            
+            if(!circle.contains(point)) newPoints.push(point);
+            for(const point of collisionPoints){
+                newPoints.push(point);
+                addedIndices.push(newPoints.length - 1);
+            }  
+        }
+
+        console.log(newPoints)
+
+        // 3) Add point in between added points. Added points are in adjacent pairs, but...
+        // For now assume only two points. 
+        const circlePoints: Vec2[] = [];
+
+        const p1 = newPoints[addedIndices[0]];
+        const p2 = newPoints[addedIndices[1]];
+        
+        // console.log("POINTS: ", p1,p2);
+
+        const VERTICES = 14; // in the entire theoretical circle 
+
+        let startAngle = atan2(p1.y - y,p1.x - x);
+        let endAngle = atan2(p2.y - y,p2.x - x);
+        
+        // Test so see which way is right way to go
+        const testOffset = .3
+        if(this.polygon.contains(new Vec2(x + cos(startAngle - testOffset) * r, y + sin(startAngle - testOffset) * r))){
+            // go counter clockwise from 1 to two
+            if(endAngle > startAngle) endAngle -= 2 * PI;
+
+            for(let i = startAngle; i > endAngle; i -= Math.PI * 2 / VERTICES)
+                circlePoints.push(new Vec2(x + cos(i) * r, y + sin(i) * r));
+            console.log(circlePoints);
+            circlePoints.reverse();
+            newPoints.splice(addedIndices[1] + 1, 0, ...circlePoints);
+        } else {
+            // else go clockwise from one to two;
+            if(endAngle < startAngle) endAngle += 2 * PI;
+
+            for(let i = startAngle; i < endAngle; i += Math.PI * 2 / VERTICES)
+                circlePoints.push(new Vec2(x + cos(i) * r, y + sin(i) * r));
+
+                newPoints.splice(addedIndices[0] + 1, 0, ...circlePoints);
+
+        }
+        
+        // console.log(startAngle, endAngle)
+        
+        this.polygon = Polygon.from(newPoints);
+
+        console.log("AREA: " + this.polygon.signedArea())
+    }   
+
+    draw(g: Graphics){
+        this.polygon.draw(g,0x0000FF);
+    }
+
+}
+
+
 
 
 

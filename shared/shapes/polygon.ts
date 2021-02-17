@@ -7,7 +7,8 @@ import type { Graphics, Point } from "pixi.js";
 
 import { default as earcut } from "earcut";
 
-import { drawVecAsArrow } from "./shapedrawing";
+import { drawPoint, drawVecAsArrow } from "./shapedrawing";
+import { Line } from "./line";
 
 
 // Test for concavity: http://paulbourke.net/geometry/polygonmesh/
@@ -25,7 +26,7 @@ export class Polygon implements Shape<Polygon>{
 
     /** Automatically create normals, puts points into clockwise ordered */
     static from(points: Vec2[]): Polygon {
-        // Clockwise here is not same as real life clockwise, because the coordinate system is flipped across y axis.
+
         if(!Polygon.isClockwise(points)){
             console.log(Polygon.SignedArea(points))
             console.log("NOT CLOCKWISE")
@@ -51,6 +52,21 @@ export class Polygon implements Shape<Polygon>{
         }
 
         return new Polygon(points,normals);
+    }
+
+    
+    static SignedArea(points: Vec2[]): number {
+        //http://paulbourke.net/geometry/polygonmesh/ 
+        let area = 0;
+        let k = points.length - 1;
+        for (let i = 0; i < points.length; k = i++){
+            const p1 = points[k];
+            const p2 = points[i];
+            
+            area += (p1.x * p2.y) - (p2.x * p1.y)
+        }
+
+        return area / 2;
     }
 
     static isClockwise(vecs: Vec2[]): boolean {
@@ -114,55 +130,12 @@ export class Polygon implements Shape<Polygon>{
         return new Vec2(centerX, centerY);
     }
 
-    // required for some algorithms that depend on clockwise vs counterclockwise point location
     signedArea(): number {
-        let leftside = 0;
-        let rightside = 0;
-
-        const n = this.points.length - 1;
-        for (let i = 0; i < this.points.length - 1; i++) {
-            leftside += this.points[i].x * this.points[i + 1].y;
-            leftside += this.points[n].x * this.points[0].y;
-        
-            rightside += this.points[i + 1].x * this.points[i].y;
-            rightside -= this.points[0].x * this.points[n].y;
-        }
-
-        return (leftside - rightside) / 2;
+        return Polygon.SignedArea(this.points);
     }
 
-    static SignedArea(points: Vec2[]): number {
-        let leftside = 0;
-        let rightside = 0;
-
-        const n = points.length - 1;
-        for (let i = 0; i < points.length - 1; i++) {
-            leftside += points[i].x * points[i + 1].y;
-            leftside += points[n].x * points[0].y;
-        
-            rightside += points[i + 1].x * points[i].y;
-            rightside -= points[0].x * points[n].y;
-        }
-
-        return (leftside - rightside) / 2;
-    }
-    
-    //https://en.wikipedia.org/wiki/Shoelace_formula
-    // this might have more efficient formula: http://paulbourke.net/geometry/polygonmesh/ 
     area(): number {
-        let leftside = 0;
-        let rightside = 0;
-
-        const n = this.points.length - 1;
-        for (let i = 0; i < this.points.length - 1; i++) {
-            leftside += this.points[i].x * this.points[i + 1].y;
-            leftside += this.points[n].x * this.points[0].y;
-        
-            rightside += this.points[i + 1].x * this.points[i].y;
-            rightside -= this.points[0].x * this.points[n].y;
-        }
-
-        return abs(leftside - rightside) / 2;
+        return abs(this.signedArea());
     }
 
 
@@ -173,22 +146,30 @@ export class Polygon implements Shape<Polygon>{
         return new Rect(topleft.x, topleft.y, botright.x - topleft.x, botright.y - topleft.y)
     }
 
-    draw(g: Graphics, color: number = niceColor()): void {
+    draw(g: Graphics, color: number = niceColor(), normals = true): void {
         g.lineStyle(3,color,.9);
         g.endFill()
         g.drawPolygon(this.points as unknown as Point[])
 
-        // Draw normals
-        for(let i = 0; i < this.normals.length; i++){
-			let j = i + 1;
-			if(j == this.points.length) j = 0;
-			const p1 = this.points[i];
-			const p2 = this.points[j]
-			
-			const half_way = mix(p1, p2, .5);
+        // draw points
+        for(const point of this.points){
+            drawPoint(g, point)
+        }
 
-			drawVecAsArrow(g,this.normals[i], half_way.x, half_way.y, 50);
-		}
+        // Draw normals
+
+        if(normals){
+            for(let i = 0; i < this.normals.length; i++){
+                let j = i + 1;
+                if(j == this.points.length) j = 0;
+                const p1 = this.points[i];
+                const p2 = this.points[j]
+                
+                const half_way = mix(p1, p2, .5);
+
+                drawVecAsArrow(g,this.normals[i], half_way.x, half_way.y, 50);
+            }
+        }
     }
 
     //https://en.wikipedia.org/wiki/Graham_scan
@@ -273,6 +254,26 @@ export class Polygon implements Shape<Polygon>{
             polygons.push(new Polygon([p1,p2,p3],[]))
         }
         return polygons;
+    }
+
+    closestPoint(testPoint: Coordinate){
+        let closestPoint: Vec2 = null;
+        let distance = 0;
+        
+
+        let j = this.points.length - 1;
+        for(let i = 0; i < this.points.length; j = i++){
+            const point = Line.PointClosestToLine(this.points[j], this.points[i], testPoint)
+        
+            const testDistance = Vec2.distanceSquared(testPoint, point)
+
+            if(closestPoint === null || testDistance < distance){
+                distance = testDistance;
+                closestPoint = point;
+
+            }
+        }
+        return closestPoint;
     }
 
     toPolygon(): Polygon {
