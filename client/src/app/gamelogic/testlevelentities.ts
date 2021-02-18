@@ -742,7 +742,7 @@ class PolygonCarving {
     
     public carveCircle(x: number,y: number, r: number){
         /* 
-        if this breaks sometimes, its most likely because of an edge case with overlapping points
+        if this breaks, its because of an edge case with overlapping points and floating point math error
 
         However, I think I got rid of all edge cases. If a point collides JUST on the edge, I don't delete it
 
@@ -770,10 +770,8 @@ class PolygonCarving {
             // Breaks sometimes if a vertex is right on the edge of the sphere. 
             // Floating math makes it so sometimes it will be detected to be contained in the sphere, but still not
             // collide
-            
-            // So essentially, if a vertex lies just on the edge of the sphere, this will break in some way
 
-            // There's an error where this collisionPoint recognizes the same point over multiple calls
+            // There's was an edge case where collisionPoint recognizes the same point over multiple calls
             // It happens when the point is tangent. I discard these
             
             const collisionPoints = Line.CircleLineIntersection(firstPoint, secondPoint, x, y, r);
@@ -801,7 +799,8 @@ class PolygonCarving {
         }
 
 
-        // If not even number of collisions on edges, something broke, try again with slightly different radius
+        // If not even number of collisions on edges, something broke due to edge case with vertex on sphere edge, 
+        // try again with slightly different radius
         if(addedIndices.length % 2 !== 0){
             return this.carveCircle(x, y, r + 3)
         }
@@ -826,18 +825,21 @@ class PolygonCarving {
         // Test the space between the first two points to determine the offset 
         let offset = 0;
 
+        // Gets the point halfway between the first two points, and tests if it is in the polygon or not
         const p1 = newPoints[addedIndices[0]];
         const p2 = newPoints[addedIndices[1]];
 
-        const startAngle = atan2(p1.y - y,p1.x - x);
-        const endAngle = atan2(p2.y - y,p2.x - x);
-        
-        // This may be an issue at some point, because 0.05 might actually go too far. Instead, lerp the angles?
-        // Test going clockwise, like all points will be added
-        const testOffset = -0.05;
-        
-        const testPoint = new Vec2(x + cos(startAngle + testOffset) * r, y + sin(startAngle + testOffset) * r);
-        console.log(testPoint)
+        let startAngle = atan2(p1.y - y,p1.x - x);
+        let endAngle = atan2(p2.y - y,p2.x - x);
+
+        // This essentially just checks the angle clockwise, halfway between the two angles;
+        if(startAngle < endAngle) startAngle += Math.PI * 2;
+
+        const angleDiff = (startAngle - endAngle) / 2;
+        const testAngle = startAngle - (angleDiff / 2);
+
+        const testPoint = new Vec2(x + cos(testAngle) * r, y + sin(testAngle) * r);
+        // console.log(testPoint)
         if(!this.polygon.contains(testPoint)){
             console.log("OFFSET")
             offset = 1;
@@ -937,6 +939,9 @@ class PolygonCarving {
         
         
 
+        // ONE MORE EDGE CASE CHECK MAYBE:
+        // In some very rare floating point math error cases, I will get polygon's that are just two points on top of each other
+        // Maybe check for these one last time at the end?
    
 
         this.polygon = Polygon.from(components[0]);

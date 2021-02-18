@@ -47,6 +47,9 @@ export class Line {
     static CircleLineIntersection(p1: Coordinate,p2: Coordinate, x: number, y: number, r: number, infiniteLine = false): {tangent: boolean, points: Vec2[]}{
         //http://paulbourke.net/geometry/circlesphere/
 
+        // One more edge case not dealt with: if points on top of eachother. Causes a divide by zero that fails silently
+        // return true in this case only if perfeclty on edge of circle
+
         const a = (p2.x - p1.x)**2 + (p2.y - p1.y)**2;
         const b = 2*( ((p2.x - p1.x)*(p1.x - x)) + ((p2.y - p1.y)*(p1.y - y)) )
         const c = x**2 + y**2 + p1.x**2 + p1.y**2 - 2*((x * p1.x) + y*p1.y) - r**2;
