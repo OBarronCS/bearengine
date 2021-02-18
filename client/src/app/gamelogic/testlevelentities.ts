@@ -722,16 +722,31 @@ export function loadTestLevel(this: BearEngine): void {
 class PolygonCarving {
 
 
-    polygon = (new Rect(0,0,300,300).toPolygon())
+    private additionalPolygons: Polygon[] = [];
+    polygon = Polygon.from([
+        new Vec2(0,0),
+        new Vec2(0,1000),
+        new Vec2(100,1000),
+        new Vec2(100,300),
+        new Vec2(200,300),
+        new Vec2(200,1000),
+        new Vec2(300,1000),
+        new Vec2(300,300),
+        new Vec2(400,300),
+        new Vec2(400,1000),
+        new Vec2(500,1000),
+        new Vec2(500,0),
+    ]);
 
+    constructor(){}
     
     public carveCircle(x: number,y: number, r: number){
-        /*
+        /* 
         1) Add points into the polygon point array into the right spots
         2) Delete all original points that are inside the circle
-        3) Add circle points in the correct place
-
+        3) Add circle points in the correct place, and creating new polygons if needed
         */
+
         const circle = new Ellipse(new Vec2(x,y),r,r);
 
         // contains the points of the resulting polygon
@@ -752,59 +767,156 @@ class PolygonCarving {
             }  
         }
 
-        console.log(newPoints)
+        // If NO points remain,
+        if(newPoints.length === 0){
+            this.polygon = null;
+            return;
+        }
 
-        // 3) Add point in between added points. Added points are in adjacent pairs, but...
-        // For now assume only two points. 
-        const circlePoints: Vec2[] = [];
+        // Sort the added indices by the points angle to the center of the sphere 
+        addedIndices.sort((a,b) => {
+            const p1 = newPoints[a];
+            const p2 = newPoints[b];
+
+            let p1Angle = atan2(p1.y - y, p1.x - x);
+            let p2Angle = atan2(p2.y - y, p2.x - x);
+
+            console.log(p1Angle, p2Angle)
+            return p2Angle - p1Angle;
+        })
+
+        console.log("Indices: ", addedIndices);
+        console.log("Points: ", newPoints)
+
+        // Algorithm 2.0: Here we go
+
+        // Test the space between the first two points to determine the offset 
+        let offset = 0;
 
         const p1 = newPoints[addedIndices[0]];
         const p2 = newPoints[addedIndices[1]];
+
+        const startAngle = atan2(p1.y - y,p1.x - x);
+        const endAngle = atan2(p2.y - y,p2.x - x);
         
-        // console.log("POINTS: ", p1,p2);
-
-        const VERTICES = 14; // in the entire theoretical circle 
-
-        let startAngle = atan2(p1.y - y,p1.x - x);
-        let endAngle = atan2(p2.y - y,p2.x - x);
+        // Test going clockwise, like all points will be added
+        const testOffset = -0.05;
         
-        const initialOffset =  Math.PI * 2 / VERTICES // used to make sure points don't repeat
+        const testPoint = new Vec2(x + cos(startAngle + testOffset) * r, y + sin(startAngle + testOffset) * r);
+        console.log(testPoint)
+        if(!this.polygon.contains(testPoint)){
+            console.log("OFFSET")
+            offset = 1;
+        }
 
-        // Test so see which way is right way to go
 
-        const testOffset = .3
-        if(this.polygon.contains(new Vec2(x + cos(startAngle - testOffset) * r, y + sin(startAngle - testOffset) * r))){
-            // go counter clockwise from 1 to two
+        // parralel array of connected components
+        const islands: number[] = [];
+        islands.length = newPoints.length;
+        islands.fill(0);
+
+        let freeIslandNumber = 0;
+
+        // Key is the index where we add the points
+        const addedCirclePointMap: Map<number,Vec2[]> = new Map();
+        
+        // Cycles through points and creates ALL the disconnected components
+        for(let i = 0; i < addedIndices.length; i += 2){
+            const ii = (i + offset) % addedIndices.length;
+            const ii2 = (ii + 1) % addedIndices.length;
+
+            // Index inside of the newPoints array denoting the beginning and end of where points should be filled in
+            // Move clockwise (right) from index until get to index2. Will wrap around array at times.
+            const index = addedIndices[ii];
+            const index2 = addedIndices[ii2];
+
+            freeIslandNumber += 1;
+
+            // this and islands[index2] should always be equal
+            const islandNumber = islands[index];
+
+            let j = index;
+            while(j !== index2){
+                // Essentially, if this point doesn't belong to another group already
+                if(islands[j] === islandNumber){
+                    islands[j] = freeIslandNumber;
+                }
+
+                j = (j + 1) % newPoints.length;
+            }
+
+            // Add index2 as well. j == index2 here
+            islands[j] = freeIslandNumber;
+
+            // CREATING THE CIRCLE POINTS:
+            
+            const p1 = newPoints[index];
+            const p2 = newPoints[index2];
+
+            let startAngle = atan2(p1.y - y,p1.x - x);
+            let endAngle = atan2(p2.y - y,p2.x - x);
+            
+            const VERTICES = 14;
+            const initialOffset =  Math.PI * 2 / VERTICES // used to make sure points don't repeat
+
             if(endAngle > startAngle) endAngle -= 2 * PI;
+
+            const circlePoints: Vec2[] = [];
 
             for(let i = startAngle - initialOffset; i > endAngle; i -= Math.PI * 2 / VERTICES)
                 circlePoints.push(new Vec2(x + cos(i) * r, y + sin(i) * r));
 
-                
-            console.log(circlePoints);
-            circlePoints.reverse();
-            newPoints.splice(addedIndices[1] + 1, 0, ...circlePoints);
-        } else {
-            // else go clockwise from one to two;
-            if(endAngle < startAngle) endAngle += 2 * PI;
-
-            for(let i = startAngle + initialOffset; i < endAngle; i += Math.PI * 2 / VERTICES)
-                circlePoints.push(new Vec2(x + cos(i) * r, y + sin(i) * r));
-
-                newPoints.splice(addedIndices[0] + 1, 0, ...circlePoints);
+            // reverse it due to the opposite ordering.
+            addedCirclePointMap.set(index2, circlePoints.reverse());
 
         }
-        
-        // console.log(startAngle, endAngle)
-        
-        this.polygon = Polygon.from(newPoints);
 
-        console.log("Polygon Points")
-        console.log(this.polygon.points)
+        //Now, we have created all the disconnected 'islands' of points (defined in islands array), we just need to make them seperate polygon objects
+        // And add the points from the circle
+
+        console.log(freeIslandNumber)
+        console.log(islands)
+
+        const components: Vec2[][] = [];
+
+        // Each free number creates either nothing, or it creats an entire 
+        for(let i = 0; i <= freeIslandNumber; i++){
+
+            const points: Vec2[] = [];
+
+            for(let j = 0; j < newPoints.length; j++){
+                // remember, newPoints and island are parralel arrays
+                if(islands[j] === i){
+                    points.push(newPoints[j]);
+
+                    const possibleAddedPoints = addedCirclePointMap.get(j);
+                    if(possibleAddedPoints !== undefined){
+                        points.push(...possibleAddedPoints);
+                    }
+                }
+            }
+
+            if(points.length !== 0) components.push(points);
+        }
+
+
+        
+        
+
+   
+
+        this.polygon = Polygon.from(components[0]);
+
+        for(let i = 1; i < components.length; i++){
+            this.additionalPolygons.push(Polygon.from(components[i]));
+        }
     }   
 
     draw(g: Graphics){
         this.polygon.draw(g,0x0000FF);
+        for(const poly of this.additionalPolygons){
+            poly.draw(g, 0x00FF00)
+        }
     }
 
 }
