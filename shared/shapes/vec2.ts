@@ -206,6 +206,10 @@ export class Vec2 {
     toString(){
         return this.x + "," + this.y
     }
+
+    equals(vec: Coordinate){
+        return this.x === vec.x && this.y === vec.y;
+    }
 }
 
 export function angleBetween(p1: Coordinate, p2: Coordinate){

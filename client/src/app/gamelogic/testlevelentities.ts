@@ -56,7 +56,7 @@ export function loadTestLevel(this: BearEngine): void {
             drawLineBetweenPoints(g,this.point,otherPoint);
 
             const points = Line.CircleLineIntersection(this.point, otherPoint, this.circle.x, this.circle.y, 50);
-            for(const point of points){
+            for(const point of points.points){
                 drawPoint(g,point);
             }
         }
@@ -742,9 +742,13 @@ class PolygonCarving {
     
     public carveCircle(x: number,y: number, r: number){
         /* 
+        if this breaks sometimes, its most likely because of an edge case with overlapping points
+
+        However, I think I got rid of all edge cases. If a point collides JUST on the edge, I don't delete it
+
         1) Add points into the polygon point array into the right spots
         2) Delete all original points that are inside the circle
-        3) Add circle points in the correct place, and creating new polygons if needed
+        3) Move across array in clockwise order of collision points. 
         */
 
         const circle = new Ellipse(new Vec2(x,y),r,r);
@@ -755,22 +759,51 @@ class PolygonCarving {
         // contains the indices in the newPoints array of the new collision points'
         const addedIndices: number[] = [];
 
+        // const collidedPointsSet = new Set<Vec2>();
+
         for(let i = 0; i < this.polygon.points.length; i++){
-            const point =  this.polygon.points[i];
+            const firstPoint =  this.polygon.points[i];
             const secondPoint = this.polygon.points[(i + 1) % this.polygon.points.length];
-            const collisionPoints = Line.CircleLineIntersection(point, secondPoint, x, y, r);
+
+        
+            // Annoying EDGE CASE:
+            // Breaks sometimes if a vertex is right on the edge of the sphere. 
+            // Floating math makes it so sometimes it will be detected to be contained in the sphere, but still not
+            // collide
             
-            if(!circle.contains(point)) newPoints.push(point);
-            for(const point of collisionPoints){
-                newPoints.push(point);
-                addedIndices.push(newPoints.length - 1);
-            }  
+            // So essentially, if a vertex lies just on the edge of the sphere, this will break in some way
+
+            // There's an error where this collisionPoint recognizes the same point over multiple calls
+            // It happens when the point is tangent. I discard these
+            
+            const collisionPoints = Line.CircleLineIntersection(firstPoint, secondPoint, x, y, r);
+            
+            if(!circle.contains(firstPoint)) newPoints.push(firstPoint);
+
+            if(!collisionPoints.tangent){
+                for(const point of collisionPoints.points){
+                    newPoints.push(point);
+                    addedIndices.push(newPoints.length - 1);
+                    
+                    // One more edge case that may or may not ever pop up (should have been solved with the tangent check)
+                    // If a vertex is detected twice, than the added indicies will be all messed up.
+                    // Because the will be on TOP of each other, and the program below assumes that they are NOT on top of each other
+                    // However, the program will still see TWO added indices, see there is an even amount, and keep going
+                    // So if it becomes an array, check if any of the added index points are equal, and if so, call again with different r
+                }  
+            }
         }
 
         // If NO points remain,
         if(newPoints.length === 0){
             this.polygon = null;
             return;
+        }
+
+
+        // If not even number of collisions on edges, something broke, try again with slightly different radius
+        if(addedIndices.length % 2 !== 0){
+            return this.carveCircle(x, y, r + 3)
         }
 
         // Sort the added indices by the points angle to the center of the sphere 
@@ -799,6 +832,7 @@ class PolygonCarving {
         const startAngle = atan2(p1.y - y,p1.x - x);
         const endAngle = atan2(p2.y - y,p2.x - x);
         
+        // This may be an issue at some point, because 0.05 might actually go too far. Instead, lerp the angles?
         // Test going clockwise, like all points will be added
         const testOffset = -0.05;
         
@@ -879,7 +913,7 @@ class PolygonCarving {
 
         const components: Vec2[][] = [];
 
-        // Each free number creates either nothing, or it creats an entire 
+        // Each free number creates either nothing, or it creates an entire 
         for(let i = 0; i <= freeIslandNumber; i++){
 
             const points: Vec2[] = [];
