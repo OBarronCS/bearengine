@@ -56,6 +56,7 @@ export function loadTestLevel(this: BearEngine): void {
             drawLineBetweenPoints(g,this.point,otherPoint);
 
             const points = Line.CircleLineIntersection(this.point, otherPoint, this.circle.x, this.circle.y, 50);
+            
             for(const point of points.points){
                 drawPoint(g,point);
             }
@@ -81,7 +82,7 @@ export function loadTestLevel(this: BearEngine): void {
         }
 
         update(dt: number): void {
-            this.point = this.poly.polygon.closestPoint(this.Mouse.position);
+            this.point = this.Mouse.position.clone()// this.poly.polygon.closestPoint(this.Mouse.position);
            //console.log(this.point)
             if(this.Mouse.wasPressed("left")) this.poly.carveCircle(this.point.x, this.point.y, this.radius)
             
@@ -89,8 +90,9 @@ export function loadTestLevel(this: BearEngine): void {
         }
 
         draw(g: Graphics): void {
-            if(this.Keyboard.isDown("ArrowUp")) this.radius += 1
-            if(this.Keyboard.isDown("ArrowDown")) this.radius -= 1
+            const factor = 3;
+            if(this.Keyboard.isDown("ArrowUp")) this.radius += 1 * factor
+            if(this.Keyboard.isDown("ArrowDown")) this.radius -= 1 * factor
         
             drawCircle(g,this.point, this.radius)
 
@@ -723,22 +725,11 @@ class PolygonCarving {
 
 
     private additionalPolygons: Polygon[] = [];
-    polygon = Polygon.from([
-        new Vec2(0,0),
-        new Vec2(0,1000),
-        new Vec2(100,1000),
-        new Vec2(100,300),
-        new Vec2(200,300),
-        new Vec2(200,1000),
-        new Vec2(300,1000),
-        new Vec2(300,300),
-        new Vec2(400,300),
-        new Vec2(400,1000),
-        new Vec2(500,1000),
-        new Vec2(500,0),
-    ]);
+    polygon: Polygon;
 
-    constructor(){}
+    constructor(){
+        this.polygon = Polygon.random(20);
+    }
     
     public carveCircle(x: number,y: number, r: number){
         /* 
@@ -952,9 +943,9 @@ class PolygonCarving {
     }   
 
     draw(g: Graphics){
-        this.polygon.draw(g,0x0000FF);
+        this.polygon.draw(g,0x0050FF);
         for(const poly of this.additionalPolygons){
-            poly.draw(g, 0x00FF00)
+            poly.draw(g, 0x0000FF)
         }
     }
 

@@ -21,6 +21,7 @@ export const DEG_TO_RAD = Math.PI / 180;
 // Renaming for nicer syntax
 export const E = Math.E;
 export const PI = Math.PI;
+export const TWO_PI = Math.PI * 2;
 export const atan2 = Math.atan2;
 export const cos = Math.cos;
 export const sin = Math.sin;

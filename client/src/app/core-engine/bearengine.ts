@@ -115,6 +115,12 @@ class BearEngine {
 
         this.keyboard = new EngineKeyboard(targetWindow)
 
+        this.keyboard.bind("k", () => {
+            this.restartCurrentLevel()
+        })
+
+
+
         this.camera = new CameraSystem(this.renderer,this.renderer.mainContainer, targetWindow, this.mouse, this.keyboard);
         
 
@@ -196,8 +202,8 @@ class BearEngine {
         this.partQueries.push(this.remotelocations);
 
         loadTestLevel.call(this);
-        this.addEntity(this.player = new Player())
-        this.camera["center"].set(this.player.position);
+        // this.addEntity(this.player = new Player())
+        // this.camera["center"].set(this.player.position);
         this.camera.zoom(Vec2.HALFHALF)
         // this.camera.follow(this.player.position)
     }

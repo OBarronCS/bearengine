@@ -1,7 +1,7 @@
 import { Shape } from "./shapesinterfaces";
 import { Coordinate, Vec2, mix, flattenVecArray } from "./vec2";
 import { Rect } from "./rectangle";
-import { abs, atan2, niceColor } from "../miscmath";
+import { abs, atan2, cos, max, min, niceColor, PI, sin, TWO_PI } from "../miscmath";
 
 import type { Graphics, Point } from "pixi.js";
 
@@ -9,6 +9,7 @@ import { default as earcut } from "earcut";
 
 import { drawPoint, drawVecAsArrow } from "./shapedrawing";
 import { Line } from "./line";
+import { random } from "shared/randomhelpers";
 
 
 // Test for concavity: http://paulbourke.net/geometry/polygonmesh/
@@ -22,6 +23,28 @@ export class Polygon implements Shape<Polygon>{
     constructor(points: Vec2[], normals: Vec2[]){
         this.points = points;
         this.normals = normals;
+    }
+
+    static random(vertices: number): Polygon {
+
+        const points: Vec2[] = []
+
+        const MAX_LENGTH = 1000;
+
+        for(let i = 0; i < TWO_PI; i += TWO_PI / vertices){
+            points.push(new Vec2(cos(i) * random(MAX_LENGTH), sin(i) * random(MAX_LENGTH)))
+        }
+
+        points.sort((a,b) => {
+
+            let p1Angle = atan2(a.y, a.x);
+            let p2Angle = atan2(b.y, b.x);
+
+            return p1Angle - p2Angle;
+        })
+
+
+        return Polygon.from(points);
     }
 
     /** Automatically create normals, puts points into clockwise ordered */
@@ -163,8 +186,9 @@ export class Polygon implements Shape<Polygon>{
                 const p2 = this.points[j]
                 
                 const half_way = mix(p1, p2, .5);
+                const distance = Vec2.distance(p1, p2);
 
-                drawVecAsArrow(g,this.normals[i], half_way.x, half_way.y, 50);
+                drawVecAsArrow(g,this.normals[i], half_way.x, half_way.y, min(50,distance));
             }
         }
     }

@@ -3,13 +3,13 @@ import { string2hex } from "shared/miscmath";
 import { Coordinate } from "./vec2";
 
 // draws the vector as an arrow taking into account magnitude and direction, at a certain location
-export function drawVecAsArrow(graphics: Graphics, vec: Coordinate, _x: number, _y: number, _factor: number){
+export function drawVecAsArrow(graphics: Graphics, vec: Coordinate, _x: number, _y: number, lengthMultiplier: number){
 	const width = 2;
 	const color = "#00FF00";
     
     graphics.lineStyle(width, string2hex(color));
     graphics.moveTo(_x,_y);
-    graphics.lineTo(_x + (vec.x * _factor),  _y + (vec.y * _factor));
+    graphics.lineTo(_x + (vec.x * lengthMultiplier),  _y + (vec.y * lengthMultiplier));
 }
 
 export function drawPoint(graphics: Graphics, point: Coordinate, color: string = "#00FFF0"){
