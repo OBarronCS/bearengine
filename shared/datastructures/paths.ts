@@ -186,7 +186,6 @@ export class HermiteCurve extends PointList implements Path {
 	        return this.points[index];
 	}
 
-	// returns vec2 of the point of the thing1!
 	// t = [0,1];
 	getPointAt(percent: number): Vec2 {
 		const tx = (this.points.length - 1) * percent;

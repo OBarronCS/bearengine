@@ -10,6 +10,7 @@ import { default as earcut } from "earcut";
 import { drawPoint, drawVecAsArrow } from "./shapedrawing";
 import { Line } from "./line";
 import { random } from "shared/randomhelpers";
+import { swap } from "shared/datastructures/arrayshelper";
 
 
 // Test for concavity: http://paulbourke.net/geometry/polygonmesh/
@@ -195,69 +196,70 @@ export class Polygon implements Shape<Polygon>{
 
     //https://en.wikipedia.org/wiki/Graham_scan
     convexhull(): Polygon {
-        // Get the highest point, if tie, leftmost
+        // Get the highest point (lowest y), if tie, leftmost
         let top = this.points[0];
+        let index = 0;
         for(let i = 1; i < this.points.length; i++){
             const point = this.points[i];
 
             if(point.y < top.y){
                 top = point;
+                index = i;
             } else if(point.y === top.y){
                 if(point.x < top.x){
                     top = point;
+                    index = i;
                 }
             }
         }
-        // TODO --> move to a method that doesn't involve atan2 calls
-        // Now order by ascending angle compared to this first point
-        // first get rid of the point itself
-        let orderedPoints = this.points.filter(value => value !== top)
+        const orderedPoints = this.points.slice(0);
+        // Put heighest point first
+        swap(orderedPoints, 0, index);
+
+        // Sort angles clockwise in relation to top point      
         orderedPoints.sort((a,b) => {
-            const angleToA = atan2(a.y - top.y, a.x - top.x);
-            const angleToB = atan2(b.y - top.y, b.x - top.x);
 
-            return angleToA - angleToB;
-        })
-        // Theres an error here, if two points have the same angle, the whole thing breaks
-        // have to choose the farthest point from top in those cases
-        for(let i = 0; i < orderedPoints.length - 1; i++){
-            const a = orderedPoints[i];
-            const b = orderedPoints[i + 1];
-            const angleToA = atan2(a.y - top.y, a.x - top.x);
-            const angleToB = atan2(b.y - top.y, b.x - top.x);
-            if(angleToA === angleToB){
-                const distanceA = Vec2.distanceSquared(a, top);
-                const distanceB = Vec2.distanceSquared(b, top);
+            const cotanA = a === top ? -Infinity : -(a.x - top.x) / (a.y - top.y);
+            const cotanB = b === top ? -Infinity : -(b.x - top.x) / (b.y - top.y);
 
-                // if first point is farther, splice second one
-                if(distanceA > distanceB){
-                    orderedPoints.splice(i+1,1);
-                } else {
-                    orderedPoints.splice(i ,1);
-                }
-                i--;
-            }
+            // The smaller this number, the smaller angle it makes with top (ranges -infinity to infinity)
+            return cotanA - cotanB;
+        });
+
+        // Edge case: if 2 or more points are on the same level as the top point, 
+        // then the division will result in -Infinity
+        // These will be at beginning of sorted array, so just get rid of the un-needed ones
+        
+        // First index is always our point (assuming built in sort is stable)
+        for(let i = 1; i < orderedPoints.length - 1; i++){
+            const point = orderedPoints[i];
+
+            if(point.y !== top.y) break;
+
+            const nextPoint = orderedPoints[i + 1];
+    
+            if(point.y === nextPoint.y){
+                const indexToRemove = nextPoint.x > point.x ? i : i + 1;
+                orderedPoints.splice(indexToRemove,0)
+                i -= 1;
+            }    
         }
 
 
         // return true if three points are clockwise 
-        function clockwise(point1: Vec2, point2: Vec2, point3: Vec2): boolean {
-            const angleTo3 = atan2(point3.y - point1.y, point3.x - point1.x); 
-            const angleTo2 = atan2(point2.y - point1.y, point2.x - point1.x);
-            return angleTo3 <= angleTo2;
+        function clockwise(a: Vec2, b: Vec2, c: Vec2): boolean {
+            return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x) < 0;
         }
 
-        const final_points: Vec2[] = [top];
+        const final_points: Vec2[] = [];
 
         for(const point of orderedPoints){
             while(final_points.length > 1 && clockwise(final_points[final_points.length - 2], final_points[final_points.length - 1], point)){
-                final_points.pop()
+                final_points.pop();
             }
             final_points.push(point)
         }
 
-
-        //// AHHHHHh CHANGE THIS
         return Polygon.from(final_points);
     }
 
@@ -306,7 +308,6 @@ export class Polygon implements Shape<Polygon>{
 
 /** Top left AABB
  *  Takes in array of coordinates, returns a coordinate with the min x and min y of all points
- * @param array 
  */
 export function minPoint(array: Coordinate[]): Coordinate{
     let left = array[0].x;

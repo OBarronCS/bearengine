@@ -4,16 +4,10 @@ export function clamp(value: number, min: number, max: number){
     return Math.min(Math.max(value, min), max);
 }
 
-/**
- * @description mix for numbers
- * @param a 
- * @param b 
- * @param percent 
- */
+/** mix for numbers */
 export function lerp(a: number, b: number, percent: number): number{
     return a * (1 - percent) + b * percent;
 }
-
 
 export const RAD_TO_DEG = 180 / Math.PI;
 export const DEG_TO_RAD = Math.PI / 180;
@@ -35,34 +29,13 @@ export const floor = Math.floor;
 export const ceil = Math.ceil;
 export const sqrt = Math.sqrt;
 
-// JavaScript modulo is not a real modulo so this is not accurate with negative numbers
+//JavaScript modulo is not a real modulo so this is not accurate with negative numbers
 //https://community.khronos.org/t/fract-behaviour/62096
-// Math.trunc?
 export const fract = (value: number): number => value % 1;
 
 export function round(num: number, numbersAfterDecimal = 0): number {
     const rounder = Math.pow(10, numbersAfterDecimal);
     return Math.round(num * rounder) / rounder
-}
-
-export function arrayMin(array: number[]){
-    let min = array[0];
-    for(let i = 1; i < array.length; i++){
-        if(array[i] < min){
-            min = array[i];
-        }
-    }
-    return min;
-}
-
-export function arrayMax(array: number[]){
-    let max = array[0];
-    for(let i = 1; i < array.length; i++){
-        if(array[i] > max){
-            max = array[i];
-        }
-    }
-    return max;
 }
 
 export function step(edge: number, x: number): number{
@@ -80,11 +53,9 @@ export function smoothNoise(seed: number): number {
 }
 
 
-// finds shortest angle difference between two angles
-
-/** RADIANS */
+/** RADIANS, finds shortest angle difference between two angles */
 export function angleDifference(from: number, to: number){
-    let diff = to - from;
+    const diff = to - from;
     return (diff + PI) % (2 * PI) - PI;
 }
 
@@ -147,7 +118,7 @@ export function niceColor(): number {
     return string2hex(colors[index]);
 }
 
-export function string2hex(str: string){
+export function string2hex(str: string): number {
     if(str[0] === "#") str = str.substr(1);
     return Number.parseInt(str, 16);
 }

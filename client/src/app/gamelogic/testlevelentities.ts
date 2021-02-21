@@ -40,6 +40,33 @@ export function loadTestLevel(this: BearEngine): void {
 
     // this.addEntity(new BasicSprite())
 
+    class ConvexHullTest extends DrawableEntity {
+ 
+        original: Polygon;
+        convex: Polygon;
+
+        constructor(){
+            super();
+
+            this.original = Polygon.random(20);
+
+            this.convex = this.original.convexhull();
+            this.redraw();
+        }
+            
+        update(dt: number): void {
+        }
+        
+        
+        draw(g: Graphics): void {
+            this.original.draw(g,0xFF0000)
+            this.convex.draw(g,0x00FF00);
+        }
+
+    }
+
+    this.addEntity(new ConvexHullTest());
+
     class CircleLineIntersectionTest extends DrawableEntity {
         
         private circle = new Vec2(0,0);
@@ -106,7 +133,7 @@ export function loadTestLevel(this: BearEngine): void {
 
    }
 
-   this.addEntity(new PolygonCarveTest());
+   //this.addEntity(new PolygonCarveTest());
 
 
     class MouseRectCollider extends DrawableEntity {

@@ -1,9 +1,4 @@
 
-
-// Some utilities have a namespace, others don't.
-// For now, these utilities wont be under a name (ex: java standard library has array helpers under "Arrays.")
-// don't want to mess with array prototypes
-
 import { randomInt } from "shared/randomhelpers";
 
 
@@ -18,9 +13,7 @@ export function range(min: number, max: number, step: number = 1): Iterable<numb
     return arr;
 }
 
-/**
- * In-place, "Knuth/Fisher-Yates" shuffle
- */
+/** In-place, "Knuth/Fisher-Yates" shuffle */
 export function shuffle(arr: any[]): void {
     for(let i = arr.length - 1; i > 0; i--){
         const r = randomInt(0,i+1);
@@ -47,6 +40,27 @@ export function isSorted(arr: number[]): boolean {
 
     return true;
 }
+
+export function arrayMin(array: number[]){
+    let min = array[0];
+    for(let i = 1; i < array.length; i++){
+        if(array[i] < min){
+            min = array[i];
+        }
+    }
+    return min;
+}
+
+export function arrayMax(array: number[]){
+    let max = array[0];
+    for(let i = 1; i < array.length; i++){
+        if(array[i] > max){
+            max = array[i];
+        }
+    }
+    return max;
+}
+
 
 /**
  * Returns index of key in sorted array, else returns the negative nth index of where it should go

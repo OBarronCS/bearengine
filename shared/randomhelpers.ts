@@ -4,9 +4,7 @@ random number functions
 look into chancejs
 */
 
-/**
- * [0,1 or max?)
- */
+/** [0,1 or max?) */
 export function random(max: number = 1): number {
     return Math.random() * max;
 }
@@ -15,11 +13,7 @@ export function random_range(min: number, max: number): number {
     return min + Math.random() * (max - min);
 }
 
- /**
- * [min, max)
- * @param min inclusive
- * @param max not-inclusive
- */
+/** [min, max) */
 export function randomInt(min: number, max: number): number{
     return min + Math.floor(Math.random() * (max - min));
 }
@@ -34,7 +28,6 @@ export function chance(percent: number): boolean {
 
 
 const allChars = "!@#$%^&*()abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'"; 
-
 export function randomChar(){
     return allChars.charAt(randomInt(0,allChars.length));
 }
