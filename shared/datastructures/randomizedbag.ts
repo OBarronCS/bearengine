@@ -1,7 +1,7 @@
 
 
 import { randomInt } from "shared/randomhelpers";
-import { shuffle } from "./arrayshelper";
+import { shuffle } from "./arrayutils";
 
 
 // A randomized "bag" of data. Remove values in random order. Iteration is in random order.

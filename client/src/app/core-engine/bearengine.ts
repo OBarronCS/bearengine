@@ -202,8 +202,8 @@ class BearEngine {
         this.partQueries.push(this.remotelocations);
 
         loadTestLevel.call(this);
-        // this.addEntity(this.player = new Player())
-        // this.camera["center"].set(this.player.position);
+        this.addEntity(this.player = new Player())
+        this.camera["center"].set(this.player.position);
         this.camera.zoom(Vec2.HALFHALF)
         // this.camera.follow(this.player.position)
     }
@@ -247,14 +247,16 @@ class BearEngine {
 
         this.readFromNetwork();
 
-
         // both of these are in ms
         while (accumulated >= (simulation_time)) {
 
             // divide by 1000 to get seconds
             const dt = simulation_time / 1000;
 
+            
             this.current_level.collisionManager.update(dt);
+
+
 
             for (let i = 0; i < this.updateList.length; i++) {
                 const entity = this.updateList[i];

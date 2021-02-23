@@ -1,9 +1,10 @@
 import { Line, lines_intersect } from "shared/shapes/line";
-import {  Vec2, Coordinate, distanceSquared, mix } from "shared/shapes/vec2";
+import {  Vec2, Coordinate, distanceSquared, mix, coordinateArraytoVec } from "shared/shapes/vec2";
 import { SpatialGrid } from "shared/datastructures/spatialgrid";
 
 import type { Graphics } from "pixi.js";
 import { drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "shared/shapes/shapedrawing";
+import { Polygon } from "shared/shapes/polygon";
 
 
 
@@ -65,7 +66,7 @@ export class TerrainManager {
 	}
 	
 	// Terrain Raycast
-	// return null if no collision, Point of intersection otherwise
+	// return null if no collision, otherwise point of intersection 
 	lineCollision(A: Coordinate,B: Coordinate): {point:Vec2,normal:Vec2} {
 		const box = (new Line(A,B)).getAABB();
 		
@@ -73,7 +74,7 @@ export class TerrainManager {
 		// Returns closest point of collision to A or -e
 		const possibleCollisions = this.grid.region(box);
 		
-		let answer:{point:Vec2,normal:Vec2} = null;
+		let answer:ReturnType<typeof TerrainManager["prototype"]["lineCollision"]> = null;
 		let answer_dist = -1;
 			
 		// This might be a performance barrier --> its a set, not an array. Iterable though
@@ -103,62 +104,22 @@ export class TerrainManager {
 
 }
 
-// Right now this does nothing special. TODO: make it a polygon wrapper with extra functionality special for colliding, mostly static, terrain
+// A polygon wrapper with extra functionality 
+// special for colliding, mostly static, terrain
 class TerrainMesh  {
-    points: Vec2[] = [];
-    normals: Vec2[] = [];
+	public polygon: Polygon;
 
-	constructor(_points: number[], _normals: number[]){
-    
-        for(let i = 0; i < _points.length - 1; i += 2){
-            this.points.push(new Vec2(_points[i], _points[i + 1]))
-        }
-        
-        for(let i = 0; i < _normals.length - 1; i += 2){
-            this.normals.push(new Vec2(_normals[i], _normals[i + 1]))
-        }
+	constructor(points: number[], normals: number[]){
+		this.polygon = new Polygon(coordinateArraytoVec(points),coordinateArraytoVec(normals));
     }
+
+
 	
 	// translate(_dx: number, _dy: number){
-
 	// }
 	
-	//https://wrf.ecse.rpi.edu//Research/Short_Notes/pnpoly.html
-	pointInPolygon(testx: number, testy: number): boolean{
-		const nvert = this.points.length;
-		let i = 0;
-		let j = nvert - 1; 
-		let c = false;
-		for (; i < nvert; j = i++) {
-			let point = this.points[i];
-			let last_point = this.points[j];
-			
-			if ( ((point.y>testy) != (last_point.y>testy)) &&
-				(testx < (last_point.x-point.x) * (testy-point.y) / (last_point.y-point.y) + point.x) )
-			    c = !c;
-		}
-		return c;
-	}
-	
-	draw(graphics: Graphics){
-		const color = "#FF0000";
-		const len = this.points.length
-		
-		for(let i = 0; i < len; i++){
-			let j = i + 1;
-			if(j == len) j = 0;
-			const p1 = this.points[i];
-			const p2 = this.points[j]
-			
-			const half_way = mix(p1, p2, .5);
-			
-			// TERRAIN ITSELF
-			drawLineBetweenPoints(graphics,p1,p2);
-			
-			// NORMALS
-			drawPoint(graphics,half_way)
-			drawVecAsArrow(graphics,this.normals[i], half_way.x, half_way.y, 50);
-		}
+	draw(g: Graphics){
+		this.polygon.draw(g);
 	}
 }
 

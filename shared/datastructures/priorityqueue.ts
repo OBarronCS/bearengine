@@ -8,7 +8,7 @@ Parent of a node is at floor(k/2), children of are at 2k and 2k+1.
 //assuming k starts at 1 --> do some math to convert to 0 based
 */
 
-import { swap } from "./arrayshelper"
+import { swap } from "./arrayutils"
 
 // Highest priority items will be at the front of the queue
 // In the priority function, a higher number indicates a higher priority

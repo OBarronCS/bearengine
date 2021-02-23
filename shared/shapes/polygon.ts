@@ -10,7 +10,7 @@ import { default as earcut } from "earcut";
 import { drawPoint, drawVecAsArrow } from "./shapedrawing";
 import { Line } from "./line";
 import { random } from "shared/randomhelpers";
-import { swap } from "shared/datastructures/arrayshelper";
+import { swap } from "shared/datastructures/arrayutils";
 
 
 // Test for concavity: http://paulbourke.net/geometry/polygonmesh/
