@@ -4,6 +4,7 @@ import type { Graphics } from "pixi.js";
 import { abs, clamp, sqrt } from "../miscmath";
 import { drawLineBetweenPoints } from "shared/shapes/shapedrawing";
 import { Ellipse } from "./ellipse";
+import { CircularLinkedList } from "shared/datastructures/linkedlist";
 
 
 // A line segment
@@ -83,6 +84,18 @@ export class Line {
         }   
     }
 
+    static LineLineIntersection(A: Coordinate, B: Coordinate, A2: Coordinate, B2: Coordinate): Vec2 | null {
+        const t = lines_intersect(A.x, A.y, B.x, B.y, A2.x, A2.y, B2.x, B2.y, true);
+        if(t > 0){
+            const x = A.x + t * (B.x - A.x);
+            const y = A.y + t * (B.y - A.y);
+            return new Vec2(x, y);
+        }
+
+        return null;
+
+    }
+
     constructor(p1: Coordinate, p2: Coordinate, normal: Coordinate = {x: 0, y: -1}){
         this.A = new Vec2(p1.x, p1.y);
         this.B = new Vec2(p2.x, p2.y);
@@ -104,10 +117,7 @@ export class Line {
         return Line.PointClosestToLine(this.A, this.B, p)
     }
 
-    /**
-     * null if no intersection, point of intersection otherwise
-     * @param line 
-     */    
+    /** null if no intersection, point of intersection otherwise */    
     intersects(line: Line): Vec2 {
         const t = lines_intersect(this.A.x, this.A.y, this.B.x, this.B.y, line.A.x, line.A.y, line.B.x, line.B.y, true);
         if(t > 0){

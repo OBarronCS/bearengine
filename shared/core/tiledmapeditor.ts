@@ -1,4 +1,6 @@
-import { Coordinate } from "shared/shapes/vec2";
+import { Polygon } from "shared/shapes/polygon";
+import { Rect } from "shared/shapes/rectangle";
+import { Coordinate, coordinateArraytoVec, flattenVecArray } from "shared/shapes/vec2";
 
 export interface CustomMapFormat {
     world:{
@@ -151,7 +153,7 @@ function isRectangle(object: any): object is RectangleObject {
 
 
 export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
-    console.log(map)
+    console.log("map:" + map)
     const worldData: CustomMapFormat["world"] = {
         width: map.width * map.tilewidth,
         height: map.height * map.tileheight,
@@ -170,64 +172,24 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
         
                 if(isPolygon(obj)){
                     // Add all polygon points
-                    const points = []
+                    const rawPoints: number[] = [];
                     for(let i = 0; i < obj.polygon.length; i++){
-                        points.push(obj.polygon[i].x + obj.x)
-                        points.push(obj.polygon[i].y + obj.y)
+                        rawPoints.push(obj.polygon[i].x + obj.x)
+                        rawPoints.push(obj.polygon[i].y + obj.y)
                     }
                     
-                    
-                    // Add normals
-                    // have to check if clockwise or not!
-                    let sum = 0;
-                    let j = points.length - 2;
-                    for(let n = 0; n < points.length; n += 2){
-                        if(n != 0){
-                            j = n - 2
-                        }
-                        const x1 = points[n]
-                        const y1 = points[n + 1]
+                    const vecArray = coordinateArraytoVec(rawPoints);
+                    // Automatically puts everything in clockwise, creates normals.
+                    const polygon = Polygon.from(vecArray);
+                    console.log("AHH:" + Polygon.isClockwise(polygon.points))
 
-                        const x2 = points[j]
-                        const y2 = points[j + 1]
-
-                        sum += (x2 - x1) * (y2 + y1)
-                    }
-
-                    // Clockwise as in FLIPPED clockwise
-                    // so actually not clockwise
-                    const clockwise: boolean = sum < 0 ? true : false;
-
-                    const normals = []
-                    let m: number;
-                    for(let n = 0; n < points.length; n += 2){
-                        m = n + 2;
-                        if(n == points.length - 2){
-                            m = 0
-                        }
-
-                        const x1 = points[n];
-                        const y1 = points[n + 1];
-
-                        const x2 = points[m];
-                        const y2 = points[m + 1];
-
-                        const dx = x2 - x1;
-                        const dy = y2 - y1;
-
-                        const magnitude = Math.sqrt((dx * dx) + (dy * dy));
-                        if(clockwise){
-                            normals.push(-dy/magnitude, dx/magnitude)
-                        } else {
-                            normals.push(dy/magnitude, -dx/magnitude)
-                        }
-                    }
+                    const points = flattenVecArray(polygon.points);
+                    const normals = flattenVecArray(polygon.normals);
 
                     bodies.push({
                         normals:normals,
                         points:points
                     });
-
                 } else if(isImageObject(obj)){
                     
                     let tileset: Tileset;
@@ -251,23 +213,13 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
                     sprites.push(sprite);
 
                 } else if(isRectangle(obj)){
-                    const left = obj.x;
-                    const top = obj.y;
-                    const right = obj.x + obj.width;
-                    const bot = obj.y + obj.height;
-
-                    const points = []
-                    points.push(left, top)
-                    points.push(right, top)
-                    points.push(right, bot)
-                    points.push(left, bot)
-
-                    const normals = []
-                    normals.push(0,-1)
-                    normals.push(1,0)
-                    normals.push(0,1)
-                    normals.push(-1,0)
+                    const rect = new Rect(obj.x,obj.y,obj.width, obj.height);
                     
+                    const polygon = rect.toPolygon();
+
+                    const points = flattenVecArray(polygon.points);
+                    const normals = flattenVecArray(polygon.normals);
+
                     bodies.push({
                         normals:normals,
                         points:points

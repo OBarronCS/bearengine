@@ -115,9 +115,9 @@ export class Rect implements Shape<Rect> {
         return new Rect(this.x, this.y, this.x2 - this.x, this.y2 - this.y);
     }
 
-    draw(g: Graphics, color = 0x0000FF, width = 4): void {
+    draw(g: Graphics, color = 0x0000FF, width = 4, alpha = 1): void {
         g.endFill();
-        g.lineStyle(width, color);
+        g.lineStyle(width, color, alpha);
         g.drawRect(this.x, this.y, this.x2 - this.x, this.y2 - this.y);
     }
 
