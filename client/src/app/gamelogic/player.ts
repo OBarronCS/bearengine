@@ -148,7 +148,7 @@ export class Player extends DrawableEntity {
             this.gun.image.angle = angleToMouse + PI;
         }
 
-        this.gun.operate(this.Mouse.isDown("left"));
+        //this.gun.operate(this.Mouse.isDown("left"));
 
         const start_x = this.position.x;
         const angle = Math.atan2(this.slope_normal.y, this.slope_normal.x) * RAD_TO_DEG;

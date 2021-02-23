@@ -1,5 +1,5 @@
 import { Shape } from "./shapesinterfaces";
-import { Coordinate, Vec2, mix, flattenVecArray } from "./vec2";
+import { Coordinate, Vec2, mix, flattenVecArray, distanceSquared } from "./vec2";
 import { Rect } from "./rectangle";
 import { abs, atan2, cos, max, min, niceColor, PI, sin, TWO_PI } from "../miscmath";
 
@@ -18,6 +18,7 @@ import { swap } from "shared/datastructures/arrayutils";
 
 export class Polygon implements Shape<Polygon>{
    
+    // These arrays are the same length
     points: Vec2[] = [];
     normals: Vec2[] = [];
 
@@ -28,7 +29,7 @@ export class Polygon implements Shape<Polygon>{
 
     static random(vertices: number): Polygon {
 
-        const points: Vec2[] = []
+        const points: Vec2[] = [];
 
         const MAX_LENGTH = 1000;
 
@@ -37,12 +38,10 @@ export class Polygon implements Shape<Polygon>{
         }
 
         points.sort((a,b) => {
-
-            let p1Angle = atan2(a.y, a.x);
-            let p2Angle = atan2(b.y, b.x);
-
+            const p1Angle = atan2(a.y, a.x);
+            const p2Angle = atan2(b.y, b.x);
             return p1Angle - p2Angle;
-        })
+        });
 
 
         return Polygon.from(points);
@@ -159,39 +158,11 @@ export class Polygon implements Shape<Polygon>{
         return abs(this.signedArea());
     }
 
-
     getAABB(): Rect {
         const topleft = minPoint(this.points);
         const botright = maxPoint(this.points);
 
         return new Rect(topleft.x, topleft.y, botright.x - topleft.x, botright.y - topleft.y)
-    }
-
-    draw(g: Graphics, color: number = niceColor(), normals = true): void {
-        g.lineStyle(3,color,.9);
-        g.endFill()
-        g.drawPolygon(this.points as unknown as Point[])
-
-        // draw points
-        for(const point of this.points){
-            drawPoint(g, point)
-        }
-
-        // Draw normals
-
-        if(normals){
-            for(let i = 0; i < this.normals.length; i++){
-                let j = i + 1;
-                if(j == this.points.length) j = 0;
-                const p1 = this.points[i];
-                const p2 = this.points[j]
-                
-                const half_way = mix(p1, p2, .5);
-                const distance = Vec2.distance(p1, p2);
-
-                drawVecAsArrow(g,this.normals[i], half_way.x, half_way.y, min(50,distance));
-            }
-        }
     }
 
     //https://en.wikipedia.org/wiki/Graham_scan
@@ -263,7 +234,7 @@ export class Polygon implements Shape<Polygon>{
         return Polygon.from(final_points);
     }
 
-    // Returns array of polygons that are triangles. No normals
+    // Returns array of polygons that are triangles.
     triangulate(): Polygon[] {
         const flatArray = flattenVecArray(this.points);
         const coords = earcut(flatArray);
@@ -274,15 +245,44 @@ export class Polygon implements Shape<Polygon>{
             const p1 = new Vec2(flatArray[coords[i]*2],flatArray[(coords[i]*2) + 1])
             const p2 = new Vec2(flatArray[(coords[i+1])*2],flatArray[((coords[i+1])*2) + 1])
             const p3 = new Vec2(flatArray[(coords[i+2])*2],flatArray[((coords[i+2])*2) + 1])
-            polygons.push(new Polygon([p1,p2,p3],[]))
+            polygons.push(Polygon.from([p1,p2,p3]));
         }
         return polygons;
+    }
+
+    /** Returns intersection point closest to A, or null */
+    lineIntersection(A: Coordinate, B: Coordinate): { point: Vec2, normal: Vec2 } {
+        
+        let answer: ReturnType<Polygon["lineIntersection"]> = null;
+        let answer_dist = -1;
+
+        let k = this.points.length - 1;
+        for (let i = 0; i < this.points.length; k = i++) {
+            const point = this.points[k];
+            const point2 = this.points[i];
+
+            const result = Line.LineLineIntersection(A, B, point, point2);
+
+            if(result === null) continue;
+
+            const dist = Vec2.distanceSquared(result, A);
+				
+            // If no answer yet, choose this
+            if(answer === null || dist < answer_dist) {
+                answer_dist = dist
+                answer = { 
+                    point: result,
+                    normal: this.normals[k]
+                };
+            }
+        }
+
+        return answer;
     }
 
     closestPoint(testPoint: Coordinate){
         let closestPoint: Vec2 = null;
         let distance = 0;
-        
 
         let j = this.points.length - 1;
         for(let i = 0; i < this.points.length; j = i++){
@@ -301,6 +301,33 @@ export class Polygon implements Shape<Polygon>{
 
     toPolygon(): Polygon {
         return this.clone();
+    }
+    
+    draw(g: Graphics, color: number = niceColor(), normals = true): void {
+        g.lineStyle(3,color,.9);
+        g.endFill()
+        g.drawPolygon(this.points as unknown as Point[])
+
+        // draw points
+        for(const point of this.points){
+            drawPoint(g, point)
+        }
+
+        // Draw normals
+
+        if(normals){
+            for(let i = 0; i < this.normals.length; i++){
+                let j = i + 1;
+                if(j == this.points.length) j = 0;
+                const p1 = this.points[i];
+                const p2 = this.points[j]
+                
+                const half_way = mix(p1, p2, .5);
+                const distance = Vec2.distance(p1, p2);
+
+                drawVecAsArrow(g,this.normals[i], half_way.x, half_way.y, min(50,distance));
+            }
+        }
     }
 }
 

@@ -40,6 +40,39 @@ export function loadTestLevel(this: BearEngine): void {
 
     // this.addEntity(new BasicSprite())
 
+    class TerrainCarveTest extends DrawableEntity {
+        
+        private point: Vec2;
+        private radius = 50;
+
+        constructor(){
+            super();
+        }
+
+        update(dt: number): void {
+            this.point = this.Mouse.position.clone()// this.poly.polygon.closestPoint(this.Mouse.position);
+           //console.log(this.point)
+            if(this.Mouse.wasPressed("left")) { 
+                this.Terrain.carveCircle(this.point.x, this.point.y, this.radius);
+                this.Engine.redrawLevel();
+            }
+            
+            this.redraw(true);
+        }
+
+        draw(g: Graphics): void {
+            const factor = 3;
+            if(this.Keyboard.isDown("ArrowUp")) this.radius += 1 * factor
+            if(this.Keyboard.isDown("ArrowDown")) this.radius -= 1 * factor
+        
+            drawCircle(g,this.point, this.radius, undefined, .3)
+
+            drawPoint(g,this.point,"#FF0000");   
+        }
+    }
+    
+    this.addEntity(new TerrainCarveTest());
+
     class ConvexHullTest extends DrawableEntity {
  
         original: Polygon;
@@ -65,7 +98,7 @@ export function loadTestLevel(this: BearEngine): void {
 
     }
 
-    this.addEntity(new ConvexHullTest());
+    //this.addEntity(new ConvexHullTest());
 
     class CircleLineIntersectionTest extends DrawableEntity {
         
@@ -95,45 +128,6 @@ export function loadTestLevel(this: BearEngine): void {
     }
 
     //this.addEntity(new CircleLineIntersectionTest);
-
-
-    class PolygonCarveTest extends DrawableEntity {
-       
-        private poly = new PolygonCarving();
-        private point: Vec2;
-
-        private radius = 50;
-        constructor(){
-            super();
-            console.log(this.poly.polygon.points);
-        }
-
-        update(dt: number): void {
-            this.point = this.Mouse.position.clone()// this.poly.polygon.closestPoint(this.Mouse.position);
-           //console.log(this.point)
-            if(this.Mouse.wasPressed("left")) this.poly.carveCircle(this.point.x, this.point.y, this.radius)
-            
-            this.redraw(true);
-        }
-
-        draw(g: Graphics): void {
-            const factor = 3;
-            if(this.Keyboard.isDown("ArrowUp")) this.radius += 1 * factor
-            if(this.Keyboard.isDown("ArrowDown")) this.radius -= 1 * factor
-        
-            drawCircle(g,this.point, this.radius)
-
-            drawPoint(g,this.point,"#FF0000");
-            
-            
-            this.poly.draw(g);
-            
-           
-        }
-
-   }
-
-   //this.addEntity(new PolygonCarveTest());
 
 
     class MouseRectCollider extends DrawableEntity {
@@ -744,241 +738,6 @@ export function loadTestLevel(this: BearEngine): void {
 
     
 }
-
-
-
-
-class PolygonCarving {
-
-
-    private additionalPolygons: Polygon[] = [];
-    polygon: Polygon;
-
-    constructor(){
-        this.polygon = Polygon.random(20);
-    }
-    
-    public carveCircle(x: number,y: number, r: number){
-        /* 
-        if this breaks, its because of an edge case with overlapping points and floating point math error
-
-        However, I think I got rid of all edge cases. If a point collides JUST on the edge, I don't delete it
-
-        1) Add points into the polygon point array into the right spots
-        2) Delete all original points that are inside the circle
-        3) Move across array in clockwise order of collision points. 
-        */
-
-        const circle = new Ellipse(new Vec2(x,y),r,r);
-
-        // contains the points of the resulting polygon
-        const newPoints: Vec2[] = []
-
-        // contains the indices in the newPoints array of the new collision points'
-        const addedIndices: number[] = [];
-
-        // const collidedPointsSet = new Set<Vec2>();
-
-        for(let i = 0; i < this.polygon.points.length; i++){
-            const firstPoint =  this.polygon.points[i];
-            const secondPoint = this.polygon.points[(i + 1) % this.polygon.points.length];
-
-        
-            // Annoying EDGE CASE:
-            // Breaks sometimes if a vertex is right on the edge of the sphere. 
-            // Floating math makes it so sometimes it will be detected to be contained in the sphere, but still not
-            // collide
-
-            // There's was an edge case where collisionPoint recognizes the same point over multiple calls
-            // It happens when the point is tangent. I discard these
-            
-            const collisionPoints = Line.CircleLineIntersection(firstPoint, secondPoint, x, y, r);
-            
-            if(!circle.contains(firstPoint)) newPoints.push(firstPoint);
-
-            if(!collisionPoints.tangent){
-                for(const point of collisionPoints.points){
-                    newPoints.push(point);
-                    addedIndices.push(newPoints.length - 1);
-                    
-                    // One more edge case that may or may not ever pop up (should have been solved with the tangent check)
-                    // If a vertex is detected twice, than the added indicies will be all messed up.
-                    // Because the will be on TOP of each other, and the program below assumes that they are NOT on top of each other
-                    // However, the program will still see TWO added indices, see there is an even amount, and keep going
-                    // So if it becomes an array, check if any of the added index points are equal, and if so, call again with different r
-                }  
-            }
-        }
-
-        // If NO points remain,
-        if(newPoints.length === 0){
-            this.polygon = null;
-            return;
-        }
-
-
-        // If not even number of collisions on edges, something broke due to edge case with vertex on sphere edge, 
-        // try again with slightly different radius
-        if(addedIndices.length % 2 !== 0){
-            return this.carveCircle(x, y, r + 3)
-        }
-
-        // Sort the added indices by the points angle to the center of the sphere 
-        addedIndices.sort((a,b) => {
-            const p1 = newPoints[a];
-            const p2 = newPoints[b];
-
-            let p1Angle = atan2(p1.y - y, p1.x - x);
-            let p2Angle = atan2(p2.y - y, p2.x - x);
-
-            console.log(p1Angle, p2Angle)
-            return p2Angle - p1Angle;
-        })
-
-        console.log("Indices: ", addedIndices);
-        console.log("Points: ", newPoints)
-
-        // Algorithm 2.0: Here we go
-
-        // Test the space between the first two points to determine the offset 
-        let offset = 0;
-
-        // Gets the point halfway between the first two points, and tests if it is in the polygon or not
-        const p1 = newPoints[addedIndices[0]];
-        const p2 = newPoints[addedIndices[1]];
-
-        let startAngle = atan2(p1.y - y,p1.x - x);
-        let endAngle = atan2(p2.y - y,p2.x - x);
-
-        // This essentially just checks the angle clockwise, halfway between the two angles;
-        if(startAngle < endAngle) startAngle += Math.PI * 2;
-
-        const angleDiff = (startAngle - endAngle) / 2;
-        const testAngle = startAngle - (angleDiff / 2);
-
-        const testPoint = new Vec2(x + cos(testAngle) * r, y + sin(testAngle) * r);
-        // console.log(testPoint)
-        if(!this.polygon.contains(testPoint)){
-            console.log("OFFSET")
-            offset = 1;
-        }
-
-
-        // parralel array of connected components
-        const islands: number[] = [];
-        islands.length = newPoints.length;
-        islands.fill(0);
-
-        let freeIslandNumber = 0;
-
-        // Key is the index where we add the points
-        const addedCirclePointMap: Map<number,Vec2[]> = new Map();
-        
-        // Cycles through points and creates ALL the disconnected components
-        for(let i = 0; i < addedIndices.length; i += 2){
-            const ii = (i + offset) % addedIndices.length;
-            const ii2 = (ii + 1) % addedIndices.length;
-
-            // Index inside of the newPoints array denoting the beginning and end of where points should be filled in
-            // Move clockwise (right) from index until get to index2. Will wrap around array at times.
-            const index = addedIndices[ii];
-            const index2 = addedIndices[ii2];
-
-            freeIslandNumber += 1;
-
-            // this and islands[index2] should always be equal
-            const islandNumber = islands[index];
-
-            let j = index;
-            while(j !== index2){
-                // Essentially, if this point doesn't belong to another group already
-                if(islands[j] === islandNumber){
-                    islands[j] = freeIslandNumber;
-                }
-
-                j = (j + 1) % newPoints.length;
-            }
-
-            // Add index2 as well. j == index2 here
-            islands[j] = freeIslandNumber;
-
-            // CREATING THE CIRCLE POINTS:
-            
-            const p1 = newPoints[index];
-            const p2 = newPoints[index2];
-
-            let startAngle = atan2(p1.y - y,p1.x - x);
-            let endAngle = atan2(p2.y - y,p2.x - x);
-            
-            const VERTICES = 14;
-            const initialOffset =  Math.PI * 2 / VERTICES // used to make sure points don't repeat
-
-            if(endAngle > startAngle) endAngle -= 2 * PI;
-
-            const circlePoints: Vec2[] = [];
-
-            for(let i = startAngle - initialOffset; i > endAngle; i -= Math.PI * 2 / VERTICES)
-                circlePoints.push(new Vec2(x + cos(i) * r, y + sin(i) * r));
-
-            // reverse it due to the opposite ordering.
-            addedCirclePointMap.set(index2, circlePoints.reverse());
-
-        }
-
-        //Now, we have created all the disconnected 'islands' of points (defined in islands array), we just need to make them seperate polygon objects
-        // And add the points from the circle
-
-        console.log(freeIslandNumber)
-        console.log(islands)
-
-        const components: Vec2[][] = [];
-
-        // Each free number creates either nothing, or it creates an entire 
-        for(let i = 0; i <= freeIslandNumber; i++){
-
-            const points: Vec2[] = [];
-
-            for(let j = 0; j < newPoints.length; j++){
-                // remember, newPoints and island are parralel arrays
-                if(islands[j] === i){
-                    points.push(newPoints[j]);
-
-                    const possibleAddedPoints = addedCirclePointMap.get(j);
-                    if(possibleAddedPoints !== undefined){
-                        points.push(...possibleAddedPoints);
-                    }
-                }
-            }
-
-            if(points.length !== 0) components.push(points);
-        }
-
-
-        
-        
-
-        // ONE MORE EDGE CASE CHECK MAYBE:
-        // In some very rare floating point math error cases, I will get polygon's that are just two points on top of each other
-        // Maybe check for these one last time at the end?
-   
-
-        this.polygon = Polygon.from(components[0]);
-
-        for(let i = 1; i < components.length; i++){
-            this.additionalPolygons.push(Polygon.from(components[i]));
-        }
-    }   
-
-    draw(g: Graphics){
-        this.polygon.draw(g,0x0050FF);
-        for(const poly of this.additionalPolygons){
-            poly.draw(g, 0x0000FF)
-        }
-    }
-
-}
-
-
 
 
 

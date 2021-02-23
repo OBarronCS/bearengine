@@ -77,6 +77,8 @@ class BearEngine {
     public remotelocations: PartQuery<RemoteLocations> = new PartQuery(RemoteLocations);
     
 
+    public levelGraphic = new Graphics();
+
     private player: Player = null;
 
     constructor(){        
@@ -192,9 +194,9 @@ class BearEngine {
 
         Entity.BEAR_ENGINE = this;
         
-        const g = new Graphics();
-        this.current_level.draw(g);
-        this.renderer.addSprite(g);
+
+        this.redrawLevel();
+        this.renderer.addSprite(this.levelGraphic);
 
         this.partQueries.push(this.current_level.collisionManager.partQuery);
         this.partQueries.push(this.renderer.graphicsQuery);
@@ -207,6 +209,12 @@ class BearEngine {
         this.camera.zoom(Vec2.HALFHALF)
         // this.camera.follow(this.player.position)
     }
+
+    public redrawLevel(){
+        this.levelGraphic.clear();
+        this.current_level.draw(this.levelGraphic);
+    }
+
 
 
     readFromNetwork(){
@@ -247,6 +255,8 @@ class BearEngine {
 
         this.readFromNetwork();
 
+
+        
         // both of these are in ms
         while (accumulated >= (simulation_time)) {
 
@@ -257,12 +267,12 @@ class BearEngine {
             this.current_level.collisionManager.update(dt);
 
 
-
             for (let i = 0; i < this.updateList.length; i++) {
                 const entity = this.updateList[i];
                 entity.update(dt);
                 entity.postUpdate(); // Maybe get rid of this, swap it with systems that I call after step
             }
+
 
             this.totalTime += dt;
             accumulated -= simulation_time;

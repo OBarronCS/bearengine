@@ -17,8 +17,8 @@ export function drawPoint(graphics: Graphics, point: Coordinate, color: string =
     graphics.drawCircle(point.x, point.y, 4);
 }
 
-export function drawCircle(graphics: Graphics, point: Coordinate, r: number, color: string = "#00FFF0"){
-    graphics.beginFill(string2hex(color));
+export function drawCircle(graphics: Graphics, point: Coordinate, r: number, color: string = "#00FFF0", alpha = 1){
+    graphics.beginFill(string2hex(color), alpha);
     graphics.drawCircle(point.x, point.y, r);
 }
 

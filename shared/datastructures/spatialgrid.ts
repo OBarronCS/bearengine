@@ -53,20 +53,27 @@ export class SpatialGrid<T> {
     }
 
     public draw(g: Graphics): void {
+
+        const set = new Set<T>();
         
         for (let i = 0; i < this.gridWidth; i++) {
             for(let j = 0; j < this.gridHeight; j++){
                 // Vertical lines
-                drawLineBetweenPoints(g,{x: i * this.tileWidth, y: 0},{x: i * this.tileWidth, y: this.worldHeight})
+                drawLineBetweenPoints(g,{x: i * this.tileWidth, y: 0},{x: i * this.tileWidth, y: this.worldHeight}, undefined, .01,)
 
                 // horizontal lines
-                drawLineBetweenPoints(g,{x: 0, y: j * this.tileHeight},{x: this.worldWidth, y: j * this.tileHeight})
+                drawLineBetweenPoints(g,{x: 0, y: j * this.tileHeight},{x: this.worldWidth, y: j * this.tileHeight}, undefined, .01)
 
-                this.grid[i][j].forEach((val) => {
-                    this.AABBFunction(val).draw(g);
-                })
+
+                const list = this.grid[i][j];
+                for(const obj of list)
+                    set.add(obj);
             }
         }
+
+        set.forEach((val) => {
+            this.AABBFunction(val).draw(g, 0x00FF00, 8, .3);
+        });
 
         drawLineBetweenPoints(g,{x: this.worldWidth, y: 0},{x: this.worldWidth, y: this.worldHeight})
         drawLineBetweenPoints(g,{x: 0, y: this.worldHeight},{x: this.worldWidth, y:  this.worldHeight})
@@ -82,6 +89,35 @@ export class SpatialGrid<T> {
 		//}
     }
 
+    public remove(obj: T): void {
+        const aabb = this.AABBFunction(obj);
+
+        let left_index = Math.floor(aabb.left / this.tileWidth);
+		let right_index = Math.floor(aabb.right / this.tileWidth);
+		let top_index = Math.floor(aabb.top / this.tileHeight);
+		let bot_index = Math.floor(aabb.bot / this.tileHeight);
+		
+		left_index = clamp(left_index, 0, this.gridWidth - 1);
+        right_index = clamp(right_index, 0, this.gridWidth - 1);   
+		top_index = clamp(top_index, 0, this.gridHeight - 1);
+        bot_index = clamp(bot_index, 0, this.gridHeight - 1);
+        
+        // Used for debugging
+        let num = 0;
+
+        for(let j = left_index; j <= right_index; j++){
+            for(let k = top_index; k <= bot_index; k++){
+                const list = this.grid[j][k];
+                const index = list.indexOf(obj);
+                if(index !== -1){
+                    num += 1;
+                    list.splice(index,1);
+                }   
+            }
+        }
+
+        if(num === 0) console.trace("Deleting unknown object: " + obj);
+    }
 
     // What if outside everything? Maybe don't add at all
     public insert(obj: T): void {
