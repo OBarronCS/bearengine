@@ -14,11 +14,11 @@ import { swap } from "shared/datastructures/arrayutils";
 
 
 // Test for concavity: http://paulbourke.net/geometry/polygonmesh/
-// TODO: more optimized clockwise test for 3 points, and hull calculation.
+// TODO: more optimized clockwise test for 3 points
 
 export class Polygon implements Shape<Polygon>{
    
-    // These arrays are the same length
+    // These arrays are the same length. ex: 4 points = 4 edges
     points: Vec2[] = [];
     normals: Vec2[] = [];
 
