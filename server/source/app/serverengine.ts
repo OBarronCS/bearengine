@@ -29,15 +29,12 @@ class ServerBearEngine {
 
     public totalTime = 0;
 
-
-    private current_level: LevelHandler = null;
-
     private updateList: AbstractEntity[] = [];
     private networkedEntities: NetworkedEntity[] = [];
     private previousTick: number = 0;
 
     
-    // Maybe just turn this into a stream that is written to.
+    // Just turn this into a stream that is written to.
     private networkMessageQueue = new LinkedQueue<{id: number}>();
 
 
@@ -55,18 +52,18 @@ class ServerBearEngine {
         this.loop();
     }
 
-	startLevel(level_struct: CustomMapFormat){
-		this.current_level = new LevelHandler(level_struct);
-        this.current_level.load();
+	// startLevel(level_struct: CustomMapFormat){
+	// 	this.current_level = new LevelHandler(level_struct);
+    //     this.current_level.load();
 
-        //@ts-expect-error
-        AbstractEntity.GLOBAL_DATA_STRUCT = {
-            Scene: this,
-            Level: this.current_level,
-            Collision: this.current_level.collisionManager,           
-            Terrain: this.current_level.terrainManager
-        }
-    }
+    //     //@ts-expect-error
+    //     AbstractEntity.GLOBAL_DATA_STRUCT = {
+    //         Scene: this,
+    //         Level: this.current_level,
+    //         Collision: this.current_level.collisionManager,           
+    //         Terrain: this.current_level.terrainManager
+    //     }
+    // }
 
     private _boundLoop = this.loop.bind(this);
 
@@ -194,20 +191,6 @@ class ServerBearEngine {
         this.addEntity(e);
         this.networkedEntities.push(e);
     }
-    
-    restartCurrentLevel(){
-        const data = this.current_level.data_struct;
-        this.endCurrentLevel();
-        this.startLevel(data);
-    }
-
-    endCurrentLevel(){
-        this.current_level.end();
-
-        for(let i = this.updateList.length - 1; i >= 0; --i){
-            this.destroyEntity(this.updateList[i]);
-        }
-    }   
 }
 
 

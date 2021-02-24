@@ -1,5 +1,8 @@
 import { Vec2 } from "shared/shapes/vec2";
 import { sign } from "shared/miscmath";
+import { Subsystem } from "shared/core/subsystem";
+import { RendererSystem } from "../core-engine/renderer";
+import { Point } from "pixi.js";
 
 export type MouseButton = "left" | "middle" | "right" 
 
@@ -23,12 +26,7 @@ export interface MouseInput {
     onmousemove(func: (worldPoint:Vec2,screenPoint:Vec2) => void): void,
 }
 
-export interface InternalMouse extends MouseInput {
-    update(): void;
-    addWindowListeners(window: Window): void
-}
-
-export class EngineMouse implements InternalMouse {
+export class EngineMouse extends Subsystem {
     position: Vec2 = new Vec2(0,0);
     screenPosition: Vec2 = new Vec2(0,0);
     velocity: Vec2 = new Vec2(0,0);
@@ -54,11 +52,41 @@ export class EngineMouse implements InternalMouse {
     private _mousemove:  ((worldPoint:Vec2,screenPoint:Vec2) => void)[] = [];
     private _mousedown:  ((worldPoint:Vec2,screenPoint:Vec2) => void)[][] = [[],[],[]];
     private _mouseup: ((worldPoint:Vec2,screenPoint:Vec2) => void)[][] = [[],[],[]];
+    private _onscroll: ((direction: number,worldPoint:Vec2,screenPoint:Vec2) => void)[] = [];
 
-    addWindowListeners(targetWindow: Window){
+    init(){
+        const renderer = this.getSystem(RendererSystem);
+        const targetWindow: Window = renderer.renderer.view.ownerDocument.defaultView;
+
+        // Sets mouse positions
+        targetWindow.addEventListener("mousemove", (e) => {
+            this.screenPosition.x = e.x;
+            this.screenPosition.y = e.y;
+
+            // Transforms it into the space of 
+            const canvasPoint = new Point();
+            renderer.renderer.plugins.interaction.mapPositionToPoint(canvasPoint,this.screenPosition.x,this.screenPosition.y);
+            
+            // @ts-expect-error
+            renderer.mainContainer.toLocal(canvasPoint,undefined,this.position);
+
+            this._mousemove.forEach(element => {
+                element(this.position, this.screenPosition);
+            });
+        })
+
         targetWindow.addEventListener("wheel", (e) => {
+            const canvasPoint = new Point();
+            renderer.renderer.plugins.interaction.mapPositionToPoint(canvasPoint,this.screenPosition.x,this.screenPosition.y);
+            // @ts-expect-error
+            renderer.mainContainer.toLocal(canvasPoint,undefined,this.position);
+
             this.scroll = sign(e.deltaY);
             this.didScroll = true;
+
+            this._onscroll.forEach((func) => {
+                func(this.scroll, this.position, this.screenPosition);
+            })
         })
 
         targetWindow.addEventListener("click", (e) => {
@@ -85,56 +113,11 @@ export class EngineMouse implements InternalMouse {
             this.down[index] = false;
         })
 
-        targetWindow.addEventListener("mousemove", (e) => {
-
-            this.screenPosition.x = e.x;
-            this.screenPosition.y = e.y;
-            
-            this._mousemove.forEach(element => {
-                element(this.position, this.screenPosition);
-            });
-        })
-    }
-
-    onclick(func: (worldPoint:Vec2,screenPoint:Vec2) => void){
-        this._click.push(func)
-    }
-   
-    onmousedown(_button:MouseButton, func: (worldPoint:Vec2,screenPoint:Vec2) => void){
-        const index = this.stringToKey[_button];
-        this._mousedown[index].push(func)
-    }
-
-    onmouseup(_button:MouseButton, func: (worldPoint:Vec2,screenPoint:Vec2) => void){
-        const index = this.stringToKey[_button];
-        this._mouseup[index].push(func)
-    }
-
-    onmousemove(func: (worldPoint:Vec2,screenPoint:Vec2) => void){
-        this._mousemove.push(func)
-    }
-
-
-    isDown(_button:MouseButton): boolean{
-        const index = this.stringToKey[_button];
-        return this.down[index]
-    }
-
-    wasPressed(_button:MouseButton): boolean{
-        const index = this.stringToKey[_button];
-        return this.pressed[index]
-    }
-
-    wasReleased(_button:MouseButton): boolean{
-        const index = this.stringToKey[_button];
-        return this.released[index]
     }
 
     // run before update loop
     update(){
-        // Position is set in engine right before this
         this.velocity.set({x: this.position.x - this.lastPosition.x, y: this.position.y - this.lastPosition.y}) 
-
 
         this.released = [false, false, false];
         this.pressed = [false, false, false];
@@ -161,7 +144,43 @@ export class EngineMouse implements InternalMouse {
         this.didScroll = false;
         this.lastPosition.set(this.position);
     }
+    
+    onscroll(func: (direction: number,worldPoint:Vec2,screenPoint:Vec2) => void){
+        this._onscroll.push(func);
+    }
 
+    onclick(func: (worldPoint:Vec2,screenPoint:Vec2) => void){
+        this._click.push(func)
+    }
+   
+    onmousedown(_button:MouseButton, func: (worldPoint:Vec2,screenPoint:Vec2) => void){
+        const index = this.stringToKey[_button];
+        this._mousedown[index].push(func)
+    }
+
+    onmouseup(_button:MouseButton, func: (worldPoint:Vec2,screenPoint:Vec2) => void){
+        const index = this.stringToKey[_button];
+        this._mouseup[index].push(func)
+    }
+
+    onmousemove(func: (worldPoint:Vec2,screenPoint:Vec2) => void){
+        this._mousemove.push(func)
+    }
+
+    isDown(_button:MouseButton): boolean{
+        const index = this.stringToKey[_button];
+        return this.down[index]
+    }
+
+    wasPressed(_button:MouseButton): boolean{
+        const index = this.stringToKey[_button];
+        return this.pressed[index]
+    }
+
+    wasReleased(_button:MouseButton): boolean{
+        const index = this.stringToKey[_button];
+        return this.released[index]
+    }
 }
 
 

@@ -1,16 +1,20 @@
-import { Container, Point } from "pixi.js";
+import { Text, Container, Point, TextStyle } from "pixi.js";
 import { Coordinate, mix, Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
 
 import { RendererSystem } from "./renderer";
 import { EngineKeyboard } from "../input/keyboard";
-import { InternalMouse } from "../input/mouse";
-import { lerp, smoothNoise } from "shared/miscmath";
+import { lerp, round, smoothNoise } from "shared/miscmath";
+import { BearEngine } from "./bearengine";
+import { Subsystem } from "shared/core/subsystem";
+import { EngineMouse } from "../input/mouse";
 
-export class CameraSystem {
+export class CameraSystem extends Subsystem {
     
-    public renderer: RendererSystem;
     public container: Container;
+    public renderer: RendererSystem;
+    public mouse: EngineMouse;
+    
 
     public targetMiddle: Vec2;
     public mode: "free" | "follow" = "free"
@@ -18,15 +22,25 @@ export class CameraSystem {
     // Used for camera shake [0,1]
     private trauma = 0;
 
-    constructor(renderer: RendererSystem, container: Container, targetWindow: Window, mouse: InternalMouse, keyboard: EngineKeyboard) {
+    private mouse_info = new Text("",new TextStyle({"fill": "white"}));
+    
 
-        this.renderer = renderer;
-        this.container = container;
+    // I couldn't get this to work well so just reverted to original DOM events
+    init(): void {
+        const renderer = this.renderer = this.getSystem(RendererSystem);
+
+        this.mouse_info.x = 5;
+        this.mouse_info.y = renderer.getPercentHeight(1) - 50;
+        renderer.addGUI(this.mouse_info);
+
+        const container = this.container = renderer.mainContainer;
 
         // pivot should be at center of screen at all times. Allows rotation around the middle
         container.position.x = renderer.renderer.width / 2;
         container.position.y = renderer.renderer.height / 2;
 
+        const keyboard = this.getSystem(EngineKeyboard);
+        const mouse = this.mouse = this.getSystem(EngineMouse);
         keyboard.bind("h", () => {
             this.trauma = .5;
         });
@@ -42,13 +56,15 @@ export class CameraSystem {
         let startPoint: Coordinate;
 
         // start drag
-        targetWindow.addEventListener("mousedown", (event) => {
+        window.addEventListener("mousedown", (event) => {
             startPoint = this.center.clone();
-            startMouse = renderer.mouse.clone()
+            const point = new Point(0,0);
+            renderer.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y);
+            startMouse = point//renderer.mouse.clone()
         });
 
         // while dragging
-        targetWindow.addEventListener("mousemove",event => {
+        window.addEventListener("mousemove",event => {
             const point = new Point(0,0);
             renderer.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y);
 
@@ -64,7 +80,7 @@ export class CameraSystem {
         });
 
         // ZOOM
-        targetWindow.addEventListener("wheel", (event) => {
+        window.addEventListener("wheel", (event) => {
             const point = new Point(0,0);
             renderer.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y);
             const con = this.container;
@@ -86,6 +102,29 @@ export class CameraSystem {
         });
     }
 
+    update(delta: number){
+        this.mouse_info.text = `${round(this.mouse.position.x, 1)},${round( this.mouse.position.y, 1)}`;
+
+        const maxAngle = 20;
+        const maxOffset = 40;
+        
+        const seed = Date.now();
+
+        const shake =  (this.trauma**2);
+
+        const shakeAngle = maxAngle * shake * smoothNoise(seed);
+        const dx = maxOffset * shake * smoothNoise(seed + 1000);
+        const dy = maxOffset * shake * smoothNoise(seed + 2000);
+
+        // shake is actually broken. It rotates around the position, which is not center of screen
+        this.container.angle = this.baseDangle + shakeAngle;
+        this.container.pivot.copyFrom({x: this.center.x + dx,y: this.center.y + dy});
+
+        this.trauma -= .007;
+        if(this.trauma < 0) this.trauma = 0;
+        if(this.mode === "follow") this.center = mix(this.center, this.targetMiddle, .40);
+    }
+    
     public zoom(factor: Coordinate){
         this.container.scale.copyFrom(factor);
     }
@@ -116,26 +155,7 @@ export class CameraSystem {
         this.mode = "follow";
     }
 
-    update(){
-        const maxAngle = 20;
-        const maxOffset = 40;
-        
-        const seed = Date.now();
-
-        const shake =  (this.trauma**2);
-
-        const shakeAngle = maxAngle * shake * smoothNoise(seed);
-        const dx = maxOffset * shake * smoothNoise(seed + 1000);
-        const dy = maxOffset * shake * smoothNoise(seed + 2000);
-
-        // shake is actually broken. It rotates around the position, which is not center of screen
-        this.container.angle = this.baseDangle + shakeAngle;
-        this.container.pivot.copyFrom({x: this.center.x + dx,y: this.center.y + dy});
-
-        this.trauma -= .007;
-        if(this.trauma < 0) this.trauma = 0;
-        if(this.mode === "follow") this.center = mix(this.center, this.targetMiddle, .40);
-    }
+    
     
 
     inView(point: Coordinate){

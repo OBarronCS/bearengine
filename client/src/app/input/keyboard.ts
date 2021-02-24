@@ -1,13 +1,11 @@
 import * as Mousetrap from "mousetrap"
 import { ExtendedKeyboardEvent, MousetrapInstance } from "mousetrap";
 import { KECode } from "../apiwrappers/keyboardapiwrapper";
-
-// Things maybe to add:
-// anyDown --> if any of these keys are down
-// Same thing with press and release? but only 
+import { RendererSystem } from "../core-engine/renderer";
+import { Subsystem } from "shared/core/subsystem";
 
 
-export class EngineKeyboard {
+export class EngineKeyboard extends Subsystem {
 
     // Things that were down last tick
     private lastKeyDownMap = new Map<KECode,boolean>();
@@ -21,11 +19,13 @@ export class EngineKeyboard {
     // Was it released between this an last tick
     private keyReleasedMap = new Map<KECode,boolean>();
 
+    private mousetrap: MousetrapInstance;
 
-
-    constructor(form: Window){
-        // bind it to a different window
-        // the types definitions are incorrect as you can bind a window
+    init(){
+        const renderer = this.getSystem(RendererSystem);
+        const form: Window = renderer.renderer.view.ownerDocument.defaultView;
+    
+        //The types definitions are incorrect as you can bind a window
         //https://github.com/ccampbell/mousetrap/issues/247
         ///@ts-expect-error
         this.mousetrap = new Mousetrap(form);
@@ -35,13 +35,16 @@ export class EngineKeyboard {
         
         form.addEventListener("keyup",(e) => {
             this.keyDownMap.set(e.code as KECode,false);
-        })
+        });
         
+        // Stops right click menu
+        renderer.renderer.view.addEventListener('contextmenu', function(ev) {
+            ev.preventDefault();
+            return false;
+        }, false);
     }
 
-    private mousetrap: MousetrapInstance;
-
-    public update(){
+    update(){
         // run before update loop
         // what things did I have down LAST run
         this.keyPressedMap.clear();
@@ -59,7 +62,6 @@ export class EngineKeyboard {
                     this.keyReleasedMap.set(key, true)
                 }
             }
-            
         }
 
         this.lastKeyDownMap = new Map(this.keyDownMap);
