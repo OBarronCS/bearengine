@@ -16,20 +16,20 @@ import { SpatialGrid } from "shared/datastructures/spatialgrid";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { PartQuery } from "shared/core/partquery";
 import { ColliderPart } from "./abstractpart";
+import { AbstractBearEngine } from "./abstractengine";
 
 
 export class CollisionManager {
-    
-    // In the future, with lots of entities, this will probably become a bottleneck. Research more efficient data structures
-    // Rebuild the grid every step
+
+    // With lots of entities, this will probably become a bottleneck.
+    // Because it rebuilds the grid every step
     private colliders: ColliderPart[] = [];
     private grid: SpatialGrid<ColliderPart>;
 
-    public partQuery = new PartQuery(ColliderPart, e => {
-            this.add(e)
-        }, e => {
-            this.remove(e)
-        });
+    public part_query = new PartQuery(ColliderPart, 
+        e => this.add(e), 
+        e => this.remove(e)
+    );
 
     constructor(worldWidth: number, worldHeight: number){
         this.grid = new SpatialGrid<ColliderPart>(worldWidth,worldHeight,6,6,(collider) => collider.rect);   

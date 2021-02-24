@@ -1,21 +1,55 @@
-import { Part } from "./abstractpart";
-import { PartQuery } from "./partquery";
+import { AbstractBearEngine } from "shared/core/abstractengine";
+import { Part } from "shared/core/abstractpart";
+import { PartQuery } from "shared/core/partquery";
 
 
-// none in use, going to remove this as soon as I think of a better alternative
+
+// new(engine: BearEngine) => T
+
 export abstract class Subsystem {
-    queries: PartQuery<any>[] = [];
-    
+    public queries: PartQuery<any>[] = [];
+
+    public engine: AbstractBearEngine
+
+    constructor(engine: AbstractBearEngine){
+        this.engine = engine;
+        return this
+    }
+
+    abstract init(): void;
+    abstract update(delta: number): void;
+
+    getSystem<T extends Subsystem>(query: new(...args: any[]) => T): T {
+        return this.engine.getSystem(query);
+    }
+
     addQuery<T extends Part>(
-            partClass: new(...args:any[]) => T,
-            onAdd: (part: T) => void = (a) => {},
-            onRemove: (part: T) => void = (a) => {},
-        ){
+                partClass: new(...args:any[]) => T,
+                onAdd: (part: T) => void = (a) => {},
+                onRemove: (part: T) => void = (a) => {},
+            ): PartQuery<T> {
 
         const q = new PartQuery(partClass,onAdd,onRemove);
-        this.queries.push(q)
+        this.addQueryCheckNoDuplicates(q);
         return q;
     }
-}
 
+    addExistingQuery<T extends Part>(q: PartQuery<T>): PartQuery<T> {
+        this.addQueryCheckNoDuplicates(q);
+        return q;
+    }
+
+    // Only checks for same object itself. Will not add if already here. For debugging
+    private addQueryCheckNoDuplicates<T extends Part>(q: PartQuery<T>): PartQuery<T> {
+        for(const query of this.queries){
+            if(q === query) { 
+                console.trace("Error! Trying to add same query twice!")
+                return q;
+            }
+        }
+        this.queries.push(q);
+        return q;
+    }
+
+}
 

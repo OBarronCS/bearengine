@@ -1,7 +1,9 @@
 import { autoDetectRenderer, Renderer, Container, DisplayObject, Loader, utils, InteractionManager } from "pixi.js";
 import { PartQuery } from "shared/core/partquery";
 import { clamp } from "shared/miscmath";
+import { BearEngine } from "./bearengine";
 import { GraphicsPart, SpritePart } from "./parts";
+import { Subsystem } from "shared/core/subsystem";
 
 
 const SHARED_RESOURCES = Loader.shared.resources;
@@ -18,7 +20,7 @@ const MAX_RATIO = 21/9;
 //https://pixijs.download/dev/docs/PIXI.utils.html#.isMobile
 const isMobile = utils.isMobile.any;
 
-export class RendererSystem {
+export class RendererSystem extends Subsystem {
     public renderer: Renderer;
 
     public stage = new Container();
@@ -28,7 +30,7 @@ export class RendererSystem {
     public targetWindow: Window;
     public targetDiv: HTMLElement;
 
-    public graphicsQuery = new PartQuery(GraphicsPart,
+    public graphics_query = this.addQuery(GraphicsPart,
             g => {
                 g.graphics.zIndex = 1;
                 this.addSprite(g.graphics)
@@ -36,22 +38,23 @@ export class RendererSystem {
             g => this.removeSprite(g.graphics)
         );
 
-    public spriteQuery = new PartQuery(SpritePart,
+    public sprite_query = this.addQuery(SpritePart,
             s => {
                 s.sprite.texture = this.getTexture(s.file_path);
                 this.addSprite(s.sprite)
             },
-            s => { 
+            s => {
                 this.removeSprite(s.sprite);
             
                 s.sprite.destroy({
                     children: true,
                     baseTexture: false,
                     texture: false
-                });
+            });
         });
 
-    constructor(targetDiv: HTMLElement, targetWindow: Window){
+    constructor(engine: BearEngine, targetDiv: HTMLElement, targetWindow: Window){
+        super(engine);
         this.targetWindow = targetWindow;
         this.targetDiv = targetDiv;
         document.body.style.zoom = "1.0"
@@ -97,8 +100,12 @@ export class RendererSystem {
         (this.renderer.plugins.interaction as InteractionManager).cursorStyles.default = css;
     }
 
-    render(){
-        for(const sprite of this.spriteQuery){
+    init(){
+        
+    }
+
+    update(){
+        for(const sprite of this.sprite_query){
             sprite.sprite.position.copyFrom(sprite.owner.position);
         }
 
@@ -184,10 +191,6 @@ export class RendererSystem {
     
     getPercentHeight(percent: number){
         return percent * this.renderer.view.height;
-    }
-
-    get mouse(){
-        return this.renderer.plugins.interaction.mouse.global;
     }
 }
 

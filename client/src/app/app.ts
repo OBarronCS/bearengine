@@ -6,10 +6,10 @@ import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 
 const game = new BearEngine();
 
-game.startRenderer({
-    popup: false
-}).then(game.loadAssets).then(RESOURCES => {
-    dragAndDropTest(game.renderer.renderer.view);
+game.init();
+game.loadAssets().then(RESOURCES => {
+    // dragAndDropTest(game.renderer.renderer.view);
+    
     console.log("ALL ASSETS DOWNLOADED")
     game.startLevel(ParseTiledMapData(RESOURCES["images/firsttest.json"].data as TiledMap));
     game.start();

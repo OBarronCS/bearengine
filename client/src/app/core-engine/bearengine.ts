@@ -1,5 +1,5 @@
 
-import { InternalMouse, EngineMouse } from "../input/mouse";
+import { EngineMouse } from "../input/mouse";
 import { GUI } from "dat.gui";
 import { RendererSystem } from "./renderer";
 import { CameraSystem } from "./camera";
@@ -7,7 +7,6 @@ import { EventEmitter } from "eventemitter3";
 import TypedEmitter from "typed-emitter";
 import { Entity, GMEntity, SpriteEntity } from "./entity";
 import { Player } from "../gamelogic/player";
-import { CreateWindow } from "../apiwrappers/windowopen";
 import { EngineKeyboard } from "../input/keyboard";
 import { loadTestLevel } from "../gamelogic/testlevelentities";
 import { BufferedNetwork } from "./networking/socket";
@@ -15,15 +14,15 @@ import { BufferedNetwork } from "./networking/socket";
 import { CustomMapFormat, ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { LevelHandler } from "shared/core/level";
 import { PartQuery } from "shared/core/partquery";
-import { Text, Graphics, Loader, TextStyle, utils, Point, Sprite } from "pixi.js";
+import { Graphics, Loader, utils, Sprite } from "pixi.js";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { ClientPacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { Subsystem } from "shared/core/subsystem";
-import { round } from "shared/miscmath";
 import { NetworkedEntityManager } from "./networking/gamemessagemanager";
 import { RemoteLocations } from "./networking/remotecontrol";
 import { Vec2 } from "shared/shapes/vec2";
+import { AbstractBearEngine } from "shared/core/abstractengine";
 
 
 const SHARED_RESOURCES = Loader.shared.resources;
@@ -47,27 +46,18 @@ console.log(ALL_TEXTURES)
 
 export interface CoreEvents  {}
 
-export interface EngineSettings {
-    popup: false
-}
 
-class BearEngine {
+class BearEngine implements AbstractBearEngine {
 
+    // IMPORTANT SYSTEMS
     public renderer: RendererSystem = null;
-
     public camera: CameraSystem = null;
-
-    private mouse_info: Text = null;
-    
-
-    // Total simulated time, in seconds
-    public totalTime = 0;
-
-    public mouse: InternalMouse = null;
+    public mouse: EngineMouse = null;
     public keyboard: EngineKeyboard = null;
-    public current_level: LevelHandler = null;
+    public level: LevelHandler = null;
 
     
+    private systems: Subsystem[] = [];
     private updateList: AbstractEntity[] = [];
     private partQueries: PartQuery<any>[] = [];
 
@@ -81,61 +71,103 @@ class BearEngine {
 
     private player: Player = null;
 
+
+    // Total simulated time, in seconds
+    public totalTime = 0;
+
+
     constructor(){        
         this.network = new BufferedNetwork("ws://127.0.0.1:8080");
     }
 
-    private async initRenderer(settings: EngineSettings): Promise<RendererSystem> {
-        if(!settings.popup){
+    // DOES NOT start ticking yet
+    init(): void {
+        const div = document.querySelector("#display") as HTMLElement;
             
-            const div = document.querySelector("#display") as HTMLElement;
-            
-            return new RendererSystem(div, window);
+        this.renderer = this.registerSystem(new RendererSystem(this, div, window));
+        this.mouse = this.registerSystem(new EngineMouse(this));
+        this.keyboard = this.registerSystem(new EngineKeyboard(this));
+        this.camera = this.registerSystem(new CameraSystem(this));
+        this.level = this.registerSystem(new LevelHandler(this));
 
-        } else { // creates a pop up display
-            throw new Error("Not implemented")
-            // In reality, I need to load the entire codebase in the seperate window for it to work properly
-            // const new_window = await CreateWindow("Game", {width:400,height:300,center:true});
-            // console.log(new_window)
-            // const displayDiv = new_window.document.createElement("div");
-            // new_window.document.body.appendChild(displayDiv);
-                
-            // return new RendererSystem(displayDiv, new_window);
+
+        for(const system of this.systems){
+            system.init();
         }
-    }
-
-    // Creates the WebGL view using PIXI.js, so the game can be rendered
-    // Connects keyboard and mouse listeners
-    async startRenderer(settings: EngineSettings): Promise<void> {
-        this.renderer = await this.initRenderer(settings);
-
-        const targetWindow = this.renderer.targetWindow;
-        const targetDiv = this.renderer.targetDiv;
-
-        this.mouse = new EngineMouse();
-        this.mouse.addWindowListeners(targetWindow);
-
-        this.keyboard = new EngineKeyboard(targetWindow)
 
         this.keyboard.bind("k", () => {
             this.restartCurrentLevel()
         })
+    }
 
+    registerSystem<T extends Subsystem>(system: T): T {
+        this.systems.push(system);
+        return system;
+    }
 
+    /** Takes in class name, returns instance of it */
+    getSystem<T extends Subsystem>(query: new(...args: any[]) => T): T {
+        const name = query.name;
+        for(const system of this.systems){
+            // @ts-expect-error
+            if(system.constructor.name === name) return system;
+        }
 
-        this.camera = new CameraSystem(this.renderer,this.renderer.mainContainer, targetWindow, this.mouse, this.keyboard);
+        return null;
+    }
+
+    startLevel(level_struct: CustomMapFormat){
+        // janky. This call to level adds a part query to the level handler.
+        this.level.load(level_struct);
+        this.renderer.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundcolor);
+         
+        for(const system of this.systems){
+            this.partQueries.push(...system.queries);
+        }
+
+        // TODO: Make networking it's own system
+        // TODO: Make entity handling it's own system as well, so I can insert it into the system list
+        // But still use the engine as an api to add and delete entities
+        this.partQueries.push(this.remotelocations);
+       
+        // Load sprites from map 
+        level_struct.sprites.forEach(s => {
+            const sprite = new Sprite(this.renderer.getTexture("images/" + s.file_path));
+            sprite.x = s.x;
+            sprite.y = s.y;
+            sprite.width = s.width;
+            sprite.height = s.height;
+            this.renderer.addSprite(sprite)
+        });
+
+        // Global Data
+        // @ts-expect-error
+        AbstractEntity.GLOBAL_DATA_STRUCT = {
+            Scene:this,
+            Level:this.level,
+            Collision:this.level.collisionManager,
+            Terrain:this.level.terrainManager,
+        }
+
+        Entity.BEAR_ENGINE = this;
         
+        this.levelGraphic = new Graphics();
+        this.redrawLevel();
+        this.renderer.addSprite(this.levelGraphic);
 
-        this.mouse_info = new Text("",new TextStyle({"fill": "white"}));
-        this.mouse_info.x = 5;
-        this.mouse_info.y = this.renderer.getPercentHeight(1) - 50;
-        this.renderer.addGUI(this.mouse_info);
+        
+        loadTestLevel.call(this);
 
-                                
-        targetDiv.addEventListener('contextmenu', function(ev) {
-            ev.preventDefault();
-            return false;
-        }, false);
+
+        this.addEntity(this.player = new Player())
+        this.camera["center"].set(this.player.position);
+        this.camera.zoom(Vec2.HALFHALF)
+        // this.camera.follow(this.player.position)
+    }
+
+    public redrawLevel(){
+        this.levelGraphic.clear();
+        this.level.draw(this.levelGraphic);
     }
 
     // Loads all assets from server
@@ -160,62 +192,6 @@ class BearEngine {
         (this.loop.bind(this))();
     }
 
-    registerSystem<T extends Subsystem>(system: T) {
-        this.partQueries.push(...system.queries);
-        return system;
-    }
-
-    // it doesn't actually take this in as CustomMapFormat. It turns a Tiled struct into it
-	startLevel(levelData: CustomMapFormat){
-        const level_struct = levelData;
-
-		this.current_level = new LevelHandler(level_struct);
-        this.current_level.load();
-
-        this.renderer.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundcolor);
-
-        level_struct.sprites.forEach(s => {
-            const sprite = new Sprite(this.renderer.getTexture("images/" + s.file_path));
-            sprite.x = s.x;
-            sprite.y = s.y;
-            sprite.width = s.width;
-            sprite.height = s.height;
-            this.renderer.addSprite(sprite)
-        });
-
-        // Global Data
-        // @ts-expect-error
-        AbstractEntity.GLOBAL_DATA_STRUCT = {
-            Level:this.current_level,
-            Collision:this.current_level.collisionManager,
-            Scene:this,
-            Terrain:this.current_level.terrainManager,
-        }
-
-        Entity.BEAR_ENGINE = this;
-        
-
-        this.redrawLevel();
-        this.renderer.addSprite(this.levelGraphic);
-
-        this.partQueries.push(this.current_level.collisionManager.partQuery);
-        this.partQueries.push(this.renderer.graphicsQuery);
-        this.partQueries.push(this.renderer.spriteQuery);
-        this.partQueries.push(this.remotelocations);
-
-        loadTestLevel.call(this);
-        this.addEntity(this.player = new Player())
-        this.camera["center"].set(this.player.position);
-        this.camera.zoom(Vec2.HALFHALF)
-        // this.camera.follow(this.player.position)
-    }
-
-    public redrawLevel(){
-        this.levelGraphic.clear();
-        this.current_level.draw(this.levelGraphic);
-    }
-
-
 
     readFromNetwork(){
         const packets = this.network.newPacketQueue();
@@ -236,36 +212,23 @@ class BearEngine {
     loop(timestamp: number = performance.now()){
         accumulated += timestamp - lastFrameTimeMs;
         lastFrameTimeMs = timestamp;
-        // Setting mouse world position, requires the renderer to map the point
-
-        const canvasPoint = new Point();
-        this.renderer.renderer.plugins.interaction.mapPositionToPoint(canvasPoint,this.mouse.screenPosition.x,this.mouse.screenPosition.y);
-        /// @ts-expect-error
-        this.renderer.mainContainer.toLocal(canvasPoint,undefined,this.mouse.position);
-
-        this.mouse_info.text = `${ round(this.mouse.position.x, 1)},${round( this.mouse.position.y, 1)}`;
 
         // if we are more than a second behind, probably lost focus on page (rAF doesn't get called if the tab is not in focus)
         if(accumulated > 1000){
             accumulated = 0;
         }
 
-        this.keyboard.update();
-        this.mouse.update();
-
         this.readFromNetwork();
 
-
-        
         // both of these are in ms
         while (accumulated >= (simulation_time)) {
 
             // divide by 1000 to get seconds
             const dt = simulation_time / 1000;
 
-            
-            this.current_level.collisionManager.update(dt);
-
+            for(const system of this.systems){
+                system.update(dt);
+            }
 
             for (let i = 0; i < this.updateList.length; i++) {
                 const entity = this.updateList[i];
@@ -294,8 +257,8 @@ class BearEngine {
 
         //simulation time
         // console.log(performance.now() - timestamp)
-        this.camera.update();
-        this.renderer.render();
+        // No point in rendering everything twice, it's already a system 
+        // this.renderer.update();
         
 
         requestAnimationFrame(t => this.loop(t))
@@ -325,13 +288,14 @@ class BearEngine {
     }
 
     restartCurrentLevel(){
-        const data = this.current_level.data_struct;
+        const data = this.level.data_struct;
         this.endCurrentLevel();
         this.startLevel(data);
     }
 
     endCurrentLevel(){
-        this.current_level.end();
+        console.log("Ending level")
+        this.level.end();
 
         this.updateList.forEach( e => {
             e.onDestroy();

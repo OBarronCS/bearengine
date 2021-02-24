@@ -35,7 +35,6 @@ export abstract class Entity extends AbstractEntity {
             y: magnitude * (+this.Keyboard.isDown("KeyS") - +this.Keyboard.isDown("KeyW"))
         }
     }
-
 }
 
 export abstract class DrawableEntity extends Entity {
