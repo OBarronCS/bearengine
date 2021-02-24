@@ -1,6 +1,4 @@
-
-import { BearEngine } from "../core-engine/bearengine";
-import { DrawableEntity, Entity, GMEntity, SpriteEntity } from "../core-engine/entity";
+import { DrawableEntity, GMEntity, SpriteEntity } from "../core-engine/entity";
 import { Player } from "./player";
 
 import { Graphics } from "pixi.js";
@@ -22,6 +20,7 @@ import { atan2, cos, floor, PI, second, sin } from "shared/miscmath";
 import { ColorTween } from "shared/core/tween"
 import { TickTimer } from "shared/ticktimer"
 import { ColliderPart } from "shared/core/abstractpart";
+import { Scene } from "shared/core/scenemanager";
 
 
 class BasicSprite extends SpriteEntity {
@@ -36,8 +35,10 @@ class BasicSprite extends SpriteEntity {
 }
 
 
-export function loadTestLevel(this: BearEngine): void {
+export function loadTestLevel(this: Scene): void {
 
+    this.addEntity(new Player())
+    
     // this.addEntity(new BasicSprite())
 
     class TerrainCarveTest extends DrawableEntity {
@@ -141,7 +142,7 @@ export function loadTestLevel(this: BearEngine): void {
         update(dt: number): void {
             this.position.set(this.Mouse.position);
 
-            if(this.Keyboard.isDown("KeyK")) this.Engine.destroyEntity(this)
+            if(this.Keyboard.isDown("KeyK")) this.Scene.destroyEntity(this)
 
             this.redraw();
         }
@@ -482,7 +483,7 @@ export function loadTestLevel(this: BearEngine): void {
             }
 
             this.testobject =  new test3(Vec2.ZERO, "images/flower.png");
-            this.Engine.addEntity(this.testobject);
+            this.Scene.addEntity(this.testobject);
 
             for(let i = 1; i < 30; i++){
                 for(const index of randomRangeSet(0,30,30)){

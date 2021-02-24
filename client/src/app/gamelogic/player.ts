@@ -5,7 +5,7 @@ import { random_range } from "shared/randomhelpers";
 import { dimensions } from "shared/shapes/rectangle";
 import { drawPoint } from "shared/shapes/shapedrawing";
 import { clamp, PI } from "shared/miscmath";
-import { ColliderPart } from "shared/core/abstractpart";
+import { ColliderPart, TagPart } from "shared/core/abstractpart";
 
 import { SpritePart } from "../core-engine/parts";
 import { AddOnType } from "../core-engine/weapons/addon";
@@ -59,6 +59,7 @@ export class Player extends DrawableEntity {
 
     private spritePart: SpritePart;
     private colliderPart: ColliderPart;
+    private tag = this.addPart(new TagPart("Player"))
 
     constructor(){
         super();

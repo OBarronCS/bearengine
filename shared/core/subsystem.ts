@@ -13,7 +13,6 @@ export abstract class Subsystem {
 
     constructor(engine: AbstractBearEngine){
         this.engine = engine;
-        return this
     }
 
     abstract init(): void;

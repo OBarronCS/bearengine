@@ -12,6 +12,7 @@
         "noImplicitThis":true,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
+        "strictBindCallApply":true,
 
         "types": [
             "webpack",

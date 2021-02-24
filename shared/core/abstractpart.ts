@@ -6,6 +6,22 @@ export abstract class Part {
     public owner: AbstractEntity;
 }
 
+// Add tag here to maintain type safety.
+// These are expected to be UNIQUE to one entity
+// So not a great long term solution
+const tags = [
+    "Player",
+] as const
+
+export type TagType = typeof tags[number]
+
+export class TagPart extends Part {
+    public name: TagType;
+    constructor(name: TagType){
+        super();
+        this.name = name;
+    }
+}
 
 export class ColliderPart extends Part {
 
