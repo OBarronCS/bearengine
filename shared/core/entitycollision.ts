@@ -37,7 +37,7 @@ export class CollisionManager {
 
     update(dt: number): void {
         for(const collider of this.colliders){
-            collider.setPosition(collider.owner.position)
+            collider.setPosition(collider.owner.position);
         }
 
         this.grid.clear();
@@ -81,7 +81,7 @@ export class CollisionManager {
         for(const p of possible){
             if(Rect.CollidesWithSphere(p.rect, x, y, r)) entities.push(p.owner);
         }
-        return entities
+        return entities;
     }
 
     lineQuery(line: Line){

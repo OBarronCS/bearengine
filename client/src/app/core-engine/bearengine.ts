@@ -21,6 +21,8 @@ import { AbstractBearEngine } from "shared/core/abstractengine";
 import { NetworkReadSystem } from "./networking/networkread";
 import { NetworkWriteSystem } from "./networking/networkwrite";
 import { ClientScene } from "./clientscene";
+import { BearEvents, EventRegistry } from "../../../../shared/core/bearevents";
+import { TestMouseDownEvent } from "./testevents";
 
 
 const SHARED_RESOURCES = Loader.shared.resources;
@@ -50,6 +52,10 @@ export class BearEngine implements AbstractBearEngine {
     public networkconnection: BufferedNetwork = new BufferedNetwork("ws://127.0.0.1:8080");
 
     
+
+
+
+
     // IMPORTANT SYSTEMS
     public networksystem: NetworkReadSystem = null;
     public renderer: RendererSystem = null;
@@ -61,6 +67,8 @@ export class BearEngine implements AbstractBearEngine {
     
 
     private systems: Subsystem[] = [];
+
+    public systemEventMap: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();
 
 
     public levelGraphic = new Graphics();
@@ -81,6 +89,7 @@ export class BearEngine implements AbstractBearEngine {
         this.keyboard = this.registerSystem(new EngineKeyboard(this));
         this.camera = this.registerSystem(new CameraSystem(this));
         this.level = this.registerSystem(new LevelHandler(this));
+        this.registerSystem(new TestMouseDownEvent(this))
         this.entityManager = this.registerSystem(new ClientScene(this))
 
         this.registerSystem(new NetworkWriteSystem(this, this.networkconnection))
@@ -90,6 +99,12 @@ export class BearEngine implements AbstractBearEngine {
 
         for(const system of this.systems){
             system.init();
+        }
+
+        for(const system of this.systems){
+            for(const handler of system.eventHandlers){
+                this.systemEventMap.set(handler.eventName, handler);
+            }
         }
 
         this.keyboard.bind("k", () => {
@@ -115,11 +130,11 @@ export class BearEngine implements AbstractBearEngine {
 
     startLevel(level_struct: CustomMapFormat){
         // janky. This call to level adds a part query to the level handler.        
-        
+        this.level.load(level_struct);
+
         this.entityManager.registerPartQueries(this.systems);
 
-
-        this.level.load(level_struct);
+        
         this.renderer.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundcolor);
        
         // Load sprites from map 

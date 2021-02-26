@@ -32,6 +32,9 @@ export class EngineMouse extends Subsystem {
     velocity: Vec2 = new Vec2(0,0);
     scroll: number = 0;
 
+    get x(){ return this.position.x }
+    get y(){ return this.position.y }
+
     private lastPosition = new Vec2(0,0);
 
     private didScroll = false;

@@ -3,11 +3,13 @@ import { AbstractEntity } from "shared/core/abstractentity";
 import { TagPart, TagType } from "shared/core/abstractpart";
 import { PartQuery } from "shared/core/partquery";
 import { Subsystem } from "shared/core/subsystem";
+import { BearEngine } from "./bearengine";
+import { EntityEventListType } from "../../../../shared/core/bearevents";
 
 
 //TEMPORARY: while I figure out events just on client side for now
 
-export class ClientScene extends Subsystem {
+export class ClientScene extends Subsystem<BearEngine> {
 
     private updateList: AbstractEntity[] = [];
     private partQueries: PartQuery<any>[] = [];
@@ -60,9 +62,29 @@ export class ClientScene extends Subsystem {
         }
     }
 
+    private registerEvents<T extends AbstractEntity>(e: T): void {
+        if(e.constructor["EVENT_REGISTRY"]){
+            const list = e.constructor["EVENT_REGISTRY"] as EntityEventListType;
+
+            for(const item of list){
+                const handler = this.engine.systemEventMap.get(item.eventname);
+                if(!handler) {
+                    console.log(`Handler for ${item.eventname} could not be found!`)
+                }
+                console.log("Handler: " + handler);
+                // @ts-expect-error --> it cannot recognize methodName
+                const methodName: keyof T = item.methodname;
+                // @ts-expect-error --> same as above
+                handler.addListener(e, methodName, item.extradata)
+            }
+        }
+    }
+
     addEntity<T extends AbstractEntity>(e: T): T {
         this.updateList.push(e);
         e.onAdd();
+
+        this.registerEvents(e);
 
         this.partQueries.forEach(q => {
             q.addEntity(e)

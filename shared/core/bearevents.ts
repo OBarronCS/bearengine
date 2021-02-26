@@ -1,14 +1,14 @@
 
 
+import { AbstractEntity } from "shared/core/abstractentity";
 import { ColliderPart } from "shared/core/abstractpart";
 import { Vec2 } from "shared/shapes/vec2";
-import { Player } from "../gamelogic/player";
-import { Entity } from "./entity";
 
 
 /*
-    Add the event name and method string to a list on target.constuctor (first check if exists, if not, create)
-    when "add" an instance of this object to the game, check this static property of the constructor,
+    DONE) Add the event name and method string to a list on target.constuctor (first check if exists, if not, create)
+    
+    TODO) when "add" an instance of this object to the game, check this static property of the constructor,
     and iterate all event names and strings, and attach them to the correct event emitters
 
 
@@ -58,55 +58,58 @@ import { Entity } from "./entity";
         3) If find one, check if it exists in the registry, then call the event 
 
 */
-interface CoreEventTypeDefinition {
-    [key: string] : {
-        register_args: {
-            [key: string]: any
-        },
-        callback: (...args: any[]) => any,
-    },
-}
+// interface CoreEventTypeDefinition {
+//     [key: string] : {
+//         register_args: {
+//             [key: string]: any
+//         },
+//         callback: (...args: any[]) => any,
+//     },
+// }
 
-
-interface GameEvents { // Doing this breaks keyof GameEvents... :( // extends CoreEventTypeDefinition {
+export interface BearEvents { // Doing this breaks keyof GameEvents... :( // extends CoreEventTypeDefinition {
     "mousedown": { 
-        register_args: { 
-            collider: ColliderPart 
+        register_args: {
+            
         },
-        callback: (mousePoint: number, name: string) => void,
+        callback: (mousePoint: Vec2) => void,
     },
     "collision": { 
         register_args: {
             collider: ColliderPart
         },
-        callback: (other: Entity, worldPoint: Vec2) => void,
+        callback: (other: AbstractEntity, worldPoint: Vec2) => void,
     },
     "test": { 
         register_args: {
             collider: ColliderPart
         },
-        callback: (other: Entity, worldPoint: Vec2) => void,
+        callback: (other: AbstractEntity, worldPoint: Vec2) => void,
     }
 }
 
-type test2 = keyof GameEvents
+type test2 = keyof BearEvents
 
 // Is responsible for a single event type. Is a member variable of systems
-class EventRegistry<EventName extends keyof GameEvents> {
+export class EventRegistry<EventName extends keyof BearEvents> {
 
     public eventName: EventName;
 
     public listeners: {
-        entity: Entity,
+        entity: AbstractEntity,
         methodname: string,
-        extradata: {}
+        extradata: BearEvents[EventName]["register_args"]
     }[] = [];
+
+    [Symbol.iterator](): Iterator<EventRegistry<EventName>["listeners"][number]> {
+        return this.listeners[Symbol.iterator]();
+    }
 
     constructor(name: EventName){
         this.eventName = name;
     }
 
-    addListener<T extends Entity>(entity: T, methodname: MethodsOfClass<T>, extradata: GameEvents[EventName]["register_args"]){
+    addListener<T extends AbstractEntity>(entity: T, methodname: MethodsOfClass<T>, extradata: BearEvents[EventName]["register_args"]){
         this.listeners.push({
             entity,
             methodname,
@@ -114,15 +117,13 @@ class EventRegistry<EventName extends keyof GameEvents> {
         });
     }
 
-    dispatch(entity: Entity, ...args: Parameters<GameEvents[EventName]["callback"]>){        
-        for(const listeners of this.listeners){
-            if(listeners.entity === entity){
-                entity[listeners.methodname](...args);
-            }
-        }
+    dispatch(listener: EventRegistry<EventName>["listeners"][number], ...args: Parameters<BearEvents[EventName]["callback"]>){        
+        listener.entity[listener.methodname](...args);
     }
+    
 
-    all(...args: Parameters<GameEvents[EventName]["callback"]>){
+
+    all(...args: Parameters<BearEvents[EventName]["callback"]>){
         // have to test that this works first 
         for(const listener of this.listeners){
             listener.entity[listener.methodname](...args);
@@ -133,15 +134,16 @@ class EventRegistry<EventName extends keyof GameEvents> {
 const test = new EventRegistry("collision");
 
 
-type EntityEventListType = {
-    eventname: string,
-    methodname: string
+export type EntityEventListType = {
+    eventname: keyof BearEvents,
+    methodname: string,
+    extradata: {};
 }[]
 
 // Event registering with decorators
-function bearevent<T extends keyof GameEvents>(eventname: T, extradata: GameEvents[T]["register_args"]) {
+export function bearevent<T extends keyof BearEvents>(eventname: T, extradata: BearEvents[T]["register_args"]) {
 
-    return function<ClassType extends Entity>(target: ClassType, propertyKey: MethodsOfClass<ClassType>, descriptor: TypedPropertyDescriptor<GameEvents[T]["callback"]>){
+    return function<ClassType extends AbstractEntity>(target: ClassType, propertyKey: MethodsOfClass<ClassType>, descriptor: TypedPropertyDescriptor<BearEvents[T]["callback"]>){
         // Now I can use this propertyKey to attach the event handler
 
         const constructorClass = target.constructor;
@@ -152,21 +154,24 @@ function bearevent<T extends keyof GameEvents>(eventname: T, extradata: GameEven
         const eventlist = constructorClass["EVENT_REGISTRY"] as EntityEventListType;
         eventlist.push({
             eventname: eventname,
-            methodname: propertyKey
+            methodname: propertyKey,
+            extradata: extradata
         });
 
+        console.log(`Added event, ${eventlist}`)
         console.log(`Added event, ${eventname}, to ${target.constructor.name}`)
         console.log(target.constructor)
-
+        console.log(propertyKey);
     }
 }
 
-class Test extends Entity {
-    update(dt: number): void {}
+// Example use:
+// class Test extends AbstractEntity {
+//     update(dt: number): void {}
 
-    @bearevent("mousedown", {collider:this})
-    onMouseDown(num: number, test: string) {}
-}
+//     @bearevent("mousedown", {collider:this})
+//     onMouseDown(num: number, test: string) {}
+// }
 
 
 

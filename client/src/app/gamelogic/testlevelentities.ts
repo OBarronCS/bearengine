@@ -1,7 +1,6 @@
-import { DrawableEntity, GMEntity, SpriteEntity } from "../core-engine/entity";
-import { Player } from "./player";
 
 import { Graphics } from "pixi.js";
+
 import { Tilemap } from "shared/datastructures/tilemap";
 import { rgb, Color } from "shared/datastructures/color";
 import { DynamicAABBTree } from "shared/datastructures/dynaabbtree";
@@ -21,8 +20,12 @@ import { ColorTween } from "shared/core/tween"
 import { TickTimer } from "shared/ticktimer"
 import { ColliderPart } from "shared/core/abstractpart";
 import { Scene } from "shared/core/scenemanager";
-import { ClientScene } from "../core-engine/clientscene";
+import { bearevent } from "shared/core/bearevents";
 
+import { ClientScene } from "../core-engine/clientscene";
+import { DrawableEntity, GMEntity, SpriteEntity } from "../core-engine/entity";
+import { Player } from "./player";
+import { SpritePart } from "../core-engine/parts";
 
 class BasicSprite extends SpriteEntity {
 
@@ -37,6 +40,31 @@ class BasicSprite extends SpriteEntity {
 
 
 export function loadTestLevel(this: ClientScene): void {
+
+
+    class EventTestVersion1 extends DrawableEntity {
+
+        private sprite = this.addPart(new SpritePart("images/tree.gif"))
+        private collider = this.addPart(new ColliderPart(dimensions(200,200),Vec2.ZERO))
+
+        draw(g: Graphics): void {
+
+        }
+        update(dt: number): void {
+        }
+
+        @bearevent("mousedown",{})
+        onMouseDownTestYES(point: Vec2){
+            console.log("Mouse detected in my hitbox!", point.toString())
+        }
+    }
+
+    this.addEntity(new EventTestVersion1());
+
+
+
+
+
 
     this.addEntity(new Player())
     
@@ -193,7 +221,7 @@ export function loadTestLevel(this: ClientScene): void {
             this.Collision.draw(g);
         }
     }
-    //this.addEntity(new Debug())
+    this.addEntity(new Debug())
 
     // Rectangle overlap test
     class Test extends DrawableEntity {
