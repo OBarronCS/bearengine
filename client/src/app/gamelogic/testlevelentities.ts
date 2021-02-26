@@ -21,6 +21,7 @@ import { ColorTween } from "shared/core/tween"
 import { TickTimer } from "shared/ticktimer"
 import { ColliderPart } from "shared/core/abstractpart";
 import { Scene } from "shared/core/scenemanager";
+import { ClientScene } from "../core-engine/clientscene";
 
 
 class BasicSprite extends SpriteEntity {
@@ -35,7 +36,7 @@ class BasicSprite extends SpriteEntity {
 }
 
 
-export function loadTestLevel(this: Scene): void {
+export function loadTestLevel(this: ClientScene): void {
 
     this.addEntity(new Player())
     

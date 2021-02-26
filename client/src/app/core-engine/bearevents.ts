@@ -1,19 +1,32 @@
 
 
+import { ColliderPart } from "shared/core/abstractpart";
+import { Vec2 } from "shared/shapes/vec2";
+import { Player } from "../gamelogic/player";
 import { Entity } from "./entity";
 
 
-// Testing around with event registering using decoraters
-// Decorator is only called once, so need to figure out how to connect that to events for each instance:
 /*
-Idea) 
     Add the event name and method string to a list on target.constuctor (first check if exists, if not, create)
     when "add" an instance of this object to the game, check this static property of the constructor,
     and iterate all event names and strings, and attach them to the correct event emitters
 
 
-    When systems are 'init'ed, it grabs these eventregistryhandlers, and gives it to the central event repo.
-        Then, when listeners are registered, it takes the event name, finds the handler, and passes the info to it:
+    1) When systems are 'init'ed, it grabs these EventRegistryHandlers, and gives it to the central event repo,
+        which has a Map<EventName, Handler>(); Like my original idea for network packet handling.
+        This should only be added to during init, then be set in stone.
+
+
+        When listeners are registered, it takes the event name, finds the handler, and passes the info to it.
+    
+        FOR NOW:
+        What about implicit getting of the entities ColliderPart? 
+            Just have the handler use the entity to deal with this implicitely?
+           
+        WORRY ABOUT THIS LATER, WHEN WANT TO EXPAND EVENTS OUTSIDE OF SYSTEMS:
+            Or make it more explicitly handed, in which case the work must be done at Entity init
+                needs to grab it and put it into the right parameter. Yeah, not likely. 
+
 
   
         // EventRegistry is a member variable of the systems
@@ -27,12 +40,12 @@ Idea)
         Registering step for collision with other entity:
         1) Decorator on method (specifies EventName):
         2) Entity added to world, check static list of [eventname, methodname, additional data]
-        3) Data is passed to EventRegistry which holds it (can just be a passthrough for simple or domain specific events)
+        3) Data is passed to EventRegistry which holds it 
         EventRegistry lives on the System . . . 
 
         To emit collision data:
         1) CollisionSystem, as it moves things, is adding objects to a set of collisions
-        2) For each one, see if there is match in the EventRegistry. If so, calls callback immediately? 
+        2) For each one, see if there is match in the EventRegistry. If so, calls callback immediately.
 
         Ex. no 2. mouse tap event
         1) Decotoer, @bearevent("tap")
@@ -45,115 +58,126 @@ Idea)
         3) If find one, check if it exists in the registry, then call the event 
 
 */
+interface CoreEventTypeDefinition {
+    [key: string] : {
+        register_args: {
+            [key: string]: any
+        },
+        callback: (...args: any[]) => any,
+    },
+}
 
 
-{
-    interface GameEvents {
-        "mousedown": (mousePoint: number, name: string) => void,
-        "typed": (num: string) => void,
+interface GameEvents { // Doing this breaks keyof GameEvents... :( // extends CoreEventTypeDefinition {
+    "mousedown": { 
+        register_args: { 
+            collider: ColliderPart 
+        },
+        callback: (mousePoint: number, name: string) => void,
+    },
+    "collision": { 
+        register_args: {
+            collider: ColliderPart
+        },
+        callback: (other: Entity, worldPoint: Vec2) => void,
+    },
+    "test": { 
+        register_args: {
+            collider: ColliderPart
+        },
+        callback: (other: Entity, worldPoint: Vec2) => void,
+    }
+}
+
+type test2 = keyof GameEvents
+
+// Is responsible for a single event type. Is a member variable of systems
+class EventRegistry<EventName extends keyof GameEvents> {
+
+    public eventName: EventName;
+
+    public listeners: {
+        entity: Entity,
+        methodname: string,
+        extradata: {}
+    }[] = [];
+
+    constructor(name: EventName){
+        this.eventName = name;
     }
 
-    function bearevent<T extends keyof GameEvents>(name: T) {
-        return function<ClassType extends Entity /* substitute any with ClassType */>(target: any, propertyKey: keyof any, descriptor: TypedPropertyDescriptor<GameEvents[T]>){
-            // Now I can use this propertyKey to attach the event handler
-            const test = target[propertyKey];
+    addListener<T extends Entity>(entity: T, methodname: MethodsOfClass<T>, extradata: GameEvents[EventName]["register_args"]){
+        this.listeners.push({
+            entity,
+            methodname,
+            extradata
+        });
+    }
+
+    dispatch(entity: Entity, ...args: Parameters<GameEvents[EventName]["callback"]>){        
+        for(const listeners of this.listeners){
+            if(listeners.entity === entity){
+                entity[listeners.methodname](...args);
+            }
         }
     }
 
-    class Test {
-        
-        @bearevent("mousedown")
-        onMouseDown(num: number) {
-
+    all(...args: Parameters<GameEvents[EventName]["callback"]>){
+        // have to test that this works first 
+        for(const listener of this.listeners){
+            listener.entity[listener.methodname](...args);
         }
     }
 }
 
+const test = new EventRegistry("collision");
 
-{
-    // Other way to do it: method name must be exactly the name of the event it is attaching to,
-    // Decorator still needed, so its cool with the template type, but not practical, as its a bit to implicit for my taste
-    // Decorator is just @bearevent, and using string template typing, we can connect it directly to the type:
-    // propertyKey: `${T}` where is keyof GameEvent, so that the method name corresponds to some event
-    interface GameEvents {
-        "mousedown": (mousePoint: number, name: string) => void,
-        "typed": (num: string) => void,
-    }
 
-    function namedbearevent<T extends keyof GameEvents>(target: any, propertyKey: `${T}`, descriptor: TypedPropertyDescriptor<GameEvents[T]>){
+type EntityEventListType = {
+    eventname: string,
+    methodname: string
+}[]
 
-    }
+// Event registering with decorators
+function bearevent<T extends keyof GameEvents>(eventname: T, extradata: GameEvents[T]["register_args"]) {
 
-    class Test {
+    return function<ClassType extends Entity>(target: ClassType, propertyKey: MethodsOfClass<ClassType>, descriptor: TypedPropertyDescriptor<GameEvents[T]["callback"]>){
+        // Now I can use this propertyKey to attach the event handler
+
+        const constructorClass = target.constructor;
         
-        @namedbearevent
-        mousedown(num: number) {
-
+        if(constructorClass["EVENT_REGISTRY"] === undefined){
+            constructorClass["EVENT_REGISTRY"] = [];
         }
+        const eventlist = constructorClass["EVENT_REGISTRY"] as EntityEventListType;
+        eventlist.push({
+            eventname: eventname,
+            methodname: propertyKey
+        });
+
+        console.log(`Added event, ${eventname}, to ${target.constructor.name}`)
+        console.log(target.constructor)
+
     }
 }
 
+class Test extends Entity {
+    update(dt: number): void {}
 
-{
-    
-
-    interface Core {
-        [key: string] : {
-            register_args: any[];
-            callback: Function
-        }
-    }
-
-    interface GameEvents extends Core {
-        "mousedown": { 
-            register_args: [num: number, str: string]
-            callback: (mousePoint: number, name: string) => void,
-        }
-        "typed": { 
-            register_args: []
-            callback: (num: string) => void 
-        }
-    }
-
-    // First arg is the prototype, second is method name, last 
-    function gameevent<T extends keyof GameEvents>(name: T, ...args: GameEvents[T]["register_args"]) {
-
-        return function(target: any, 
-                        propertyKey: string, 
-                        descriptor: TypedPropertyDescriptor<GameEvents[T]["callback"]>){
-            // Now I can use this propertyKey to attach the event handler
-            console.log(target.test)
-            console.log(target.constructor.test)
-            const test = target[propertyKey];
-        }
-    }
-
-    class Test {
-        
-        static test = ["Hi", "nope"];
-
-        list = []
-
-        test2(){
-            console.log(this.list);
-        }
-
-        @gameevent("mousedown", 123, "hello")
-        onMouseDown(num: number, name: string) {
-
-        }
-    }
+    @bearevent("mousedown", {collider:this})
+    onMouseDown(num: number, test: string) {}
 }
-/*
-Other idea for events: have them be member variables
 
-private collideCallback = this.addEvent("mousedown", callback);
 
-Would make canceling the callback a bit easier I think, althoght I think I will go with decoraters due to their ease and it
-just looks nicer syntax wise;
 
-*/
+// Takes all methods from a class that have string identifiers
+type PickMethods<Base> = Pick<Base, {
+    [Key in keyof Base]: Key extends string ? 
+        Base[Key] extends Function ? Key : never 
+            : never
+}[keyof Base]>;
 
+type MethodsOfClass<Class> = keyof PickMethods<Class>
 
 
 // {
@@ -163,3 +187,4 @@ just looks nicer syntax wise;
 
 //         Make a decorator factory factory in this case to simplify the creation 
 //     }
+

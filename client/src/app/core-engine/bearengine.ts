@@ -15,11 +15,12 @@ import { LevelHandler } from "shared/core/level";
 import { Graphics, Loader, utils, Sprite } from "pixi.js";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { Subsystem } from "shared/core/subsystem";
-import { Scene } from "shared/core/scenemanager"
+
 import { Vec2 } from "shared/shapes/vec2";
 import { AbstractBearEngine } from "shared/core/abstractengine";
 import { NetworkReadSystem } from "./networking/networkread";
 import { NetworkWriteSystem } from "./networking/networkwrite";
+import { ClientScene } from "./clientscene";
 
 
 const SHARED_RESOURCES = Loader.shared.resources;
@@ -56,7 +57,7 @@ export class BearEngine implements AbstractBearEngine {
     public mouse: EngineMouse = null;
     public keyboard: EngineKeyboard = null;
     public level: LevelHandler = null;
-    public entityManager: Scene = null;
+    public entityManager: ClientScene = null;
     
 
     private systems: Subsystem[] = [];
@@ -80,7 +81,7 @@ export class BearEngine implements AbstractBearEngine {
         this.keyboard = this.registerSystem(new EngineKeyboard(this));
         this.camera = this.registerSystem(new CameraSystem(this));
         this.level = this.registerSystem(new LevelHandler(this));
-        this.entityManager = this.registerSystem(new Scene(this))
+        this.entityManager = this.registerSystem(new ClientScene(this))
 
         this.registerSystem(new NetworkWriteSystem(this, this.networkconnection))
 
