@@ -8,6 +8,8 @@
         
         // Look into setting sourceMap = true for better debugging
         
+        "experimentalDecorators":true,
+
         //"noImplicitAny" : true,
         "noImplicitThis":true,
         "noImplicitReturns": true,

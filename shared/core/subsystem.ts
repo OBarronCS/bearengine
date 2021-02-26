@@ -6,12 +6,13 @@ import { PartQuery } from "shared/core/partquery";
 
 // new(engine: BearEngine) => T
 
-export abstract class Subsystem {
+// Optional type override for more flexibility, for server/client specific subsystems
+export abstract class Subsystem<EngineType extends AbstractBearEngine = AbstractBearEngine> {
     public queries: PartQuery<any>[] = [];
 
-    public engine: AbstractBearEngine
+    public engine: EngineType
 
-    constructor(engine: AbstractBearEngine){
+    constructor(engine: EngineType){
         this.engine = engine;
     }
 
