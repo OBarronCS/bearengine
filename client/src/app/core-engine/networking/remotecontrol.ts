@@ -1,6 +1,6 @@
 
 import { Part } from "shared/core/abstractpart";
-import { ceil, floor } from "shared/miscmath";
+import { ceil, floor } from "shared/mathutils";
 import { mix, Vec2 } from "shared/shapes/vec2";
 import { Entity } from "../entity";
 import { SpritePart } from "../parts";

@@ -1,7 +1,7 @@
 import type { Graphics } from "pixi.js";
 import { swap } from "./arrayutils";
 import { Rect } from "../shapes/rectangle";
-import { clamp } from "shared/miscmath";
+import { clamp } from "shared/mathutils";
 import { drawLineBetweenPoints } from "shared/shapes/shapedrawing";
 
 // Resolution with chaining;

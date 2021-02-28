@@ -5,7 +5,7 @@
 // just collision
 
 import type { Graphics } from "pixi.js";
-import { floor } from "shared/miscmath";
+import { floor } from "shared/mathutils";
 import { Rect } from "shared/shapes/rectangle";
 import { Coordinate } from "shared/shapes/vec2";
 

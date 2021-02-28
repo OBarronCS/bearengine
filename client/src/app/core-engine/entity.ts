@@ -1,6 +1,6 @@
 import { Graphics } from "pixi.js";
 import { Coordinate, Vec2 } from "shared/shapes/vec2";
-import { min } from "shared/miscmath"
+import { min } from "shared/mathutils"
 import { random } from "shared/randomhelpers";
 import { dimensions } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";

@@ -1,5 +1,5 @@
 import { Vec2 } from "shared/shapes/vec2";
-import { sign } from "shared/miscmath";
+import { sign } from "shared/mathutils";
 import { Subsystem } from "shared/core/subsystem";
 import { RendererSystem } from "../core-engine/renderer";
 import { Point } from "pixi.js";

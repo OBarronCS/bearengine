@@ -15,7 +15,7 @@ import { Polygon } from "shared/shapes/polygon";
 import { Rect, dimensions } from "shared/shapes/rectangle";
 import { drawCircle, drawLineArray, drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "shared/shapes/shapedrawing";
 import { Vec2, Coordinate, angleBetween, mix } from "shared/shapes/vec2";
-import { atan2, cos, floor, PI, second, sin } from "shared/miscmath";
+import { atan2, cos, floor, PI, second, sin } from "shared/mathutils";
 import { ColorTween } from "shared/core/tween"
 import { TickTimer } from "shared/ticktimer"
 import { ColliderPart } from "shared/core/abstractpart";

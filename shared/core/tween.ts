@@ -1,5 +1,5 @@
 import { Color, blend } from "shared/datastructures/color";
-import { clamp } from "shared/miscmath";
+import { clamp } from "shared/mathutils";
 import { Coordinate, mix } from "shared/shapes/vec2";
 import { Effect } from "./effects";
 

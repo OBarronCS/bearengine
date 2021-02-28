@@ -6,7 +6,7 @@ import { Graphics } from "pixi.js";
 import { drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "shared/shapes/shapedrawing";
 import { Polygon } from "shared/shapes/polygon";
 import { Ellipse } from "shared/shapes/ellipse";
-import { atan2, cos, sin, TWO_PI } from "shared/miscmath";
+import { atan2, cos, sin, TWO_PI } from "shared/mathutils";
 
 
 

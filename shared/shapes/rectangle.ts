@@ -1,7 +1,7 @@
 import { Coordinate, distanceSquared, Vec2 } from "./vec2";
 import { Shape } from "./shapesinterfaces";
 import { Polygon, minPoint, maxPoint } from "./polygon";
-import { min, max, clamp } from "shared/miscmath";
+import { min, max, clamp } from "shared/mathutils";
 import { lines_intersect } from "./line";
 import type { Graphics } from "pixi.js";
 

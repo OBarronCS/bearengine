@@ -5,7 +5,7 @@ import { blend, rgb } from "./color";
 import { ModifiablePQ } from "./priorityqueue";
 import { LinkedQueue } from "./queue";
 import { LinkedStack, LightLinkedBag } from "./stack";
-import { abs, max, min } from "shared/miscmath";
+import { abs, max, min } from "shared/mathutils";
 
 
 

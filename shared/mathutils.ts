@@ -42,6 +42,14 @@ export function step(edge: number, x: number): number{
     return x < edge ? 0 : 1;
 }
 
+/** Uses ===, don't use falsy values */
+export function flip<T>(value: T, val1: T, val2: T): T {
+    if(value === val1) 
+        return val2;
+    else 
+        return val1;
+}
+
 export function smoothstep(leftedge: number, rightedge: number, x: number): number {
     const val = clamp((x - leftedge) / (rightedge - leftedge), 0, 1);
     return val * val * (3 - (2*val))
