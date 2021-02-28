@@ -3,15 +3,13 @@ import { Subsystem } from "shared/core/subsystem";
 import { EngineMouse } from "../input/mouse";
 import { BearEngine } from "./bearengine";
 
-export class TestMouseDownEvent extends Subsystem<BearEngine> {
+export class TestMouseDownEventDispatcher extends Subsystem<BearEngine> {
     
+    init(): void {}
 
+    private taphandler = this.addEventDispatcher("tap");
+    private mousedown = this.addEventDispatcher("mousehover");
 
-    init(): void {
-
-    }
-
-    private mousedown = this.addEventDispatcher("mousedown")
 
     update(delta: number): void {
         const mouse = this.getSystem(EngineMouse);
@@ -26,6 +24,18 @@ export class TestMouseDownEvent extends Subsystem<BearEngine> {
                 this.mousedown.dispatch(listener, mouse.position)
             }
         }
+
+        if(mouse.wasReleased("left")){
+            for(const taplistener of this.taphandler){
+                if(underMouse.indexOf(taplistener.entity) !== -1){
+                    this.taphandler.dispatch(taplistener, mouse.position);
+                }
+            }
+                
+        }
+
+
+
     }
 
 }

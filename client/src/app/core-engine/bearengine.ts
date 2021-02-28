@@ -22,7 +22,7 @@ import { NetworkReadSystem } from "./networking/networkread";
 import { NetworkWriteSystem } from "./networking/networkwrite";
 import { ClientScene } from "./clientscene";
 import { BearEvents, EventRegistry } from "../../../../shared/core/bearevents";
-import { TestMouseDownEvent } from "./testevents";
+import { TestMouseDownEventDispatcher } from "./testevents";
 
 
 const SHARED_RESOURCES = Loader.shared.resources;
@@ -89,7 +89,10 @@ export class BearEngine implements AbstractBearEngine {
         this.keyboard = this.registerSystem(new EngineKeyboard(this));
         this.camera = this.registerSystem(new CameraSystem(this));
         this.level = this.registerSystem(new LevelHandler(this));
-        this.registerSystem(new TestMouseDownEvent(this))
+
+        // For testing
+        this.registerSystem(new TestMouseDownEventDispatcher(this))
+
         this.entityManager = this.registerSystem(new ClientScene(this))
 
         this.registerSystem(new NetworkWriteSystem(this, this.networkconnection))

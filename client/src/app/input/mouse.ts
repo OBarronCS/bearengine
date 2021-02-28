@@ -27,7 +27,8 @@ export interface MouseInput {
 }
 
 export class EngineMouse extends Subsystem {
-    position: Vec2 = new Vec2(0,0);
+    // Really far away so doesn't overlap with anyone at beginning
+    position: Vec2 = new Vec2(-99999999,-99999999);
     screenPosition: Vec2 = new Vec2(0,0);
     velocity: Vec2 = new Vec2(0,0);
     scroll: number = 0;

@@ -23,7 +23,7 @@ import { Scene } from "shared/core/scenemanager";
 import { bearevent } from "shared/core/bearevents";
 
 import { ClientScene } from "../core-engine/clientscene";
-import { DrawableEntity, GMEntity, SpriteEntity } from "../core-engine/entity";
+import { DrawableEntity, Entity, GMEntity, SpriteEntity } from "../core-engine/entity";
 import { Player } from "./player";
 import { SpritePart } from "../core-engine/parts";
 
@@ -41,25 +41,50 @@ class BasicSprite extends SpriteEntity {
 
 export function loadTestLevel(this: ClientScene): void {
 
+    class TestEntityForVideo extends Entity {
+        
+        private sprite = this.addPart(new SpritePart("images/tree.gif"));
+        private collider = this.addPart(new ColliderPart(dimensions(200,200), Vec2.ZERO));
 
-    class EventTestVersion1 extends DrawableEntity {
-
-        private sprite = this.addPart(new SpritePart("images/tree.gif"))
-        private collider = this.addPart(new ColliderPart(dimensions(200,200),Vec2.ZERO))
-
-        draw(g: Graphics): void {
-
-        }
         update(dt: number): void {
+            
         }
 
-        @bearevent("mousedown",{})
-        onMouseDownTestYES(point: Vec2){
-            console.log("Mouse detected in my hitbox!", point.toString())
+        @bearevent("mousehover", {})
+        daisvfdakusvdjasd(point: Vec2){
+            console.log("Hello, i was hovered", point.toString());
         }
+
+        @bearevent("tap", {})
+        ontapcallback(num: Vec2){
+            console.log("I was clicked")
+        }
+
     }
 
-    this.addEntity(new EventTestVersion1());
+    this.addEntity(new TestEntityForVideo());
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
