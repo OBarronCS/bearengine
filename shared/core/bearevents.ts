@@ -1,8 +1,5 @@
-
-
 import { AbstractEntity } from "shared/core/abstractentity";
 import { Vec2 } from "shared/shapes/vec2";
-
 
 // interface CoreEventTypeDefinition {
 //     [key: string] : {
@@ -13,8 +10,7 @@ import { Vec2 } from "shared/shapes/vec2";
 //     },
 // }
 
-// Maybe make keys enums in the future, so renaming is easier?
-export interface BearEvents { // Doing this breaks keyof GameEvents --> extends CoreEventTypeDefinition {
+export interface BearEvents { 
     "mousehover": { 
         register_args: {},
         callback: (mousePoint: Vec2) => void,
