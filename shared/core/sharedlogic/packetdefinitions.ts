@@ -15,8 +15,6 @@ export enum GamePacket {
 }
 
 
-
-
 export enum ServerBoundPacket {
     PING = 0,
     CLIENT_STATE_PACKET // envelopes ClienPacket's

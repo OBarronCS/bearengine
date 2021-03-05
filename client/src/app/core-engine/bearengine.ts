@@ -3,8 +3,6 @@ import { EngineMouse } from "../input/mouse";
 import { GUI } from "dat.gui";
 import { RendererSystem } from "./renderer";
 import { CameraSystem } from "./camera";
-import { EventEmitter } from "eventemitter3";
-import TypedEmitter from "typed-emitter";
 import { Entity, GMEntity, SpriteEntity } from "./entity";
 import { EngineKeyboard } from "../input/keyboard";
 import { loadTestLevel } from "../gamelogic/testlevelentities";
