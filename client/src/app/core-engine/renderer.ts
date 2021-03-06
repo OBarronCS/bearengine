@@ -1,6 +1,6 @@
 import { autoDetectRenderer, Renderer, Container, DisplayObject, Loader, utils, InteractionManager } from "pixi.js";
 import { PartQuery } from "shared/core/partquery";
-import { clamp } from "shared/miscmath";
+import { clamp } from "shared/mathutils";
 import { BearEngine } from "./bearengine";
 import { GraphicsPart, SpritePart } from "./parts";
 import { Subsystem } from "shared/core/subsystem";

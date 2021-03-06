@@ -1,6 +1,8 @@
 import { AbstractBearEngine } from "shared/core/abstractengine";
 import { Part } from "shared/core/abstractpart";
 import { PartQuery } from "shared/core/partquery";
+import { EventRegistry } from "./bearevents";
+import { BearEvents } from "./sharedlogic/eventdefinitions";
 
 
 
@@ -10,8 +12,9 @@ import { PartQuery } from "shared/core/partquery";
 export abstract class Subsystem<EngineType extends AbstractBearEngine = AbstractBearEngine> {
     public queries: PartQuery<any>[] = [];
 
-    public engine: EngineType
+    public eventHandlers: EventRegistry<keyof BearEvents>[] = [];
 
+    public engine: EngineType;
     constructor(engine: EngineType){
         this.engine = engine;
     }
@@ -21,6 +24,12 @@ export abstract class Subsystem<EngineType extends AbstractBearEngine = Abstract
 
     getSystem<T extends Subsystem>(query: new(...args: any[]) => T): T {
         return this.engine.getSystem(query);
+    }
+
+    addEventDispatcher<T extends keyof BearEvents>(name: T): EventRegistry<T> {
+        const eg = new EventRegistry(name);
+        this.eventHandlers.push(eg);
+        return eg;
     }
 
     addQuery<T extends Part>(

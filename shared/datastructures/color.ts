@@ -38,7 +38,7 @@ https://drafts.csswg.org/css-color/#funcdef-hsl
 
 import { randomInt } from "shared/randomhelpers";
 import { utils } from "pixi.js";
-import { floor, lerp } from "shared/miscmath";
+import { floor, lerp } from "shared/mathutils";
 
 
 export function rgb(r: number,g: number,b: number,a = 1): Color{

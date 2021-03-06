@@ -1,5 +1,5 @@
 import { DEG_TO_RAD, Graphics, Sprite } from "pixi.js";
-import { abs, angleDifference, min, sign } from "shared/miscmath"
+import { abs, angleDifference, min, sign } from "shared/mathutils"
 import { angleBetween, Coordinate } from "shared/shapes/vec2";
 import { Part } from "shared/core/abstractpart"
 

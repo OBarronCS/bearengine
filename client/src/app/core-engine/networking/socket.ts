@@ -4,7 +4,7 @@
         Sending, Receiving buffers
 */
 
-import { abs, ceil } from "shared/miscmath";
+import { abs, ceil } from "shared/mathutils";
 import { LinkedQueue } from "shared/datastructures/queue";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/networkstream"
 import { ClientBoundPacket, ClientPacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";

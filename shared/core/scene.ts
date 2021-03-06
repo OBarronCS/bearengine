@@ -1,17 +1,10 @@
-import { AbstractEntity } from "./abstractentity";
-import { TagPart, TagType } from "./abstractpart";
-import { PartQuery } from "./partquery";
-import { Subsystem } from "./subsystem";
 
+import { AbstractEntity } from "shared/core/abstractentity";
+import { TagPart, TagType } from "shared/core/abstractpart";
+import { PartQuery } from "shared/core/partquery";
+import { Subsystem } from "shared/core/subsystem";
+import { EntityEventListType } from "shared/core/bearevents";
 
-
-// TODO: get entity/part by id, efficiently.
-// Prefereablty O(1)
-// Also, get entities by some sort of unique tag
-// Be able to just query for the player object
-
-// Holds all the entities and keeps track of their parts
-// Essentially, a scene of entities
 export class Scene extends Subsystem {
 
     private updateList: AbstractEntity[] = [];
@@ -65,9 +58,29 @@ export class Scene extends Subsystem {
         }
     }
 
+    private registerEvents<T extends AbstractEntity>(e: T): void {
+        if(e.constructor["EVENT_REGISTRY"]){
+            const list = e.constructor["EVENT_REGISTRY"] as EntityEventListType<T>;
+
+            for(const item of list){
+                const handler = this.engine.systemEventMap.get(item.eventname);
+                if(!handler) {
+                    console.log(`Handler for ${item.eventname} could not be found!`)
+                }
+                console.log("Handler: " + handler);
+
+                const methodName = item.methodname;
+
+                handler.addListener(e, methodName, item.extradata)
+            }
+        }
+    }
+
     addEntity<T extends AbstractEntity>(e: T): T {
         this.updateList.push(e);
         e.onAdd();
+
+        this.registerEvents(e);
 
         this.partQueries.forEach(q => {
             q.addEntity(e)

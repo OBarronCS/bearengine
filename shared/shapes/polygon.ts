@@ -1,7 +1,7 @@
 import { Shape } from "./shapesinterfaces";
 import { Coordinate, Vec2, mix, flattenVecArray, distanceSquared } from "./vec2";
 import { Rect } from "./rectangle";
-import { abs, atan2, cos, max, min, niceColor, PI, sin, TWO_PI } from "../miscmath";
+import { abs, atan2, cos, max, min, niceColor, PI, sin, TWO_PI } from "../mathutils";
 
 import type { Graphics, Point } from "pixi.js";
 
@@ -27,11 +27,9 @@ export class Polygon implements Shape<Polygon>{
         this.normals = normals;
     }
 
-    static random(vertices: number): Polygon {
+    static random(vertices: number, MAX_LENGTH = 1000): Polygon {
 
         const points: Vec2[] = [];
-
-        const MAX_LENGTH = 1000;
 
         for(let i = 0; i < TWO_PI; i += TWO_PI / vertices){
             points.push(new Vec2(cos(i) * random(MAX_LENGTH), sin(i) * random(MAX_LENGTH)))

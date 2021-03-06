@@ -1,5 +1,5 @@
 import { Vec2 } from "shared/shapes/vec2";
-import { sign } from "shared/miscmath";
+import { sign } from "shared/mathutils";
 import { Subsystem } from "shared/core/subsystem";
 import { RendererSystem } from "../core-engine/renderer";
 import { Point } from "pixi.js";
@@ -27,10 +27,14 @@ export interface MouseInput {
 }
 
 export class EngineMouse extends Subsystem {
-    position: Vec2 = new Vec2(0,0);
+    // Really far away so doesn't overlap with anyone at beginning
+    position: Vec2 = new Vec2(-99999999,-99999999);
     screenPosition: Vec2 = new Vec2(0,0);
     velocity: Vec2 = new Vec2(0,0);
     scroll: number = 0;
+
+    get x(){ return this.position.x }
+    get y(){ return this.position.y }
 
     private lastPosition = new Vec2(0,0);
 

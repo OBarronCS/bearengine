@@ -1,5 +1,5 @@
 import type { Graphics } from "pixi.js";
-import { string2hex } from "shared/miscmath";
+import { string2hex } from "shared/mathutils";
 import { Coordinate } from "./vec2";
 
 // draws the vector as an arrow taking into account magnitude and direction, at a certain location

@@ -1,7 +1,6 @@
-import { DrawableEntity, GMEntity, SpriteEntity } from "../core-engine/entity";
-import { Player } from "./player";
 
 import { Graphics } from "pixi.js";
+
 import { Tilemap } from "shared/datastructures/tilemap";
 import { rgb, Color } from "shared/datastructures/color";
 import { DynamicAABBTree } from "shared/datastructures/dynaabbtree";
@@ -16,12 +15,15 @@ import { Polygon } from "shared/shapes/polygon";
 import { Rect, dimensions } from "shared/shapes/rectangle";
 import { drawCircle, drawLineArray, drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "shared/shapes/shapedrawing";
 import { Vec2, Coordinate, angleBetween, mix } from "shared/shapes/vec2";
-import { atan2, cos, floor, PI, second, sin } from "shared/miscmath";
+import { atan2, cos, floor, PI, second, sin } from "shared/mathutils";
 import { ColorTween } from "shared/core/tween"
 import { TickTimer } from "shared/ticktimer"
 import { ColliderPart } from "shared/core/abstractpart";
-import { Scene } from "shared/core/scenemanager";
-
+import { bearevent } from "shared/core/bearevents";
+import { Scene} from "shared/core/scene";
+import { DrawableEntity, Entity, GMEntity, SpriteEntity } from "../core-engine/entity";
+import { Player } from "./player";
+import { SpritePart } from "../core-engine/parts";
 
 class BasicSprite extends SpriteEntity {
 
@@ -36,6 +38,40 @@ class BasicSprite extends SpriteEntity {
 
 
 export function loadTestLevel(this: Scene): void {
+
+    class TestEntityForVideo extends Entity {
+        
+        private sprite = this.addPart(new SpritePart("images/tree.gif"));
+        private collider = this.addPart(new ColliderPart(dimensions(200,200), Vec2.ZERO));
+
+        update(dt: number): void {
+            
+        }
+
+        // @bearevent("mousehover", {})
+        daisvfdakusvdjasd(point: Vec2){
+            console.log("Hello, i was hovered", point.toString());
+        }
+
+        //@bearevent("tap", {})
+        ontapcallback(num: Vec2){
+            console.log("I was clicked")
+        }
+
+        @bearevent("mousedown", { button: "left"})
+        asdasdasdasd(point: Vec2){
+            console.log("HEOLLO")
+        }
+
+        @bearevent("scroll", {})
+        asdasd(scroll: number, point: Vec2){
+            console.log(scroll)
+        }
+
+    }
+
+    this.addEntity(new TestEntityForVideo());
+
 
     this.addEntity(new Player())
     
@@ -192,7 +228,7 @@ export function loadTestLevel(this: Scene): void {
             this.Collision.draw(g);
         }
     }
-    //this.addEntity(new Debug())
+    this.addEntity(new Debug())
 
     // Rectangle overlap test
     class Test extends DrawableEntity {

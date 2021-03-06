@@ -1,5 +1,5 @@
 import type { Graphics } from "pixi.js";
-import { clamp } from "shared/miscmath";
+import { clamp } from "shared/mathutils";
 import { Rect } from "../shapes/rectangle";
 import { drawLineBetweenPoints } from "shared/shapes/shapedrawing";
 

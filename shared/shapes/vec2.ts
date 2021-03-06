@@ -1,5 +1,5 @@
 
-import { DEG_TO_RAD, RAD_TO_DEG, dcos, dsin, floor } from "shared/miscmath";
+import { DEG_TO_RAD, RAD_TO_DEG, dcos, dsin, floor } from "shared/mathutils";
 
 export interface Coordinate {
     x: number,

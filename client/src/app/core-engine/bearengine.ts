@@ -1,25 +1,29 @@
 
-import { EngineMouse } from "../input/mouse";
-import { GUI } from "dat.gui";
-import { RendererSystem } from "./renderer";
-import { CameraSystem } from "./camera";
-import { EventEmitter } from "eventemitter3";
-import TypedEmitter from "typed-emitter";
-import { Entity, GMEntity, SpriteEntity } from "./entity";
-import { EngineKeyboard } from "../input/keyboard";
-import { loadTestLevel } from "../gamelogic/testlevelentities";
-import { BufferedNetwork } from "./networking/socket";
+import { Graphics, Loader, Sprite, utils } from "pixi.js";
+// import { GUI } from "dat.gui";
 
-import { CustomMapFormat, ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
-import { LevelHandler } from "shared/core/level";
-import { Graphics, Loader, utils, Sprite } from "pixi.js";
-import { AbstractEntity } from "shared/core/abstractentity";
-import { Subsystem } from "shared/core/subsystem";
-import { Scene } from "shared/core/scenemanager"
-import { Vec2 } from "shared/shapes/vec2";
 import { AbstractBearEngine } from "shared/core/abstractengine";
+import { AbstractEntity } from "shared/core/abstractentity";
+import { EventRegistry } from "shared/core/bearevents";
+import { LevelHandler } from "shared/core/level";
+import { Scene } from "shared/core/scene";
+import { BearEvents } from "shared/core/sharedlogic/eventdefinitions";
+import { Subsystem } from "shared/core/subsystem";
+import { CustomMapFormat } from "shared/core/tiledmapeditor";
+import { Vec2 } from "shared/shapes/vec2";
+
+import { loadTestLevel } from "../gamelogic/testlevelentities";
+import { EngineKeyboard } from "../input/keyboard";
+import { EngineMouse } from "../input/mouse";
+import { CameraSystem } from "./camera";
+import { Entity } from "./entity";
 import { NetworkReadSystem } from "./networking/networkread";
 import { NetworkWriteSystem } from "./networking/networkwrite";
+import { BufferedNetwork } from "./networking/socket";
+import { RendererSystem } from "./renderer";
+import { TestMouseDownEventDispatcher } from "./mouseevents";
+
+
 
 
 const SHARED_RESOURCES = Loader.shared.resources;
@@ -41,14 +45,15 @@ const ALL_TEXTURES: string[] = images.slice(0);
 console.log(ALL_TEXTURES)
 
 
-export interface CoreEvents {}
-
-
 export class BearEngine implements AbstractBearEngine {
 
     public networkconnection: BufferedNetwork = new BufferedNetwork("ws://127.0.0.1:8080");
 
     
+
+
+
+
     // IMPORTANT SYSTEMS
     public networksystem: NetworkReadSystem = null;
     public renderer: RendererSystem = null;
@@ -60,6 +65,8 @@ export class BearEngine implements AbstractBearEngine {
     
 
     private systems: Subsystem[] = [];
+
+    public systemEventMap: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();
 
 
     public levelGraphic = new Graphics();
@@ -80,6 +87,10 @@ export class BearEngine implements AbstractBearEngine {
         this.keyboard = this.registerSystem(new EngineKeyboard(this));
         this.camera = this.registerSystem(new CameraSystem(this));
         this.level = this.registerSystem(new LevelHandler(this));
+
+        // For testing
+        this.registerSystem(new TestMouseDownEventDispatcher(this))
+
         this.entityManager = this.registerSystem(new Scene(this))
 
         this.registerSystem(new NetworkWriteSystem(this, this.networkconnection))
@@ -89,6 +100,12 @@ export class BearEngine implements AbstractBearEngine {
 
         for(const system of this.systems){
             system.init();
+        }
+
+        for(const system of this.systems){
+            for(const handler of system.eventHandlers){
+                this.systemEventMap.set(handler.eventName, handler);
+            }
         }
 
         this.keyboard.bind("k", () => {
@@ -114,11 +131,11 @@ export class BearEngine implements AbstractBearEngine {
 
     startLevel(level_struct: CustomMapFormat){
         // janky. This call to level adds a part query to the level handler.        
-        
+        this.level.load(level_struct);
+
         this.entityManager.registerPartQueries(this.systems);
 
-
-        this.level.load(level_struct);
+        
         this.renderer.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundcolor);
        
         // Load sprites from map 
