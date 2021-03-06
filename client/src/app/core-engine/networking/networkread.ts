@@ -4,7 +4,7 @@
 
 import { AssertUnreachable } from "shared/assertstatements";
 import { AbstractBearEngine } from "shared/core/abstractengine";
-import { Scene } from "shared/core/scenemanager";
+import { Scene } from "shared/core/scene";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { RemoteEntity, RemoteLocations, SimpleNetworkedSprite } from "./remotecontrol";

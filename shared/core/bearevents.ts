@@ -1,29 +1,7 @@
 import { AbstractEntity } from "shared/core/abstractentity";
-import { Vec2 } from "shared/shapes/vec2";
+import { BearEvents } from "./sharedlogic/eventdefinitions";
 
-// interface CoreEventTypeDefinition {
-//     [key: string] : {
-//         register_args: {
-//             [key: string]: any
-//         },
-//         callback: (...args: any[]) => any,
-//     },
-// }
-
-export interface BearEvents { 
-    "mousehover": { 
-        register_args: {},
-        callback: (mousePoint: Vec2) => void,
-    },
-    "tap": {
-        register_args: {},
-        callback: (mousePoint: Vec2) => void,
-    }
-}
-
-type BearEventNames = keyof BearEvents
-
-// Is responsible for a single event type. Is a member variable of systems
+// Responsible for a single event type, use as member variable of a subsystem
 export class EventRegistry<EventName extends keyof BearEvents> {
 
     public eventName: EventName;
@@ -96,9 +74,6 @@ export function bearevent<T extends keyof BearEvents>(eventname: T, extradata: B
     }
 }
 
-type StringKeys<T> = Pick<T, {
-    [Key in keyof T]: Key extends string ? Key : never
-}[keyof T]>;
 
 // Takes all methods from a class that have string identifiers
 type PickMethods<Base> = Pick<Base, {
