@@ -53,7 +53,7 @@ export function loadTestLevel(this: Scene): void {
             console.log("Hello, i was hovered", point.toString());
         }
 
-        // @bearevent("tap", {})
+        //@bearevent("tap", {})
         ontapcallback(num: Vec2){
             console.log("I was clicked")
         }
@@ -63,35 +63,14 @@ export function loadTestLevel(this: Scene): void {
             console.log("HEOLLO")
         }
 
+        @bearevent("scroll", {})
+        asdasd(scroll: number, point: Vec2){
+            console.log(scroll)
+        }
+
     }
 
     this.addEntity(new TestEntityForVideo());
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     this.addEntity(new Player())

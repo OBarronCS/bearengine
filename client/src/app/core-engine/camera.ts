@@ -5,7 +5,6 @@ import { Rect } from "shared/shapes/rectangle";
 import { RendererSystem } from "./renderer";
 import { EngineKeyboard } from "../input/keyboard";
 import { lerp, round, smoothNoise } from "shared/mathutils";
-import { BearEngine } from "./bearengine";
 import { Subsystem } from "shared/core/subsystem";
 import { EngineMouse } from "../input/mouse";
 

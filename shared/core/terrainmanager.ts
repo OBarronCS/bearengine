@@ -125,15 +125,7 @@ class TerrainMesh  {
 
 	carveCircle(x: number,y: number, r: number): TerrainMesh[] | null{
 		console.log(Polygon.isClockwise(this.polygon.points))
-        /* 
-        if this breaks, its because of an edge case with overlapping points and floating point math error
-
-        However, I think I got rid of all edge cases. If a point collides JUST on the edge, I don't delete it
-
-        1) Add points into the polygon point array into the right spots
-        2) Delete all original points that are inside the circle
-        3) Move across array in clockwise order of collision points. 
-        */
+        //  if this breaks, its because of an edge case with overlapping points and floating point error
 
         const circle = new Ellipse(new Vec2(x,y),r,r);
 
@@ -143,17 +135,15 @@ class TerrainMesh  {
         // contains the indices in the newPoints array of the new collision points'
         const addedIndices: number[] = [];
 
-
         for(let i = 0; i < this.polygon.points.length; i++){
             const firstPoint =  this.polygon.points[i];
             const secondPoint = this.polygon.points[(i + 1) % this.polygon.points.length];
 
             // Annoying EDGE CASE:
             // Breaks sometimes if a vertex is right on the edge of the sphere. 
-            // Floating math makes it so sometimes it will be detected to be contained in the sphere, but still not
-            // collide
+            // Floating math makes it so sometimes it will be detected to be contained in the sphere, but not seen in line test
 
-            // There's was an edge case where collisionPoint recognizes the same point over multiple calls
+            // Edge case: collisionPoint recognizes the same point over multiple calls
             // It happens when the point is tangent. I discard these
             
             const collisionPoints = Line.CircleLineIntersection(firstPoint, secondPoint, x, y, r);
@@ -165,11 +155,12 @@ class TerrainMesh  {
                     newPoints.push(point);
                     addedIndices.push(newPoints.length - 1);
                     
-                    // One more edge case that may or may not ever pop up (should have been solved with the tangent check)
-                    // If a vertex is detected twice, than the added indicies will be all messed up.
+                    // One more edge case that happens often
+                    // If a vertex is on edge, might be detected 0,1, or 2 times.
+                    // If 1 times, then it should try again cuz odd amount of indices
+                    // If 2 times, than the added indicies will be all messed up.
                     // Because the will be on TOP of each other, and the program below assumes that they are NOT on top of each other
-                    // However, the program will still see TWO added indices, see there is an even amount, and keep going
-                    // So if it becomes an array, check if any of the added index points are equal, and if so, call again with different r
+                    // Maybe: So if it becomes an array, check if any of the added index points are equal, and if so, call again with different r
                 }  
             }
         }
@@ -197,7 +188,7 @@ class TerrainMesh  {
             let p1Angle = atan2(p1.y - y, p1.x - x);
             let p2Angle = atan2(p2.y - y, p2.x - x);
 
-            console.log(p1Angle, p2Angle)
+            // console.log(p1Angle, p2Angle)
             return p2Angle - p1Angle;
         });
 
@@ -319,10 +310,8 @@ class TerrainMesh  {
         }
 
 
-        
         // ONE MORE EDGE CASE CHECK MAYBE:
-        // In some very rare floating point math error cases, I will get polygon's that are just two points on top of each other
-        // Maybe check for these one last time at the end?
+        // In some floating point math error cases, I will get polygon's that are just two points on top of each other
    
 		this.polygon = Polygon.from(components[0]);
 

@@ -21,7 +21,7 @@ import { NetworkReadSystem } from "./networking/networkread";
 import { NetworkWriteSystem } from "./networking/networkwrite";
 import { BufferedNetwork } from "./networking/socket";
 import { RendererSystem } from "./renderer";
-import { TestMouseDownEventDispatcher } from "./testevents";
+import { TestMouseDownEventDispatcher } from "./mouseevents";
 
 
 

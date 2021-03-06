@@ -23,6 +23,11 @@ interface BearEvents {
         register_args: { button: MouseButton };
         callback: (mousePoint: Vec2) => void;
     }
+    /** Scroll when hovered */
+    "scroll":{
+        register_args: { };
+        callback: (scroll: number, mousePoint: Vec2) => void;
+    }
 }
 
 type BearEventNames = keyof BearEvents;

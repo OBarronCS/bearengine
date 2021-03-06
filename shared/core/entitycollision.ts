@@ -16,7 +16,6 @@ import { SpatialGrid } from "shared/datastructures/spatialgrid";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { PartQuery } from "shared/core/partquery";
 import { ColliderPart } from "./abstractpart";
-import { AbstractBearEngine } from "./abstractengine";
 
 
 export class CollisionManager {

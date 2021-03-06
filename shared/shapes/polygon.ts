@@ -27,11 +27,9 @@ export class Polygon implements Shape<Polygon>{
         this.normals = normals;
     }
 
-    static random(vertices: number): Polygon {
+    static random(vertices: number, MAX_LENGTH = 1000): Polygon {
 
         const points: Vec2[] = [];
-
-        const MAX_LENGTH = 1000;
 
         for(let i = 0; i < TWO_PI; i += TWO_PI / vertices){
             points.push(new Vec2(cos(i) * random(MAX_LENGTH), sin(i) * random(MAX_LENGTH)))
