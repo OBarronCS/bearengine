@@ -19,10 +19,8 @@ import { atan2, cos, floor, PI, second, sin } from "shared/mathutils";
 import { ColorTween } from "shared/core/tween"
 import { TickTimer } from "shared/ticktimer"
 import { ColliderPart } from "shared/core/abstractpart";
-import { Scene } from "shared/core/scenemanager";
 import { bearevent } from "shared/core/bearevents";
-
-import { ClientScene } from "../core-engine/clientscene";
+import { Scene} from "shared/core/scene";
 import { DrawableEntity, Entity, GMEntity, SpriteEntity } from "../core-engine/entity";
 import { Player } from "./player";
 import { SpritePart } from "../core-engine/parts";
@@ -39,7 +37,7 @@ class BasicSprite extends SpriteEntity {
 }
 
 
-export function loadTestLevel(this: ClientScene): void {
+export function loadTestLevel(this: Scene): void {
 
     class TestEntityForVideo extends Entity {
         
@@ -50,14 +48,19 @@ export function loadTestLevel(this: ClientScene): void {
             
         }
 
-        @bearevent("mousehover", {})
+        // @bearevent("mousehover", {})
         daisvfdakusvdjasd(point: Vec2){
             console.log("Hello, i was hovered", point.toString());
         }
 
-        @bearevent("tap", {})
+        // @bearevent("tap", {})
         ontapcallback(num: Vec2){
             console.log("I was clicked")
+        }
+
+        @bearevent("mousedown", { button: "left"})
+        asdasdasdasd(point: Vec2){
+            console.log("HEOLLO")
         }
 
     }

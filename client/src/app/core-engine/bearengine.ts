@@ -1,26 +1,29 @@
 
-import { EngineMouse } from "../input/mouse";
-import { GUI } from "dat.gui";
-import { RendererSystem } from "./renderer";
-import { CameraSystem } from "./camera";
-import { Entity, GMEntity, SpriteEntity } from "./entity";
-import { EngineKeyboard } from "../input/keyboard";
-import { loadTestLevel } from "../gamelogic/testlevelentities";
-import { BufferedNetwork } from "./networking/socket";
+import { Graphics, Loader, Sprite, utils } from "pixi.js";
+// import { GUI } from "dat.gui";
 
-import { CustomMapFormat, ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
-import { LevelHandler } from "shared/core/level";
-import { Graphics, Loader, utils, Sprite } from "pixi.js";
-import { AbstractEntity } from "shared/core/abstractentity";
-import { Subsystem } from "shared/core/subsystem";
-
-import { Vec2 } from "shared/shapes/vec2";
 import { AbstractBearEngine } from "shared/core/abstractengine";
+import { AbstractEntity } from "shared/core/abstractentity";
+import { EventRegistry } from "shared/core/bearevents";
+import { LevelHandler } from "shared/core/level";
+import { Scene } from "shared/core/scene";
+import { BearEvents } from "shared/core/sharedlogic/eventdefinitions";
+import { Subsystem } from "shared/core/subsystem";
+import { CustomMapFormat } from "shared/core/tiledmapeditor";
+import { Vec2 } from "shared/shapes/vec2";
+
+import { loadTestLevel } from "../gamelogic/testlevelentities";
+import { EngineKeyboard } from "../input/keyboard";
+import { EngineMouse } from "../input/mouse";
+import { CameraSystem } from "./camera";
+import { Entity } from "./entity";
 import { NetworkReadSystem } from "./networking/networkread";
 import { NetworkWriteSystem } from "./networking/networkwrite";
-import { ClientScene } from "./clientscene";
-import { BearEvents, EventRegistry } from "../../../../shared/core/bearevents";
+import { BufferedNetwork } from "./networking/socket";
+import { RendererSystem } from "./renderer";
 import { TestMouseDownEventDispatcher } from "./testevents";
+
+
 
 
 const SHARED_RESOURCES = Loader.shared.resources;
@@ -42,9 +45,6 @@ const ALL_TEXTURES: string[] = images.slice(0);
 console.log(ALL_TEXTURES)
 
 
-export interface CoreEvents {}
-
-
 export class BearEngine implements AbstractBearEngine {
 
     public networkconnection: BufferedNetwork = new BufferedNetwork("ws://127.0.0.1:8080");
@@ -61,7 +61,7 @@ export class BearEngine implements AbstractBearEngine {
     public mouse: EngineMouse = null;
     public keyboard: EngineKeyboard = null;
     public level: LevelHandler = null;
-    public entityManager: ClientScene = null;
+    public entityManager: Scene = null;
     
 
     private systems: Subsystem[] = [];
@@ -91,7 +91,7 @@ export class BearEngine implements AbstractBearEngine {
         // For testing
         this.registerSystem(new TestMouseDownEventDispatcher(this))
 
-        this.entityManager = this.registerSystem(new ClientScene(this))
+        this.entityManager = this.registerSystem(new Scene(this))
 
         this.registerSystem(new NetworkWriteSystem(this, this.networkconnection))
 

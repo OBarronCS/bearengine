@@ -1,5 +1,5 @@
 import { AbstractBearEngine } from "shared/core/abstractengine";
-import { Scene } from "shared/core/scenemanager";
+import { Scene } from "shared/core/scene";
 import { ServerBoundPacket, ClientPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";

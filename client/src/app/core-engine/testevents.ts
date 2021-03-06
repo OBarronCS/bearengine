@@ -8,7 +8,8 @@ export class TestMouseDownEventDispatcher extends Subsystem<BearEngine> {
     init(): void {}
 
     private taphandler = this.addEventDispatcher("tap");
-    private mousedown = this.addEventDispatcher("mousehover");
+    private mousehover = this.addEventDispatcher("mousehover");
+    private mousedown = this.addEventDispatcher("mousedown");
 
 
     update(delta: number): void {
@@ -19,9 +20,9 @@ export class TestMouseDownEventDispatcher extends Subsystem<BearEngine> {
         const underMouse = collision.circleQuery(mouse.x, mouse.y, 1);
 
        
-        for(const listener of this.mousedown){
+        for(const listener of this.mousehover){
             if(underMouse.indexOf(listener.entity) !== -1){
-                this.mousedown.dispatch(listener, mouse.position)
+                this.mousehover.dispatch(listener, mouse.position)
             }
         }
 
@@ -30,8 +31,14 @@ export class TestMouseDownEventDispatcher extends Subsystem<BearEngine> {
                 if(underMouse.indexOf(taplistener.entity) !== -1){
                     this.taphandler.dispatch(taplistener, mouse.position);
                 }
+            } 
+        }
+
+        for(const down of this.mousedown){
+            if(underMouse.indexOf(down.entity) !== -1){
+                if(mouse.isDown(down.extradata.button))
+                    this.taphandler.dispatch(down, mouse.position);
             }
-                
         }
 
 
