@@ -6,6 +6,7 @@ import { ModifiablePQ } from "./priorityqueue";
 import { LinkedQueue } from "./queue";
 import { LinkedStack, LightLinkedBag } from "./stack";
 import { abs, max, min } from "shared/mathutils";
+import { filledArray } from "./arrayutils";
 
 
 
@@ -234,7 +235,7 @@ class NamedPathNode<P extends primitiveTypes> {
 // 
 
 export class GridGraph {
-    private grid: boolean[] = [];
+    private grid: boolean[];;
 
     private width: number;
     private height: number;
@@ -244,8 +245,7 @@ export class GridGraph {
         this.height = h;
 
         // 1 d so its easier to identify each value
-        this.grid.length = h * w;
-        this.grid.fill(true);
+        this.grid = filledArray(h * w, true);
     }
 
     // converts from two space to 1d index

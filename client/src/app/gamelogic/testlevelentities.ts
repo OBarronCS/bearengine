@@ -1,5 +1,5 @@
 
-import { Graphics } from "pixi.js";
+import { Graphics, TilingSprite } from "pixi.js";
 
 import { Tilemap } from "shared/datastructures/tilemap";
 import { rgb, Color } from "shared/datastructures/color";
@@ -24,6 +24,7 @@ import { Scene} from "shared/core/scene";
 import { DrawableEntity, Entity, GMEntity, SpriteEntity } from "../core-engine/entity";
 import { Player } from "./player";
 import { SpritePart } from "../core-engine/parts";
+import { AbstractEntity } from "shared/core/abstractentity";
 
 class BasicSprite extends SpriteEntity {
 
@@ -33,11 +34,56 @@ class BasicSprite extends SpriteEntity {
 
     draw(g: Graphics): void {}
     update(dt: number): void {}
+}
 
+class EmptyEntity extends AbstractEntity {
+    update(dt: number): void {
+    }
 }
 
 
 export function loadTestLevel(this: Scene): void {
+
+    class EntityLoadTest extends Entity {
+        
+        private tick = new TickTimer(30, false);
+
+
+        private entities: AbstractEntity[] = []
+
+        ticking = false;
+
+        update(dt: number): void {
+            if(this.Mouse.wasReleased("left")){
+                const start = performance.now();
+
+                for(let i = 0; i < 100000; i++){
+                    this.entities.push(this.Scene.addEntity(new EmptyEntity()));
+                }
+
+                console.log("Time to create:",performance.now() - start)
+                this.ticking = true;
+            }
+
+            if(this.ticking){
+                if(this.tick.tick()){
+                    const start = performance.now();
+
+                    for(let i = 0; i < 100000; i++){
+                        this.Scene.destroyEntity(this.entities[i]);
+                    }
+
+                    console.log("Time to destroy:",performance.now() - start)
+                }
+            }
+        }
+
+    }
+
+    this.addEntity(new EntityLoadTest());
+
+
+
 
     class TestEntityForVideo extends Entity {
         
@@ -70,10 +116,10 @@ export function loadTestLevel(this: Scene): void {
 
     }
 
-    this.addEntity(new TestEntityForVideo());
+    //this.addEntity(new TestEntityForVideo());
 
 
-    this.addEntity(new Player())
+    //this.addEntity(new Player())
     
     // this.addEntity(new BasicSprite())
 
@@ -108,7 +154,7 @@ export function loadTestLevel(this: Scene): void {
         }
     }
     
-    this.addEntity(new TerrainCarveTest());
+    //this.addEntity(new TerrainCarveTest());
 
     class ConvexHullTest extends DrawableEntity {
  

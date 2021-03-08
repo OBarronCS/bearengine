@@ -1,9 +1,6 @@
-
-
-// Wraps the connection to a server
-
 import { AssertUnreachable } from "shared/assertstatements";
 import { AbstractBearEngine } from "shared/core/abstractengine";
+import { AbstractEntity } from "shared/core/abstractentity";
 import { Scene } from "shared/core/scene";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
@@ -23,6 +20,10 @@ export class NetworkReadSystem extends Subsystem {
     constructor(engine: AbstractBearEngine, network: BufferedNetwork){
         super(engine);
         this.network = network;
+    }
+
+    private getEntity<T extends AbstractEntity = AbstractEntity>(id: number): T{
+        return this.entities.get(id) as any as T;
     }
 
     private scene: Scene;

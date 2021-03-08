@@ -8,6 +8,7 @@ import type { Graphics } from "pixi.js";
 import { floor } from "shared/mathutils";
 import { Rect } from "shared/shapes/rectangle";
 import { Coordinate } from "shared/shapes/vec2";
+import { filledArray } from "./arrayutils";
 
 // Terrain for 2D grids, essentially.
 // if cell false, cannot walk on it.
@@ -15,7 +16,7 @@ import { Coordinate } from "shared/shapes/vec2";
 // In future, make it hold integers for different types of tiles and not just a boolean
 export class Tilemap {
 
-    private grid: boolean[] = [];
+    private grid: boolean[];
 
     private width: number;
     private height: number;
@@ -29,8 +30,7 @@ export class Tilemap {
         this.tileHeight = tileHeight;
 
         // 1 d so its easier to identify each value
-        this.grid.length = h * w;
-        this.grid.fill(true);
+        this.grid = filledArray(h * w, true)
     }
 
     // converts from two space to 1d index

@@ -21,6 +21,16 @@ export function shuffle(arr: any[]): void {
     }
 }
 
+
+export function filledArray<T>(size: number, value: T): T[] {
+    const arr: T[] = [];
+    for(let i = 0; i < size; i++){
+        arr.push(value);
+    }
+    return arr;
+}
+
+
 export function swap(arr: any[], i: number, j: number): void {
     const val1 = arr[i];
     arr[i] = arr[j];

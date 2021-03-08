@@ -1,6 +1,7 @@
 
 
 import { randomInt } from "shared/randomhelpers";
+import { filledArray } from "./arrayutils";
 
 
 
@@ -13,9 +14,7 @@ export class Grid {
         const grid: T[][] = [];
 
         for(let i = 0; i < width; i++){
-            grid[i] = [];
-            grid[i].length = height;
-            grid[i].fill(defaultValue); // If default value is an object/reference, than everything will point to same thing
+            grid[i] = filledArray(height, defaultValue);
         }
     }
 
