@@ -17,8 +17,11 @@ interface GlobalData {
     Collision: CollisionManager;
 }
 
+export type EntityID = number; 
 
 export abstract class AbstractEntity {
+    readonly entityID: EntityID = -1;
+
     readonly position: Vec2 = new Vec2(0,0)
     readonly parts: Part[] = [];
 

@@ -1,5 +1,5 @@
 
-import { Graphics, TilingSprite } from "pixi.js";
+import { Graphics } from "pixi.js";
 
 import { Tilemap } from "shared/datastructures/tilemap";
 import { rgb, Color } from "shared/datastructures/color";
@@ -57,7 +57,7 @@ export function loadTestLevel(this: Scene): void {
             if(this.Mouse.wasReleased("left")){
                 const start = performance.now();
 
-                for(let i = 0; i < 100000; i++){
+                for(let i = 0; i < 1000000; i++){
                     this.entities.push(this.Scene.addEntity(new EmptyEntity()));
                 }
 
@@ -69,7 +69,7 @@ export function loadTestLevel(this: Scene): void {
                 if(this.tick.tick()){
                     const start = performance.now();
 
-                    for(let i = 0; i < 100000; i++){
+                    for(let i = 0; i < 1000000; i++){
                         this.Scene.destroyEntity(this.entities[i]);
                     }
 
@@ -116,12 +116,27 @@ export function loadTestLevel(this: Scene): void {
 
     }
 
-    //this.addEntity(new TestEntityForVideo());
+     // Drawing the collision grid
+     class Debug extends DrawableEntity {
+        update(dt: number): void {
+            this.redraw();
+        }
+        draw(g: Graphics): void {
+            g.clear();
+            this.Collision.draw(g);
+        }
+    }
 
 
-    //this.addEntity(new Player())
-    
-    // this.addEntity(new BasicSprite())
+    // const test = new TestEntityForVideo();
+
+    // this.addEntity(test);
+    // this.addEntity(new Player());
+    // this.addEntity(new BasicSprite());
+
+    // this.destroyEntity(test);
+
+    // this.addEntity(new Debug())
 
     class TerrainCarveTest extends DrawableEntity {
         
@@ -264,17 +279,7 @@ export function loadTestLevel(this: Scene): void {
     }
     //this.addEntity(new TestCollision())
 
-    // Drawing the collision grid
-    class Debug extends DrawableEntity {
-        update(dt: number): void {
-            this.redraw();
-        }
-        draw(g: Graphics): void {
-            g.clear();
-            this.Collision.draw(g);
-        }
-    }
-    this.addEntity(new Debug())
+   
 
     // Rectangle overlap test
     class Test extends DrawableEntity {
