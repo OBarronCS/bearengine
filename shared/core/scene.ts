@@ -1,16 +1,90 @@
 
-import { AbstractEntity } from "shared/core/abstractentity";
+import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { TagPart, TagType } from "shared/core/abstractpart";
 import { PartQuery } from "shared/core/partquery";
 import { Subsystem } from "shared/core/subsystem";
 import { EntityEventListType } from "shared/core/bearevents";
 
 export class Scene extends Subsystem {
-
-    private updateList: AbstractEntity[] = [];
+    
     private partQueries: PartQuery<any>[] = [];
 
     private tags: PartQuery<TagPart>;
+
+
+    // Set of entities
+    private freeID = -1;
+
+    private sparse: number[] = [];
+    private entities: AbstractEntity[] = [];
+
+    addEntity<T extends AbstractEntity>(e: T): T {
+        const id = this.getNextID();
+        //@ts-expect-error --> This is a readonly property. This is the only time we should be changing it
+        e.entityID = id;
+
+        const indexInDense = this.entities.push(e) - 1;
+        this.sparse[id] = indexInDense;
+
+        e.onAdd();
+        this.registerEvents(e);
+        this.partQueries.forEach(q => {
+            q.addEntity(e)
+        });
+
+        // console.log("Sparse: ", this.sparse);
+        // console.log("Dense: ", this.entities);
+
+        return e;
+    }
+
+    getNextID(): EntityID {
+        if(this.freeID === -1){
+            return this.sparse.length;
+        } else { // freeID refers to a hole
+            const id = this.freeID;
+            this.freeID = this.sparse[id];
+
+            return id;
+        }
+    }
+
+    destroyEntity<T extends AbstractEntity>(e: T): void {
+        // FOR NOW: Assume the entity is alive. Definitely implement a check later
+        const id = e.entityID;
+        const denseIndex = this.sparse[id];
+
+        // Set the free list
+        
+        if(this.freeID === -1){
+            this.freeID = id;
+            this.sparse[id] = -1;
+        } else {
+            // freeID is referring to a hole
+            this.sparse[id] = this.freeID;
+            this.freeID = id;
+        }
+
+
+        // Set the last one to this value
+        this.entities[denseIndex] = this.entities[this.entities.length - 1];
+        
+        // Set the sparse array to point at the right one;
+
+        const swappedID = this.entities[denseIndex].entityID;
+        this.sparse[swappedID] = denseIndex;
+
+        // Delete the last one 
+        this.entities.pop();
+
+        //
+
+        e.onDestroy();
+
+        this.partQueries.forEach(q => {
+            q.deleteEntity(e)
+        });
+    }
 
     init(): void {
         this.tags = new PartQuery(TagPart);
@@ -18,8 +92,8 @@ export class Scene extends Subsystem {
     }
 
     update(delta: number): void {
-        for (let i = 0; i < this.updateList.length; i++) {
-            const entity = this.updateList[i];
+        for (let i = 0; i < this.entities.length; i++) {
+            const entity = this.entities[i];
             entity.update(delta);
             entity.postUpdate(); // Maybe get rid of this, swap it with systems that I call after step
         }
@@ -32,7 +106,7 @@ export class Scene extends Subsystem {
     }
 
     clear(){
-        this.updateList.forEach( e => {
+        this.entities.forEach( e => {
             e.onDestroy();
 
             this.partQueries.forEach(q => {
@@ -40,23 +114,12 @@ export class Scene extends Subsystem {
             })
         })
 
-        this.updateList = [];
+        this.entities = [];
 
         this.partQueries = [];
     }
 
 
-    destroyEntity<T extends AbstractEntity>(e: T): void {
-        const index = this.updateList.indexOf(e);
-        if(index !== -1){
-            e.onDestroy();
-            this.updateList.splice(index,1);
-
-            this.partQueries.forEach(q => {
-                q.deleteEntity(e)
-            });
-        }
-    }
 
     private registerEvents<T extends AbstractEntity>(e: T): void {
         if(e.constructor["EVENT_REGISTRY"]){
@@ -76,18 +139,6 @@ export class Scene extends Subsystem {
         }
     }
 
-    addEntity<T extends AbstractEntity>(e: T): T {
-        this.updateList.push(e);
-        e.onAdd();
-
-        this.registerEvents(e);
-
-        this.partQueries.forEach(q => {
-            q.addEntity(e)
-        });
-
-        return e;
-    }
 
 
     getEntityByTag<T extends AbstractEntity>(tag: TagType): T {
