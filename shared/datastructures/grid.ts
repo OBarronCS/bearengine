@@ -4,7 +4,7 @@ import { randomInt } from "shared/randomhelpers";
 import { filledArray } from "./arrayutils";
 
 
-
+// Maybe change into export namespace, or just an object literal {} exported with a name because this class is just used to group these functions 
 export class Grid {
 
     private constructor(){}

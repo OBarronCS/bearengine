@@ -22,6 +22,7 @@ import { NetworkWriteSystem } from "./networking/networkwrite";
 import { BufferedNetwork } from "./networking/socket";
 import { RendererSystem } from "./renderer";
 import { TestMouseDownEventDispatcher } from "./mouseevents";
+import { Player } from "../gamelogic/player";
 
 
 
@@ -164,7 +165,7 @@ export class BearEngine implements AbstractBearEngine {
         this.renderer.addSprite(this.levelGraphic);
 
         loadTestLevel.call(this.entityManager);
-        
+        this.entityManager.addEntity(new Player());
         // this.camera["center"].set(this.player.position);
         this.camera.zoom(Vec2.HALFHALF)
         // this.camera.follow(this.player.position)

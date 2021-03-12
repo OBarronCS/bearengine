@@ -8,7 +8,7 @@ const game = new BearEngine();
 
 game.init();
 game.loadAssets().then(RESOURCES => {
-    // dragAndDropTest(game.renderer.renderer.view);
+    dragAndDropTest(game.renderer.renderer.view);
     
     console.log("ALL ASSETS DOWNLOADED")
     game.startLevel(ParseTiledMapData(RESOURCES["images/firsttest.json"].data as TiledMap));

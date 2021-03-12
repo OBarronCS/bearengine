@@ -1,13 +1,13 @@
 
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
-import { TagPart, TagType } from "shared/core/abstractpart";
+import { Part, TagPart, TagType } from "shared/core/abstractpart";
 import { PartQuery } from "shared/core/partquery";
 import { Subsystem } from "shared/core/subsystem";
 import { EntityEventListType } from "shared/core/bearevents";
 
 export class Scene extends Subsystem {
     
-    private partQueries: PartQuery<any>[] = [];
+    private partQueries: PartQuery<Part>[] = [];
 
     private tags: PartQuery<TagPart>;
 
@@ -114,6 +114,8 @@ export class Scene extends Subsystem {
             })
         })
 
+        this.freeID = -1;
+        this.sparse = [];
         this.entities = [];
 
         this.partQueries = [];

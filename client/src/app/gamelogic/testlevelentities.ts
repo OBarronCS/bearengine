@@ -44,6 +44,8 @@ class EmptyEntity extends AbstractEntity {
 
 export function loadTestLevel(this: Scene): void {
 
+    // this.addEntity(new Player());
+
     class EntityLoadTest extends Entity {
         
         private tick = new TickTimer(30, false);
@@ -80,7 +82,7 @@ export function loadTestLevel(this: Scene): void {
 
     }
 
-    this.addEntity(new EntityLoadTest());
+    // this.addEntity(new EntityLoadTest());
 
 
 
@@ -131,7 +133,7 @@ export function loadTestLevel(this: Scene): void {
     // const test = new TestEntityForVideo();
 
     // this.addEntity(test);
-    // this.addEntity(new Player());
+    
     // this.addEntity(new BasicSprite());
 
     // this.destroyEntity(test);
