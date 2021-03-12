@@ -35,6 +35,7 @@ export class NetworkReadSystem extends Subsystem {
     // Read from network, apply packets 
     update(delta: number): void {
         if(this.network.CONNECTED){
+
             const packets = this.network.newPacketQueue();
 
             while(!packets.isEmpty()){
@@ -59,19 +60,24 @@ export class NetworkReadSystem extends Subsystem {
                             break;
                         }
                         case GamePacket.PLAYER_POSITION:{
+                            
                             // Find correct entity
                             const id = stream.getUint16();
                             //  console.log("ID: " + id)
                             let e = this.entities.get(id);
                             if(e === undefined){
-                                console.log("creating new server entity");
+                                console.log("creating new server player entity");
                                 // e should be an instance of this
-                                e = new SimpleNetworkedSprite()
+                                e = new SimpleNetworkedSprite();
                                 this.entities.set(id, e);
                                 this.scene.addEntity(e);
                             }
 
-                            (e as SimpleNetworkedSprite).locations.addPosition(frame, stream.getFloat32(), stream.getFloat32());
+                            const x = stream.getFloat32();
+                            const y = stream.getFloat32();
+
+                            (e as SimpleNetworkedSprite).locations.addPosition(frame, x,y);
+                            
                             break;    
                         }
                         case GamePacket.SIMPLE_POSITION:{

@@ -40,9 +40,6 @@ export class CameraSystem extends Subsystem {
 
         const keyboard = this.getSystem(EngineKeyboard);
         const mouse = this.mouse = this.getSystem(EngineMouse);
-        keyboard.bind("h", () => {
-            this.trauma = .5;
-        });
 
         keyboard.bind("space", () => {
             this.center.set({x: 500, y:500});
@@ -55,28 +52,54 @@ export class CameraSystem extends Subsystem {
         let startPoint: Coordinate;
 
         // start drag
-        window.addEventListener("mousedown", (event) => {
+        window.addEventListener("pointerdown", (event) => {
             startPoint = this.center.clone();
             const point = new Point(0,0);
             renderer.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y);
             startMouse = point//renderer.mouse.clone()
         });
 
+        // live pointers for a tick
+        let pointer_event_cache: PointerEvent[] = [];
+
+        function addPointerCache(e: PointerEvent){
+            for(const event of pointer_event_cache){
+                if(e.pointerId === event.pointerId) return;
+            }
+
+            pointer_event_cache.push(e);
+        }
+
         // while dragging
-        window.addEventListener("mousemove",event => {
+        window.addEventListener("pointermove",event => {
             const point = new Point(0,0);
             renderer.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y);
+            
+            addPointerCache(event);
+            // console.log("Unique pointers down: "+ pointer_event_cache.length)
+            // mouse    pen,    touch 
+            if(event.pointerType === "mouse"){
+                if(!mouse.isDown("middle")){
+                    if(!mouse.isDown("left")) return;
+                    if(!keyboard.isDown("ShiftLeft")) return;
+                } 
 
-            if(!mouse.isDown("middle")){
-                if(!mouse.isDown("left")) return;
-                if(!keyboard.isDown("ShiftLeft")) return;
-            } 
-
+            } else {
+                if(pointer_event_cache.length <= 1){
+                    return;
+                }
+            }
+            
             const speed = 1;
 
             this.center.x = startPoint.x - (((point.x - startMouse.x) / container.scale.x) * speed)
             this.center.y = startPoint.y - (((point.y - startMouse.y) / container.scale.y) * speed) 
+
         });
+
+        window.addEventListener("pointerup", (e)=>{
+            pointer_event_cache = [];
+        })
 
         // ZOOM
         window.addEventListener("wheel", (event) => {

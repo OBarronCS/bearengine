@@ -50,7 +50,7 @@ console.log(ALL_TEXTURES)
 
 export class BearEngine implements AbstractBearEngine {
 
-    public networkconnection: BufferedNetwork = new BufferedNetwork({ port: 8080 });
+    public networkconnection: BufferedNetwork = new BufferedNetwork({ port: 80 });
 
 
     // IMPORTANT SYSTEMS
