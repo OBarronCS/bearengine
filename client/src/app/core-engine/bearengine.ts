@@ -1,5 +1,5 @@
 
-import { Graphics, Loader, Sprite, utils } from "pixi.js";
+import { Graphics, Loader, NineSlicePlane, Sprite, utils } from "pixi.js";
 // import { GUI } from "dat.gui";
 
 import { AbstractBearEngine } from "shared/core/abstractengine";
@@ -23,6 +23,8 @@ import { BufferedNetwork } from "./networking/socket";
 import { RendererSystem } from "./renderer";
 import { TestMouseDownEventDispatcher } from "./mouseevents";
 import { Player } from "../gamelogic/player";
+import { TerrainManager } from "shared/core/terrainmanager";
+import { CollisionManager } from "shared/core/entitycollision";
 
 
 
@@ -48,11 +50,7 @@ console.log(ALL_TEXTURES)
 
 export class BearEngine implements AbstractBearEngine {
 
-    public networkconnection: BufferedNetwork = new BufferedNetwork("ws://127.0.0.1:8080");
-
-    
-
-
+    public networkconnection: BufferedNetwork = new BufferedNetwork({ port: 8080 });
 
 
     // IMPORTANT SYSTEMS
@@ -63,12 +61,12 @@ export class BearEngine implements AbstractBearEngine {
     public keyboard: EngineKeyboard = null;
     public level: LevelHandler = null;
     public entityManager: Scene = null;
+    public terrain: TerrainManager = null;
+    public collisionManager: CollisionManager = null;
     
 
     private systems: Subsystem[] = [];
-
     public systemEventMap: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();
-
 
     public levelGraphic = new Graphics();
 
@@ -88,6 +86,9 @@ export class BearEngine implements AbstractBearEngine {
         this.keyboard = this.registerSystem(new EngineKeyboard(this));
         this.camera = this.registerSystem(new CameraSystem(this));
         this.level = this.registerSystem(new LevelHandler(this));
+
+        this.terrain = this.registerSystem(new TerrainManager(this));
+        this.collisionManager = this.registerSystem(new CollisionManager(this));
 
         // For testing
         this.registerSystem(new TestMouseDownEventDispatcher(this))
@@ -130,13 +131,13 @@ export class BearEngine implements AbstractBearEngine {
         return null;
     }
 
-    startLevel(level_struct: CustomMapFormat){
-        // janky. This call to level adds a part query to the level handler.        
-        this.level.load(level_struct);
+    loadLevel(level_struct: CustomMapFormat){
+        if(this.level.loaded) console.log("TRYING TO LOAD A LEVEL WHEN ONE IS ALREADY LOADED");
+        
+        this.level.startLevel(level_struct);
 
         this.entityManager.registerPartQueries(this.systems);
 
-        
         this.renderer.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundcolor);
        
         // Load sprites from map 
@@ -154,8 +155,8 @@ export class BearEngine implements AbstractBearEngine {
         AbstractEntity.GLOBAL_DATA_STRUCT = {
             Scene:this.entityManager,
             Level:this.level,
-            Collision:this.level.collisionManager,
-            Terrain:this.level.terrainManager,
+            Collision:this.collisionManager,
+            Terrain:this.terrain,
         }
 
         Entity.BEAR_ENGINE = this;
@@ -165,15 +166,35 @@ export class BearEngine implements AbstractBearEngine {
         this.renderer.addSprite(this.levelGraphic);
 
         loadTestLevel.call(this.entityManager);
-        this.entityManager.addEntity(new Player());
+
+
         // this.camera["center"].set(this.player.position);
         this.camera.zoom(Vec2.HALFHALF)
         // this.camera.follow(this.player.position)
     }
 
+    endCurrentLevel(){
+        console.log("Ending level")
+        this.level.end();
+
+        this.entityManager.clear();
+        this.terrain.clear();
+        this.collisionManager.clear()
+
+        const children = this.renderer.mainContainer.removeChildren();
+        // This is crucial --> otherwise there is a memory leak
+        children.forEach(child => child.destroy())
+    }   
+
+    restartCurrentLevel(){
+        const data = this.level.data_struct;
+        this.endCurrentLevel();
+        this.loadLevel(data);
+    }
+
     public redrawLevel(){
         this.levelGraphic.clear();
-        this.level.draw(this.levelGraphic);
+        this.terrain.draw(this.levelGraphic);
     }
 
     // Loads all assets from server
@@ -226,23 +247,6 @@ export class BearEngine implements AbstractBearEngine {
 
         requestAnimationFrame(t => this.loop(t))
     }
-
-    restartCurrentLevel(){
-        const data = this.level.data_struct;
-        this.endCurrentLevel();
-        this.startLevel(data);
-    }
-
-    endCurrentLevel(){
-        console.log("Ending level")
-        this.level.end();
-
-        this.entityManager.clear();
-
-        const children = this.renderer.mainContainer.removeChildren();
-        // This is crucial --> otherwise there is a memory leak
-        children.forEach(child => child.destroy())
-    }   
 
 }
 

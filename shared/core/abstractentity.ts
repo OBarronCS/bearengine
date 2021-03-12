@@ -11,6 +11,7 @@ interface GlobalData {
     Scene: {
         addEntity<T extends AbstractEntity>(entity: T): T;
         destroyEntity<T extends AbstractEntity>(entity: T): void;
+        destroyEntityByID(id: number): void;
     }
     Level: LevelHandler,
     Terrain: TerrainManager;

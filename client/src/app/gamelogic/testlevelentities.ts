@@ -24,7 +24,7 @@ import { Scene} from "shared/core/scene";
 import { DrawableEntity, Entity, GMEntity, SpriteEntity } from "../core-engine/entity";
 import { Player } from "./player";
 import { SpritePart } from "../core-engine/parts";
-import { AbstractEntity } from "shared/core/abstractentity";
+import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 
 class BasicSprite extends SpriteEntity {
 
@@ -44,14 +44,16 @@ class EmptyEntity extends AbstractEntity {
 
 export function loadTestLevel(this: Scene): void {
 
-    // this.addEntity(new Player());
+    this.addEntity(new Player());
 
     class EntityLoadTest extends Entity {
         
-        private tick = new TickTimer(30, false);
+        private tick = new TickTimer(30, true);
 
 
-        private entities: AbstractEntity[] = []
+        private entities: EntityID[] = []
+
+        private AMOUNT = 100000;
 
         ticking = false;
 
@@ -59,8 +61,8 @@ export function loadTestLevel(this: Scene): void {
             if(this.Mouse.wasReleased("left")){
                 const start = performance.now();
 
-                for(let i = 0; i < 1000000; i++){
-                    this.entities.push(this.Scene.addEntity(new EmptyEntity()));
+                for(let i = 0; i < this.AMOUNT; i++){
+                    this.entities.push(this.Scene.addEntity(new EmptyEntity()).entityID);
                 }
 
                 console.log("Time to create:",performance.now() - start)
@@ -71,9 +73,14 @@ export function loadTestLevel(this: Scene): void {
                 if(this.tick.tick()){
                     const start = performance.now();
 
-                    for(let i = 0; i < 1000000; i++){
-                        this.Scene.destroyEntity(this.entities[i]);
+                    for(let i = 0; i < this.AMOUNT; i++){
+                        this.Scene.destroyEntityByID(this.entities[i]);
                     }
+
+                    this.entities = [];
+
+                    this.ticking = false;
+                    this.tick.counter = 0;
 
                     console.log("Time to destroy:",performance.now() - start)
                 }
@@ -83,8 +90,6 @@ export function loadTestLevel(this: Scene): void {
     }
 
     // this.addEntity(new EntityLoadTest());
-
-
 
 
     class TestEntityForVideo extends Entity {
@@ -117,9 +122,10 @@ export function loadTestLevel(this: Scene): void {
         }
 
     }
-
-     // Drawing the collision grid
-     class Debug extends DrawableEntity {
+    this.addEntity(new TestEntityForVideo());
+    
+    // Drawing the collision grid
+    class Debug extends DrawableEntity {
         update(dt: number): void {
             this.redraw();
         }
@@ -128,16 +134,6 @@ export function loadTestLevel(this: Scene): void {
             this.Collision.draw(g);
         }
     }
-
-
-    // const test = new TestEntityForVideo();
-
-    // this.addEntity(test);
-    
-    // this.addEntity(new BasicSprite());
-
-    // this.destroyEntity(test);
-
     // this.addEntity(new Debug())
 
     class TerrainCarveTest extends DrawableEntity {
@@ -171,7 +167,7 @@ export function loadTestLevel(this: Scene): void {
         }
     }
     
-    //this.addEntity(new TerrainCarveTest());
+    this.addEntity(new TerrainCarveTest());
 
     class ConvexHullTest extends DrawableEntity {
  

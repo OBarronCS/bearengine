@@ -10,6 +10,12 @@ import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/ne
 import { ClientBoundPacket, ClientPacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { AssertUnreachable } from "shared/assertstatements"
 
+
+interface NetworkSettings {
+    port: number,
+    url?: string,
+}
+
 export abstract class Network {
 
     protected socket: WebSocket = null;
@@ -17,8 +23,42 @@ export abstract class Network {
 
     public CONNECTED: boolean = false;
 
-    constructor(url: string){
+    /*
+    Options to create:
+        local,
+            ws://127.0.0.1:{port}
+            still need to specify port
+        not local:
+            wss://{ip}
+            ip:
+                could be same as html server
+                could be different
+            port: 
+                need to specify. Could be same as
+                
+    could use location.protocol:
+        http: for local
+        https: for outside
+    */
+    constructor(settings: NetworkSettings){
+        // Auto-detect url 
+        const protocol = window.location.protocol;
+    
+        if(protocol !== "http:" && protocol !== "https:"){
+            throw new Error(`Unknown protocol: ${protocol}. How did this happen`);
+        }
+
+        // if http, its probably going to be ws as well (local dev server)
+        const ws_protocol = protocol === "http:" ? "ws": "wss";
+        
+        const ip = settings.url === undefined ? location.hostname : settings.url;
+
+        const url = `${ws_protocol}://${ip}:${settings.port}`;
+
+        // console.log(`Websocket url: ${url}`);
+
         this.url = url;
+
     }
 
     public connect(){
@@ -91,11 +131,6 @@ export class BufferedNetwork extends Network {
     private additionalBuffer = 2;
 
     public SERVER_IS_TICKING: boolean = false;
-
-
-    constructor(url: string){
-        super(url);
-    }
 
     onopen(): void {
         const stream = new BufferStreamWriter(new ArrayBuffer(2))
