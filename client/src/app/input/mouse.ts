@@ -62,8 +62,7 @@ export class EngineMouse extends Subsystem {
         const renderer = this.getSystem(RendererSystem);
         const targetWindow: Window = renderer.renderer.view.ownerDocument.defaultView;
 
-        // Sets mouse positions
-        targetWindow.addEventListener("mousemove", (e) => {
+        const setPositionFromEvent = (e: MouseEvent) => {
             this.screenPosition.x = e.x;
             this.screenPosition.y = e.y;
 
@@ -73,12 +72,18 @@ export class EngineMouse extends Subsystem {
             
             // @ts-expect-error
             renderer.mainContainer.toLocal(canvasPoint,undefined,this.position);
+        }
 
+        const pointermove = (e: MouseEvent) => {
+            setPositionFromEvent(e);
             this._mousemove.forEach(element => {
                 element(this.position, this.screenPosition);
             });
-        })
-
+        }
+        // Sets mouse positions
+        targetWindow.addEventListener("pointermove", pointermove);
+            
+        // Zoom
         targetWindow.addEventListener("wheel", (e) => {
             const canvasPoint = new Point();
             renderer.renderer.plugins.interaction.mapPositionToPoint(canvasPoint,this.screenPosition.x,this.screenPosition.y);
@@ -99,7 +104,8 @@ export class EngineMouse extends Subsystem {
             });
         })
 
-        targetWindow.addEventListener("mousedown", (e) => {
+        const pointer_down = (e: MouseEvent) => {
+            setPositionFromEvent(e);
             const index = e.button;
             this._mousedown[index].forEach(element => {
                 element(this.position, this.screenPosition);
@@ -107,16 +113,17 @@ export class EngineMouse extends Subsystem {
 
             // this is only called once unlike key presses
             this.down[index] = true;
-        })
+        }
+        targetWindow.addEventListener("pointerdown", pointer_down);
 
-        targetWindow.addEventListener("mouseup", (e) => {
+        const pointer_up = (e: MouseEvent) => {
             const index = e.button;
             this._mouseup[index].forEach(element => {
                 element(this.position, this.screenPosition);
             });
             this.down[index] = false;
-        })
-
+        }
+        targetWindow.addEventListener("pointerup", pointer_up);
     }
 
     // run before update loop

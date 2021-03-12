@@ -1,18 +1,16 @@
 
 
-
-import { CustomMapFormat } from "shared/core/tiledmapeditor";
-import { LevelHandler } from "shared/core/level";
-import { Vec2 } from "shared/shapes/vec2";
-import { BufferStreamWriter } from "shared/datastructures/networkstream";
-import { chance } from "shared/randomhelpers";
+import { AssertUnreachable } from "shared/assertstatements";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { ClientPacket, GamePacket } from "shared/core/sharedlogic/packetdefinitions";
-import { AssertUnreachable } from "shared/assertstatements";
+import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { LinkedQueue } from "shared/datastructures/queue";
-
-import { FirstNetworkedEntity, NetworkedEntity, ServerEntity } from "./serverentity";
+import { Vec2 } from "shared/shapes/vec2";
+import type { Server } from "ws";
 import { ClientConnection, ServerNetwork } from "./networking/serversocket";
+import { NetworkedEntity } from "./serverentity";
+
+
 
 export class RemotePlayer {
     readonly id: number = -1;
@@ -44,8 +42,8 @@ class ServerBearEngine {
         this.TICK_RATE = tick_rate;
     }
     
-    start(port: number){
-        this.network = new ServerNetwork(this.TICK_RATE,port, this)
+    start(socket: Server){
+        this.network = new ServerNetwork(this.TICK_RATE,socket, this)
         this.network.start();
         this.previousTick = Date.now();
 
@@ -196,6 +194,6 @@ class ServerBearEngine {
 
 export {
     ServerBearEngine,
-}
+};
 
 

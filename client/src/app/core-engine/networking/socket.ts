@@ -55,10 +55,9 @@ export abstract class Network {
 
         const url = `${ws_protocol}://${ip}:${settings.port}`;
 
-        // console.log(`Websocket url: ${url}`);
+        console.log(`Websocket url: ${url}`);
 
         this.url = url;
-
     }
 
     public connect(){
@@ -133,6 +132,8 @@ export class BufferedNetwork extends Network {
     public SERVER_IS_TICKING: boolean = false;
 
     onopen(): void {
+        console.log("Buffered network ON OPEN")
+
         const stream = new BufferStreamWriter(new ArrayBuffer(2))
         stream.setUint8(ServerBoundPacket.CLIENT_STATE_PACKET);
         stream.setUint8(ClientPacket.JOIN_GAME);
@@ -143,9 +144,12 @@ export class BufferedNetwork extends Network {
 
         // TODO: stop this from being in setInterval, put it into tick 
         // Possible issues: tick is run in rAF, which is not run if the tab is not in focus/view. Pinging still stop in those cases
+        
+        
+        // This is never being called on IOS;
         setInterval(() => {
             this.sendPing();
-        }, 2000)
+        }, 2000);
     }
 
     onclose(): void {}
@@ -187,14 +191,21 @@ export class BufferedNetwork extends Network {
         // console.log("Size of queue: " + this.packets.size())
     }
 
+    // errors out for some reason
     public sendPing(){
         // Unix time stamp in ms needs 64 bits
+        console.log("SEND PING START");
+
+
         const stream = new BufferStreamWriter(new ArrayBuffer(9));
 
         stream.setUint8(ServerBoundPacket.PING);
         stream.setBigInt64(BigInt(Date.now()));
 
-        this.socket.send(stream.getBuffer());
+        this.send(stream.getBuffer());
+        
+
+        console.log("SEND PING END");
     }
  
     private calculatePing(stream: BufferStreamReader){
@@ -236,6 +247,9 @@ export class BufferedNetwork extends Network {
     }
 
     public tickToSimulate(): number {
+
+        // console.log(this.CLOCK_DELTA);
+
         const serverTime = Date.now() + this.CLOCK_DELTA;
         const referenceDelta = serverTime - Number(this.REFERENCE_SERVER_TICK_TIME);
 

@@ -32,6 +32,7 @@ export class Scene extends Subsystem {
             q.addEntity(e)
         });
 
+
         // console.log("Sparse: ", this.sparse);
         // console.log("Dense: ", this.entities);
 

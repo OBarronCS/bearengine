@@ -19,7 +19,7 @@ interface BufferedPacket {
 
 export class ServerNetwork {
     private readonly TICK_RATE: number;
-    private readonly port: number;
+    //private readonly port: number;
 
     protected socket: WS.Server = null;
     
@@ -34,13 +34,12 @@ export class ServerNetwork {
     
     private packets = new LinkedQueue<BufferedPacket>();
 
-    constructor(tickRate:number, port: number, public engine: ServerBearEngine){
+    constructor(tickRate:number, server: WS.Server, public engine: ServerBearEngine){
         this.TICK_RATE = tickRate;
-        this.port = port;
+        this.socket = server;
     }
 
     public start(){
-        this.socket = new WS.Server( { port:this.port } )
         this.socket.on("connection", this.sendStartData.bind(this));
 
         this.socket.on("close", () => {
