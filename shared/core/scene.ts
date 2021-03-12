@@ -49,11 +49,9 @@ export class Scene extends Subsystem {
         }
     }
 
-    destroyEntity<T extends AbstractEntity>(e: T): void {
-        // FOR NOW: Assume the entity is alive. Definitely implement a check later
-        const id = e.entityID;
+    destroyEntityByID(id: number): void {
         const denseIndex = this.sparse[id];
-
+        const entity = this.entities[denseIndex];
         // Set the free list
         
         if(this.freeID === -1){
@@ -66,24 +64,25 @@ export class Scene extends Subsystem {
         }
 
 
-        // Set the last one to this value
+        // swap this last entity in dense
         this.entities[denseIndex] = this.entities[this.entities.length - 1];
         
         // Set the sparse array to point at the right one;
-
         const swappedID = this.entities[denseIndex].entityID;
         this.sparse[swappedID] = denseIndex;
 
-        // Delete the last one 
+        // Delete the last one; 
         this.entities.pop();
 
-        //
-
-        e.onDestroy();
-
+        entity.onDestroy();
         this.partQueries.forEach(q => {
-            q.deleteEntity(e)
+            q.deleteEntity(entity)
         });
+    }
+
+    destroyEntity<T extends AbstractEntity>(e: T): void {
+        // FOR NOW: Assume the entity is alive. Definitely implement a check later
+        this.destroyEntityByID(e.entityID);
     }
 
     init(): void {

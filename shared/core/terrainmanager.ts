@@ -1,16 +1,17 @@
-import { Line, lines_intersect } from "shared/shapes/line";
-import {  Vec2, Coordinate, distanceSquared, mix, coordinateArraytoVec } from "shared/shapes/vec2";
+import type { Graphics } from "pixi.js";
+
 import { SpatialGrid } from "shared/datastructures/spatialgrid";
-
-import { Graphics } from "pixi.js";
-import { drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "shared/shapes/shapedrawing";
-import { Polygon } from "shared/shapes/polygon";
-import { Ellipse } from "shared/shapes/ellipse";
 import { atan2, cos, sin, TWO_PI } from "shared/mathutils";
+import { Ellipse } from "shared/shapes/ellipse";
+import { Line } from "shared/shapes/line";
+import { Polygon } from "shared/shapes/polygon";
+import { Coordinate, coordinateArraytoVec, Vec2 } from "shared/shapes/vec2";
+import { Subsystem } from "./subsystem";
 
 
 
-export class TerrainManager {
+
+export class TerrainManager extends Subsystem {
 
 	private grid: SpatialGrid<TerrainMesh>;
 	
@@ -23,14 +24,20 @@ export class TerrainManager {
     /// TerrainMesh objects --> the individual bodies --> not really used in any calculations
     terrains: TerrainMesh[] = [];
 
-    constructor(world_width: number, world_height: number){
-
- 		this.width = world_width
+    // call this externally to properly initialize
+    setupGrid(world_width: number, world_height: number){
+        this.width = world_width
 		this.height = world_height; 
 
 		this.grid = new SpatialGrid<TerrainMesh>(world_width, world_height,this.grid_width, this.grid_height,
 			terrain => terrain.polygon.getAABB()
 		);
+    }
+
+    init(): void {}
+    update(delta: number): void {}
+    clear(){
+        this.grid.clear();
     }
 
 	draw(g: Graphics){
