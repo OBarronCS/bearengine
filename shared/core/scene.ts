@@ -50,6 +50,11 @@ export class Scene extends Subsystem {
         }
     }
 
+    getEntity<T extends AbstractEntity = AbstractEntity>(id: number): T {
+        const entity = this.entities[this.sparse[id]];
+        return (entity as T);         
+    }
+
     destroyEntityByID(id: number): void {
         const denseIndex = this.sparse[id];
         const entity = this.entities[denseIndex];

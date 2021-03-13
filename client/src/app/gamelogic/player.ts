@@ -68,7 +68,7 @@ export class Player extends DrawableEntity {
             this.position.set({x : 500, y: 100});
         });
 
-        this.spritePart = new SpritePart("images/vector.jpg");
+        this.spritePart = new SpritePart("vector.jpg");
         this.spritePart.originPercent = {x:.5 ,y:.5};
         this.addPart(this.spritePart);
         

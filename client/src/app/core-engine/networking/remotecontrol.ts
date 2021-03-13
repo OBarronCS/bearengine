@@ -11,7 +11,7 @@ export abstract class RemoteEntity extends Entity {}
 export class SimpleNetworkedSprite extends RemoteEntity {
     
     public locations = this.addPart(new RemoteLocations());
-    public image = this.addPart(new SpritePart("images/flower.png"));
+    public image = this.addPart(new SpritePart("flower.png"));
 
     constructor(){
         super();

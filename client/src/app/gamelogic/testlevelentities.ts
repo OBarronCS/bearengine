@@ -29,7 +29,7 @@ import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 class BasicSprite extends SpriteEntity {
 
     constructor(){
-        super(Vec2.ZERO,"images/flower.png")
+        super(Vec2.ZERO,"flower.png")
     }
 
     draw(g: Graphics): void {}
@@ -94,7 +94,7 @@ export function loadTestLevel(this: Scene): void {
 
     class TestEntityForVideo extends Entity {
         
-        private sprite = this.addPart(new SpritePart("images/tree.gif"));
+        private sprite = this.addPart(new SpritePart("tree.gif"));
         private collider = this.addPart(new ColliderPart(dimensions(200,200), Vec2.ZERO));
 
         update(dt: number): void {
@@ -502,7 +502,7 @@ export function loadTestLevel(this: Scene): void {
 
     class FirstSprite extends GMEntity {
         constructor(spot: Coordinate){
-            super(spot,"images/tree.gif");
+            super(spot,"tree.gif");
             this.image.originPercent = ({x:.5, y:.5})
         }
 
@@ -567,7 +567,7 @@ export function loadTestLevel(this: Scene): void {
                 draw(g: Graphics): void {}
             }
 
-            this.testobject =  new test3(Vec2.ZERO, "images/flower.png");
+            this.testobject =  new test3(Vec2.ZERO, "flower.png");
             this.Scene.addEntity(this.testobject);
 
             for(let i = 1; i < 30; i++){

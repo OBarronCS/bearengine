@@ -11,7 +11,7 @@ game.loadAssets().then(RESOURCES => {
     dragAndDropTest(game.renderer.renderer.view);
     
     console.log("ALL ASSETS DOWNLOADED")
-    game.loadLevel(ParseTiledMapData(RESOURCES["images/firsttest.json"].data as TiledMap));
+    game.loadLevel(ParseTiledMapData(RESOURCES["assets/firsttest.json"].data as TiledMap));
     game.start();
 })
 

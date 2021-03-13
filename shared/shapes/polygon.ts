@@ -303,7 +303,7 @@ export class Polygon implements Shape<Polygon>{
     
     draw(g: Graphics, color: number = niceColor(), normals = true): void {
         g.lineStyle(3,color,.9);
-        g.endFill()
+        g.endFill();
         g.drawPolygon(this.points as unknown as Point[])
 
         // draw points
@@ -312,7 +312,6 @@ export class Polygon implements Shape<Polygon>{
         }
 
         // Draw normals
-
         if(normals){
             for(let i = 0; i < this.normals.length; i++){
                 let j = i + 1;

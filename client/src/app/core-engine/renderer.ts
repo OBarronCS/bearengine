@@ -1,13 +1,8 @@
-import { autoDetectRenderer, Renderer, Container, DisplayObject, Loader, utils, InteractionManager } from "pixi.js";
-import { PartQuery } from "shared/core/partquery";
+import { autoDetectRenderer, Renderer, Container, DisplayObject, utils, InteractionManager } from "pixi.js";
 import { clamp } from "shared/mathutils";
 import { BearEngine } from "./bearengine";
 import { GraphicsPart, SpritePart } from "./parts";
 import { Subsystem } from "shared/core/subsystem";
-
-
-const SHARED_RESOURCES = Loader.shared.resources;
-const SHARED_LOADER = Loader.shared;
 
 
 // arbitrary, but make it high enough so it looks good --> this is the base render texture height!
@@ -20,7 +15,7 @@ const MAX_RATIO = 21/9;
 //https://pixijs.download/dev/docs/PIXI.utils.html#.isMobile
 const isMobile = utils.isMobile.any;
 
-export class RendererSystem extends Subsystem {
+export class RendererSystem extends Subsystem<BearEngine> {
     public renderer: Renderer;
 
     public stage = new Container();
@@ -90,12 +85,12 @@ export class RendererSystem extends Subsystem {
         this.stage.addChild(this.mainContainer);
         this.stage.addChild(this.guiContainer);
 
-        //this.setCursorSprite("images/flower.png")
+        //this.setCursorSprite("assets/flower.png")
     }
 
     setCursorSprite(path: string){
         // css format: 
-        // "url('images/flower.png'),auto";
+        // "url('assets/flower.png'),auto";
         const css = `url('${path}'),auto`;
         (this.renderer.plugins.interaction as InteractionManager).cursorStyles.default = css;
     }
@@ -182,7 +177,7 @@ export class RendererSystem extends Subsystem {
      
     getTexture(_name: string){
         const _str = _name;
-        return SHARED_RESOURCES[_str].texture;
+        return this.engine.getResource(_str).texture;
     }
     
     getPercentWidth(percent: number){

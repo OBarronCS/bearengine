@@ -37,13 +37,19 @@ let accumulated = 0;
 const maxFPS = 60;
 const simulation_time = 1000 / maxFPS;
 
+
+const ASSET_FOLDER_NAME = "assets/"
+
+
 // Returns names of files!
 // r is the require function
 function importAll(r: any): [] {
     const webpackObjs = r.keys().map(r);
     return webpackObjs.map((v:any) => v.default)
 }
-const images = importAll(require.context('../../images', true, /\.(json|png|jpe?g|gif)$/));
+
+// This cannot take variable for path because it just doesn't work...
+const images = importAll(require.context('../../assets', true, /\.(json|png|jpe?g|gif)$/));
 const ALL_TEXTURES: string[] = images.slice(0);
 console.log(ALL_TEXTURES)
 
@@ -142,7 +148,7 @@ export class BearEngine implements AbstractBearEngine {
        
         // Load sprites from map 
         level_struct.sprites.forEach(s => {
-            const sprite = new Sprite(this.renderer.getTexture("images/" + s.file_path));
+            const sprite = new Sprite(this.renderer.getTexture(ASSET_FOLDER_NAME + s.file_path));
             sprite.x = s.x;
             sprite.y = s.y;
             sprite.width = s.width;
@@ -219,6 +225,15 @@ export class BearEngine implements AbstractBearEngine {
         (this.loop.bind(this))();
     }
 
+
+    getResource(path: string) {
+        const fullPath = ASSET_FOLDER_NAME + path;
+        const data = SHARED_RESOURCES[fullPath];
+
+        if(data === undefined) throw new Error("Trying to get a resource that we don't have");
+        
+        return data;
+    }
 
     loop(timestamp: number = performance.now()){
         accumulated += timestamp - lastFrameTimeMs;

@@ -331,7 +331,7 @@ class TerrainMesh  {
     }
 
 	draw(g: Graphics){
-		this.polygon.draw(g, 0x900C3F);
+		this.polygon.draw(g, 0x900C3F, true);
 	}
 }
 

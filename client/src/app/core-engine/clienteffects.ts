@@ -8,7 +8,7 @@ import { ShotInfo } from "./weapons/weaponinterfaces";
 
 class Bullet extends SpriteEntity {
     constructor(pos: Coordinate){
-        super(pos,"images/test2.png");
+        super(pos,"test2.png");
         this.image.originPercent = new Vec2(.5,.5);
     }
 

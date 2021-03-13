@@ -73,7 +73,7 @@ export function bearevent<T extends keyof BearEvents>(eventname: T, extradata: B
 }
 
 
-// Takes all methods from a class that have string identifiers
+// Picks properties that are methods with string identifiers
 type PickMethods<Base> = Pick<Base, {
     [Key in keyof Base]: Key extends string ? 
         Base[Key] extends Function ? Key : never 
