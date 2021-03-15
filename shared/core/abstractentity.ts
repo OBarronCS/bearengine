@@ -5,8 +5,6 @@ import { LevelHandler } from "./level";
 import { TerrainManager } from "./terrainmanager";
 
 
-// Client and Server should subclass this
-
 interface GlobalData {
     Scene: {
         addEntity<T extends AbstractEntity>(entity: T): T;
@@ -23,7 +21,7 @@ export type EntityID = number;
 export abstract class AbstractEntity {
     readonly entityID: EntityID = -1;
 
-    readonly position: Vec2 = new Vec2(0,0)
+    readonly position: Vec2 = new Vec2(0,0);
     readonly parts: Part[] = [];
 
     get x() { return this.position.x; }

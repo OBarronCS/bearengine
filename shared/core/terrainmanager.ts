@@ -131,7 +131,7 @@ class TerrainMesh  {
 	}
 
 	carveCircle(x: number,y: number, r: number): TerrainMesh[] | null{
-		console.log(Polygon.isClockwise(this.polygon.points))
+		console.log("Polygon is clockwise : "  + Polygon.isClockwise(this.polygon.points));
         //  if this breaks, its because of an edge case with overlapping points and floating point error
 
         const circle = new Ellipse(new Vec2(x,y),r,r);

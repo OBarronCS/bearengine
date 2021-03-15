@@ -1,10 +1,10 @@
-import { RAD_TO_DEG, Graphics } from "pixi.js";
+import type { Graphics } from "pixi.js";
 
 import { Vec2, rotatePoint, angleBetween } from "shared/shapes/vec2";
 import { random_range } from "shared/randomhelpers";
 import { dimensions } from "shared/shapes/rectangle";
 import { drawPoint } from "shared/shapes/shapedrawing";
-import { clamp, PI } from "shared/mathutils";
+import { clamp, PI, RAD_TO_DEG } from "shared/mathutils";
 import { ColliderPart, TagPart } from "shared/core/abstractpart";
 
 import { SpritePart } from "../core-engine/parts";

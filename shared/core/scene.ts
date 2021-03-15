@@ -9,7 +9,8 @@ export class Scene extends Subsystem {
     
     private partQueries: PartQuery<Part>[] = [];
 
-    private tags: PartQuery<TagPart>;
+    // It finds this when iterating all the other systems.
+    private tags: PartQuery<TagPart> = this.addQuery(TagPart);
 
 
     // Set of entities
@@ -91,10 +92,7 @@ export class Scene extends Subsystem {
         this.destroyEntityByID(e.entityID);
     }
 
-    init(): void {
-        this.tags = new PartQuery(TagPart);
-        this.partQueries.push(this.tags)
-    }
+    init(): void {}
 
     update(delta: number): void {
         for (let i = 0; i < this.entities.length; i++) {

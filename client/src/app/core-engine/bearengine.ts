@@ -1,5 +1,5 @@
 
-import { Graphics, Loader, NineSlicePlane, Sprite, utils } from "pixi.js";
+import { Graphics, Loader, Sprite } from "pixi.js";
 // import { GUI } from "dat.gui";
 
 import { AbstractBearEngine } from "shared/core/abstractengine";
@@ -25,6 +25,7 @@ import { TestMouseDownEventDispatcher } from "./mouseevents";
 import { Player } from "../gamelogic/player";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { CollisionManager } from "shared/core/entitycollision";
+import { string2hex } from "shared/mathutils";
 
 
 
@@ -138,13 +139,13 @@ export class BearEngine implements AbstractBearEngine {
     }
 
     loadLevel(level_struct: CustomMapFormat){
-        if(this.level.loaded) console.log("TRYING TO LOAD A LEVEL WHEN ONE IS ALREADY LOADED");
+        if(this.level.loaded) throw new Error("TRYING TO LOAD A LEVEL WHEN ONE IS ALREADY LOADED");
         
         this.level.startLevel(level_struct);
 
         this.entityManager.registerPartQueries(this.systems);
 
-        this.renderer.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundcolor);
+        this.renderer.renderer.backgroundColor = string2hex(level_struct.world.backgroundcolor);
        
         // Load sprites from map 
         level_struct.sprites.forEach(s => {
@@ -189,7 +190,10 @@ export class BearEngine implements AbstractBearEngine {
 
         const children = this.renderer.mainContainer.removeChildren();
         // This is crucial --> otherwise there is a memory leak
-        children.forEach(child => child.destroy())
+        children.forEach(child => child.destroy());
+
+
+        this.level.loaded = false;
     }   
 
     restartCurrentLevel(){
