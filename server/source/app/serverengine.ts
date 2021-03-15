@@ -1,69 +1,83 @@
 
 
-import { AssertUnreachable } from "shared/assertstatements";
-import { AbstractEntity } from "shared/core/abstractentity";
-import { ClientPacket, GamePacket } from "shared/core/sharedlogic/packetdefinitions";
-import { BufferStreamWriter } from "shared/datastructures/networkstream";
-import { LinkedQueue } from "shared/datastructures/queue";
-import { Vec2 } from "shared/shapes/vec2";
 import type { Server } from "ws";
+import { AssertUnreachable } from "shared/assertstatements";
+import { AbstractBearEngine } from "shared/core/abstractengine";
+import { EventRegistry } from "shared/core/bearevents";
+import { Scene } from "shared/core/scene";
+import { BearEvents } from "shared/core/sharedlogic/eventdefinitions";
+import { ClientBoundPacket, ClientPacket, GamePacket } from "shared/core/sharedlogic/packetdefinitions";
+import { Subsystem } from "shared/core/subsystem";
+import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { ClientConnection, ServerNetwork } from "./networking/serversocket";
-import { NetworkedEntity } from "./serverentity";
+import { NetworkedEntity, PlayerEntity } from "./serverentity";
+import { PacketWriter } from "./networking/packetwriter";
 
 
+class ServerBearEngine implements AbstractBearEngine {
+    
+    public readonly TICK_RATE: number;
+    public referenceTime: bigint = 0n;
+    public referenceTick: number = 0;
+    public tick = 0;
 
-export class RemotePlayer {
-    readonly id: number = -1;
-    readonly position: Vec2 = new Vec2(0,0);
-}
-
-
-class ServerBearEngine {
 
     public network: ServerNetwork = null;
-    public readonly TICK_RATE: number;
-
-    private NEXT_ENTITY_ID = 0;
 
     public totalTime = 0;
-
-    private updateList: AbstractEntity[] = [];
-    private networkedEntities: NetworkedEntity[] = [];
     private previousTick: number = 0;
 
-    
-    // Just turn this into a stream that is written to.
-    private networkMessageQueue = new LinkedQueue<{id: number}>();
+    private entityManager: Scene;
+
+    systemEventMap: Map<keyof BearEvents, EventRegistry<keyof BearEvents>>;
+    private systems: Subsystem[] = [];
 
 
-    private players = new Map<ClientConnection,RemotePlayer>();
+    packetsToSerialize: PacketWriter[] = [];
+
+
+    private players = new Map<ClientConnection,PlayerEntity>();
+
 
     constructor(tick_rate: number){
         this.TICK_RATE = tick_rate;
+
+        this.entityManager = this.registerSystem(new Scene(this));
+
+
+
+
+
+        for(const system of this.systems){
+            system.init()
+        }
+
+        //  Set event handlers on server?
+    }
+
+
+    registerSystem<T extends Subsystem>(system: T): T {
+        this.systems.push(system);
+        return system;
+    }
+    
+    getSystem<T extends Subsystem<AbstractBearEngine>>(query: new (...args: any[]) => T): T {
+        const name = query.name;
+        for(const system of this.systems){
+            // @ts-expect-error
+            if(system.constructor.name === name) return system;
+        }
+
+        return null;
     }
     
     start(socket: Server){
-        this.network = new ServerNetwork(this.TICK_RATE,socket, this)
+        this.network = new ServerNetwork(socket);
         this.network.start();
         this.previousTick = Date.now();
 
         this.loop();
     }
-
-	// startLevel(level_struct: CustomMapFormat){
-	// 	this.current_level = new LevelHandler(level_struct);
-    //     this.current_level.load();
-
-    //     //@ts-expect-error
-    //     AbstractEntity.GLOBAL_DATA_STRUCT = {
-    //         Scene: this,
-    //         Level: this.current_level,
-    //         Collision: this.current_level.collisionManager,           
-    //         Terrain: this.current_level.terrainManager
-    //     }
-    // }
-
-    private _boundLoop = this.loop.bind(this);
 
     // Reads from queue of data since last tick
     private readNetwork(){
@@ -78,24 +92,53 @@ class ServerBearEngine {
             const type: ClientPacket = stream.getUint8();
 
             switch(type){
+                // Client sends JOIN_GAME packet for now
                 case ClientPacket.JOIN_GAME: {
-                    // Maybe: first check that it hasn't been created. Don't want join packet being sent twice on accident
-                    const player = new RemotePlayer();
-                    //@ts-expect-error
-                    player.id = this.NEXT_ENTITY_ID++;
+                    // TODO: first check that it hasn't already been created.
+                    const player = new PlayerEntity();
+               
+                    this.entityManager.addEntity(player);
                     this.players.set(client, player);
+
+                    // TODO: DEFER ALL OF THIS
+                    // INIT DATA --> send immediately
+                    const init_writer = new BufferStreamWriter(new ArrayBuffer(12));
+                    
+                    init_writer.setUint8(ClientBoundPacket.INIT);
+                    init_writer.setUint8(this.TICK_RATE)
+                    init_writer.setBigUint64(this.referenceTime);
+                    init_writer.setUint16(this.referenceTick);
+                    this.network.send(client,init_writer.getBuffer());
+
+                    
+                    // START TICKING
+                    const start_tick_writer = new BufferStreamWriter(new ArrayBuffer(3));
+
+                    start_tick_writer.setUint8(ClientBoundPacket.START_TICKING);
+                    start_tick_writer.setUint16(this.tick);
+
+                    this.network.send(client,start_tick_writer.getBuffer());
+
                     break;
                 }
                 case ClientPacket.LEAVE_GAME: {
                     const player = this.players.get(client);
                     this.players.delete(client);
-                    this.networkMessageQueue.enqueue({id: player.id })
+
+                    this.packetsToSerialize.push({
+                        write(stream){
+                            stream.setUint8(GamePacket.ENTITY_DESTROY);
+                            stream.setUint16(player.entityID);
+                        }
+                    });
+
                     break;
                 }
                 case ClientPacket.PLAYER_POSITION: {
                     const p = this.players.get(client);
                     p.position.x = stream.getFloat32();
                     p.position.y = stream.getFloat32();
+
                     break;
                 }
                 
@@ -105,59 +148,62 @@ class ServerBearEngine {
         }
     }
 
-
-    writeToNetwork(now: number){
+    writeToNetwork(){
         // Write all PacketData to a buffer
         const stream = new BufferStreamWriter(new ArrayBuffer(256));
 
-        this.network.writePacketStateData(stream);
-
-        while(!this.networkMessageQueue.isEmpty()){
-            stream.setUint8(GamePacket.ENTITY_DESTROY);
-            stream.setUint16(this.networkMessageQueue.dequeue().id);
-        }
-
-        for (let i = 0; i < this.networkedEntities.length; i++) {
-            const entity = this.networkedEntities[i];
-            entity.writeEntityData(stream);
-        }
-
+        // This is from old system. Change?
+        stream.setUint8(ClientBoundPacket.GAME_STATE_PACKET);
+        stream.setUint16(this.tick);
+    
+        // Treat players specially
         for(const player of this.players.values()){
-            //console.log(player)
             stream.setUint8(GamePacket.PLAYER_POSITION);
-            stream.setUint16(player.id);
+            stream.setUint16(player.entityID);
             stream.setFloat32(player.position.x);
             stream.setFloat32(player.position.y);
         }
+
+        for(const packet of this.packetsToSerialize){
+            packet.write(stream);
+        }
+        this.packetsToSerialize = [];
     
 
-        this.network.sendGameData(stream.cutoff(), now);
+        
+        for(const client of this.players.keys()){
+            this.network.send(client, stream.cutoff());
+        }
 
-        console.log(this.network.tick,Date.now()  - this.previousTick);
+        console.log(this.tick,Date.now()  - this.previousTick);
     }
+
+    private _boundLoop = this.loop.bind(this);
 
     loop(){
         const now = Date.now();
 
         // If we have made it far enough to TICK THE GAME
         if (this.previousTick + (1000 / this.TICK_RATE) <= now) {
-            const dt = this.TICK_RATE;
-             // this.current_level.collisionManager.update(dt);
+            const dt = 1000 / this.TICK_RATE;
 
             // if(chance(15)){ 
             //     console.log("NEW")
             //     this.addNetworkedEntity(new FirstNetworkedEntity());    
             // }
-            
+
+            this.tick += 1;
+            // Think about whether the time should be at beginning or end of tick
+            this.referenceTick = this.tick;
+            this.referenceTime = BigInt(now);
+
             this.readNetwork();
-            
-            for (let i = 0; i < this.updateList.length; i++) {
-                const entity = this.updateList[i];
-                entity.update(dt);
-                entity.postUpdate();
+
+            for(const system of this.systems){
+                system.update(dt);
             }
-        
-            this.writeToNetwork(now)
+
+            this.writeToNetwork()
 
             this.previousTick = now
         }
@@ -170,30 +216,10 @@ class ServerBearEngine {
             setImmediate(this._boundLoop) // ultra accurate, sub millisecond
         }
     }
-   
-    addEntity<T extends AbstractEntity>(e: T): T {
-        this.updateList.push(e);
-        return e;
-    }
-
-    destroyEntity<T extends AbstractEntity>(e: T): void {
-        const index = this.updateList.indexOf(e);
-        if(index !== -1){
-            this.updateList.splice(index,1);
-        }
-    }
-
-    addNetworkedEntity(e: NetworkedEntity){
-        // @ts-expect-error
-        e.id = this.NEXT_ENTITY_ID++;
-        this.addEntity(e);
-        this.networkedEntities.push(e);
-    }
 }
 
 
 export {
     ServerBearEngine,
-};
-
+}
 

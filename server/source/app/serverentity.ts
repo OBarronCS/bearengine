@@ -5,13 +5,17 @@ import { GamePacket } from "shared/core/sharedlogic/packetdefinitions"
 
 export abstract class ServerEntity extends AbstractEntity {}
 
+export class PlayerEntity extends ServerEntity {
+    update(dt: number): void {}
+}
+
 // One instance of this corresponds to one RemoteEntity client side
 export abstract class NetworkedEntity extends ServerEntity {
-
+    
+    abstract packetType: GamePacket;
     readonly id = -1;
 
-    abstract packetType: GamePacket;
-
+    
     writeEntityData(stream: BufferStreamWriter){
         if(this.id === -1) throw new Error("THIS SHOULDN'T BE HAPPENING")
 
@@ -22,7 +26,6 @@ export abstract class NetworkedEntity extends ServerEntity {
 
     protected abstract write(stream: BufferStreamWriter): void;
 }
-
 
 export class FirstNetworkedEntity extends NetworkedEntity {
     packetType: GamePacket = GamePacket.SIMPLE_POSITION;

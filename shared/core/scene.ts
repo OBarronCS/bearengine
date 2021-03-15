@@ -17,7 +17,7 @@ export class Scene extends Subsystem {
     private freeID = -1;
 
     private sparse: number[] = [];
-    private entities: AbstractEntity[] = [];
+    public entities: AbstractEntity[] = [];
 
     addEntity<T extends AbstractEntity>(e: T): T {
         const id = this.getNextID();

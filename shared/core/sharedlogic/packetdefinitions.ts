@@ -4,7 +4,7 @@ export enum ClientBoundPacket {
     INIT, // tick_rate, reference tick and time
     START_TICKING, // tick_number
 
-    // Everything below here depends on game
+    
     GAME_STATE_PACKET // points to GamePacket
 }
 
