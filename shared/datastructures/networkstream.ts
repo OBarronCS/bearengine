@@ -23,6 +23,11 @@ export class BufferStreamReader  {
         this.size = buffer.byteLength;
     }
 
+    seek(toByte: number){
+        if(toByte < 0 || toByte >= this.size) throw new Error("Moving stream out of bounds");
+        this.byteOffset = toByte;
+    }
+
     /// PacketID === 0 is invalid
     /// ASSUMES WE ARE READING GAME DATA 
     hasMoreData(): boolean {
@@ -117,6 +122,11 @@ export class BufferStreamWriter {
 
     constructor(buffer: ArrayBufferLike){
         this.dataview = new DataView(buffer);
+    }
+
+    seek(toByte: number){
+        if(toByte < 0 || toByte >= this.dataview.byteLength) throw new Error("Moving stream out of bounds");
+        this.byteOffset = toByte;
     }
 
     // Writes the bytes of given buffer to this stream. Copies it.
