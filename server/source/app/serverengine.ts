@@ -10,8 +10,24 @@ import { ClientBoundPacket, ClientPacket, GamePacket } from "shared/core/sharedl
 import { Subsystem } from "shared/core/subsystem";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { ClientConnection, ServerNetwork } from "./networking/serversocket";
-import { NetworkedEntity, PlayerEntity } from "./serverentity";
+import { FirstAutoEntity, NetworkedEntity, PlayerEntity, ServerEntity } from "./serverentity";
 import { PacketWriter } from "./networking/packetwriter";
+import { NetworkedEntityNames } from "shared/core/sharedlogic/networkedentitydefinitions";
+import { TickTimer } from "shared/ticktimer";
+import { SharedEntityServerTable } from "./networking/serverentitydecorators";
+
+class PlayerInformation {
+    
+    playerEntity: PlayerEntity;
+
+    // Info that should be serialized and sent to player
+    messages: PacketWriter[] = [];
+    //dirtyEntities: ServerEntity[] = [];
+
+    constructor(){
+
+    }
+}
 
 
 class ServerBearEngine implements AbstractBearEngine {
@@ -20,37 +36,45 @@ class ServerBearEngine implements AbstractBearEngine {
     public referenceTime: bigint = 0n;
     public referenceTick: number = 0;
     public tick = 0;
-
+    private previousTick: number = 0;
+    public totalTime = 0;
 
     public network: ServerNetwork = null;
+    
 
-    public totalTime = 0;
-    private previousTick: number = 0;
-
-    private entityManager: Scene;
+    private entityManager: Scene<ServerEntity>;
 
     systemEventMap: Map<keyof BearEvents, EventRegistry<keyof BearEvents>>;
     private systems: Subsystem[] = [];
 
 
-    packetsToSerialize: PacketWriter[] = [];
+    globalPacketsToSerialize: PacketWriter[] = [];
 
 
-    private players = new Map<ClientConnection,PlayerEntity>();
+    private players = new Map<ClientConnection,PlayerInformation>();
+    private clients: ClientConnection[] = [];
 
 
+   
     constructor(tick_rate: number){
         this.TICK_RATE = tick_rate;
 
-        this.entityManager = this.registerSystem(new Scene(this));
-
-
-
+        this.entityManager = this.registerSystem(new Scene<ServerEntity>(this));
 
 
         for(const system of this.systems){
             system.init()
         }
+
+        // Sort networked alphabetically, so they match up on server side
+        // Gives them id probably don't need that on client side though
+        SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES.sort( (a,b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+        for(let i = 0; i < SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES.length; i++){
+            const registry = SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES[i];
+            SharedEntityServerTable.networkedEntityIndexMap.set(i,registry.create);
+            registry.create["SHARED_ID"] = i;
+        }
+
 
         //  Set event handlers on server?
     }
@@ -95,10 +119,15 @@ class ServerBearEngine implements AbstractBearEngine {
                 // Client sends JOIN_GAME packet for now
                 case ClientPacket.JOIN_GAME: {
                     // TODO: first check that it hasn't already been created.
+                    const pInfo = new PlayerInformation();
+                    
+                    this.clients.push(client);
+                    
                     const player = new PlayerEntity();
-               
+                    pInfo.playerEntity = player;
+
                     this.entityManager.addEntity(player);
-                    this.players.set(client, player);
+                    this.players.set(client, pInfo);
 
                     // TODO: DEFER ALL OF THIS
                     // INIT DATA --> send immediately
@@ -122,63 +151,82 @@ class ServerBearEngine implements AbstractBearEngine {
                     break;
                 }
                 case ClientPacket.LEAVE_GAME: {
-                    const player = this.players.get(client);
-                    this.players.delete(client);
+                    const pInfo = this.players.get(client);
 
-                    this.packetsToSerialize.push({
+                    this.players.delete(client);
+                    this.clients.splice(this.clients.indexOf(client),1);
+
+                    this.globalPacketsToSerialize.push({
                         write(stream){
                             stream.setUint8(GamePacket.ENTITY_DESTROY);
-                            stream.setUint16(player.entityID);
+                            stream.setUint16(pInfo.playerEntity.entityID);
                         }
                     });
 
                     break;
                 }
                 case ClientPacket.PLAYER_POSITION: {
-                    const p = this.players.get(client);
+                    const p = this.players.get(client).playerEntity;
                     p.position.x = stream.getFloat32();
                     p.position.y = stream.getFloat32();
 
                     break;
                 }
-                
+
 
                 default: AssertUnreachable(type);
             }
         }
     }
 
-    writeToNetwork(){
-        // Write all PacketData to a buffer
-        const stream = new BufferStreamWriter(new ArrayBuffer(256));
+    private writeToNetwork(){
 
-        // This is from old system. Change?
-        stream.setUint8(ClientBoundPacket.GAME_STATE_PACKET);
-        stream.setUint16(this.tick);
-    
-        // Treat players specially
-        for(const player of this.players.values()){
-            stream.setUint8(GamePacket.PLAYER_POSITION);
-            stream.setUint16(player.entityID);
-            stream.setFloat32(player.position.x);
-            stream.setFloat32(player.position.y);
-        }
+        for(const client of this.clients){
+            const stream = new BufferStreamWriter(new ArrayBuffer(256));
+            
+            stream.setUint8(ClientBoundPacket.GAME_STATE_PACKET);
+            stream.setUint16(this.tick);
 
-        for(const packet of this.packetsToSerialize){
-            packet.write(stream);
-        }
-        this.packetsToSerialize = [];
-    
+            // Write all player positions to packet
+            for(const connection of this.clients){
+                const player = this.players.get(connection).playerEntity;
 
-        
-        for(const client of this.players.keys()){
+                stream.setUint8(GamePacket.PLAYER_POSITION);
+                stream.setUint16(player.entityID);
+                stream.setFloat32(player.position.x);
+                stream.setFloat32(player.position.y);
+            }
+
+            // Entities updating variables over network
+            for(const entity of this.entityManager.entities){
+                if(entity.stateHasBeenChanged){
+                    
+                    // Adds entity variables to stream
+                    stream.setUint8(GamePacket.REMOTE_ENTITY_VARIABLE_CHANGE);
+                    entity.constructor["serializeVariables"](entity, stream);
+
+                    entity.stateHasBeenChanged = false;
+                }
+            }
+
+            //other information
+            for(const packet of this.globalPacketsToSerialize){
+                packet.write(stream);
+            }
+            this.globalPacketsToSerialize = [];
+            
+
             this.network.send(client, stream.cutoff());
         }
+
 
         console.log(this.tick,Date.now()  - this.previousTick);
     }
 
+
     private _boundLoop = this.loop.bind(this);
+
+    private tickTimer = new TickTimer(30);
 
     loop(){
         const now = Date.now();
@@ -187,10 +235,21 @@ class ServerBearEngine implements AbstractBearEngine {
         if (this.previousTick + (1000 / this.TICK_RATE) <= now) {
             const dt = 1000 / this.TICK_RATE;
 
-            // if(chance(15)){ 
-            //     console.log("NEW")
-            //     this.addNetworkedEntity(new FirstNetworkedEntity());    
-            // }
+            if(this.tickTimer.tick()){ 
+                console.log("AUTO ENTITY");
+                
+                const e = new FirstAutoEntity();
+
+                this.entityManager.addEntity(e);
+                
+                this.globalPacketsToSerialize.push({
+                    write(stream){
+                        stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
+                        stream.setUint8(e.constructor["SHARED_ID"]);
+                        stream.setUint16(e.entityID);
+                    }
+                });
+            }
 
             this.tick += 1;
             // Think about whether the time should be at beginning or end of tick
