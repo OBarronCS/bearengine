@@ -1,6 +1,5 @@
 import { NetworkedVariableTypes, NetworkedEntityNames, SerializeEntityVariable } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
-import { ServerBearEngine } from "../serverengine";
 import { ServerEntity } from "../serverentity";
 
 
@@ -17,11 +16,53 @@ type EntityNetworkedVariablesListType<T extends ServerEntity> = {
     type: keyof NetworkedVariableTypes
 }[]
 
-// Place this decorator before variables to sync them automatically to client side
+/*
+// Getters/setters live on the prototype chain, not on the instances
+// Which is why it seems like the value is repeated multiple times in devtools
+
+// According the TypeScript docs, this should not be working
+// And it also doesn't follow the es-next new decorator proposal --> It's COMPLETELY different
+// So it thinks that the return value is meaningless, but in fact, it
+
+// Going to use: This shouldn't work, but it does on chrome. Use Object.defineProperties 
+function dec(target, property): any {
+    console.log(target)
+    return {
+        set: function (value) {
+            // The reason this works is that the setter is being called immediately on init, so 'this' works
+            this['__'+property] = value;
+            console.log('set', value);
+        },
+        get: function() {
+            console.log('get');
+            return this['__'+property];
+        },
+        enumerable: true,
+        configurable: true
+    } ;
+};
+
+// DO IT THIS WAY
+function dec2(target, propertyKey): any {
+
+    Object.defineProperty(target, propertyKey, {
+        get: function() {
+            console.log('get', this['__'+propertyKey]);
+            return this['__'+propertyKey];
+        },
+        set: function (value) {
+            this['__'+propertyKey] = value;
+            console.log('set', value);
+        }
+      }); 
+};
+*/
+
+/**  Place this decorator before variables to sync them automatically to client side */
 export function networkedvariable<T extends keyof NetworkedVariableTypes>(variableType: T) {
 
     // Property decorator
-    return function<ClassPrototype extends ServerEntity>(target: ClassPrototype, propertyKey: keyof ClassPrototype){
+    return function<T extends ServerEntity>(target: T, propertyKey: keyof T){
         // Use this propertyKey to attach the event handler
 
        const constructorOfClass = target.constructor;
@@ -30,7 +71,7 @@ export function networkedvariable<T extends keyof NetworkedVariableTypes>(variab
             constructorOfClass["VARIABLE_REGISTRY"] = [];
         }
 
-        const variableslist = constructorOfClass["VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType<ClassPrototype>;
+        const variableslist = constructorOfClass["VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType<T>;
         variableslist.push({
             variablename: propertyKey,
             type: variableType,
@@ -41,17 +82,16 @@ export function networkedvariable<T extends keyof NetworkedVariableTypes>(variab
 }
 
 
-
 // Class decorator, makes it's variables updated over the network. Need client side implementation, networkedclass_client
 export function networkedclass_server<T extends keyof NetworkedEntityNames>(classname: T) {
 
-    return function<ClassConstructor extends typeof ServerEntity>(targetConstructor: ClassConstructor){
+    return function<U extends typeof ServerEntity>(targetConstructor: U){
 
-        type AbstractConstructorHelper<T> = (new (...args: any) => { [x: string]: any; }) & T;
-        type indirection = AbstractConstructorHelper<ClassConstructor>;
-        type instanceOfClass = InstanceType<indirection>;
+        type AbstractInstanceType<T> = T extends { prototype: infer U } ? U : never
 
-        const variableslist = targetConstructor["VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType<instanceOfClass>;
+        type TypeOfInstance = AbstractInstanceType<U>;
+
+        const variableslist = targetConstructor["VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType<TypeOfInstance>;
         if(variableslist === undefined) throw new Error("No variables added to networked entity");
         
         // Alphabetically sorts them keys, will serialize in this order.
@@ -63,8 +103,7 @@ export function networkedclass_server<T extends keyof NetworkedEntityNames>(clas
 
         console.log(`Confirmed class, ${targetConstructor.name}, as networked entity. Contains the following variables: ${allVariables}`);
         
-        targetConstructor["serializeVariables"] = function(entity: instanceOfClass,stream: BufferStreamWriter){            
-            // This is the shared id across server, client --> it's how we implicitly link the classes
+        targetConstructor["serializeVariables"] = function(entity: TypeOfInstance,stream: BufferStreamWriter){            
             stream.setUint16(entity.entityID);
 
             for(const variable of variableslist){
@@ -73,8 +112,6 @@ export function networkedclass_server<T extends keyof NetworkedEntityNames>(clas
         }
 
         targetConstructor["SHARED_ID"] = -1;
-
-        console.log("BearEngine,", ServerBearEngine);
         
         SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES.push({
             //@ts-ignore-error
@@ -96,3 +133,4 @@ export class SharedEntityServerTable {
     static readonly REGISTERED_NETWORKED_ENTITIES: {create: EntityConstructor, name: keyof NetworkedEntityNames}[] = [];
     static readonly networkedEntityIndexMap = new Map<number,EntityConstructor>();
 }
+

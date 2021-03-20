@@ -10,9 +10,8 @@ import { ClientBoundPacket, ClientPacket, GamePacket } from "shared/core/sharedl
 import { Subsystem } from "shared/core/subsystem";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { ClientConnection, ServerNetwork } from "./networking/serversocket";
-import { FirstAutoEntity, NetworkedEntity, PlayerEntity, ServerEntity } from "./serverentity";
+import { FirstAutoEntity, PlayerEntity, ServerEntity } from "./serverentity";
 import { PacketWriter } from "./networking/packetwriter";
-import { NetworkedEntityNames } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { TickTimer } from "shared/ticktimer";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
 
@@ -172,7 +171,6 @@ class ServerBearEngine implements AbstractBearEngine {
 
                     break;
                 }
-
 
                 default: AssertUnreachable(type);
             }

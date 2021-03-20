@@ -2,10 +2,8 @@ import { AssertUnreachable } from "shared/assertstatements";
 import { AbstractBearEngine } from "shared/core/abstractengine";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { Scene } from "shared/core/scene";
-import { NetworkedEntityNames } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
-import { Entity } from "../entity";
 import { SharedEntityClientTable } from "./cliententitydecorators";
 import { RemoteEntity, RemoteLocations, SimpleNetworkedSprite } from "./remotecontrol";
 import { BufferedNetwork } from "./socket";
@@ -14,8 +12,6 @@ import { BufferedNetwork } from "./socket";
 
 /** Reads packets from network, applies them */
 export class NetworkReadSystem extends Subsystem {
-
-
 
     private network: BufferedNetwork;
 
@@ -29,7 +25,7 @@ export class NetworkReadSystem extends Subsystem {
         this.network = network;
     }
 
-    private getEntity<T extends AbstractEntity = AbstractEntity>(id: number): T{
+    private getEntity<T extends AbstractEntity = AbstractEntity>(id: number): T {
         return this.entities.get(id) as any as T;
     }
 
@@ -45,8 +41,6 @@ export class NetworkReadSystem extends Subsystem {
             registry.create["SHARED_ID"] = i;
         }
 
-
-
         this.scene = this.getSystem(Scene);
     }
     
@@ -57,6 +51,7 @@ export class NetworkReadSystem extends Subsystem {
             const packets = this.network.newPacketQueue();
 
             while(!packets.isEmpty()){
+
                 const packet = packets.dequeue();
                 const frame = packet.id;
                 const stream = packet.buffer;
@@ -108,6 +103,7 @@ export class NetworkReadSystem extends Subsystem {
                             }
                             break;
                         }
+
                         case GamePacket.PLAYER_POSITION:{
                             
                             // Find correct entity
@@ -127,7 +123,7 @@ export class NetworkReadSystem extends Subsystem {
 
                             (e as SimpleNetworkedSprite).locations.addPosition(frame, x,y);
                             
-                            break;    
+                            break;
                         }
                         case GamePacket.SIMPLE_POSITION:{
                             // Find correct entity

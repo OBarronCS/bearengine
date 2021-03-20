@@ -1,18 +1,30 @@
 
 
-
-
-/*
-Maybe?: Nvm, wouldn't actually make better compile time checks
-"shared_class_name": {
-    variable_name: type of variable,
-    variable_name: keyof NetworkedVariableTypes,
-}
-*/
-
 import { AssertUnreachable } from "shared/assertstatements";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/networkstream";
 
+/*
+The following would allow things to be checked BEFORE connecting to server.
+Would catch small errors.
+But, still need to validate stuff with live server on connect.
+
+{
+    // Could define client constructor stuff using this method
+    "shared_class_name": {
+        create: () => void = null,
+        variables: {
+            variable_name: type of variable,
+        }
+    },
+    "other_class": {
+
+    }
+}
+
+make it an actual object, {} as const,
+    - Allows actual checking
+than use typeof to extract the type.
+*/
 // Used to link client and server entity classes
 export interface NetworkedEntityNames {
     "flying_tree": false,
