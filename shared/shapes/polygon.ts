@@ -3,7 +3,7 @@ import { Coordinate, Vec2, mix, flattenVecArray, distanceSquared } from "./vec2"
 import { Rect } from "./rectangle";
 import { abs, atan2, cos, max, min, niceColor, PI, sin, TWO_PI } from "../mathutils";
 
-import type { Graphics, Point } from "pixi.js";
+import { Graphics, Point, Text } from "pixi.js";
 
 import { default as earcut } from "earcut";
 
@@ -277,6 +277,38 @@ export class Polygon implements Shape<Polygon>{
 
         return answer;
     }
+    /** Returns intersection points, sorted by distance to A, or empty array. SHIFT IS FOR POLYGON POINTS */
+    lineIntersectionExtended(A: Coordinate, B: Coordinate, shift = Vec2.ZERO): { point: Vec2, t: number, internalT: number }[] {
+        
+        const answer: ReturnType<Polygon["lineIntersectionExtended"]> = [];
+
+        let k = this.points.length - 1;
+        for (let i = 0; i < this.points.length; k = i++) {
+            const point = this.points[k].clone().add(shift);
+            const point2 = this.points[i].clone().add(shift);
+
+            const result = Line.LineLineIntersectionWithFirstT(A, B, point, point2);
+
+            // Hacky way to get the t value of the self
+            const flippedResult = Line.LineLineIntersectionWithFirstT(point, point2, A, B);
+
+            if(result === null) continue;
+				
+            // If no answer yet, choose this
+
+            answer.push({ 
+                point: result.point,
+                t: result.t,
+                internalT:flippedResult.t + k,
+            });
+            
+        }
+
+
+        answer.sort( (a,b) => a.t - b.t);
+
+        return answer;
+    }
 
     closestPoint(testPoint: Coordinate){
         let closestPoint: Vec2 = null;
@@ -303,16 +335,22 @@ export class Polygon implements Shape<Polygon>{
     
     draw(g: Graphics, color: number = niceColor(), normals = true): void {
         g.lineStyle(3,color,.9);
-        g.endFill()
+        g.endFill();
         g.drawPolygon(this.points as unknown as Point[])
 
+        g.removeChildren()
         // draw points
-        for(const point of this.points){
+        for (let i = 0; i < this.points.length; i++) {
+            const point = this.points[i];
             drawPoint(g, point)
+            const t = new Text(i.toString());
+            //@ts-expect-error
+            t.position = point;
+            g.addChild(t)
         }
+  
 
         // Draw normals
-
         if(normals){
             for(let i = 0; i < this.normals.length; i++){
                 let j = i + 1;

@@ -1,8 +1,4 @@
 
-/*
-random number functions
-look into chancejs
-*/
 
 /** [0,1 or max?) */
 export function random(max: number = 1): number {
@@ -14,7 +10,7 @@ export function random_range(min: number, max: number): number {
 }
 
 /** [min, max) */
-export function randomInt(min: number, max: number): number{
+export function randomInt(min: number, max: number): number {
     return min + Math.floor(Math.random() * (max - min));
 }
 

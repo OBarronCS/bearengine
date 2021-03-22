@@ -67,15 +67,13 @@ export function bearevent<T extends keyof BearEvents>(eventname: T, extradata: B
             extradata: extradata
         });
 
-        console.log(`Added event, ${eventlist}`)
-        console.log(`Added event, ${eventname}, to ${target.constructor.name}`)
-        console.log(target.constructor)
-        console.log(propertyKey);
+        console.log(`Added event, ${eventname}, to ${target.constructor.name}, linked to method with name ${propertyKey}`)
+        //console.log(target.constructor)
     }
 }
 
 
-// Takes all methods from a class that have string identifiers
+// Picks properties that are methods with string identifiers
 type PickMethods<Base> = Pick<Base, {
     [Key in keyof Base]: Key extends string ? 
         Base[Key] extends Function ? Key : never 

@@ -1,5 +1,5 @@
 
-import { Graphics, Loader, Sprite, utils } from "pixi.js";
+import { Graphics, Loader, Sprite } from "pixi.js";
 // import { GUI } from "dat.gui";
 
 import { AbstractBearEngine } from "shared/core/abstractengine";
@@ -22,6 +22,10 @@ import { NetworkWriteSystem } from "./networking/networkwrite";
 import { BufferedNetwork } from "./networking/socket";
 import { RendererSystem } from "./renderer";
 import { TestMouseDownEventDispatcher } from "./mouseevents";
+import { Player } from "../gamelogic/player";
+import { TerrainManager } from "shared/core/terrainmanager";
+import { CollisionManager } from "shared/core/entitycollision";
+import { string2hex } from "shared/mathutils";
 
 
 
@@ -34,24 +38,26 @@ let accumulated = 0;
 const maxFPS = 60;
 const simulation_time = 1000 / maxFPS;
 
+
+const ASSET_FOLDER_NAME = "assets/"
+
+
 // Returns names of files!
 // r is the require function
 function importAll(r: any): [] {
     const webpackObjs = r.keys().map(r);
     return webpackObjs.map((v:any) => v.default)
 }
-const images = importAll(require.context('../../images', true, /\.(json|png|jpe?g|gif)$/));
+
+// This cannot take variable for path because it just doesn't work...
+const images = importAll(require.context('../../assets', true, /\.(json|png|jpe?g|gif)$/));
 const ALL_TEXTURES: string[] = images.slice(0);
 console.log(ALL_TEXTURES)
 
 
 export class BearEngine implements AbstractBearEngine {
 
-    public networkconnection: BufferedNetwork = new BufferedNetwork("ws://127.0.0.1:8080");
-
-    
-
-
+    public networkconnection: BufferedNetwork = new BufferedNetwork({ port: 80 });
 
 
     // IMPORTANT SYSTEMS
@@ -62,12 +68,12 @@ export class BearEngine implements AbstractBearEngine {
     public keyboard: EngineKeyboard = null;
     public level: LevelHandler = null;
     public entityManager: Scene = null;
+    public terrain: TerrainManager = null;
+    public collisionManager: CollisionManager = null;
     
 
     private systems: Subsystem[] = [];
-
     public systemEventMap: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();
-
 
     public levelGraphic = new Graphics();
 
@@ -87,6 +93,9 @@ export class BearEngine implements AbstractBearEngine {
         this.keyboard = this.registerSystem(new EngineKeyboard(this));
         this.camera = this.registerSystem(new CameraSystem(this));
         this.level = this.registerSystem(new LevelHandler(this));
+
+        this.terrain = this.registerSystem(new TerrainManager(this));
+        this.collisionManager = this.registerSystem(new CollisionManager(this));
 
         // For testing
         this.registerSystem(new TestMouseDownEventDispatcher(this))
@@ -129,18 +138,18 @@ export class BearEngine implements AbstractBearEngine {
         return null;
     }
 
-    startLevel(level_struct: CustomMapFormat){
-        // janky. This call to level adds a part query to the level handler.        
-        this.level.load(level_struct);
+    loadLevel(level_struct: CustomMapFormat){
+        if(this.level.loaded) throw new Error("TRYING TO LOAD A LEVEL WHEN ONE IS ALREADY LOADED");
+        
+        this.level.startLevel(level_struct);
 
         this.entityManager.registerPartQueries(this.systems);
 
-        
-        this.renderer.renderer.backgroundColor = utils.string2hex(level_struct.world.backgroundcolor);
+        this.renderer.renderer.backgroundColor = string2hex(level_struct.world.backgroundcolor);
        
         // Load sprites from map 
         level_struct.sprites.forEach(s => {
-            const sprite = new Sprite(this.renderer.getTexture("images/" + s.file_path));
+            const sprite = new Sprite(this.renderer.getTexture(ASSET_FOLDER_NAME + s.file_path));
             sprite.x = s.x;
             sprite.y = s.y;
             sprite.width = s.width;
@@ -153,8 +162,8 @@ export class BearEngine implements AbstractBearEngine {
         AbstractEntity.GLOBAL_DATA_STRUCT = {
             Scene:this.entityManager,
             Level:this.level,
-            Collision:this.level.collisionManager,
-            Terrain:this.level.terrainManager,
+            Collision:this.collisionManager,
+            Terrain:this.terrain,
         }
 
         Entity.BEAR_ENGINE = this;
@@ -164,15 +173,38 @@ export class BearEngine implements AbstractBearEngine {
         this.renderer.addSprite(this.levelGraphic);
 
         loadTestLevel.call(this.entityManager);
-        
+
+
         // this.camera["center"].set(this.player.position);
         this.camera.zoom(Vec2.HALFHALF)
         // this.camera.follow(this.player.position)
     }
 
+    endCurrentLevel(){
+        console.log("Ending level")
+        this.level.end();
+
+        this.entityManager.clear();
+        this.terrain.clear();
+        this.collisionManager.clear()
+
+        const children = this.renderer.mainContainer.removeChildren();
+        // This is crucial --> otherwise there is a memory leak
+        children.forEach(child => child.destroy());
+
+
+        this.level.loaded = false;
+    }   
+
+    restartCurrentLevel(){
+        const data = this.level.data_struct;
+        this.endCurrentLevel();
+        this.loadLevel(data);
+    }
+
     public redrawLevel(){
         this.levelGraphic.clear();
-        this.level.draw(this.levelGraphic);
+        this.terrain.draw(this.levelGraphic);
     }
 
     // Loads all assets from server
@@ -197,6 +229,15 @@ export class BearEngine implements AbstractBearEngine {
         (this.loop.bind(this))();
     }
 
+
+    getResource(path: string) {
+        const fullPath = ASSET_FOLDER_NAME + path;
+        const data = SHARED_RESOURCES[fullPath];
+
+        if(data === undefined) throw new Error("Trying to get a resource that we don't have, " + path);
+        
+        return data;
+    }
 
     loop(timestamp: number = performance.now()){
         accumulated += timestamp - lastFrameTimeMs;
@@ -225,23 +266,6 @@ export class BearEngine implements AbstractBearEngine {
 
         requestAnimationFrame(t => this.loop(t))
     }
-
-    restartCurrentLevel(){
-        const data = this.level.data_struct;
-        this.endCurrentLevel();
-        this.startLevel(data);
-    }
-
-    endCurrentLevel(){
-        console.log("Ending level")
-        this.level.end();
-
-        this.entityManager.clear();
-
-        const children = this.renderer.mainContainer.removeChildren();
-        // This is crucial --> otherwise there is a memory leak
-        children.forEach(child => child.destroy())
-    }   
 
 }
 

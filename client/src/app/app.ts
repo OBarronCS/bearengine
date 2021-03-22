@@ -8,10 +8,10 @@ const game = new BearEngine();
 
 game.init();
 game.loadAssets().then(RESOURCES => {
-    // dragAndDropTest(game.renderer.renderer.view);
+    dragAndDropTest(game.renderer.renderer.view);
     
     console.log("ALL ASSETS DOWNLOADED")
-    game.startLevel(ParseTiledMapData(RESOURCES["images/firsttest.json"].data as TiledMap));
+    game.loadLevel(ParseTiledMapData(RESOURCES["assets/firsttest.json"].data as TiledMap));
     game.start();
 })
 
@@ -41,7 +41,7 @@ function dragAndDropTest(element: HTMLCanvasElement){
                     file.text().then(string => {
                         // string is the raw level data from the file
                         game.endCurrentLevel();
-                        game.startLevel(ParseTiledMapData(JSON.parse(string) as TiledMap));
+                        game.loadLevel(ParseTiledMapData(JSON.parse(string) as TiledMap));
                     });
                 } else if(file.type.startsWith("image")){
                     const img = new Image();

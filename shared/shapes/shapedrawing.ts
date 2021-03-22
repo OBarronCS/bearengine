@@ -12,14 +12,16 @@ export function drawVecAsArrow(graphics: Graphics, vec: Coordinate, _x: number, 
     graphics.lineTo(_x + (vec.x * lengthMultiplier),  _y + (vec.y * lengthMultiplier));
 }
 
-export function drawPoint(graphics: Graphics, point: Coordinate, color: string = "#00FFF0"){
-    graphics.beginFill(string2hex(color));
-    graphics.drawCircle(point.x, point.y, 4);
+export function drawPoint(g: Graphics, point: Coordinate, color: string = "#00FFF0"){
+    g.beginFill(string2hex(color));
+    g.drawCircle(point.x, point.y, 4);
+    g.endFill();
 }
 
-export function drawCircle(graphics: Graphics, point: Coordinate, r: number, color: string = "#00FFF0", alpha = 1){
-    graphics.beginFill(string2hex(color), alpha);
-    graphics.drawCircle(point.x, point.y, r);
+export function drawCircle(g: Graphics, point: Coordinate, r: number, color: string = "#00FFF0", alpha = 1){
+    g.beginFill(string2hex(color), alpha);
+    g.drawCircle(point.x, point.y, r);
+    g.endFill();
 }
 
 export function drawLineArray(g: Graphics, points: Coordinate[], color: number, loop = false){

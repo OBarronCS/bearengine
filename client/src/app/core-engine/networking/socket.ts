@@ -10,6 +10,12 @@ import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/ne
 import { ClientBoundPacket, ClientPacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { AssertUnreachable } from "shared/assertstatements"
 
+
+interface NetworkSettings {
+    port: number,
+    url?: string,
+}
+
 export abstract class Network {
 
     protected socket: WebSocket = null;
@@ -17,7 +23,40 @@ export abstract class Network {
 
     public CONNECTED: boolean = false;
 
-    constructor(url: string){
+    /*
+    Options to create:
+        local,
+            ws://127.0.0.1:{port}
+            still need to specify port
+        not local:
+            wss://{ip}
+            ip:
+                could be same as html server
+                could be different
+            port: 
+                need to specify. Could be same as
+                
+    could use location.protocol:
+        http: for local
+        https: for outside
+    */
+    constructor(settings: NetworkSettings){
+        // Auto-detect url 
+        const protocol = window.location.protocol;
+    
+        if(protocol !== "http:" && protocol !== "https:"){
+            throw new Error(`Unknown protocol: ${protocol}. How did this happen`);
+        }
+
+        // if http, its probably going to be ws as well (local dev server)
+        const ws_protocol = protocol === "http:" ? "ws": "wss";
+        
+        const ip = settings.url === undefined ? location.hostname : settings.url;
+
+        const url = `${ws_protocol}://${ip}:${settings.port}`;
+
+        console.log(`Websocket url: ${url}`);
+
         this.url = url;
     }
 
@@ -92,12 +131,9 @@ export class BufferedNetwork extends Network {
 
     public SERVER_IS_TICKING: boolean = false;
 
-
-    constructor(url: string){
-        super(url);
-    }
-
     onopen(): void {
+        console.log("Buffered network ON OPEN")
+
         const stream = new BufferStreamWriter(new ArrayBuffer(2))
         stream.setUint8(ServerBoundPacket.CLIENT_STATE_PACKET);
         stream.setUint8(ClientPacket.JOIN_GAME);
@@ -108,9 +144,12 @@ export class BufferedNetwork extends Network {
 
         // TODO: stop this from being in setInterval, put it into tick 
         // Possible issues: tick is run in rAF, which is not run if the tab is not in focus/view. Pinging still stop in those cases
+        
+        
+        // This is never being called on IOS;
         setInterval(() => {
             this.sendPing();
-        }, 2000)
+        }, 2000);
     }
 
     onclose(): void {}
@@ -153,13 +192,13 @@ export class BufferedNetwork extends Network {
     }
 
     public sendPing(){
-        // Unix time stamp in ms needs 64 bits
+        // Sends unix time stamp in ms 
         const stream = new BufferStreamWriter(new ArrayBuffer(9));
 
         stream.setUint8(ServerBoundPacket.PING);
         stream.setBigInt64(BigInt(Date.now()));
 
-        this.socket.send(stream.getBuffer());
+        this.send(stream.getBuffer());
     }
  
     private calculatePing(stream: BufferStreamReader){
@@ -201,6 +240,9 @@ export class BufferedNetwork extends Network {
     }
 
     public tickToSimulate(): number {
+
+        // console.log(this.CLOCK_DELTA);
+
         const serverTime = Date.now() + this.CLOCK_DELTA;
         const referenceDelta = serverTime - Number(this.REFERENCE_SERVER_TICK_TIME);
 

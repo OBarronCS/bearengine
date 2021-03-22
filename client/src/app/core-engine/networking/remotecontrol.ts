@@ -4,6 +4,7 @@ import { ceil, floor } from "shared/mathutils";
 import { mix, Vec2 } from "shared/shapes/vec2";
 import { Entity } from "../entity";
 import { SpritePart } from "../parts";
+import { networkedclass_client, remotevariable } from "./cliententitydecorators";
 
 
 export abstract class RemoteEntity extends Entity {} 
@@ -11,7 +12,7 @@ export abstract class RemoteEntity extends Entity {}
 export class SimpleNetworkedSprite extends RemoteEntity {
     
     public locations = this.addPart(new RemoteLocations());
-    public image = this.addPart(new SpritePart("images/flower.png"));
+    public image = this.addPart(new SpritePart("flower.png"));
 
     constructor(){
         super();
@@ -39,4 +40,22 @@ export class RemoteLocations extends Part {
         mix(first, second, frame % 1,this.owner.position)
     }
 }
+
+
+
+
+@networkedclass_client("auto")
+export class RemoteAuto extends Entity {
+
+    @remotevariable("int32")
+    public health = 1;
+
+    update(dt: number): void {
+        console.log(this.health);
+    }
+
+}
+
+
+
 

@@ -24,12 +24,12 @@ import { Scene} from "shared/core/scene";
 import { DrawableEntity, Entity, GMEntity, SpriteEntity } from "../core-engine/entity";
 import { Player } from "./player";
 import { SpritePart } from "../core-engine/parts";
-import { AbstractEntity } from "shared/core/abstractentity";
+import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 
 class BasicSprite extends SpriteEntity {
 
     constructor(){
-        super(Vec2.ZERO,"images/flower.png")
+        super(Vec2.ZERO,"flower.png")
     }
 
     draw(g: Graphics): void {}
@@ -44,99 +44,42 @@ class EmptyEntity extends AbstractEntity {
 
 export function loadTestLevel(this: Scene): void {
 
-    class EntityLoadTest extends Entity {
+
+    this.addEntity(new Player());
+
+    class TerrainPolygonCarveTest extends DrawableEntity {
         
-        private tick = new TickTimer(30, false);
+        private point: Vec2;
+        
+        private polygon = Polygon.random(5, 170);
 
-
-        private entities: AbstractEntity[] = []
-
-        ticking = false;
-
-        update(dt: number): void {
-            if(this.Mouse.wasReleased("left")){
-                const start = performance.now();
-
-                for(let i = 0; i < 1000000; i++){
-                    this.entities.push(this.Scene.addEntity(new EmptyEntity()));
-                }
-
-                console.log("Time to create:",performance.now() - start)
-                this.ticking = true;
-            }
-
-            if(this.ticking){
-                if(this.tick.tick()){
-                    const start = performance.now();
-
-                    for(let i = 0; i < 1000000; i++){
-                        this.Scene.destroyEntity(this.entities[i]);
-                    }
-
-                    console.log("Time to destroy:",performance.now() - start)
-                }
-            }
+        constructor(){
+            super();
         }
 
-    }
-
-    this.addEntity(new EntityLoadTest());
-
-
-
-
-    class TestEntityForVideo extends Entity {
-        
-        private sprite = this.addPart(new SpritePart("images/tree.gif"));
-        private collider = this.addPart(new ColliderPart(dimensions(200,200), Vec2.ZERO));
-
         update(dt: number): void {
+            this.point = this.Mouse.position.clone()// this.poly.polygon.closestPoint(this.Mouse.position);
+            //console.log(this.point)
+            if(this.Mouse.wasPressed("left")) { 
+                this.Terrain.carvePolygon(this.polygon, this.point);
+                this.Engine.redrawLevel();
+            }
+
+            if(this.Keyboard.wasReleased("KeyY")) this.polygon = Polygon.random(5,180)
             
+            this.redraw(true);
         }
 
-        // @bearevent("mousehover", {})
-        daisvfdakusvdjasd(point: Vec2){
-            console.log("Hello, i was hovered", point.toString());
-        }
-
-        //@bearevent("tap", {})
-        ontapcallback(num: Vec2){
-            console.log("I was clicked")
-        }
-
-        @bearevent("mousedown", { button: "left"})
-        asdasdasdasd(point: Vec2){
-            console.log("HEOLLO")
-        }
-
-        @bearevent("scroll", {})
-        asdasd(scroll: number, point: Vec2){
-            console.log(scroll)
-        }
-
-    }
-
-     // Drawing the collision grid
-     class Debug extends DrawableEntity {
-        update(dt: number): void {
-            this.redraw();
-        }
         draw(g: Graphics): void {
-            g.clear();
-            this.Collision.draw(g);
+            // @ts-expect-error
+            g.position = this.point// (this.point.x, this.point.y);
+            this.polygon.draw(g, 0x0000FF);
+
+            drawPoint(g,this.point,"#FF0000");   
         }
     }
-
-
-    // const test = new TestEntityForVideo();
-
-    // this.addEntity(test);
-    // this.addEntity(new Player());
-    // this.addEntity(new BasicSprite());
-
-    // this.destroyEntity(test);
-
-    // this.addEntity(new Debug())
+    
+    // this.addEntity(new TerrainPolygonCarveTest());
 
     class TerrainCarveTest extends DrawableEntity {
         
@@ -169,7 +112,100 @@ export function loadTestLevel(this: Scene): void {
         }
     }
     
-    //this.addEntity(new TerrainCarveTest());
+    // this.addEntity(new TerrainCarveTest());
+
+
+    class EntityLoadTest extends Entity {
+        
+        private tick = new TickTimer(30, true);
+
+
+        private entities: EntityID[] = []
+
+        private AMOUNT = 100000;
+
+        ticking = false;
+
+        update(dt: number): void {
+            if(this.Mouse.wasReleased("left")){
+                const start = performance.now();
+
+                for(let i = 0; i < this.AMOUNT; i++){
+                    this.entities.push(this.Scene.addEntity(new EmptyEntity()).entityID);
+                }
+
+                console.log("Time to create:",performance.now() - start)
+                this.ticking = true;
+            }
+
+            if(this.ticking){
+                if(this.tick.tick()){
+                    const start = performance.now();
+
+                    for(let i = 0; i < this.AMOUNT; i++){
+                        this.Scene.destroyEntityByID(this.entities[i]);
+                    }
+
+                    this.entities = [];
+
+                    this.ticking = false;
+                    this.tick.counter = 0;
+
+                    console.log("Time to destroy:",performance.now() - start)
+                }
+            }
+        }
+
+    }
+
+    // this.addEntity(new EntityLoadTest());
+
+
+    class TestEntityForVideo extends Entity {
+        
+        private sprite = this.addPart(new SpritePart("tree.gif"));
+        private collider = this.addPart(new ColliderPart(dimensions(200,200), Vec2.ZERO));
+
+        update(dt: number): void {
+            
+        }
+
+        // @bearevent("mousehover", {})
+        daisvfdakusvdjasd(point: Vec2){
+            console.log("Hello, i was hovered", point.toString());
+        }
+
+        //@bearevent("tap", {})
+        ontapcallback(num: Vec2){
+            console.log("I was clicked")
+        }
+
+        @bearevent("mousedown", { button: "left"})
+        asdasdasdasd(point: Vec2){
+            console.log("HEOLLO")
+        }
+
+        @bearevent("scroll", {})
+        asdasd(scroll: number, point: Vec2){
+            console.log(scroll)
+        }
+
+    }
+    this.addEntity(new TestEntityForVideo());
+    
+    // Drawing the collision grid
+    class Debug extends DrawableEntity {
+        update(dt: number): void {
+            this.redraw();
+        }
+        draw(g: Graphics): void {
+            g.clear();
+            this.Collision.draw(g);
+        }
+    }
+    // this.addEntity(new Debug())
+
+
 
     class ConvexHullTest extends DrawableEntity {
  
@@ -504,7 +540,7 @@ export function loadTestLevel(this: Scene): void {
 
     class FirstSprite extends GMEntity {
         constructor(spot: Coordinate){
-            super(spot,"images/tree.gif");
+            super(spot,"tree.gif");
             this.image.originPercent = ({x:.5, y:.5})
         }
 
@@ -569,7 +605,7 @@ export function loadTestLevel(this: Scene): void {
                 draw(g: Graphics): void {}
             }
 
-            this.testobject =  new test3(Vec2.ZERO, "images/flower.png");
+            this.testobject =  new test3(Vec2.ZERO, "flower.png");
             this.Scene.addEntity(this.testobject);
 
             for(let i = 1; i < 30; i++){

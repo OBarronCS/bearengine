@@ -1,10 +1,10 @@
-import { RAD_TO_DEG, Graphics } from "pixi.js";
+import type { Graphics } from "pixi.js";
 
 import { Vec2, rotatePoint, angleBetween } from "shared/shapes/vec2";
 import { random_range } from "shared/randomhelpers";
 import { dimensions } from "shared/shapes/rectangle";
 import { drawPoint } from "shared/shapes/shapedrawing";
-import { clamp, PI } from "shared/mathutils";
+import { clamp, PI, RAD_TO_DEG } from "shared/mathutils";
 import { ColliderPart, TagPart } from "shared/core/abstractpart";
 
 import { SpritePart } from "../core-engine/parts";
@@ -68,7 +68,7 @@ export class Player extends DrawableEntity {
             this.position.set({x : 500, y: 100});
         });
 
-        this.spritePart = new SpritePart("images/vector.jpg");
+        this.spritePart = new SpritePart("vector.jpg");
         this.spritePart.originPercent = {x:.5 ,y:.5};
         this.addPart(this.spritePart);
         
@@ -149,7 +149,7 @@ export class Player extends DrawableEntity {
             this.gun.image.angle = angleToMouse + PI;
         }
 
-        //this.gun.operate(this.Mouse.isDown("left"));
+        this.gun.operate(this.Mouse.isDown("left"));
 
         const start_x = this.position.x;
         const angle = Math.atan2(this.slope_normal.y, this.slope_normal.x) * RAD_TO_DEG;

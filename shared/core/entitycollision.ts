@@ -16,22 +16,24 @@ import { SpatialGrid } from "shared/datastructures/spatialgrid";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { PartQuery } from "shared/core/partquery";
 import { ColliderPart } from "./abstractpart";
+import { Subsystem } from "./subsystem";
 
 
-export class CollisionManager {
+export class CollisionManager extends Subsystem {
+    
+    init(): void {}
 
-    // With lots of entities, this will probably become a bottleneck.
-    // Because it rebuilds the grid every step
+    // With lots of entities, this will probably become a bottleneck, because it rebuilds the grid every step
     private colliders: ColliderPart[] = [];
     private grid: SpatialGrid<ColliderPart>;
 
-    public part_query = new PartQuery(ColliderPart, 
+    public collider_query = this.addQuery(ColliderPart,
         e => this.add(e), 
         e => this.remove(e)
     );
 
-    constructor(worldWidth: number, worldHeight: number){
-        this.grid = new SpatialGrid<ColliderPart>(worldWidth,worldHeight,6,6,(collider) => collider.rect);   
+    setupGrid(worldWidth: number, worldHeight: number){
+        this.grid = new SpatialGrid<ColliderPart>(worldWidth,worldHeight,6,6,(collider) => collider.rect);
     }
 
     update(dt: number): void {
@@ -43,6 +45,11 @@ export class CollisionManager {
         for (let i = 0; i < this.colliders.length; i++) {
             this.grid.insert(this.colliders[i]);
         }
+    }
+
+    clear(){
+        this.grid.clear();
+        this.colliders = [];
     }
 
     add(c: ColliderPart){

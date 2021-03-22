@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+
         "baseUrl":"../",
         "outDir": "/build",
         
@@ -15,6 +16,7 @@
         "noImplicitThis":true,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
+        "experimentalDecorators": true,
     },
     "exclude": [
         "node_modules",

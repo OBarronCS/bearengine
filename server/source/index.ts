@@ -1,4 +1,5 @@
 
+import { Server } from "ws";
 import express from "express";
 import { readFile } from "fs";
 
@@ -24,17 +25,17 @@ app.get("/", (request, response) => {
     })
 });
 
-const TICK_RATE = 10;
 
+const http_server = app.listen(80,() => {
+    console.log("we are good to goo!")
+});
+// const http_server = app.listen(80,"10.0.0.144");
+
+const websocket = new Server({ server: http_server })
+
+const TICK_RATE = 10;
 const engine = new ServerBearEngine(TICK_RATE);
 
-engine.start(8080);
-
-
-
-app.listen(8000,() => {
-    console.log("we are good to goo!")
-})
-
+engine.start(websocket);
 
 

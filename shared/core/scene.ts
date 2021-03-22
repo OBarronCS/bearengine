@@ -1,24 +1,25 @@
 
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
-import { TagPart, TagType } from "shared/core/abstractpart";
+import { Part, TagPart, TagType } from "shared/core/abstractpart";
 import { PartQuery } from "shared/core/partquery";
 import { Subsystem } from "shared/core/subsystem";
 import { EntityEventListType } from "shared/core/bearevents";
 
-export class Scene extends Subsystem {
+export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends Subsystem {
     
-    private partQueries: PartQuery<any>[] = [];
+    private partQueries: PartQuery<Part>[] = [];
 
-    private tags: PartQuery<TagPart>;
-
+    // It finds this when iterating all the other systems.
+    private tags: PartQuery<TagPart> = this.addQuery(TagPart);
 
     // Set of entities
     private freeID = -1;
 
     private sparse: number[] = [];
-    private entities: AbstractEntity[] = [];
+    public entities: EntityType[] = [];
 
-    addEntity<T extends AbstractEntity>(e: T): T {
+
+    addEntity<T extends EntityType>(e: T): T {
         const id = this.getNextID();
         //@ts-expect-error --> This is a readonly property. This is the only time we should be changing it
         e.entityID = id;
@@ -32,13 +33,14 @@ export class Scene extends Subsystem {
             q.addEntity(e)
         });
 
+
         // console.log("Sparse: ", this.sparse);
         // console.log("Dense: ", this.entities);
 
         return e;
     }
 
-    getNextID(): EntityID {
+    private getNextID(): EntityID {
         if(this.freeID === -1){
             return this.sparse.length;
         } else { // freeID refers to a hole
@@ -49,11 +51,14 @@ export class Scene extends Subsystem {
         }
     }
 
-    destroyEntity<T extends AbstractEntity>(e: T): void {
-        // FOR NOW: Assume the entity is alive. Definitely implement a check later
-        const id = e.entityID;
-        const denseIndex = this.sparse[id];
+    getEntity<T extends EntityType = EntityType>(id: number): T {
+        const entity = this.entities[this.sparse[id]];
+        return (entity as T);         
+    }
 
+    destroyEntityByID(id: number): void {
+        const denseIndex = this.sparse[id];
+        const entity = this.entities[denseIndex];
         // Set the free list
         
         if(this.freeID === -1){
@@ -66,37 +71,48 @@ export class Scene extends Subsystem {
         }
 
 
-        // Set the last one to this value
+        // swap this last entity in dense
         this.entities[denseIndex] = this.entities[this.entities.length - 1];
         
         // Set the sparse array to point at the right one;
-
         const swappedID = this.entities[denseIndex].entityID;
         this.sparse[swappedID] = denseIndex;
 
-        // Delete the last one 
+        // Delete the last one; 
         this.entities.pop();
 
-        //
-
-        e.onDestroy();
-
+        entity.onDestroy();
         this.partQueries.forEach(q => {
-            q.deleteEntity(e)
+            q.deleteEntity(entity)
         });
     }
 
-    init(): void {
-        this.tags = new PartQuery(TagPart);
-        this.partQueries.push(this.tags)
+    destroyEntity<T extends EntityType>(e: T): void {
+        // FOR NOW: Assume the entity is alive. Definitely implement a check later
+        //
+        const id = e.entityID;
+
+        const denseIndex = this.sparse[id];
+        const entity = this.entities[denseIndex];
+        if(entity === e) { 
+            console.log("TRYING TO DELETE AN ENTITY THAT DOESN'T EXIST ANYMORE");
+            return;
+        }
+
+        this.destroyEntityByID(id);
     }
 
+    init(): void {}
+
     update(delta: number): void {
+
         for (let i = 0; i < this.entities.length; i++) {
             const entity = this.entities[i];
             entity.update(delta);
             entity.postUpdate(); // Maybe get rid of this, swap it with systems that I call after step
         }
+
+        // Delete all entities that need to be deleted 
     }
 
     registerPartQueries(systems: Subsystem[]){
@@ -114,6 +130,8 @@ export class Scene extends Subsystem {
             })
         })
 
+        this.freeID = -1;
+        this.sparse = [];
         this.entities = [];
 
         this.partQueries = [];
@@ -121,7 +139,7 @@ export class Scene extends Subsystem {
 
 
 
-    private registerEvents<T extends AbstractEntity>(e: T): void {
+    private registerEvents<T extends EntityType>(e: T): void {
         if(e.constructor["EVENT_REGISTRY"]){
             const list = e.constructor["EVENT_REGISTRY"] as EntityEventListType<T>;
 
@@ -141,7 +159,7 @@ export class Scene extends Subsystem {
 
 
 
-    getEntityByTag<T extends AbstractEntity>(tag: TagType): T {
+    getEntityByTag<T extends EntityType>(tag: TagType): T {
         for(const tagPart of this.tags){
             if(tagPart.name === tag){
                 return <T>tagPart.owner;
