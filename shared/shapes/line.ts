@@ -84,12 +84,29 @@ export class Line {
         }   
     }
 
+    /** null if no */
     static LineLineIntersection(A: Coordinate, B: Coordinate, A2: Coordinate, B2: Coordinate): Vec2 | null {
         const t = lines_intersect(A.x, A.y, B.x, B.y, A2.x, A2.y, B2.x, B2.y, true);
         if(t > 0){
             const x = A.x + t * (B.x - A.x);
             const y = A.y + t * (B.y - A.y);
             return new Vec2(x, y);
+        }
+
+        return null;
+    }
+
+    /** null if no, t is off first line */
+    static LineLineIntersectionWithFirstT(A: Coordinate, B: Coordinate, A2: Coordinate, B2: Coordinate): { point: Vec2, t: number} | null {
+        const t = lines_intersect(A.x, A.y, B.x, B.y, A2.x, A2.y, B2.x, B2.y, true);
+        if(t > 0){
+            const x = A.x + t * (B.x - A.x);
+            const y = A.y + t * (B.y - A.y);
+            
+            return { 
+                point: new Vec2(x, y), 
+                t
+            };
         }
 
         return null;

@@ -191,21 +191,14 @@ export class BufferedNetwork extends Network {
         // console.log("Size of queue: " + this.packets.size())
     }
 
-    // errors out for some reason
     public sendPing(){
-        // Unix time stamp in ms needs 64 bits
-        console.log("SEND PING START");
-
-
+        // Sends unix time stamp in ms 
         const stream = new BufferStreamWriter(new ArrayBuffer(9));
 
         stream.setUint8(ServerBoundPacket.PING);
         stream.setBigInt64(BigInt(Date.now()));
 
         this.send(stream.getBuffer());
-        
-
-        console.log("SEND PING END");
     }
  
     private calculatePing(stream: BufferStreamReader){

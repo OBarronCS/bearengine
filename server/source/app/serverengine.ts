@@ -29,7 +29,7 @@ class PlayerInformation {
 }
 
 
-class ServerBearEngine implements AbstractBearEngine {
+export class ServerBearEngine implements AbstractBearEngine {
     
     public readonly TICK_RATE: number;
     public referenceTime: bigint = 0n;
@@ -43,16 +43,15 @@ class ServerBearEngine implements AbstractBearEngine {
 
     private entityManager: Scene<ServerEntity>;
 
-    systemEventMap: Map<keyof BearEvents, EventRegistry<keyof BearEvents>>;
     private systems: Subsystem[] = [];
-
+    systemEventMap: Map<keyof BearEvents, EventRegistry<keyof BearEvents>>;
+    
 
     globalPacketsToSerialize: PacketWriter[] = [];
 
 
     private players = new Map<ClientConnection,PlayerInformation>();
     private clients: ClientConnection[] = [];
-
 
    
     constructor(tick_rate: number){
@@ -211,6 +210,7 @@ class ServerBearEngine implements AbstractBearEngine {
             for(const packet of this.globalPacketsToSerialize){
                 packet.write(stream);
             }
+            
             this.globalPacketsToSerialize = [];
             
 
@@ -233,21 +233,21 @@ class ServerBearEngine implements AbstractBearEngine {
         if (this.previousTick + (1000 / this.TICK_RATE) <= now) {
             const dt = 1000 / this.TICK_RATE;
 
-            if(this.tickTimer.tick()){ 
-                console.log("AUTO ENTITY");
+            // if(this.tickTimer.tick()){ 
+            //     console.log("AUTO ENTITY");
                 
-                const e = new FirstAutoEntity();
+            //     const e = new FirstAutoEntity();
 
-                this.entityManager.addEntity(e);
+            //     this.entityManager.addEntity(e);
                 
-                this.globalPacketsToSerialize.push({
-                    write(stream){
-                        stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
-                        stream.setUint8(e.constructor["SHARED_ID"]);
-                        stream.setUint16(e.entityID);
-                    }
-                });
-            }
+            //     this.globalPacketsToSerialize.push({
+            //         write(stream){
+            //             stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
+            //             stream.setUint8(e.constructor["SHARED_ID"]);
+            //             stream.setUint16(e.entityID);
+            //         }
+            //     });
+            // }
 
             this.tick += 1;
             // Think about whether the time should be at beginning or end of tick
@@ -275,8 +275,4 @@ class ServerBearEngine implements AbstractBearEngine {
     }
 }
 
-
-export {
-    ServerBearEngine,
-}
 
