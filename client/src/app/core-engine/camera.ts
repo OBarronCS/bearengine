@@ -47,7 +47,8 @@ export class CameraSystem extends Subsystem {
             this.renderer.mainContainer.scale.y = 1;
         });
 
-        // Dragging the layer around
+        // DRAGGING 
+
         let startMouse: Coordinate;
         let startPoint: Coordinate;
 
@@ -61,10 +62,14 @@ export class CameraSystem extends Subsystem {
 
         // live pointers for a tick
         let pointer_event_cache: PointerEvent[] = [];
+        let startMiddle: Coordinate = null;
 
         function addPointerCache(e: PointerEvent){
-            for(const event of pointer_event_cache){
-                if(e.pointerId === event.pointerId) return;
+            for(let i = 0; i < pointer_event_cache.length; i++){
+                if(e.pointerId === pointer_event_cache[i].pointerId) { 
+                    pointer_event_cache.splice(i,1,e);
+                    return;
+                }
             }
 
             pointer_event_cache.push(e);
@@ -74,32 +79,56 @@ export class CameraSystem extends Subsystem {
         window.addEventListener("pointermove",event => {
             const point = new Point(0,0);
             renderer.renderer.plugins.interaction.mapPositionToPoint(point, event.x, event.y);
-            
+
+            const speed = 1;
             addPointerCache(event);
-            // console.log("Unique pointers down: "+ pointer_event_cache.length)
             // mouse    pen,    touch 
+
             if(event.pointerType === "mouse"){
                 if(!mouse.isDown("middle")){
                     if(!mouse.isDown("left")) return;
                     if(!keyboard.isDown("ShiftLeft")) return;
                 } 
+                
 
+                this.center.x = startPoint.x - (((point.x - startMouse.x) / container.scale.x) * speed)
+                this.center.y = startPoint.y - (((point.y - startMouse.y) / container.scale.y) * speed) 
             } else {
-                if(pointer_event_cache.length <= 1){
-                    return;
+                if(pointer_event_cache.length >= 2){
+                    
+                    let p1: Coordinate = new Vec2(pointer_event_cache[0].clientX,pointer_event_cache[0].clientY);
+                    let p2: Coordinate = new Vec2(pointer_event_cache[1].clientX,pointer_event_cache[1].clientY);
+
+                    const point = new Point(0,0);
+                    renderer.renderer.plugins.interaction.mapPositionToPoint(point, p1.x, p1.y);
+                    p1 = point;
+
+                    const point2 = new Point(0,0);
+                    renderer.renderer.plugins.interaction.mapPositionToPoint(point2, p2.x, p2.y);
+                    p2 = point2;
+
+                    const middle = mix(p1,p2,0.5);
+
+                    if(startMiddle === null) 
+                        startMiddle = middle.clone();
+                    else {
+                        this.center.x = startMiddle.x - (((middle.x - startMiddle.x) / container.scale.x) * speed);
+                        this.center.y = startMiddle.y - (((middle.y - startMiddle.y) / container.scale.y) * speed);
+                    }
+
                 }
             }
-            
-            const speed = 1;
-
-            this.center.x = startPoint.x - (((point.x - startMouse.x) / container.scale.x) * speed)
-            this.center.y = startPoint.y - (((point.y - startMouse.y) / container.scale.y) * speed) 
-
         });
 
-        window.addEventListener("pointerup", (e)=>{
+        // Lift finger
+        window.addEventListener("pointerup", (e)=> {
             pointer_event_cache = [];
+            startMiddle = null;
         })
+
+
+
+
 
         // ZOOM
         window.addEventListener("wheel", (event) => {

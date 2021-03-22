@@ -4,10 +4,13 @@ import { AbstractEntity } from "shared/core/abstractentity";
 import { Scene } from "shared/core/scene";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
+import { SharedEntityClientTable } from "./cliententitydecorators";
 import { RemoteEntity, RemoteLocations, SimpleNetworkedSprite } from "./remotecontrol";
 import { BufferedNetwork } from "./socket";
 
-// Reads packets from network, applies them.
+
+
+/** Reads packets from network, applies them */
 export class NetworkReadSystem extends Subsystem {
 
     private network: BufferedNetwork;
@@ -22,13 +25,22 @@ export class NetworkReadSystem extends Subsystem {
         this.network = network;
     }
 
-    private getEntity<T extends AbstractEntity = AbstractEntity>(id: number): T{
+    private getEntity<T extends AbstractEntity = AbstractEntity>(id: number): T {
         return this.entities.get(id) as any as T;
     }
 
     private scene: Scene;
 
     init(): void {
+        // Sort networked alphabetically, so they match up on server side
+        // Gives them id probably don't need that on client side though
+        SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES.sort( (a,b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+        for(let i = 0; i < SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES.length; i++){
+            const registry = SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES[i];
+            SharedEntityClientTable.networkedEntityIndexMap.set(i,registry.create);
+            registry.create["SHARED_ID"] = i;
+        }
+
         this.scene = this.getSystem(Scene);
     }
     
@@ -39,6 +51,7 @@ export class NetworkReadSystem extends Subsystem {
             const packets = this.network.newPacketQueue();
 
             while(!packets.isEmpty()){
+
                 const packet = packets.dequeue();
                 const frame = packet.id;
                 const stream = packet.buffer;
@@ -47,6 +60,37 @@ export class NetworkReadSystem extends Subsystem {
                     const type: GamePacket = stream.getUint8();
 
                     switch(type){
+                        case GamePacket.REMOTE_ENTITY_CREATE: {
+                            const sharedClassID = stream.getUint8();
+                            const eId = stream.getUint16();
+                            const _class = SharedEntityClientTable.networkedEntityIndexMap.get(sharedClassID);
+
+                            //@ts-expect-error
+                            const e = new _class();
+
+                            // Adds it to the scene
+                            this.entities.set(eId, e);
+                            this.scene.addEntity(e);
+
+                            break;
+                        }
+
+                        case GamePacket.REMOTE_ENTITY_VARIABLE_CHANGE:{
+                            // [entity id, ...variables]
+ 
+                            const eId = stream.getUint16();
+                            const e = this.entities.get(eId);
+
+                            if(e === undefined){
+                                console.log("CANNOT FIND ENTITY WITH THAT VARIABLE. WILL QUIT");
+                                // Idk how else to deal with this error, than to quit.
+                                return
+                            }
+                            e.constructor["deserializeVariables"](e, stream);
+
+                            break;
+                        }
+
                         case GamePacket.ENTITY_DESTROY:{
                              // Find correct entity
                             const id = stream.getUint16();
@@ -59,6 +103,7 @@ export class NetworkReadSystem extends Subsystem {
                             }
                             break;
                         }
+
                         case GamePacket.PLAYER_POSITION:{
                             
                             // Find correct entity
@@ -78,7 +123,7 @@ export class NetworkReadSystem extends Subsystem {
 
                             (e as SimpleNetworkedSprite).locations.addPosition(frame, x,y);
                             
-                            break;    
+                            break;
                         }
                         case GamePacket.SIMPLE_POSITION:{
                             // Find correct entity

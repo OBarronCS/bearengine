@@ -163,12 +163,13 @@ export class Rect implements Shape<Rect> {
         this.y2 = this.y + h;
     }
 
-    translate(point: Coordinate){
+    translate(point: Coordinate): this {
         this.x += point.x;
         this.y += point.y;
 
         this.x2 += point.x;
         this.y2 += point.y;
+        return this;
     }
 
 

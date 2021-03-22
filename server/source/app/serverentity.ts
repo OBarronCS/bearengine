@@ -1,40 +1,47 @@
 import { AbstractEntity} from "shared/core/abstractentity"
-import { BufferStreamWriter } from "shared/datastructures/networkstream";
-import { Vec2 } from "shared/shapes/vec2";
-import { GamePacket } from "shared/core/sharedlogic/packetdefinitions"
+import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/networkstream";
+import { networkedclass_server, networkedvariable } from "./networking/serverentitydecorators";
+import { TickTimer } from "shared/ticktimer";
 
-export abstract class ServerEntity extends AbstractEntity {}
+export abstract class ServerEntity extends AbstractEntity {
 
-// One instance of this corresponds to one RemoteEntity client side
-export abstract class NetworkedEntity extends ServerEntity {
+    // This shouldn't be touched on entities that are not networked
+    // Maybe in future make two seperate lists of entities, one for networked and one for not
+    stateHasBeenChanged = false;
 
-    readonly id = -1;
-
-    abstract packetType: GamePacket;
-
-    writeEntityData(stream: BufferStreamWriter){
-        if(this.id === -1) throw new Error("THIS SHOULDN'T BE HAPPENING")
-
-        stream.setUint8(this.packetType);
-        stream.setUint16(this.id);
-        this.write(stream);
+    stateChanged(): void {
+        this.stateHasBeenChanged = true;
     }
+}
 
-    protected abstract write(stream: BufferStreamWriter): void;
+export class PlayerEntity extends ServerEntity {
+    update(dt: number): void {}
 }
 
 
-export class FirstNetworkedEntity extends NetworkedEntity {
-    packetType: GamePacket = GamePacket.SIMPLE_POSITION;
+@networkedclass_server("auto")
+export class FirstAutoEntity extends ServerEntity {
+    
+    private tick = new TickTimer(10,true);
+
+    @networkedvariable("int32")
+    public health = 1;
 
     update(dt: number): void {
-        this.position.add(Vec2.random().extend(200));
+        if(this.tick.tick()) {
+            this.health += 1;
+            this.stateChanged();
+        }
     }
+}
 
-    write(stream: BufferStreamWriter){
-        stream.setFloat32(this.x);
-        stream.setFloat32(this.y);
-    }
+
+
+
+// Another possible ways to do entities: completely manually
+export abstract class TestTestTestNetworkedEntity extends ServerEntity {
+    abstract serialize(stream: BufferStreamWriter): void;
+    abstract deserialize(stream: BufferStreamReader): void;
 }
 
 

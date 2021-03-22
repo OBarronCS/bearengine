@@ -103,9 +103,16 @@ export class BufferStreamReader  {
 export class BufferStreamWriter {
 
     private littleEndian = false;
+
+    // There's one issue: if seeks earlier, it loses the total length
     byteOffset: number = 0;
 
     private dataview: DataView;
+
+    /** Seeks buffer to beginning. Sets offset to 0. Only data will then be overriden on future calls */
+    refresh(){
+        this.seek(0);
+    }
 
     size() {
         return this.byteOffset;
@@ -137,8 +144,8 @@ export class BufferStreamWriter {
         // the underlying buffer of this stream is edited
 
         // Probably very slow
-        const newView = new Uint8Array(this.getBuffer());
-        newView.set(new Uint8Array(buffer), this.byteOffset);
+        const uint8view = new Uint8Array(this.getBuffer());
+        uint8view.set(new Uint8Array(buffer), this.byteOffset);
         this.byteOffset += buffer.byteLength;
 
     }
@@ -178,10 +185,6 @@ export class BufferStreamWriter {
         this.dataview.setInt32(this.byteOffset, value, this.littleEndian);
         this.byteOffset += 4;
     }
-
-    // setEnum(value: number){
-    //     this.setUint8(value);
-    // }
 
     setUint8(value: number): void {
         this.dataview.setUint8(this.byteOffset,value);

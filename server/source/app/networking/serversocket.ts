@@ -3,10 +3,10 @@
 import WS from "ws"
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/networkstream"
 import { ClientBoundPacket, ClientPacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
-import { ServerBearEngine } from "../serverengine";
 import { LinkedQueue } from "shared/datastructures/queue";
 import { AssertUnreachable } from "shared/assertstatements";
 
+// maybe swap this with just an integer, and then the server calls some methods here with this id to get info? 
 export class ClientConnection {
     id: number;
     ping: number;
@@ -18,85 +18,69 @@ interface BufferedPacket {
 }
 
 export class ServerNetwork {
-    private readonly TICK_RATE: number;
     //private readonly port: number;
 
-    protected socket: WS.Server = null;
-    
-    public referenceTime: bigint = 0n;
-    public referenceTick: number = 0;
-
-    public tick = 0;
+    protected server: WS.Server = null;
 
     // List of connections. WS also has some built into way to do this...
     protected sockets: WS[] = [];
     private clientMap = new Map<WS,ClientConnection>();
-    
-    private packets = new LinkedQueue<BufferedPacket>();
+    private reverseClientMap = new Map<ClientConnection, WS>();
 
-    constructor(tickRate:number, server: WS.Server, public engine: ServerBearEngine){
-        this.TICK_RATE = tickRate;
-        this.socket = server;
+    private packets = new LinkedQueue<BufferedPacket>();
+    
+
+    constructor(server: WS.Server){
+        this.server = server;
     }
 
+    /** Start handling connections */
     public start(){
-        this.socket.on("connection", this.sendStartData.bind(this));
+        this.server.on("connection", this.sendStartData.bind(this));
 
-        this.socket.on("close", () => {
-            console.log("Disconected")
+        this.server.on("close", () => {
+            console.log("Server closed")
         });
     }
 
-    sendStartData(socket: WS){
+    /** On client connection. Socket is unique to client */
+    private sendStartData(socket: WS){
+        console.log("New connection");
+
         socket.binaryType = "arraybuffer";
         this.sockets.push(socket);
 
-        this.clientMap.set(socket, new ClientConnection());
+        const connection = new ClientConnection();
+
+        this.clientMap.set(socket,connection);
+        this.reverseClientMap.set(connection, socket);
+
 
         socket.on("close", () => {
-            
+            console.log("Client disconnected");
             const client = this.clientMap.get(socket);
 
             if(client === undefined) throw new Error("Closing socket from unknown client. If this error goes off then there is something deeply wrong");
 
+            // Sends this info to the engine as a packet. 
             const stream = new BufferStreamWriter(new ArrayBuffer(3))
             stream.setUint8(ServerBoundPacket.CLIENT_STATE_PACKET);
             stream.setUint8(ClientPacket.LEAVE_GAME);
 
             this.packets.enqueue({
                 client:client,
-                buffer: new BufferStreamReader(stream.getBuffer()),
+                buffer:new BufferStreamReader(stream.getBuffer()),
             });
 
             // This is the last message associated with this socket
             this.clientMap.delete(socket);
+            this.reverseClientMap.delete(client);
             const index = this.sockets.indexOf(socket);
             this.sockets.splice(index,1);
-        })
-
-        console.log("New connection")
-        
-        // INIT DATA. 
-        const init_writer = new BufferStreamWriter(new ArrayBuffer(12))
-        init_writer.setUint8(ClientBoundPacket.INIT);
-
-        init_writer.setUint8(this.TICK_RATE)
-        init_writer.setBigUint64(this.referenceTime);
-        init_writer.setUint16(this.referenceTick);
-        socket.send(init_writer.getBuffer());
-    
-
-        // START TICKING
-        const start_tick_writer = new BufferStreamWriter(new ArrayBuffer(3))
-        start_tick_writer.setUint8(ClientBoundPacket.START_TICKING);
-        
-        start_tick_writer.setUint16(this.tick);
-        socket.send(start_tick_writer.getBuffer())
-
+        });
 
         socket.on('message', (data: ArrayBuffer) => {
-            // Assumes all messages are ping for now   
-            const stream = new BufferStreamReader(data)
+            const stream = new BufferStreamReader(data);
 
             const type: ServerBoundPacket = stream.getUint8();
 
@@ -120,13 +104,7 @@ export class ServerNetwork {
         });
     }
 
-    public packetQueue(){
-        return this.packets;
-    }
-
-
-
-    sendPong(socket: WS, stream: BufferStreamReader){
+    private sendPong(socket: WS, stream: BufferStreamReader){
         const writer = new BufferStreamWriter(new ArrayBuffer(1 + 8 + 8));
         writer.setUint8(ClientBoundPacket.PONG);
         // copies the timestamp that was received, sends it back
@@ -136,39 +114,27 @@ export class ServerNetwork {
         socket.send(writer.getBuffer())
     }
 
-
-    onmessage(socket: WS, ev: MessageEvent<any>): void {
-
+    public packetQueue(){
+        return this.packets;
     }
 
-    writePacketStateData(stream: BufferStreamWriter){
-        stream.setUint8(ClientBoundPacket.GAME_STATE_PACKET);
-        stream.setUint16(this.tick);
-    }
+    public send(client: ClientConnection, buffer: ArrayBuffer){
+        const socket = this.reverseClientMap.get(client);
+        if(socket === undefined) throw new Error("Cannot find client, " + client);
 
-    sendGameData(buffer: ArrayBuffer | ArrayBufferView, time: number){
-        // TODO: Move this to the beginning of the tick, not the end; If simulation takes a while, this will be completely innaccurate
-        // However, will be fine if simulation consistantly takes the same amount of time
-        this.referenceTime = BigInt(time);
-        this.referenceTick = this.tick;
-        
-        // console.log(this.tick)
-
-        this.broadcast(buffer);
-
-        this.tick++;
+        socket.send(buffer);        
     }
 
     public broadcast(buffer: ArrayBuffer | ArrayBufferView){
-        this.sockets.forEach((client) => {
+        for(const clientSocket of this.sockets){
             // if (client.readyState === WebSocket.OPEN)
-            client.send(buffer);
+            clientSocket.send(buffer);
             
-        }) 
+        }
     }
 
-    public disconnect(){
-        this.socket.close();
+    public closeServer(){
+        this.server.close();
     }
 }
 

@@ -5,21 +5,21 @@ import { PartQuery } from "shared/core/partquery";
 import { Subsystem } from "shared/core/subsystem";
 import { EntityEventListType } from "shared/core/bearevents";
 
-export class Scene extends Subsystem {
+export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends Subsystem {
     
     private partQueries: PartQuery<Part>[] = [];
 
     // It finds this when iterating all the other systems.
     private tags: PartQuery<TagPart> = this.addQuery(TagPart);
 
-
     // Set of entities
     private freeID = -1;
 
     private sparse: number[] = [];
-    private entities: AbstractEntity[] = [];
+    public entities: EntityType[] = [];
 
-    addEntity<T extends AbstractEntity>(e: T): T {
+
+    addEntity<T extends EntityType>(e: T): T {
         const id = this.getNextID();
         //@ts-expect-error --> This is a readonly property. This is the only time we should be changing it
         e.entityID = id;
@@ -40,7 +40,7 @@ export class Scene extends Subsystem {
         return e;
     }
 
-    getNextID(): EntityID {
+    private getNextID(): EntityID {
         if(this.freeID === -1){
             return this.sparse.length;
         } else { // freeID refers to a hole
@@ -51,7 +51,7 @@ export class Scene extends Subsystem {
         }
     }
 
-    getEntity<T extends AbstractEntity = AbstractEntity>(id: number): T {
+    getEntity<T extends EntityType = EntityType>(id: number): T {
         const entity = this.entities[this.sparse[id]];
         return (entity as T);         
     }
@@ -87,19 +87,32 @@ export class Scene extends Subsystem {
         });
     }
 
-    destroyEntity<T extends AbstractEntity>(e: T): void {
+    destroyEntity<T extends EntityType>(e: T): void {
         // FOR NOW: Assume the entity is alive. Definitely implement a check later
-        this.destroyEntityByID(e.entityID);
+        //
+        const id = e.entityID;
+
+        const denseIndex = this.sparse[id];
+        const entity = this.entities[denseIndex];
+        if(entity === e) { 
+            console.log("TRYING TO DELETE AN ENTITY THAT DOESN'T EXIST ANYMORE");
+            return;
+        }
+
+        this.destroyEntityByID(id);
     }
 
     init(): void {}
 
     update(delta: number): void {
+
         for (let i = 0; i < this.entities.length; i++) {
             const entity = this.entities[i];
             entity.update(delta);
             entity.postUpdate(); // Maybe get rid of this, swap it with systems that I call after step
         }
+
+        // Delete all entities that need to be deleted 
     }
 
     registerPartQueries(systems: Subsystem[]){
@@ -126,7 +139,7 @@ export class Scene extends Subsystem {
 
 
 
-    private registerEvents<T extends AbstractEntity>(e: T): void {
+    private registerEvents<T extends EntityType>(e: T): void {
         if(e.constructor["EVENT_REGISTRY"]){
             const list = e.constructor["EVENT_REGISTRY"] as EntityEventListType<T>;
 
@@ -146,7 +159,7 @@ export class Scene extends Subsystem {
 
 
 
-    getEntityByTag<T extends AbstractEntity>(tag: TagType): T {
+    getEntityByTag<T extends EntityType>(tag: TagType): T {
         for(const tagPart of this.tags){
             if(tagPart.name === tag){
                 return <T>tagPart.owner;
