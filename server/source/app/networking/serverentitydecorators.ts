@@ -20,29 +20,6 @@ type EntityNetworkedVariablesListType<T extends ServerEntity> = {
 // Getters/setters live on the prototype chain, not on the instances
 // Which is why it seems like the value is repeated multiple times in devtools
 
-// According the TypeScript docs, this should not be working
-// And it also doesn't follow the es-next new decorator proposal --> It's COMPLETELY different
-// So it thinks that the return value is meaningless, but in fact, it
-
-// Going to use: This shouldn't work, but it does on chrome. Use Object.defineProperties 
-function dec(target, property): any {
-    console.log(target)
-    return {
-        set: function (value) {
-            // The reason this works is that the setter is being called immediately on init, so 'this' works
-            this['__'+property] = value;
-            console.log('set', value);
-        },
-        get: function() {
-            console.log('get');
-            return this['__'+property];
-        },
-        enumerable: true,
-        configurable: true
-    } ;
-};
-
-// DO IT THIS WAY
 function dec2(target, propertyKey): any {
 
     Object.defineProperty(target, propertyKey, {
@@ -54,6 +31,8 @@ function dec2(target, propertyKey): any {
             this['__'+propertyKey] = value;
             console.log('set', value);
         }
+        // enumerable: true,
+        // configurable: true
       }); 
 };
 */
@@ -63,7 +42,6 @@ export function networkedvariable<T extends keyof NetworkedVariableTypes>(variab
 
     // Property decorator
     return function<T extends ServerEntity>(target: T, propertyKey: keyof T){
-        // Use this propertyKey to attach the event handler
 
        const constructorOfClass = target.constructor;
         
@@ -121,7 +99,6 @@ export function networkedclass_server<T extends keyof NetworkedEntityNames>(clas
 
     }
 }
-
 
 
 type EntityConstructor = new(...args:any[]) => ServerEntity;

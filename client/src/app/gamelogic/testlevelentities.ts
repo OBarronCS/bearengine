@@ -59,7 +59,7 @@ export function loadTestLevel(this: Scene): void {
 
         update(dt: number): void {
             this.point = this.Mouse.position.clone()// this.poly.polygon.closestPoint(this.Mouse.position);
-           //console.log(this.point)
+            //console.log(this.point)
             if(this.Mouse.wasPressed("left")) { 
                 this.Terrain.carvePolygon(this.polygon, this.point);
                 this.Engine.redrawLevel();
@@ -79,7 +79,7 @@ export function loadTestLevel(this: Scene): void {
         }
     }
     
-    this.addEntity(new TerrainPolygonCarveTest());
+    // this.addEntity(new TerrainPolygonCarveTest());
 
     class TerrainCarveTest extends DrawableEntity {
         

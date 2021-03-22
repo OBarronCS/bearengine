@@ -2,15 +2,12 @@ import { Vec2 } from "shared/shapes/vec2";
 import { Part } from "./abstractpart";
 import { CollisionManager } from "./entitycollision";
 import { LevelHandler } from "./level";
+import { Scene } from "./scene";
 import { TerrainManager } from "./terrainmanager";
 
 
 interface GlobalData {
-    Scene: {
-        addEntity<T extends AbstractEntity>(entity: T): T;
-        destroyEntity<T extends AbstractEntity>(entity: T): void;
-        destroyEntityByID(id: number): void;
-    }
+    Scene: Scene
     Level: LevelHandler,
     Terrain: TerrainManager;
     Collision: CollisionManager;

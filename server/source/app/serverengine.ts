@@ -194,7 +194,7 @@ export class ServerBearEngine implements AbstractBearEngine {
                 stream.setFloat32(player.position.y);
             }
 
-            // Entities updating variables over network
+            // Entities auto updating variables over network
             for(const entity of this.entityManager.entities){
                 if(entity.stateHasBeenChanged){
                     

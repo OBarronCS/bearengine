@@ -234,7 +234,7 @@ export class BearEngine implements AbstractBearEngine {
         const fullPath = ASSET_FOLDER_NAME + path;
         const data = SHARED_RESOURCES[fullPath];
 
-        if(data === undefined) throw new Error("Trying to get a resource that we don't have");
+        if(data === undefined) throw new Error("Trying to get a resource that we don't have, " + path);
         
         return data;
     }

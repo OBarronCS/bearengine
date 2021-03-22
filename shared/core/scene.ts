@@ -12,12 +12,12 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
     // It finds this when iterating all the other systems.
     private tags: PartQuery<TagPart> = this.addQuery(TagPart);
 
-
     // Set of entities
     private freeID = -1;
 
     private sparse: number[] = [];
     public entities: EntityType[] = [];
+
 
     addEntity<T extends EntityType>(e: T): T {
         const id = this.getNextID();
@@ -40,7 +40,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         return e;
     }
 
-    getNextID(): EntityID {
+    private getNextID(): EntityID {
         if(this.freeID === -1){
             return this.sparse.length;
         } else { // freeID refers to a hole
@@ -89,17 +89,30 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
 
     destroyEntity<T extends EntityType>(e: T): void {
         // FOR NOW: Assume the entity is alive. Definitely implement a check later
-        this.destroyEntityByID(e.entityID);
+        //
+        const id = e.entityID;
+
+        const denseIndex = this.sparse[id];
+        const entity = this.entities[denseIndex];
+        if(entity === e) { 
+            console.log("TRYING TO DELETE AN ENTITY THAT DOESN'T EXIST ANYMORE");
+            return;
+        }
+
+        this.destroyEntityByID(id);
     }
 
     init(): void {}
 
     update(delta: number): void {
+
         for (let i = 0; i < this.entities.length; i++) {
             const entity = this.entities[i];
             entity.update(delta);
             entity.postUpdate(); // Maybe get rid of this, swap it with systems that I call after step
         }
+
+        // Delete all entities that need to be deleted 
     }
 
     registerPartQueries(systems: Subsystem[]){
