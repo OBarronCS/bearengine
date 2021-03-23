@@ -3,8 +3,6 @@ import { AbstractEntity } from "./abstractentity";
 // USE: Subclass, or provide functions in 'on' functions!
 export class Effect extends AbstractEntity {
 
-	public destroy_effect: boolean = false;
-
 	private startFunctions: (() => void)[] = [];
 	private updateFunctions: ((dt: number) => void)[] = [];
 	private finishFunctions:(() => void)[] = [];
@@ -45,39 +43,23 @@ export class Effect extends AbstractEntity {
 	}
 
 	destroyAfter(time: number){
-		this.onDelay(time, () => this.destroy_effect = true);
+		this.onDelay(time, () => this.destroySelf());
 	}
 
-	private start(){
+	onAdd(){
 		for (let i = 0; i < this.startFunctions.length; ++i) {
 			this.startFunctions[i]();
 		}
+		if(this.hasOnlyStart()) this.destroySelf();
 	}
 
-	private finish(){
+	onDestroy(){
 		for (let i = 0; i < this.finishFunctions.length; ++i) {
 		    this.finishFunctions[i]();
 		}
 	}
 
-	// Used in main engine
-	onAdd(){
-		this.start();
-		if(this.hasOnlyStart()) this.destroy_effect;
-	}
-
-	onDestroy(){
-		this.finish();
-	}
-
 	update(dt: number){
-		
-		if(this.destroy_effect){
-			this.finish();
-			this.Scene.destroyEntity(this);
-			return;
-		}
-
 		this.time_alive += 1;
 	
 		// functions that run after a delay!

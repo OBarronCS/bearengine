@@ -45,7 +45,7 @@ abstract class Tween<T> extends Effect  {
                     if(this.nextChain){
                         this.Scene.addEntity(this.nextChain)
                         this.nextChain.active = true;
-                        this.destroy_effect = true;
+                        this.destroySelf();
                     }
                 }
             }

@@ -37,12 +37,13 @@ export class DefaultBulletEffect extends Effect {
             this.bullet.position.add(this.velocity);
             
             if(!this.Level.bbox.contains(this.bullet.position)){
-                this.destroy_effect = true;
+                this.destroySelf();
             }
         })
         
         this.onFinish( () => {
-            this.Scene.destroyEntity(this.bullet)
+            console.log("Destroying entity")
+            this.Scene.destroyEntity(this.bullet);
         })
     }	
 }

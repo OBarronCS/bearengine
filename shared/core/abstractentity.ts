@@ -41,6 +41,10 @@ export abstract class AbstractEntity {
     }
 
     abstract update(dt: number): void;
+
+    destroySelf(){
+        this.Scene.destroyEntity(this);
+    }
     
     onAdd(): void {};
     onDestroy(): void {};

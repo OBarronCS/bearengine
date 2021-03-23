@@ -71,15 +71,23 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         }
 
 
-        // swap this last entity in dense
-        this.entities[denseIndex] = this.entities[this.entities.length - 1];
+        
         
         // Set the sparse array to point at the right one;
-        const swappedID = this.entities[denseIndex].entityID;
-        this.sparse[swappedID] = denseIndex;
 
-        // Delete the last one; 
+        // Edge case: removing the last entity in the list.
+        const lastIndex = this.entities.length - 1;
+        if(denseIndex !== lastIndex){
+            // swap this with last entity in dense
+            this.entities[denseIndex] = this.entities[this.entities.length - 1];
+
+            const swappedID = this.entities[denseIndex].entityID;
+            this.sparse[swappedID] = denseIndex;
+        }
+
         this.entities.pop();
+
+        console.log(this.sparse, this.entities)
 
         entity.onDestroy();
         this.partQueries.forEach(q => {
@@ -88,13 +96,11 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
     }
 
     destroyEntity<T extends EntityType>(e: T): void {
-        // FOR NOW: Assume the entity is alive. Definitely implement a check later
-        //
         const id = e.entityID;
 
         const denseIndex = this.sparse[id];
         const entity = this.entities[denseIndex];
-        if(entity === e) { 
+        if(entity !== e) { 
             console.log("TRYING TO DELETE AN ENTITY THAT DOESN'T EXIST ANYMORE");
             return;
         }
