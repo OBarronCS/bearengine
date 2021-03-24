@@ -102,7 +102,6 @@ export class Player extends DrawableEntity {
             addontype: AddOnType.SPECIAL,
             modifyShot : function(shotInfo, effect){
                 effect.onStart(function(){
-                    this
                 });
 
                 effect.onInterval(2, function(times){

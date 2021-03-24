@@ -12,7 +12,7 @@ export enum ClientBoundPacket {
 }
 
 export enum GamePacket {
-    REMOTE_ENTITY_CREATE, // [ ID of the class, instance id]
+    REMOTE_ENTITY_CREATE, // [ SHARED ID of the class, instance id]
     REMOTE_ENTITY_VARIABLE_CHANGE, // [ instance id, ...data]
 
 

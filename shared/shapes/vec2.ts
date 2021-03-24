@@ -176,11 +176,11 @@ export class Vec2 {
 	        this.x /= len;
 	        this.y /= len;
         }
-        return this
+        return this;
     }
 
     /** Set the length of the vector
-     *  TODO: change this to a more intuitive name 
+     *  MAYBE: change this to a more intuitive name 
      */
     public extend(magnitude: number): this {
 		this.normalize();

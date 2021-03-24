@@ -62,7 +62,6 @@ export function loadTestLevel(this: Scene): void {
             //console.log(this.point)
             if(this.Mouse.wasPressed("left")) { 
                 this.Terrain.carvePolygon(this.polygon, this.point);
-                this.Engine.redrawLevel();
             }
 
             if(this.Keyboard.wasReleased("KeyY")) this.polygon = Polygon.random(5,180)
@@ -75,7 +74,7 @@ export function loadTestLevel(this: Scene): void {
             g.position = this.point// (this.point.x, this.point.y);
             this.polygon.draw(g, 0x0000FF);
 
-            drawPoint(g,this.point,"#FF0000");   
+            drawPoint(g,this.point,0xFF0000);   
         }
     }
     
@@ -95,7 +94,6 @@ export function loadTestLevel(this: Scene): void {
            //console.log(this.point)
             if(this.Mouse.wasPressed("left")) { 
                 this.Terrain.carveCircle(this.point.x, this.point.y, this.radius);
-                this.Engine.redrawLevel();
             }
             
             this.redraw(true);
@@ -108,7 +106,7 @@ export function loadTestLevel(this: Scene): void {
         
             drawCircle(g,this.point, this.radius, undefined, .3)
 
-            drawPoint(g,this.point,"#FF0000");   
+            drawPoint(g,this.point,0xFF0000);   
         }
     }
     
@@ -630,7 +628,7 @@ export function loadTestLevel(this: Scene): void {
             this.testobject.collider.rect.draw(g);
             
 
-            drawPoint(g,this.Mouse.position, this.map.isSolid(this.Mouse.position.x, this.Mouse.position.y) ? "0xFF0000":"0x0000FF");
+            drawPoint(g,this.Mouse.position, this.map.isSolid(this.Mouse.position.x, this.Mouse.position.y) ? 0xFF0000:0x0000FF);
         }
 
 

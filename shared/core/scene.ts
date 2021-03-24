@@ -87,7 +87,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
 
         this.entities.pop();
 
-        console.log(this.sparse, this.entities)
+        // console.log(this.sparse, this.entities)
 
         entity.onDestroy();
         this.partQueries.forEach(q => {

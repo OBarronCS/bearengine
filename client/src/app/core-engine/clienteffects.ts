@@ -36,6 +36,14 @@ export class DefaultBulletEffect extends Effect {
         this.onUpdate(() => {
             this.bullet.position.add(this.velocity);
             
+
+            const testTerrain = this.Terrain.lineCollision(this.bullet.position,Vec2.add(this.bullet.position, this.velocity.clone().extend(100)))
+
+            if(testTerrain){
+                this.Terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, 25);
+                // this.destroySelf();
+            }
+
             if(!this.Level.bbox.contains(this.bullet.position)){
                 this.destroySelf();
             }

@@ -3,7 +3,7 @@ import { Coordinate, Vec2, mix, flattenVecArray, distanceSquared } from "./vec2"
 import { Rect } from "./rectangle";
 import { abs, atan2, cos, max, min, niceColor, PI, sin, TWO_PI } from "../mathutils";
 
-import { Graphics, Point, Text } from "pixi.js";
+import type { Graphics, Point } from "pixi.js";
 
 import { default as earcut } from "earcut";
 
@@ -14,7 +14,6 @@ import { swap } from "shared/datastructures/arrayutils";
 
 
 // Test for concavity: http://paulbourke.net/geometry/polygonmesh/
-// TODO: more optimized clockwise test for 3 points
 
 export class Polygon implements Shape<Polygon>{
    
@@ -333,20 +332,21 @@ export class Polygon implements Shape<Polygon>{
         return this.clone();
     }
     
-    draw(g: Graphics, color: number = niceColor(), normals = true): void {
+    draw(g: Graphics, color: number = niceColor(), normals = true, fill = true, points = true): void {
         g.lineStyle(3,color,.9);
         g.endFill();
+
+        if(fill) g.beginFill(color);
+
         g.drawPolygon(this.points as unknown as Point[])
 
-        g.removeChildren()
+        if(fill) g.endFill()
+
         // draw points
-        for (let i = 0; i < this.points.length; i++) {
-            const point = this.points[i];
-            drawPoint(g, point)
-            const t = new Text(i.toString());
-            //@ts-expect-error
-            t.position = point;
-            g.addChild(t)
+        if(points){
+            for(const point of this.points){
+                drawPoint(g, point)
+            }
         }
   
 

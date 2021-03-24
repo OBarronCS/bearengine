@@ -75,11 +75,9 @@ export class BearEngine implements AbstractBearEngine {
     private systems: Subsystem[] = [];
     public systemEventMap: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();
 
-    public levelGraphic = new Graphics();
 
     // Total simulated time, in seconds
     public totalTime = 0;
-
 
     // DOES NOT start ticking yet
     init(): void {
@@ -168,9 +166,9 @@ export class BearEngine implements AbstractBearEngine {
 
         Entity.BEAR_ENGINE = this;
         
-        this.levelGraphic = new Graphics();
-        this.redrawLevel();
-        this.renderer.addSprite(this.levelGraphic);
+        this.terrain.graphics = new Graphics();
+        this.terrain.queueRedraw();
+        this.renderer.addSprite(this.terrain.graphics);
 
         loadTestLevel.call(this.entityManager);
 
@@ -202,10 +200,7 @@ export class BearEngine implements AbstractBearEngine {
         this.loadLevel(data);
     }
 
-    public redrawLevel(){
-        this.levelGraphic.clear();
-        this.terrain.draw(this.levelGraphic);
-    }
+    
 
     // Loads all assets from server
     async loadAssets(): Promise<typeof SHARED_RESOURCES>{

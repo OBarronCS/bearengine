@@ -18,10 +18,10 @@ export class TerrainManager extends Subsystem {
 	width: number;
 	height: number;
 	
-	grid_width = 20
-	grid_height = 20 
+	grid_width = 20;
+	grid_height = 20;
 
-    /// TerrainMesh objects --> the individual bodies --> not really used in any calculations
+    /// TerrainMesh objects --> the individual bodies
     terrains: TerrainMesh[] = [];
 
     // call this externally to properly initialize
@@ -34,19 +34,42 @@ export class TerrainManager extends Subsystem {
 		);
     }
 
-    init(): void {}
-    update(delta: number): void {}
+    init(): void {
+    
+    }
+
+    public graphics: Graphics;
+    update(delta: number): void {
+        if(this.redrawQueued){
+            this.redrawQueued = false;
+
+            this.draw(this.graphics);
+        }
+    }
+
     clear(){
         this.grid.clear();
     }
 
-	draw(g: Graphics){
+    redrawQueued = false;
+    queueRedraw(): void {
+        this.redrawQueued = true;
+    }
+
+	private draw(g: Graphics){
+        const now = performance.now();
+
+        g.clear();
+        
 		this.terrains.forEach((t) => {
 			t.draw(g);
 		});
-
+        
 		this.grid.draw(g); // Draws it with grid lines included, and with the aabbs of the lines
-	}
+        
+        
+        console.log(performance.now() - now)
+    }
 	
 	/// Adds all terrain info --> adds to grid buckets
 	addTerrain(points: number[],normals: number[]): void{
@@ -55,7 +78,7 @@ export class TerrainManager extends Subsystem {
 		this.grid.insert(newTerrain)
 	}
 	
-	// Terrain Raycast: return null if no collision, otherwise closest point of intersection 
+	/** Terrain Raycast: return null if no collision, otherwise closest point of intersection */
 	lineCollision(A: Coordinate,B: Coordinate): {point:Vec2,normal:Vec2} {
 		const box = (new Line(A,B)).getAABB();
 		
@@ -113,6 +136,8 @@ export class TerrainManager extends Subsystem {
 				}
 			}
 		}
+
+        this.queueRedraw();
 	}
 
     carvePolygon(polygon: Polygon, shift: Vec2,): void {
@@ -146,6 +171,8 @@ export class TerrainManager extends Subsystem {
 				}
 			}
 		}
+
+        this.queueRedraw();
 	}
 
 }
@@ -164,7 +191,7 @@ class TerrainMesh  {
 	}
 
 	carveCircle(x: number,y: number, r: number): TerrainMesh[] | null{
-		console.log("Polygon is clockwise : "  + Polygon.isClockwise(this.polygon.points));
+		// console.log("Polygon is clockwise : "  + Polygon.isClockwise(this.polygon.points));
         //  if this breaks, its because of an edge case with overlapping points and floating point error
 
         const circle = new Ellipse(new Vec2(x,y),r,r);
@@ -232,8 +259,8 @@ class TerrainMesh  {
             return p2Angle - p1Angle;
         });
 
-        console.log("Indices: ", addedIndices);
-        console.log("Points: ", newPoints)
+        // console.log("Indices: ", addedIndices);
+        // console.log("Points: ", newPoints)
 
         // Algorithm 2.0: Here we go
 
@@ -256,7 +283,7 @@ class TerrainMesh  {
         const testPoint = new Vec2(x + cos(testAngle) * r, y + sin(testAngle) * r);
         // console.log(testPoint)
         if(!this.polygon.contains(testPoint)){
-            console.log("OFFSET")
+            //console.log("OFFSET")
             offset = 1;
         }
 
@@ -324,8 +351,8 @@ class TerrainMesh  {
         //Now, we have created all the disconnected 'islands' of points (defined in islands array), we just need to make them seperate polygon objects
         // And add the points from the circle
 
-        console.log(freeIslandNumber)
-        console.log("Islands: " + islands)
+        // console.log(freeIslandNumber)
+        // console.log("Islands: " + islands)
 
         const components: Vec2[][] = [];
 
@@ -433,7 +460,7 @@ class TerrainMesh  {
         testPoint.add(shift);
 
         if(!this.polygon.contains(testPoint)){
-            console.log("OFFSET")
+            // console.log("OFFSET")
             offset = 1;
         }
 
@@ -504,7 +531,7 @@ class TerrainMesh  {
         //Now, we have created all the disconnected 'islands' of points (defined in islands array), we just need to make them seperate polygon objects
         // And add the points from the circle
 
-        console.log("Islands: " + islands)
+        // console.log("Islands: " + islands)
 
         const components: Vec2[][] = [];
 
@@ -540,7 +567,7 @@ class TerrainMesh  {
     }
 
 	draw(g: Graphics){
-		this.polygon.draw(g, 0x900C3F, true);
+		this.polygon.draw(g, 0x900C3F, false, true, true);
 	}
 }
 
