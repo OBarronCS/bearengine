@@ -2,6 +2,7 @@ import { AbstractEntity} from "shared/core/abstractentity"
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/networkstream";
 import { networkedclass_server, networkedvariable } from "./networking/serverentitydecorators";
 import { TickTimer } from "shared/ticktimer";
+import { random } from "shared/randomhelpers";
 
 export abstract class ServerEntity extends AbstractEntity {
 
@@ -27,9 +28,13 @@ export class FirstAutoEntity extends ServerEntity {
     @networkedvariable("int32")
     public health = 1;
 
+    @networkedvariable("double")
+    public xpos = 1;
+
     update(dt: number): void {
         if(this.tick.tick()) {
             this.health += 1;
+            this.xpos += random(40)
             this.stateChanged();
         }
     }

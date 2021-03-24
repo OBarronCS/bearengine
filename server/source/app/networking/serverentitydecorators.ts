@@ -38,7 +38,7 @@ function dec2(target, propertyKey): any {
 */
 
 /**  Place this decorator before variables to sync them automatically to client side */
-export function networkedvariable<T extends keyof NetworkedVariableTypes>(variableType: T) {
+export function networkedvariable<K extends keyof NetworkedVariableTypes>(variableType: K) {
 
     // Property decorator
     return function<T extends ServerEntity>(target: T, propertyKey: keyof T){
@@ -77,7 +77,7 @@ export function networkedclass_server<T extends keyof NetworkedEntityNames>(clas
         variableslist.sort((a,b) => a.variablename.toLowerCase().localeCompare(b.variablename.toLowerCase()));
 
         let allVariables = "";
-        for(const name of variableslist) allVariables += name.variablename;
+        for(const name of variableslist) allVariables += name.variablename + ",";
 
         console.log(`Confirmed class, ${targetConstructor.name}, as networked entity. Contains the following variables: ${allVariables}`);
         

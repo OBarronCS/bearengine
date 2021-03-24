@@ -41,7 +41,7 @@ export class DefaultBulletEffect extends Effect {
 
             if(testTerrain){
                 this.Terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, 25);
-                // this.destroySelf();
+                this.destroySelf();
             }
 
             if(!this.Level.bbox.contains(this.bullet.position)){

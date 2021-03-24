@@ -136,17 +136,17 @@ export class BearEngine implements AbstractBearEngine {
         return null;
     }
 
-    loadLevel(level_struct: CustomMapFormat){
+    loadLevel(levelData: CustomMapFormat){
         if(this.level.loaded) throw new Error("TRYING TO LOAD A LEVEL WHEN ONE IS ALREADY LOADED");
         
-        this.level.startLevel(level_struct);
+        this.level.startLevel(levelData);
 
         this.entityManager.registerPartQueries(this.systems);
 
-        this.renderer.renderer.backgroundColor = string2hex(level_struct.world.backgroundcolor);
+        this.renderer.renderer.backgroundColor = string2hex(levelData.world.backgroundcolor);
        
         // Load sprites from map 
-        level_struct.sprites.forEach(s => {
+        levelData.sprites.forEach(s => {
             const sprite = new Sprite(this.renderer.getTexture(ASSET_FOLDER_NAME + s.file_path));
             sprite.x = s.x;
             sprite.y = s.y;

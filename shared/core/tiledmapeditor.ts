@@ -153,7 +153,7 @@ function isRectangle(object: any): object is RectangleObject {
 
 
 export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
-    console.log("map:" + map)
+    // console.log("map:" + map)
     const worldData: CustomMapFormat["world"] = {
         width: map.width * map.tilewidth,
         height: map.height * map.tileheight,

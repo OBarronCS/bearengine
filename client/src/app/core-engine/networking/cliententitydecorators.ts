@@ -17,7 +17,7 @@ type EntityNetworkedVariablesListType<T extends Entity> = {
 }[]
 
 /** Means a variable is being controlled by the server. Should be readonly on clientside */
-export function remotevariable<T extends keyof NetworkedVariableTypes>(variableType: T) {
+export function remotevariable<K extends keyof NetworkedVariableTypes>(variableType: K) {
 
     // Property decorator
     return function<T extends Entity>(target: T, propertyKey: keyof T){
@@ -43,26 +43,17 @@ export function remotevariable<T extends keyof NetworkedVariableTypes>(variableT
 export function networkedclass_client<T extends keyof NetworkedEntityNames>(classname: T) {
 
     return function<U extends typeof Entity>(targetConstructor: U){
-        type AbstractInstanceType<T> = T extends { prototype: infer U } ? U : never;
-        type TypeOfInstance = AbstractInstanceType<U>;
 
-        const variableslist = targetConstructor["VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType<TypeOfInstance>;
+        const variableslist = targetConstructor["VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType<Entity>;
         if(variableslist === undefined) throw new Error("No variables added to networked entity");
         
         // Alphabetically sorts them keys, will deserialize in this order.
-        // @ts-expect-error
         variableslist.sort((a,b) => a.variablename.toLowerCase().localeCompare(b.variablename.toLowerCase()));
 
-        let allVariables = "";
-        for(const name of variableslist) allVariables += name.variablename;
-
-        console.log(`Confirmed class, ${targetConstructor.name}, as client entity. Contains the following variables: ${allVariables}`);
-        
-        targetConstructor["deserializeVariables"] = function(entity: TypeOfInstance,stream: BufferStreamReader){
-            for(const variable of variableslist){
-                //@ts-expect-error
-                entity[variable.variablename] = DeserializeEntityVariable(stream, variable.type);
-            }
+        {   // Debug info
+            let allVariables = "";
+            for(const name of variableslist) allVariables += name.variablename + ",";
+            console.log(`Confirmed class, ${targetConstructor.name}, as client entity. Contains the following variables: ${allVariables}`);
         }
 
         targetConstructor["SHARED_ID"] = -1;
@@ -70,6 +61,7 @@ export function networkedclass_client<T extends keyof NetworkedEntityNames>(clas
         SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES.push({
             create: targetConstructor,
             name: classname,
+            variablelist: variableslist
         })
     }
 }
@@ -80,8 +72,38 @@ type EntityConstructor = abstract new(...args:any[]) => Entity;
 export class SharedEntityClientTable {
     private constructor(){}
 
-    static readonly REGISTERED_NETWORKED_ENTITIES: {create: EntityConstructor, name: keyof NetworkedEntityNames}[] = [];
+    static readonly REGISTERED_NETWORKED_ENTITIES: {
+        create: EntityConstructor, 
+        name: keyof NetworkedEntityNames,
+        variablelist: EntityNetworkedVariablesListType<any>
+    }[] = [];
     static readonly networkedEntityIndexMap = new Map<number,EntityConstructor>();
+
+    static init(){
+        // Sort shared entities alphabetically so they match up on server side
+        SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES.sort( (a,b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+        for(let i = 0; i < SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES.length; i++){
+            const registry = SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES[i];
+            SharedEntityClientTable.networkedEntityIndexMap.set(i,registry.create);
+            registry.create["SHARED_ID"] = i;
+        }
+    }
+
+    static getEntityClass(sharedID: number): EntityConstructor {
+        return SharedEntityClientTable.networkedEntityIndexMap.get(sharedID);
+    }
+
+
+    static deserialize(entity: Entity, stream: BufferStreamReader){
+        
+        const classInfo = SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES[entity.constructor["SHARED_ID"]];
+        const variableslist = classInfo.variablelist;
+
+        for(const variableinfo of variableslist){
+            entity[variableinfo.variablename] = DeserializeEntityVariable(stream, variableinfo.type);
+        }
+
+    }
 }
 
 

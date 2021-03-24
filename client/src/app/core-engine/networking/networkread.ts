@@ -32,14 +32,8 @@ export class NetworkReadSystem extends Subsystem {
     private scene: Scene;
 
     init(): void {
-        // Sort networked alphabetically, so they match up on server side
-        // Gives them id probably don't need that on client side though
-        SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES.sort( (a,b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-        for(let i = 0; i < SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES.length; i++){
-            const registry = SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES[i];
-            SharedEntityClientTable.networkedEntityIndexMap.set(i,registry.create);
-            registry.create["SHARED_ID"] = i;
-        }
+
+        SharedEntityClientTable.init();
 
         this.scene = this.getSystem(Scene);
     }
@@ -62,14 +56,15 @@ export class NetworkReadSystem extends Subsystem {
                     switch(type){
                         case GamePacket.REMOTE_ENTITY_CREATE: {
                             const sharedClassID = stream.getUint8();
-                            const eId = stream.getUint16();
-                            const _class = SharedEntityClientTable.networkedEntityIndexMap.get(sharedClassID);
+                            const entityID = stream.getUint16();
+                            
+                            const _class = SharedEntityClientTable.getEntityClass(sharedClassID);
 
                             //@ts-expect-error
                             const e = new _class();
 
                             // Adds it to the scene
-                            this.entities.set(eId, e);
+                            this.entities.set(entityID, e);
                             this.scene.addEntity(e);
 
                             break;
@@ -84,9 +79,10 @@ export class NetworkReadSystem extends Subsystem {
                             if(e === undefined){
                                 console.log("CANNOT FIND ENTITY WITH THAT VARIABLE. WILL QUIT");
                                 // Idk how else to deal with this error, than to quit.
-                                return
+                                return;
                             }
-                            e.constructor["deserializeVariables"](e, stream);
+
+                            SharedEntityClientTable.deserialize(e, stream);
 
                             break;
                         }

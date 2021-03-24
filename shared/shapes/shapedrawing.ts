@@ -12,9 +12,9 @@ export function drawVecAsArrow(graphics: Graphics, vec: Coordinate, _x: number, 
 }
 
 export function drawPoint(g: Graphics, point: Coordinate, color = 0x00FFF0){
-    //g.beginFill(color);
+    g.beginFill(color);
     g.drawRect(point.x - 2, point.y - 2, 4, 4);
-    // g.endFill();
+    g.endFill();
 }
 
 export function drawCircle(g: Graphics, point: Coordinate, r: number, color = 0x00FFF0, alpha = 1){

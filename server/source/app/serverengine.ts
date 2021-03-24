@@ -233,21 +233,21 @@ export class ServerBearEngine implements AbstractBearEngine {
         if (this.previousTick + (1000 / this.TICK_RATE) <= now) {
             const dt = 1000 / this.TICK_RATE;
 
-            // if(this.tickTimer.tick()){ 
-            //     console.log("AUTO ENTITY");
+            if(this.tickTimer.tick()){ 
+                console.log("AUTO ENTITY");
                 
-            //     const e = new FirstAutoEntity();
+                const e = new FirstAutoEntity();
 
-            //     this.entityManager.addEntity(e);
+                this.entityManager.addEntity(e);
                 
-            //     this.globalPacketsToSerialize.push({
-            //         write(stream){
-            //             stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
-            //             stream.setUint8(e.constructor["SHARED_ID"]);
-            //             stream.setUint16(e.entityID);
-            //         }
-            //     });
-            // }
+                this.globalPacketsToSerialize.push({
+                    write(stream){
+                        stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
+                        stream.setUint8(e.constructor["SHARED_ID"]);
+                        stream.setUint16(e.entityID);
+                    }
+                });
+            }
 
             this.tick += 1;
             // Think about whether the time should be at beginning or end of tick

@@ -41,17 +41,20 @@ export class RemoteLocations extends Part {
     }
 }
 
-
-
-
 @networkedclass_client("auto")
 export class RemoteAuto extends Entity {
+
+    public sprite = this.addPart(new SpritePart("tree.gif"));
 
     @remotevariable("int32")
     public health = 1;
 
+    @remotevariable("double")
+    public xpos = 1;
+
     update(dt: number): void {
         console.log(this.health);
+        this.x = this.xpos
     }
 
 }
