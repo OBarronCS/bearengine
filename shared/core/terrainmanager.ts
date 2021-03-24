@@ -57,8 +57,6 @@ export class TerrainManager extends Subsystem {
     }
 
 	private draw(g: Graphics){
-        const now = performance.now();
-
         g.clear();
         
 		this.terrains.forEach((t) => {
@@ -66,9 +64,6 @@ export class TerrainManager extends Subsystem {
 		});
         
 		this.grid.draw(g); // Draws it with grid lines included, and with the aabbs of the lines
-        
-        
-        console.log(performance.now() - now)
     }
 	
 	/// Adds all terrain info --> adds to grid buckets
@@ -567,7 +562,7 @@ class TerrainMesh  {
     }
 
 	draw(g: Graphics){
-		this.polygon.draw(g, 0x900C3F, false, true, true);
+		this.polygon.draw(g, 0x900C3F, false, true, false);
 	}
 }
 

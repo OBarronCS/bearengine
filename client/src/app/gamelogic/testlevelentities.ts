@@ -726,7 +726,7 @@ export function loadTestLevel(this: Scene): void {
         draw(g: Graphics): void {
             g.clear();
             for(const line of this.lines){
-                line.draw(g,"#FFFFFF");
+                line.draw(g,0xFFFFFF);
             }
         }
 

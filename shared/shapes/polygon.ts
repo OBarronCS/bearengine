@@ -343,6 +343,7 @@ export class Polygon implements Shape<Polygon>{
         if(fill) g.endFill()
 
         // draw points
+        // Drawing a lot of these is actually quiet slow. 
         if(points){
             for(const point of this.points){
                 drawPoint(g, point)

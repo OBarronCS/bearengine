@@ -107,7 +107,7 @@ export class QuadTree<T> {
         node.aabb.draw(g,undefined,6);
 
         for(const value of node.values){
-            this.AABBFunction(value).draw(g,string2hex("#FF0000"));
+            this.AABBFunction(value).draw(g,0xFF0000);
         }
 
         this.draw(g, node.NE);
@@ -1083,7 +1083,7 @@ export class LiveGridQuadTree {
         }
         // draw explored nodes
         for(const edge of this.exploredConnections){
-            drawLineBetweenPoints(g, edge[0].middle().scale(scale), edge[1].middle().scale(scale),"#4248f", 1, 7);
+            drawLineBetweenPoints(g, edge[0].middle().scale(scale), edge[1].middle().scale(scale),0x4248f, 1, 7);
         }
         g.alpha = 1;
         // FINNISHED PATH
@@ -1093,7 +1093,7 @@ export class LiveGridQuadTree {
                 const node = this.finalPath[i];
                 const nn = this.finalPath[i + 1];
 
-                drawLineBetweenPoints(g, node.middle().scale(scale), nn.middle().scale(scale),"#dea22a", 1, 30);
+                drawLineBetweenPoints(g, node.middle().scale(scale), nn.middle().scale(scale),0xdea22a, 1, 30);
             }
         }
     }

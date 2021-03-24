@@ -44,7 +44,7 @@ export class Line {
         return new Vec2(A.x + u * dx, A.y + u * dy);
     }
 
-    /** DOES NOT RETURN tangential points! */
+    /** Returns points of intersection, and whether or not the line was tangent to the spheres edge */
     static CircleLineIntersection(p1: Coordinate,p2: Coordinate, x: number, y: number, r: number, infiniteLine = false): {tangent: boolean, points: Vec2[]}{
         //http://paulbourke.net/geometry/circlesphere/
 
@@ -146,7 +146,7 @@ export class Line {
         return null;
     }
 
-    draw(g: Graphics, color?: string){
+    draw(g: Graphics, color?: number){
         drawLineBetweenPoints(g, this.A, this.B, color);
     }
 
