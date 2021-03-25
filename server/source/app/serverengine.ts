@@ -14,6 +14,7 @@ import { FirstAutoEntity, PlayerEntity, ServerEntity } from "./serverentity";
 import { PacketWriter } from "./networking/packetwriter";
 import { TickTimer } from "shared/ticktimer";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
+import { RemoteFunctionLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
 
 class PlayerInformation {
     
@@ -234,19 +235,24 @@ export class ServerBearEngine implements AbstractBearEngine {
             const dt = 1000 / this.TICK_RATE;
 
             if(this.tickTimer.tick()){ 
-                console.log("AUTO ENTITY");
-                
-                const e = new FirstAutoEntity();
-
-                this.entityManager.addEntity(e);
-                
                 this.globalPacketsToSerialize.push({
                     write(stream){
-                        stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
-                        stream.setUint8(e.constructor["SHARED_ID"]);
-                        stream.setUint16(e.entityID);
+                        RemoteFunctionLinker.serializeRemoteFunction("test1", stream,100,100);
                     }
                 });
+                // console.log("AUTO ENTITY");
+                
+                // const e = new FirstAutoEntity();
+
+                // this.entityManager.addEntity(e);
+                
+                // this.globalPacketsToSerialize.push({
+                //     write(stream){
+                //         stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
+                //         stream.setUint8(e.constructor["SHARED_ID"]);
+                //         stream.setUint16(e.entityID);
+                //     }
+                // });
             }
 
             this.tick += 1;

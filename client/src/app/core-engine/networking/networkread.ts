@@ -2,6 +2,7 @@ import { AssertUnreachable } from "shared/assertstatements";
 import { AbstractBearEngine } from "shared/core/abstractengine";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { Scene } from "shared/core/scene";
+import { RemoteFunction, RemoteFunctionLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { SharedEntityClientTable } from "./cliententitydecorators";
@@ -31,9 +32,28 @@ export class NetworkReadSystem extends Subsystem {
 
     private scene: Scene;
 
+    private remoteFunctionCallMap = new Map<keyof RemoteFunction,keyof NetworkReadSystem>()
+
     init(): void {
 
         SharedEntityClientTable.init();
+
+
+        // Init remote function call linking
+
+
+
+        let remotefunctiondata = NetworkReadSystem["REMOTE_FUNCTION_REGISTRY"] as RemoteFunctionListType;
+        if(remotefunctiondata === undefined) { 
+            console.log("No remote functions defined")
+            remotefunctiondata = [];
+        }
+        // Could do this conversion directly in the decorator, and just make this an index in array not a map
+        for(const remotefunction of remotefunctiondata){
+            this.remoteFunctionCallMap.set(remotefunction.remoteFunctionName, remotefunction.methodName)
+        }
+    
+        // use: this.remoteFunctionCallMap.get(RemoteFunctionLinker.getStringFromId(stream.getUint8()));
 
         this.scene = this.getSystem(Scene);
     }
@@ -84,6 +104,17 @@ export class NetworkReadSystem extends Subsystem {
 
                             SharedEntityClientTable.deserialize(e, stream);
 
+                            break;
+                        }
+                        
+                        case GamePacket.REMOTE_FUNCTION_CALL:{
+                            const functionID = stream.getUint8();
+                            const functionName = RemoteFunctionLinker.getStringFromID(functionID)
+
+                            const methodOfThisObject = this.remoteFunctionCallMap.get(functionName);
+
+                            RemoteFunctionLinker.callRemoteFunction(functionName, stream, this, methodOfThisObject);
+                            
                             break;
                         }
 
@@ -151,4 +182,53 @@ export class NetworkReadSystem extends Subsystem {
             }
         }
     }
+
+    @remotefunction("test1")
+    test(name: number, food: number){
+        console.log(`REMOTE FUNCTION CALLED -> Name is ${name}, food is ${food}`);
+    }
 }
+
+
+
+
+/** Remote Function Logic */
+
+type RemoteFunctionListType = {
+    remoteFunctionName: keyof RemoteFunction,
+    methodName: keyof NetworkReadSystem,
+}[]
+
+// Event registering with decorators
+function remotefunction<T extends keyof RemoteFunction>(functionName: T) {
+
+
+    return function(target: NetworkReadSystem, propertyKey: keyof NetworkReadSystem /* MethodsOfClass<ClassType> */, descriptor: TypedPropertyDescriptor<RemoteFunction[T]>){
+        // target is the prototype of the class
+        // Now I can use this propertyKey to attach the event handler
+
+        const constructorClass = target.constructor;
+        
+        if(constructorClass["REMOTE_FUNCTION_REGISTRY"] === undefined){
+            constructorClass["REMOTE_FUNCTION_REGISTRY"] = [];
+        }
+
+        const remotefunctionlist = constructorClass["REMOTE_FUNCTION_REGISTRY"] as RemoteFunctionListType;
+        remotefunctionlist.push({
+            remoteFunctionName: functionName,
+            methodName: propertyKey,
+        });
+
+        console.log(`Added remote function callback, ${functionName}, linked to method with name ${propertyKey}`)
+        //console.log(target.constructor)
+    }
+}
+
+
+
+
+
+
+
+
+

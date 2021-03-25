@@ -16,6 +16,8 @@ export enum GamePacket {
     REMOTE_ENTITY_VARIABLE_CHANGE, // [ instance id, ...data]
 
 
+    REMOTE_FUNCTION_CALL, // [shared function id, ...function argument data]
+
     SIMPLE_POSITION,
     PLAYER_POSITION,
     ENTITY_DESTROY, // used with players right now 
