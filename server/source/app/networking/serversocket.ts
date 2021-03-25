@@ -6,14 +6,10 @@ import { ClientBoundPacket, ClientPacket, ServerBoundPacket } from "shared/core/
 import { LinkedQueue } from "shared/datastructures/queue";
 import { AssertUnreachable } from "shared/assertstatements";
 
-// maybe swap this with just an integer, and then the server calls some methods here with this id to get info? 
-export class ClientConnection {
-    id: number;
-    ping: number;
-}
+export type ConnectionID = number;
 
 interface BufferedPacket {
-    client: ClientConnection;
+    client: ConnectionID;
     buffer: BufferStreamReader;
 }
 
@@ -22,10 +18,13 @@ export class ServerNetwork {
 
     protected server: WS.Server = null;
 
+    private NEXT_CONNECTION_ID = 0;
+
     // List of connections. WS also has some built into way to do this...
     protected sockets: WS[] = [];
-    private clientMap = new Map<WS,ClientConnection>();
-    private reverseClientMap = new Map<ClientConnection, WS>();
+
+    private clientMap = new Map<WS,ConnectionID>();
+    private reverseClientMap = new Map<ConnectionID, WS>();
 
     private packets = new LinkedQueue<BufferedPacket>();
     
@@ -50,31 +49,31 @@ export class ServerNetwork {
         socket.binaryType = "arraybuffer";
         this.sockets.push(socket);
 
-        const connection = new ClientConnection();
+        const connectionID = this.NEXT_CONNECTION_ID++;
 
-        this.clientMap.set(socket,connection);
-        this.reverseClientMap.set(connection, socket);
-
+        this.clientMap.set(socket,connectionID);
+        this.reverseClientMap.set(connectionID, socket);
 
         socket.on("close", () => {
-            console.log("Client disconnected");
             const client = this.clientMap.get(socket);
+            console.log("Client disconnected, ", client);
 
             if(client === undefined) throw new Error("Closing socket from unknown client. If this error goes off then there is something deeply wrong");
 
             // Sends this info to the engine as a packet. 
-            const stream = new BufferStreamWriter(new ArrayBuffer(3))
-            stream.setUint8(ServerBoundPacket.CLIENT_STATE_PACKET);
+            const stream = new BufferStreamWriter(new ArrayBuffer(1))
+
             stream.setUint8(ClientPacket.LEAVE_GAME);
 
             this.packets.enqueue({
                 client:client,
-                buffer:new BufferStreamReader(stream.getBuffer()),
+                buffer:new BufferStreamReader(stream.cutoff()),
             });
 
             // This is the last message associated with this socket
             this.clientMap.delete(socket);
             this.reverseClientMap.delete(client);
+            
             const index = this.sockets.indexOf(socket);
             this.sockets.splice(index,1);
         });
@@ -118,8 +117,10 @@ export class ServerNetwork {
         return this.packets;
     }
 
-    public send(client: ClientConnection, buffer: ArrayBuffer){
+    public send(client: ConnectionID, buffer: ArrayBuffer){
         const socket = this.reverseClientMap.get(client);
+
+        // If this happens, it means the player has disconnected, but the engine has yet to read that packet 
         if(socket === undefined) throw new Error("Cannot find client, " + client);
 
         socket.send(buffer);        

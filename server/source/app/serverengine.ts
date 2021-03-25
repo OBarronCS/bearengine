@@ -9,7 +9,7 @@ import { BearEvents } from "shared/core/sharedlogic/eventdefinitions";
 import { ClientBoundPacket, ClientPacket, GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
-import { ClientConnection, ServerNetwork } from "./networking/serversocket";
+import { ConnectionID, ServerNetwork } from "./networking/serversocket";
 import { FirstAutoEntity, PlayerEntity, ServerEntity } from "./serverentity";
 import { TickTimer } from "shared/ticktimer";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
@@ -50,8 +50,8 @@ export class ServerBearEngine implements AbstractBearEngine {
     globalPacketsToSerialize: PacketWriter[] = [];
 
 
-    private players = new Map<ClientConnection,PlayerInformation>();
-    private clients: ClientConnection[] = [];
+    private players = new Map<ConnectionID,PlayerInformation>();
+    private clients: ConnectionID[] = [];
 
    
     constructor(tick_rate: number){
@@ -113,11 +113,14 @@ export class ServerBearEngine implements AbstractBearEngine {
 
             while(stream.hasMoreData()){
                 const type: ClientPacket = stream.getUint8();
+                console.log("Reading type: ", ClientPacket[type]);
+                console.log("Data, ", packet.buffer.getBuffer().toString())
 
                 switch(type){
                     // Client sends JOIN_GAME packet for now
                     case ClientPacket.JOIN_GAME: {
                         // TODO: first check that it hasn't already been created.
+                        console.log("Someone is trying to join: ", client)
                         const pInfo = new PlayerInformation();
                         
                         this.clients.push(client);
@@ -150,6 +153,7 @@ export class ServerBearEngine implements AbstractBearEngine {
                         break;
                     }
                     case ClientPacket.LEAVE_GAME: {
+                        console.log(`Player ${client} has left the game, engine acknowledge`);
                         const pInfo = this.players.get(client);
 
                         this.players.delete(client);
@@ -169,6 +173,23 @@ export class ServerBearEngine implements AbstractBearEngine {
                         p.position.x = stream.getFloat32();
                         p.position.y = stream.getFloat32();
 
+                        break;
+                    }
+
+                    case ClientPacket.TERRAIN_CARVE_CIRCLE: {
+                        const x = stream.getFloat64();
+                        const y = stream.getFloat64();
+                        const r = stream.getInt32();
+
+                        this.globalPacketsToSerialize.push({
+                            write(stream){
+                                stream.setUint8(GamePacket.PASSTHROUGH_TERRAIN_CARVE_CIRCLE);
+                                stream.setFloat64(x);
+                                stream.setFloat64(y);
+                                stream.setInt32(r);
+                            }
+                        });
+                        
                         break;
                     }
 
@@ -213,12 +234,11 @@ export class ServerBearEngine implements AbstractBearEngine {
                 packet.write(stream);
             }
             
-            this.globalPacketsToSerialize = [];
-            
-
+        
             this.network.send(client, stream.cutoff());
         }
 
+        this.globalPacketsToSerialize = [];
 
         console.log(this.tick,Date.now()  - this.previousTick);
     }

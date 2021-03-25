@@ -5,6 +5,7 @@ import { Scene } from "shared/core/scene";
 import { RemoteFunction, RemoteFunctionLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
+import { TerrainManager } from "shared/core/terrainmanager";
 import { SharedEntityClientTable } from "./cliententitydecorators";
 import { RemoteEntity, RemoteLocations, SimpleNetworkedSprite } from "./remotecontrol";
 import { BufferedNetwork } from "./socket";
@@ -166,6 +167,15 @@ export class NetworkReadSystem extends Subsystem {
                             }
                             
                             (e as SimpleNetworkedSprite).locations.addPosition(frame, stream.getFloat32(), stream.getFloat32());
+                            break;
+                        }
+                        case GamePacket.PASSTHROUGH_TERRAIN_CARVE_CIRCLE: {
+                            const terrain = this.getSystem(TerrainManager);
+                            const x = stream.getFloat64();
+                            const y = stream.getFloat64();
+                            const r = stream.getInt32();
+                            terrain.carveCircle(x, y, r);
+                            
                             break;
                         }
                         default: AssertUnreachable(type);

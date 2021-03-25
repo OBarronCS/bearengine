@@ -21,6 +21,9 @@ export enum GamePacket {
     SIMPLE_POSITION,
     PLAYER_POSITION,
     ENTITY_DESTROY, // used with players right now 
+
+    
+    PASSTHROUGH_TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
 }
 
 
@@ -30,9 +33,11 @@ export enum ServerBoundPacket {
 }
 
 export enum ClientPacket {
-    JOIN_GAME = 0, // used internally
+    JOIN_GAME,
     LEAVE_GAME, // sent internally
-    PLAYER_POSITION
+    PLAYER_POSITION,
+
+    TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
 }
 
 
