@@ -33,8 +33,9 @@ export class NetworkWriteSystem extends Subsystem {
             const player = this.getSystem(Scene).getEntityByTag<Player>("Player");
             const stream = new BufferStreamWriter(new ArrayBuffer(256));
 
+            // Signifies that everything after this in the packet is gameplay level stuff
             stream.setUint8(ServerBoundPacket.CLIENT_STATE_PACKET);
-            
+
             stream.setUint8(ClientPacket.PLAYER_POSITION);
             stream.setFloat32(player.x);
             stream.setFloat32(player.y);

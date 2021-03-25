@@ -132,10 +132,12 @@ export class BufferedNetwork extends Network {
     public SERVER_IS_TICKING: boolean = false;
 
     onopen(): void {
-        console.log("Buffered network ON OPEN")
+        console.log("Buffered network connected")
 
         const stream = new BufferStreamWriter(new ArrayBuffer(2))
+        
         stream.setUint8(ServerBoundPacket.CLIENT_STATE_PACKET);
+
         stream.setUint8(ClientPacket.JOIN_GAME);
 
         this.send(stream.getBuffer());
@@ -144,9 +146,7 @@ export class BufferedNetwork extends Network {
 
         // TODO: stop this from being in setInterval, put it into tick 
         // Possible issues: tick is run in rAF, which is not run if the tab is not in focus/view. Pinging still stop in those cases
-        
-        
-        // This is never being called on IOS;
+
         setInterval(() => {
             this.sendPing();
         }, 2000);
@@ -157,14 +157,25 @@ export class BufferedNetwork extends Network {
     onmessage(ev: MessageEvent<any>): void {
         const stream = new BufferStreamReader(ev.data);
 
-        const type: ClientBoundPacket = stream.getUint8();
+        while(stream.hasMoreData()){
+            const type: ClientBoundPacket = stream.getUint8();
 
-        switch(type){
-            case ClientBoundPacket.PONG: this.calculatePing(stream); break;
-            case ClientBoundPacket.INIT: this.initInfo(stream); break;
-            case ClientBoundPacket.START_TICKING: this.prepareTicking(stream); break;
-            case ClientBoundPacket.GAME_STATE_PACKET: this.processGameData(stream); break;
-            default: AssertUnreachable(type);
+            // RIGHT NOW, IT ASSUMES THAT beginning packets are the other ClientBoundPackets, and last one is GAME_STATE_PACKET
+            switch(type){
+                case ClientBoundPacket.PONG: this.calculatePing(stream); break;
+                case ClientBoundPacket.INIT: this.initInfo(stream); break;
+                case ClientBoundPacket.START_TICKING: {
+                    this.SERVER_IS_TICKING = true;
+                    // Reads this number so stream isn't broken
+                    const tick = stream.getUint16();;
+                    break;
+                }
+                case ClientBoundPacket.GAME_STATE_PACKET: { 
+                    this.processGameData(stream); 
+                    return;
+                }
+                default: AssertUnreachable(type);
+            }
         }
     }
 
@@ -179,10 +190,6 @@ export class BufferedNetwork extends Network {
         this.REFERENCE_SERVER_TICK_ID = stream.getUint16();
     }
 
-    private prepareTicking(stream: BufferStreamReader){
-        this.SERVER_IS_TICKING = true;
-        // next 16 bits are the tick
-    }
 
     private processGameData(stream: BufferStreamReader){
         const id = stream.getUint16();
