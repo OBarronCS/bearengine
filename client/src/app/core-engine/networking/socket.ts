@@ -166,12 +166,19 @@ export class BufferedNetwork extends Network {
                 case ClientBoundPacket.INIT: this.initInfo(stream); break;
                 case ClientBoundPacket.START_TICKING: {
                     this.SERVER_IS_TICKING = true;
-                    // Reads this number so stream isn't broken
-                    const tick = stream.getUint16();;
+                
+                    const tick = stream.getUint16(); // Reads this number so stream isn't broken
+
                     break;
                 }
                 case ClientBoundPacket.GAME_STATE_PACKET: { 
-                    this.processGameData(stream); 
+                    // Queues the data
+                    
+                    const id = stream.getUint16();
+                    // console.log("Received: " + id)
+                    this.packets.enqueue({ id: id, buffer: stream });
+                    // console.log("Size of queue: " + this.packets.size()) 
+
                     return;
                 }
                 default: AssertUnreachable(type);
@@ -190,13 +197,6 @@ export class BufferedNetwork extends Network {
         this.REFERENCE_SERVER_TICK_ID = stream.getUint16();
     }
 
-
-    private processGameData(stream: BufferStreamReader){
-        const id = stream.getUint16();
-        // console.log("Received: " + id)
-        this.packets.enqueue({ id: id, buffer: stream });
-        // console.log("Size of queue: " + this.packets.size())
-    }
 
     public sendPing(){
         // Sends unix time stamp in ms 
@@ -246,7 +246,7 @@ export class BufferedNetwork extends Network {
         */
     }
 
-    public tickToSimulate(): number {
+    public getTickToSimulate(): number {
 
         // console.log(this.CLOCK_DELTA);
 

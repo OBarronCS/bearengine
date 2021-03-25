@@ -26,9 +26,7 @@ export class NetworkWriteSystem extends Subsystem {
 
     init(): void {}
 
-    update(delta: number): void {
-        // Purely for testing. 
-        
+    update(delta: number): void {        
         if(this.network.CONNECTED && this.network.SERVER_IS_TICKING){
             const player = this.getSystem(Scene).getEntityByTag<Player>("Player");
             const stream = new BufferStreamWriter(new ArrayBuffer(256));

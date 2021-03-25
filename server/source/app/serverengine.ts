@@ -16,13 +16,14 @@ import { SharedEntityServerTable } from "./networking/serverentitydecorators";
 import { PacketWriter, RemoteFunctionLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
 
 class PlayerInformation {
-    
     playerEntity: PlayerEntity;
 
     // Info that should be serialized and sent to player
     personal_messages: PacketWriter[] = [];
 
     //dirtyEntities: ServerEntity[] = [];
+
+    constructor(public connectionID: ConnectionID){}
 }
 
 
@@ -119,7 +120,7 @@ export class ServerBearEngine implements AbstractBearEngine {
                         console.log("Someone is trying to join: ", client)
                         if(this.players.get(client) !== undefined) throw new Error("Client attempting to join twice")
 
-                        const pInfo = new PlayerInformation();
+                        const pInfo = new PlayerInformation(client);
                         
                         this.clients.push(client);
                         

@@ -185,7 +185,7 @@ export class NetworkReadSystem extends Subsystem {
             }
 
             // Interpolation of entities
-            const frameToSimulate = this.network.tickToSimulate();
+            const frameToSimulate = this.network.getTickToSimulate();
 
             for(const obj of this.remotelocations){
                 obj.setPosition(frameToSimulate)

@@ -16,7 +16,7 @@ interface BufferedPacket {
 export class ServerNetwork {
     //private readonly port: number;
 
-    protected server: WS.Server = null;
+    protected server: WS.Server;
 
     private NEXT_CONNECTION_ID = 0;
 
