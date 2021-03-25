@@ -27,6 +27,13 @@ implementations would then have to use this "shared name" to linked variables.
 = IDEA: It could enforce making the entity property the same name as well. 
 
 */
+
+export interface PacketWriter {
+    write(stream: BufferStreamWriter): void,
+}
+
+
+
 // Used to link client and server entity classes
 export interface NetworkedEntityNames {
     "flying_tree": false,

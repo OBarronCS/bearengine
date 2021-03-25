@@ -11,10 +11,9 @@ import { Subsystem } from "shared/core/subsystem";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { ClientConnection, ServerNetwork } from "./networking/serversocket";
 import { FirstAutoEntity, PlayerEntity, ServerEntity } from "./serverentity";
-import { PacketWriter } from "./networking/packetwriter";
 import { TickTimer } from "shared/ticktimer";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
-import { RemoteFunctionLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
+import { PacketWriter, RemoteFunctionLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
 
 class PlayerInformation {
     
