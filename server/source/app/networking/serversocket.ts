@@ -105,6 +105,7 @@ export class ServerNetwork {
 
     private sendPong(socket: WS, stream: BufferStreamReader){
         const writer = new BufferStreamWriter(new ArrayBuffer(1 + 8 + 8));
+        
         writer.setUint8(ClientBoundPacket.PONG);
         // copies the timestamp that was received, sends it back
         writer.setBigInt64(stream.getBigInt64());

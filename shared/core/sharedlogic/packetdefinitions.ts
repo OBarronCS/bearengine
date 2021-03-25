@@ -4,8 +4,8 @@
 
 export enum ClientBoundPacket {
     PONG, // response to client ping
-    INIT, // tick_rate, reference tick and time
-    START_TICKING, // tick_number
+    INIT, // [ tick_rate: uint8, reference time: biguint64, tick: uint16] 
+    START_TICKING, // [tick: uint16]
 
     
     GAME_STATE_PACKET // points to GamePacket

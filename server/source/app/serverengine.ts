@@ -20,12 +20,9 @@ class PlayerInformation {
     playerEntity: PlayerEntity;
 
     // Info that should be serialized and sent to player
-    messages: PacketWriter[] = [];
+    personal_messages: PacketWriter[] = [];
+
     //dirtyEntities: ServerEntity[] = [];
-
-    constructor(){
-
-    }
 }
 
 
@@ -113,14 +110,15 @@ export class ServerBearEngine implements AbstractBearEngine {
 
             while(stream.hasMoreData()){
                 const type: ClientPacket = stream.getUint8();
-                console.log("Reading type: ", ClientPacket[type]);
-                console.log("Data, ", packet.buffer.getBuffer().toString())
+                // console.log("Reading type: ", ClientPacket[type]);
 
                 switch(type){
                     // Client sends JOIN_GAME packet for now
                     case ClientPacket.JOIN_GAME: {
-                        // TODO: first check that it hasn't already been created.
+
                         console.log("Someone is trying to join: ", client)
+                        if(this.players.get(client) !== undefined) throw new Error("Client attempting to join twice")
+
                         const pInfo = new PlayerInformation();
                         
                         this.clients.push(client);
@@ -131,25 +129,27 @@ export class ServerBearEngine implements AbstractBearEngine {
                         this.entityManager.addEntity(player);
                         this.players.set(client, pInfo);
 
-                        // TODO: DEFER ALL OF THIS
-                        // INIT DATA --> send immediately
-                        const init_writer = new BufferStreamWriter(new ArrayBuffer(12));
-                        
-                        init_writer.setUint8(ClientBoundPacket.INIT);
-                        init_writer.setUint8(this.TICK_RATE)
-                        init_writer.setBigUint64(this.referenceTime);
-                        init_writer.setUint16(this.referenceTick);
-                        this.network.send(client,init_writer.getBuffer());
+                        // INIT DATA, tick rate, current time and tucj                        
+                        const _this = this;
+                        pInfo.personal_messages.push({
+                            write(stream){
+                                stream.setUint8(ClientBoundPacket.INIT);
 
-                        
+                                stream.setUint8(_this.TICK_RATE)
+                                stream.setBigUint64(_this.referenceTime);
+                                stream.setUint16(_this.referenceTick);
+                            }
+                        })
+
                         // START TICKING
-                        const start_tick_writer = new BufferStreamWriter(new ArrayBuffer(3));
-
-                        start_tick_writer.setUint8(ClientBoundPacket.START_TICKING);
-                        start_tick_writer.setUint16(this.tick);
-
-                        this.network.send(client,start_tick_writer.getBuffer());
-
+                        pInfo.personal_messages.push({
+                            write(stream){
+                                stream.setUint8(ClientBoundPacket.START_TICKING);
+                                stream.setUint16(_this.tick);
+                            }
+                        });
+                        
+                        
                         break;
                     }
                     case ClientPacket.LEAVE_GAME: {
@@ -157,7 +157,9 @@ export class ServerBearEngine implements AbstractBearEngine {
                         const pInfo = this.players.get(client);
 
                         this.players.delete(client);
-                        this.clients.splice(this.clients.indexOf(client),1);
+                        const index = this.clients.indexOf(client);
+                        if(index === -1) throw new Error("Trying to delete a client we don't have.... how is this possible")
+                        this.clients.splice(index,1);
 
                         this.globalPacketsToSerialize.push({
                             write(stream){
@@ -204,6 +206,14 @@ export class ServerBearEngine implements AbstractBearEngine {
         for(const client of this.clients){
             const stream = new BufferStreamWriter(new ArrayBuffer(256));
             
+            const connection = this.players.get(client)
+
+            for(const message of connection.personal_messages){
+                message.write(stream);
+            }
+            connection.personal_messages = [];
+
+
             stream.setUint8(ClientBoundPacket.GAME_STATE_PACKET);
             stream.setUint16(this.tick);
 
