@@ -9,21 +9,23 @@ The following would allow things to be checked BEFORE connecting to server.
 Would catch small errors.
 But, still need to validate stuff with live server on connect.
 
-{
+NetworkEntityDefinitions = {
     // Could define client constructor stuff using this method
     "shared_class_name": {
-        create: () => void = null,
+        create: null as () => void,
         variables: {
             variable_name: type of variable,
+            variable_name2: ect...
         }
     },
     "other_class": {
 
     }
-}
+} as const;
 
-make it an actual object, {} as const,
-    - Allows actual checking, use typeof to extract the type.
+implementations would then have to use this "shared name" to linked variables. 
+= IDEA: It could enforce making the entity property the same name as well. 
+
 */
 // Used to link client and server entity classes
 export interface NetworkedEntityNames {
@@ -33,8 +35,8 @@ export interface NetworkedEntityNames {
 
 
 /*
-These are linked in the following way:
-    Server needs to connect this string to an id, which the client can decode back into the string.
+Remote function linking:
+    Server needs to connect string to an id, which the client can decode back into the string.
     
     Here is how it does this (this code runs both on the client, server):
         iterate all properties on the RemoteFunctionStruct object, and insert them an array.

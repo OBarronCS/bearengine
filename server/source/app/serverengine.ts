@@ -112,67 +112,69 @@ export class ServerBearEngine implements AbstractBearEngine {
             const client = packet.client;
             const stream = packet.buffer;
 
-            const type: ClientPacket = stream.getUint8();
+            while(stream.hasMoreData()){
+                const type: ClientPacket = stream.getUint8();
 
-            switch(type){
-                // Client sends JOIN_GAME packet for now
-                case ClientPacket.JOIN_GAME: {
-                    // TODO: first check that it hasn't already been created.
-                    const pInfo = new PlayerInformation();
-                    
-                    this.clients.push(client);
-                    
-                    const player = new PlayerEntity();
-                    pInfo.playerEntity = player;
+                switch(type){
+                    // Client sends JOIN_GAME packet for now
+                    case ClientPacket.JOIN_GAME: {
+                        // TODO: first check that it hasn't already been created.
+                        const pInfo = new PlayerInformation();
+                        
+                        this.clients.push(client);
+                        
+                        const player = new PlayerEntity();
+                        pInfo.playerEntity = player;
 
-                    this.entityManager.addEntity(player);
-                    this.players.set(client, pInfo);
+                        this.entityManager.addEntity(player);
+                        this.players.set(client, pInfo);
 
-                    // TODO: DEFER ALL OF THIS
-                    // INIT DATA --> send immediately
-                    const init_writer = new BufferStreamWriter(new ArrayBuffer(12));
-                    
-                    init_writer.setUint8(ClientBoundPacket.INIT);
-                    init_writer.setUint8(this.TICK_RATE)
-                    init_writer.setBigUint64(this.referenceTime);
-                    init_writer.setUint16(this.referenceTick);
-                    this.network.send(client,init_writer.getBuffer());
+                        // TODO: DEFER ALL OF THIS
+                        // INIT DATA --> send immediately
+                        const init_writer = new BufferStreamWriter(new ArrayBuffer(12));
+                        
+                        init_writer.setUint8(ClientBoundPacket.INIT);
+                        init_writer.setUint8(this.TICK_RATE)
+                        init_writer.setBigUint64(this.referenceTime);
+                        init_writer.setUint16(this.referenceTick);
+                        this.network.send(client,init_writer.getBuffer());
 
-                    
-                    // START TICKING
-                    const start_tick_writer = new BufferStreamWriter(new ArrayBuffer(3));
+                        
+                        // START TICKING
+                        const start_tick_writer = new BufferStreamWriter(new ArrayBuffer(3));
 
-                    start_tick_writer.setUint8(ClientBoundPacket.START_TICKING);
-                    start_tick_writer.setUint16(this.tick);
+                        start_tick_writer.setUint8(ClientBoundPacket.START_TICKING);
+                        start_tick_writer.setUint16(this.tick);
 
-                    this.network.send(client,start_tick_writer.getBuffer());
+                        this.network.send(client,start_tick_writer.getBuffer());
 
-                    break;
+                        break;
+                    }
+                    case ClientPacket.LEAVE_GAME: {
+                        const pInfo = this.players.get(client);
+
+                        this.players.delete(client);
+                        this.clients.splice(this.clients.indexOf(client),1);
+
+                        this.globalPacketsToSerialize.push({
+                            write(stream){
+                                stream.setUint8(GamePacket.ENTITY_DESTROY);
+                                stream.setUint16(pInfo.playerEntity.entityID);
+                            }
+                        });
+
+                        break;
+                    }
+                    case ClientPacket.PLAYER_POSITION: {
+                        const p = this.players.get(client).playerEntity;
+                        p.position.x = stream.getFloat32();
+                        p.position.y = stream.getFloat32();
+
+                        break;
+                    }
+
+                    default: AssertUnreachable(type);
                 }
-                case ClientPacket.LEAVE_GAME: {
-                    const pInfo = this.players.get(client);
-
-                    this.players.delete(client);
-                    this.clients.splice(this.clients.indexOf(client),1);
-
-                    this.globalPacketsToSerialize.push({
-                        write(stream){
-                            stream.setUint8(GamePacket.ENTITY_DESTROY);
-                            stream.setUint16(pInfo.playerEntity.entityID);
-                        }
-                    });
-
-                    break;
-                }
-                case ClientPacket.PLAYER_POSITION: {
-                    const p = this.players.get(client).playerEntity;
-                    p.position.x = stream.getFloat32();
-                    p.position.y = stream.getFloat32();
-
-                    break;
-                }
-
-                default: AssertUnreachable(type);
             }
         }
     }
