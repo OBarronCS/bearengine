@@ -113,7 +113,7 @@ export const RemoteFunctionLinker = {
         stream.setUint8(this.getIDFromString(name));
 
         for (let i = 0; i < RemoteFunctionStruct[name].length; i++) {
-            SerializeEntityVariable(stream,args[i], variableTypes[i])
+            SerializeTypedVariable(stream,args[i], variableTypes[i])
         }
     },
 
@@ -128,7 +128,7 @@ export const RemoteFunctionLinker = {
         const args = []
         
         for(const functionArgumentType of RemoteFunctionStruct[name] as any as Iterable<keyof NetworkedVariableTypes>){
-            const variable = DeserializeEntityVariable(stream, functionArgumentType)
+            const variable = DeserializeTypedVariable(stream, functionArgumentType)
             args.push(variable);
         }
 
@@ -150,9 +150,7 @@ export interface NetworkedVariableTypes {
 
 
 
-
-
-export function SerializeEntityVariable(stream: BufferStreamWriter, value: any, type: keyof NetworkedVariableTypes): void {
+export function SerializeTypedVariable(stream: BufferStreamWriter, value: any, type: keyof NetworkedVariableTypes): void {
 
     switch(type){
         case "int8": stream.setInt8(value); break;
@@ -168,7 +166,7 @@ export function SerializeEntityVariable(stream: BufferStreamWriter, value: any, 
     }
 }
 
-export function DeserializeEntityVariable(stream: BufferStreamReader, type: keyof NetworkedVariableTypes): number {
+export function DeserializeTypedVariable(stream: BufferStreamReader, type: keyof NetworkedVariableTypes): number {
 
     switch(type){
         case "int8": return stream.getInt8(); 

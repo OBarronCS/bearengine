@@ -1,4 +1,4 @@
-import { NetworkedVariableTypes, NetworkedEntityNames, SerializeEntityVariable } from "shared/core/sharedlogic/networkedentitydefinitions";
+import { NetworkedVariableTypes, NetworkedEntityNames, SerializeTypedVariable } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { ServerEntity } from "../serverentity";
 
@@ -65,49 +65,72 @@ export function networkedclass_server<T extends keyof NetworkedEntityNames>(clas
 
     return function<U extends typeof ServerEntity>(targetConstructor: U){
 
-        type AbstractInstanceType<T> = T extends { prototype: infer U } ? U : never
 
-        type TypeOfInstance = AbstractInstanceType<U>;
-
-        const variableslist = targetConstructor["VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType<TypeOfInstance>;
+        const variableslist = targetConstructor["VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType<ServerEntity>;
         if(variableslist === undefined) throw new Error("No variables added to networked entity");
         
         // Alphabetically sorts them keys, will serialize in this order.
-        // @ts-expect-error
         variableslist.sort((a,b) => a.variablename.toLowerCase().localeCompare(b.variablename.toLowerCase()));
 
-        let allVariables = "";
-        for(const name of variableslist) allVariables += name.variablename + ",";
-
-        console.log(`Confirmed class, ${targetConstructor.name}, as networked entity. Contains the following variables: ${allVariables}`);
-        
-        targetConstructor["serializeVariables"] = function(entity: TypeOfInstance,stream: BufferStreamWriter){            
-            stream.setUint16(entity.entityID);
-
-            for(const variable of variableslist){
-                SerializeEntityVariable(stream, entity[variable.variablename], variable.type);
-            }
+        {
+            let allVariables = "";
+            for(const name of variableslist) allVariables += name.variablename + ",";
+            console.log(`Confirmed class, ${targetConstructor.name}, as networked entity. Contains the following variables: ${allVariables}`);
         }
 
-        targetConstructor["SHARED_ID"] = -1;
+        targetConstructor["SHARED_ID"] = -1;        
         
         SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES.push({
-            //@ts-ignore-error
-            create: targetConstructor,
+            variableslist: variableslist,
             name: classname,
+            create: targetConstructor,
         })
 
     }
 }
 
 
-type EntityConstructor = new(...args:any[]) => ServerEntity;
+type EntityConstructor = abstract new(...args:any[]) => ServerEntity;
 
- // This same thing exists on client-side as well
+ // A similar thing to this exists on client-side as well
 export class SharedEntityServerTable {
     private constructor(){}
 
-    static readonly REGISTERED_NETWORKED_ENTITIES: {create: EntityConstructor, name: keyof NetworkedEntityNames}[] = [];
+    static readonly REGISTERED_NETWORKED_ENTITIES: {
+        create: EntityConstructor, 
+        name: keyof NetworkedEntityNames
+        variableslist: EntityNetworkedVariablesListType<any>
+    }[] = [];
+
+    // Not in use on server side as of now 
     static readonly networkedEntityIndexMap = new Map<number,EntityConstructor>();
+
+    static init(){
+        // Sort networked alphabetically, so they match up on client side
+        // Index is SHARED_ID
+        SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES.sort( (a,b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+        for(let i = 0; i < SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES.length; i++){
+            const registry = SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES[i];
+
+            SharedEntityServerTable.networkedEntityIndexMap.set(i,registry.create);
+            
+            registry.create["SHARED_ID"] = i;
+        }
+    }
+
+    static serialize(stream: BufferStreamWriter, entity: ServerEntity){
+
+        // Could make this a getter on the instance, I guess
+        const SHARED_ID = entity.constructor["SHARED_ID"];
+
+        stream.setUint8(SHARED_ID);
+        stream.setUint16(entity.entityID);
+
+        const variableslist = SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES[SHARED_ID].variableslist;
+
+        for(const variable of variableslist){
+            SerializeTypedVariable(stream, entity[variable.variablename], variable.type);
+        }
+    }
 }
 
