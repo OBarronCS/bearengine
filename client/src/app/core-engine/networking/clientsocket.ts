@@ -36,9 +36,9 @@ export abstract class Network {
             port: 
                 need to specify. Could be same as
                 
-    could use location.protocol:
-        http: for local
-        https: for outside
+    Use location.protocol:
+        http, ws: for local
+        https, wss: for outside
     */
     constructor(settings: NetworkSettings){
         // Auto-detect url 
@@ -102,6 +102,8 @@ interface BufferedPacket {
 }
 
 export class BufferedNetwork extends Network {
+
+    public PLAYER_ID = -1;
 
     private packets = new LinkedQueue<BufferedPacket>();
 
@@ -195,6 +197,9 @@ export class BufferedNetwork extends Network {
         // These may desync over time. Maybe resend them every now and then if it becomes an issue?
         this.REFERENCE_SERVER_TICK_TIME = stream.getBigUint64();
         this.REFERENCE_SERVER_TICK_ID = stream.getUint16();
+        this.PLAYER_ID = stream.getUint8();
+
+        console.log("My player id is: " + this.PLAYER_ID);
     }
 
 

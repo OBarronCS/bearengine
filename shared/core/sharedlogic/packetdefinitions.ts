@@ -4,7 +4,7 @@
 
 export enum ClientBoundPacket {
     PONG, // response to client ping
-    INIT, // [ tick_rate: uint8, reference time: biguint64, tick: uint16] 
+    INIT, // [ tick_rate: uint8, reference time: biguint64, tick: uint16, uint8: your_player_id] 
     START_TICKING, // [tick: uint16]
 
     
@@ -24,7 +24,7 @@ export enum GamePacket {
     ENTITY_DESTROY, // used with players right now 
 
     
-    PASSTHROUGH_TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
+    PASSTHROUGH_TERRAIN_CARVE_CIRCLE, // [playerWhoDidIt: uint8, x: double, y: double, r: int32]
 }
 
 

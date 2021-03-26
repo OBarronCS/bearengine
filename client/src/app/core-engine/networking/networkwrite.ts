@@ -6,7 +6,7 @@ import { Subsystem } from "shared/core/subsystem";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { Player } from "../../gamelogic/player";
 import { RemoteLocations } from "./remotecontrol";
-import { BufferedNetwork } from "./socket";
+import { BufferedNetwork } from "./clientsocket";
 
 
 export class NetworkWriteSystem extends Subsystem {

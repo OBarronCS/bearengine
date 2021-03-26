@@ -19,7 +19,7 @@ import { CameraSystem } from "./camera";
 import { Entity } from "./entity";
 import { NetworkReadSystem } from "./networking/networkread";
 import { NetworkWriteSystem } from "./networking/networkwrite";
-import { BufferedNetwork } from "./networking/socket";
+import { BufferedNetwork } from "./networking/clientsocket";
 import { RendererSystem } from "./renderer";
 import { TestMouseDownEventDispatcher } from "./mouseevents";
 import { Player } from "../gamelogic/player";

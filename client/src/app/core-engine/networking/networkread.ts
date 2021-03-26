@@ -8,7 +8,7 @@ import { Subsystem } from "shared/core/subsystem";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { SharedEntityClientTable } from "./cliententitydecorators";
 import { RemoteEntity, RemoteLocations, SimpleNetworkedSprite } from "./remotecontrol";
-import { BufferedNetwork } from "./socket";
+import { BufferedNetwork } from "./clientsocket";
 
 
 
@@ -171,10 +171,13 @@ export class NetworkReadSystem extends Subsystem {
                         }
                         case GamePacket.PASSTHROUGH_TERRAIN_CARVE_CIRCLE: {
                             const terrain = this.getSystem(TerrainManager);
+                            const pId = stream.getUint8();
                             const x = stream.getFloat64();
                             const y = stream.getFloat64();
                             const r = stream.getInt32();
-                            terrain.carveCircle(x, y, r);
+                            
+                            if(pId !== this.network.PLAYER_ID)
+                                terrain.carveCircle(x, y, r);
                             
                             break;
                         }
@@ -194,7 +197,7 @@ export class NetworkReadSystem extends Subsystem {
     }
 
     @remotefunction("test1")
-    test(name: number, food: number){
+    thisMethodNameDoesNotMatter(name: number, food: number){
         console.log(`REMOTE FUNCTION CALLED -> Name is ${name}, food is ${food}`);
     }
 }
@@ -215,7 +218,6 @@ function remotefunction<T extends keyof RemoteFunction>(functionName: T) {
 
     return function(target: NetworkReadSystem, propertyKey: keyof NetworkReadSystem /* MethodsOfClass<ClassType> */, descriptor: TypedPropertyDescriptor<RemoteFunction[T]>){
         // target is the prototype of the class
-        // Now I can use this propertyKey to attach the event handler
 
         const constructorClass = target.constructor;
         

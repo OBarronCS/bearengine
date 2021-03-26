@@ -139,6 +139,7 @@ export class ServerBearEngine implements AbstractBearEngine {
                                 stream.setUint8(_this.TICK_RATE)
                                 stream.setBigUint64(_this.referenceTime);
                                 stream.setUint16(_this.referenceTick);
+                                stream.setUint8(client);
                             }
                         })
 
@@ -187,6 +188,7 @@ export class ServerBearEngine implements AbstractBearEngine {
                         this.globalPacketsToSerialize.push({
                             write(stream){
                                 stream.setUint8(GamePacket.PASSTHROUGH_TERRAIN_CARVE_CIRCLE);
+                                stream.setUint8(client);
                                 stream.setFloat64(x);
                                 stream.setFloat64(y);
                                 stream.setInt32(r);
@@ -299,6 +301,8 @@ export class ServerBearEngine implements AbstractBearEngine {
             }
 
             this.writeToNetwork()
+
+            // console.log(Date.now() - now);
 
             this.previousTick = now
         }
