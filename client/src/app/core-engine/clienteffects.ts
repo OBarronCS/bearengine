@@ -4,6 +4,8 @@ import { Effect } from "shared/core/effects";
 
 import { SpriteEntity } from "./entity";
 import { ShotInfo } from "./weapons/weaponinterfaces";
+import { NetworkWriteSystem } from "./networking/networkwrite";
+import { ClientPacket } from "shared/core/sharedlogic/packetdefinitions";
 
 
 class Bullet extends SpriteEntity {
@@ -41,6 +43,16 @@ export class DefaultBulletEffect extends Effect {
 
             if(testTerrain){
                 this.Terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, 25);
+                // Janky wow
+                const network = this.Scene.getSystem(NetworkWriteSystem);
+                network.queuePacket({
+                    write(stream){
+                        stream.setUint8(ClientPacket.TERRAIN_CARVE_CIRCLE);
+                        stream.setFloat64(testTerrain.point.x)
+                        stream.setFloat64(testTerrain.point.y)
+                        stream.setInt32(25);
+                    }
+                })
                 this.destroySelf();
             }
 

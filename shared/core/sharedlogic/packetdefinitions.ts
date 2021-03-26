@@ -4,8 +4,8 @@
 
 export enum ClientBoundPacket {
     PONG, // response to client ping
-    INIT, // tick_rate, reference tick and time
-    START_TICKING, // tick_number
+    INIT, // [ tick_rate: uint8, reference time: biguint64, tick: uint16, uint8: your_player_id] 
+    START_TICKING, // [tick: uint16]
 
     
     GAME_STATE_PACKET // points to GamePacket
@@ -18,9 +18,13 @@ export enum GamePacket {
 
     REMOTE_FUNCTION_CALL, // [shared function id, ...function argument data]
 
+    
     SIMPLE_POSITION,
     PLAYER_POSITION,
     ENTITY_DESTROY, // used with players right now 
+
+    
+    PASSTHROUGH_TERRAIN_CARVE_CIRCLE, // [playerWhoDidIt: uint8, x: double, y: double, r: int32]
 }
 
 
@@ -30,9 +34,11 @@ export enum ServerBoundPacket {
 }
 
 export enum ClientPacket {
-    JOIN_GAME = 0, // used internally
+    JOIN_GAME,
     LEAVE_GAME, // sent internally
-    PLAYER_POSITION
+    PLAYER_POSITION,
+
+    TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
 }
 
 
