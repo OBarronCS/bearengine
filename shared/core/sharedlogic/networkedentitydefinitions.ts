@@ -5,8 +5,7 @@ import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/ne
 import { GamePacket } from "./packetdefinitions";
 
 /*
-The following would allow things to be checked BEFORE connecting to server.
-Would catch small errors.
+The following would allow entities to be checked BEFORE connecting to server.
 But, still need to validate stuff with live server on connect.
 
 NetworkEntityDefinitions = {
@@ -18,75 +17,46 @@ NetworkEntityDefinitions = {
             variable_name2: ect...
         }
     },
-    "other_class": {
-
-    }
+    "other_class": {}
 } as const;
 
 implementations would then have to use this "shared name" to linked variables. 
 = IDEA: It could enforce making the entity property the same name as well. 
-
 */
 
 export interface PacketWriter {
     write(stream: BufferStreamWriter): void,
 }
 
-
-
-// Used to link client and server entity classes
+/** Linking networked entity classes */
 export interface NetworkedEntityNames {
     "flying_tree": false,
     "auto": false 
 }
 
 
-/*
+/* 
 Remote function linking:
     Server needs to connect string to an id, which the client can decode back into the string.
     
-    Here is how it does this (this code runs both on the client, server):
-        iterate all properties on the RemoteFunctionStruct object, and insert them an array.
-        Put them in alphabetical order (which will be the same no matter what)
-        It's index in the array is now it's shared function id.
-    
-    Server:
-        getIdFromString(keyof RemoteFunction) returns id. 
-        It then writes this id in the packet it is sending
-
-    client:
-        uses the id from packet:
-        getStringfromId(id): keyof RemoteFunction
-            it can then associate a certain string to a certain function. 
+    Put function names into alphabetical order
+        ID of a function name is its index in the array
 */
 
-// A bit clunky, but it works well to allow both compiletime and runtime information. It gives contextual naming which is nice
 const RemoteFunctionStruct = {
-    "test1": ["int32", "float"] as any as (name: number, food: number) => void,
-
+    "test1": { 
+        argTypes: ["int32", "float"],
+        callback: (name: number, food: number) => void 0
+    }
 
 } as const;
+
 export type RemoteFunction = typeof RemoteFunctionStruct;
 
-// This all involves types from the first implementation of RemoteFunction types.
-// // T is a tuple, TypeToIndex should have keys that are the tuple values 
-// // Treat K as the index into the tuple
-// type MappedTuple<T extends [...any[]],TypeToIndex> =  { 
-//     [K in keyof T]: T[K] extends keyof TypeToIndex ? TypeToIndex[T[K]] : never 
+// Returns the equivalent JS Types from the "int32" tuples
+// type MappedTuple<T> =  { 
+//     [K in keyof T]: T[K] extends keyof NetworkedVariableTypes ? NetworkedVariableTypes[T[K]] : never 
 // };
-
-// type EXAMPLE_TYPE_9 = MappedTuple<Parameters<RemoteFunction["test1"]>,NetworkedVariableTypes>
-
-// // Converts the "int32"s to number, ect, so get real TS typing
-// type RemoteFunctionKeyTuple<T extends keyof RemoteFunction> = MappedTuple<Parameters<RemoteFunction[T]>, NetworkedVariableTypes>
-
-// // This crazy type converts the types in the RemoteFunctionStruct to actually callback function definitions
-// // so     (name: "int32", food: "float") => void      turns into (name: number, food: number) => void  
-// // This error is WRONG. The type actually does work in the end, so just ignore this error
-// // @ts-expect-error
-// export type RemoteFunctionKeyToFunctionParameterType<T extends keyof RemoteFunction> = (...any: RemoteFunctionKeyTuple<T>) => void;
-
-// type EXAMPLE_TYPE = RemoteFunctionKeyToFunctionParameterType<"test1">
 
 const orderedListOfFunctionNames: (keyof RemoteFunction)[] = Object.keys(RemoteFunctionStruct).sort() as any;
 
@@ -106,13 +76,14 @@ export const RemoteFunctionLinker = {
         return stringToIDLookup.get(name);
     },
 
-    serializeRemoteFunction<T extends keyof RemoteFunction>(name: T, stream: BufferStreamWriter, ...args: Parameters<RemoteFunction[T]>): void {
-        const variableTypes = RemoteFunctionStruct[name];
+    // Called by server
+    serializeRemoteFunction<T extends keyof RemoteFunction>(name: T, stream: BufferStreamWriter, ...args: Parameters<RemoteFunction[T]["callback"]>): void {
+        const variableTypes = RemoteFunctionStruct[name]["argTypes"];
 
         stream.setUint8(GamePacket.REMOTE_FUNCTION_CALL);
         stream.setUint8(this.getIDFromString(name));
 
-        for (let i = 0; i < RemoteFunctionStruct[name].length; i++) {
+        for (let i = 0; i < RemoteFunctionStruct[name]["argTypes"].length; i++) {
             SerializeTypedVariable(stream,args[i], variableTypes[i])
         }
     },
@@ -127,7 +98,7 @@ export const RemoteFunctionLinker = {
         
         const args = []
         
-        for(const functionArgumentType of RemoteFunctionStruct[name] as any as Iterable<keyof NetworkedVariableTypes>){
+        for(const functionArgumentType of RemoteFunctionStruct[name]["argTypes"]){
             const variable = DeserializeTypedVariable(stream, functionArgumentType)
             args.push(variable);
         }

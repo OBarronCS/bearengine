@@ -103,7 +103,7 @@ export class SharedEntityServerTable {
     }[] = [];
 
     // Not in use on server side as of now 
-    static readonly networkedEntityIndexMap = new Map<number,EntityConstructor>();
+    private static readonly networkedEntityIndexMap = new Map<number,EntityConstructor>();
 
     static init(){
         // Sort networked alphabetically, so they match up on client side
@@ -113,7 +113,7 @@ export class SharedEntityServerTable {
             const registry = SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES[i];
 
             SharedEntityServerTable.networkedEntityIndexMap.set(i,registry.create);
-            
+
             registry.create["SHARED_ID"] = i;
         }
     }

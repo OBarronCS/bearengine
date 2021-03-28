@@ -260,24 +260,24 @@ export class ServerBearEngine implements AbstractBearEngine {
             const dt = 1000 / this.TICK_RATE;
 
             if(this.tickTimer.tick()){ 
-                // this.globalPacketsToSerialize.push({
-                //     write(stream){
-                //         RemoteFunctionLinker.serializeRemoteFunction("test1", stream,100,100);
-                //     }
-                // });
-                console.log("AUTO ENTITY");
-                
-                const e = new FirstAutoEntity();
-
-                this.entityManager.addEntity(e);
-                
                 this.globalPacketsToSerialize.push({
                     write(stream){
-                        stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
-                        stream.setUint8(e.constructor["SHARED_ID"]);
-                        stream.setUint16(e.entityID);
+                        RemoteFunctionLinker.serializeRemoteFunction("test1", stream,13234,100.3123);
                     }
                 });
+                // console.log("AUTO ENTITY");
+                
+                // const e = new FirstAutoEntity();
+
+                // this.entityManager.addEntity(e);
+                
+                // this.globalPacketsToSerialize.push({
+                //     write(stream){
+                //         stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
+                //         stream.setUint8(e.constructor["SHARED_ID"]);
+                //         stream.setUint16(e.entityID);
+                //     }
+                // });
             }
 
             this.tick += 1;

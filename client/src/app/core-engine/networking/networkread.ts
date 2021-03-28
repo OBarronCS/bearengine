@@ -211,10 +211,7 @@ export class NetworkReadSystem extends Subsystem {
 }
 
 
-
-
 /** Remote Function Logic */
-
 type RemoteFunctionListType = {
     remoteFunctionName: keyof RemoteFunction,
     methodName: keyof NetworkReadSystem,
@@ -224,7 +221,7 @@ type RemoteFunctionListType = {
 function remotefunction<T extends keyof RemoteFunction>(functionName: T) {
 
 
-    return function(target: NetworkReadSystem, propertyKey: keyof NetworkReadSystem /* MethodsOfClass<ClassType> */, descriptor: TypedPropertyDescriptor<RemoteFunction[T]>){
+    return function(target: NetworkReadSystem, propertyKey: keyof NetworkReadSystem, descriptor: TypedPropertyDescriptor<RemoteFunction[T]["callback"]>){
         // target is the prototype of the class
 
         const constructorClass = target.constructor;
