@@ -1,4 +1,4 @@
-import { DeserializeEntityVariable, NetworkedEntityNames, NetworkedVariableTypes } from "shared/core/sharedlogic/networkedentitydefinitions";
+import { DeserializeTypedVariable, NetworkedEntityNames, NetworkedVariableTypes } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { BufferStreamReader } from "shared/datastructures/networkstream";
 import { Entity } from "../entity";
 
@@ -72,16 +72,20 @@ type EntityConstructor = abstract new(...args:any[]) => Entity;
 export class SharedEntityClientTable {
     private constructor(){}
 
+    // This is a list of all the registered classes, registered using the '@networkedclass_client' decorator
     static readonly REGISTERED_NETWORKED_ENTITIES: {
         create: EntityConstructor, 
         name: keyof NetworkedEntityNames,
-        variablelist: EntityNetworkedVariablesListType<any>
+        variablelist: EntityNetworkedVariablesListType<any> // added through the "@remotevariable" decorator
     }[] = [];
-    static readonly networkedEntityIndexMap = new Map<number,EntityConstructor>();
+    
+    // Map of    sharedID --> client class constructor
+    private static readonly networkedEntityIndexMap = new Map<number,EntityConstructor>();
 
     static init(){
-        // Sort shared entities alphabetically so they match up on server side
-        SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES.sort( (a,b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+        // Sort shared entities by shared name, alphabetically so they match up on server side.
+        // Index in array is the id
+        SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES.sort( (a,b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) );
         for(let i = 0; i < SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES.length; i++){
             const registry = SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES[i];
             SharedEntityClientTable.networkedEntityIndexMap.set(i,registry.create);
@@ -94,13 +98,13 @@ export class SharedEntityClientTable {
     }
 
 
-    static deserialize(entity: Entity, stream: BufferStreamReader){
+    static deserialize(stream: BufferStreamReader, sharedID: number, entity: Entity){
         
-        const classInfo = SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES[entity.constructor["SHARED_ID"]];
+        const classInfo = SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES[sharedID];
         const variableslist = classInfo.variablelist;
 
         for(const variableinfo of variableslist){
-            entity[variableinfo.variablename] = DeserializeEntityVariable(stream, variableinfo.type);
+            entity[variableinfo.variablename] = DeserializeTypedVariable(stream, variableinfo.type);
         }
 
     }

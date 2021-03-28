@@ -42,7 +42,7 @@ export class ServerBearEngine implements AbstractBearEngine {
     private entityManager: Scene<ServerEntity>;
 
     private systems: Subsystem[] = [];
-    systemEventMap: Map<keyof BearEvents, EventRegistry<keyof BearEvents>>;
+    public systemEventMap: Map<keyof BearEvents, EventRegistry<keyof BearEvents>>;
     
 
     globalPacketsToSerialize: PacketWriter[] = [];
@@ -62,14 +62,8 @@ export class ServerBearEngine implements AbstractBearEngine {
             system.init()
         }
 
-        // Sort networked alphabetically, so they match up on server side
-        // Gives them id probably don't need that on client side though
-        SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES.sort( (a,b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
-        for(let i = 0; i < SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES.length; i++){
-            const registry = SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES[i];
-            SharedEntityServerTable.networkedEntityIndexMap.set(i,registry.create);
-            registry.create["SHARED_ID"] = i;
-        }
+        // Links shared entity classes
+        SharedEntityServerTable.init()
 
 
         //  Set event handlers on server?
@@ -179,7 +173,6 @@ export class ServerBearEngine implements AbstractBearEngine {
 
                         break;
                     }
-
                     case ClientPacket.TERRAIN_CARVE_CIRCLE: {
                         const x = stream.getFloat64();
                         const y = stream.getFloat64();
@@ -230,21 +223,19 @@ export class ServerBearEngine implements AbstractBearEngine {
                 stream.setFloat32(player.position.y);
             }
 
+            for(const packet of this.globalPacketsToSerialize){
+                packet.write(stream);
+            }
+
             // Entities auto updating variables over network
             for(const entity of this.entityManager.entities){
                 if(entity.stateHasBeenChanged){
-                    
                     // Adds entity variables to stream
                     stream.setUint8(GamePacket.REMOTE_ENTITY_VARIABLE_CHANGE);
-                    entity.constructor["serializeVariables"](entity, stream);
+                    SharedEntityServerTable.serialize(stream, entity);
 
                     entity.stateHasBeenChanged = false;
                 }
-            }
-
-            //other information
-            for(const packet of this.globalPacketsToSerialize){
-                packet.write(stream);
             }
             
         
@@ -271,7 +262,7 @@ export class ServerBearEngine implements AbstractBearEngine {
             if(this.tickTimer.tick()){ 
                 this.globalPacketsToSerialize.push({
                     write(stream){
-                        RemoteFunctionLinker.serializeRemoteFunction("test1", stream,100,100);
+                        RemoteFunctionLinker.serializeRemoteFunction("test1", stream,13234,100.3123);
                     }
                 });
                 // console.log("AUTO ENTITY");

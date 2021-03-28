@@ -9,6 +9,7 @@ import { TerrainManager } from "shared/core/terrainmanager";
 import { SharedEntityClientTable } from "./cliententitydecorators";
 import { RemoteEntity, RemoteLocations, SimpleNetworkedSprite } from "./remotecontrol";
 import { BufferedNetwork } from "./clientsocket";
+import { Entity } from "../entity";
 
 
 
@@ -37,13 +38,11 @@ export class NetworkReadSystem extends Subsystem {
 
     init(): void {
 
+        // Link shared entity classes
         SharedEntityClientTable.init();
 
 
-        // Init remote function call linking
-
-
-
+        // Link remote function calls 
         let remotefunctiondata = NetworkReadSystem["REMOTE_FUNCTION_REGISTRY"] as RemoteFunctionListType;
         if(remotefunctiondata === undefined) { 
             console.log("No remote functions defined")
@@ -53,11 +52,23 @@ export class NetworkReadSystem extends Subsystem {
         for(const remotefunction of remotefunctiondata){
             this.remoteFunctionCallMap.set(remotefunction.remoteFunctionName, remotefunction.methodName)
         }
-    
-        // use: this.remoteFunctionCallMap.get(RemoteFunctionLinker.getStringFromId(stream.getUint8()));
 
         this.scene = this.getSystem(Scene);
     }
+
+    createAutoRemoteEntity(sharedID: number, entityID: number): Entity {
+        const _class = SharedEntityClientTable.getEntityClass(sharedID);
+
+        //@ts-expect-error
+        const e = new _class();
+
+        // Adds it to the scene
+        this.entities.set(entityID, e);
+        this.scene.addEntity(e);
+
+        return e;
+    }
+
     
     // Read from network, apply packets 
     update(delta: number): void {
@@ -76,34 +87,31 @@ export class NetworkReadSystem extends Subsystem {
 
                     switch(type){
                         case GamePacket.REMOTE_ENTITY_CREATE: {
+
                             const sharedClassID = stream.getUint8();
                             const entityID = stream.getUint16();
                             
-                            const _class = SharedEntityClientTable.getEntityClass(sharedClassID);
-
-                            //@ts-expect-error
-                            const e = new _class();
-
-                            // Adds it to the scene
-                            this.entities.set(entityID, e);
-                            this.scene.addEntity(e);
+                            this.createAutoRemoteEntity(sharedClassID,entityID);
+                           
 
                             break;
                         }
 
                         case GamePacket.REMOTE_ENTITY_VARIABLE_CHANGE:{
-                            // [entity id, ...variables]
- 
-                            const eId = stream.getUint16();
-                            const e = this.entities.get(eId);
 
-                            if(e === undefined){
-                                console.log("CANNOT FIND ENTITY WITH THAT VARIABLE. WILL QUIT");
-                                // Idk how else to deal with this error, than to quit.
+                            const SHARED_ID = stream.getUint8();
+                            const entityID = stream.getUint16();
+
+                            let entity = this.entities.get(entityID);
+
+                            if(entity === undefined){
+                                // Will try to create the entity for now, but we missed the REMOTE_ENTITY_CREATE packet clearly
+                                console.log(`Cannot find entity ${entityID}, will create`);
+                                entity = this.createAutoRemoteEntity(SHARED_ID,entityID)
                                 return;
                             }
 
-                            SharedEntityClientTable.deserialize(e, stream);
+                            SharedEntityClientTable.deserialize(stream, SHARED_ID, entity);
 
                             break;
                         }
@@ -203,10 +211,7 @@ export class NetworkReadSystem extends Subsystem {
 }
 
 
-
-
 /** Remote Function Logic */
-
 type RemoteFunctionListType = {
     remoteFunctionName: keyof RemoteFunction,
     methodName: keyof NetworkReadSystem,
@@ -216,7 +221,7 @@ type RemoteFunctionListType = {
 function remotefunction<T extends keyof RemoteFunction>(functionName: T) {
 
 
-    return function(target: NetworkReadSystem, propertyKey: keyof NetworkReadSystem /* MethodsOfClass<ClassType> */, descriptor: TypedPropertyDescriptor<RemoteFunction[T]>){
+    return function(target: NetworkReadSystem, propertyKey: keyof NetworkReadSystem, descriptor: TypedPropertyDescriptor<RemoteFunction[T]["callback"]>){
         // target is the prototype of the class
 
         const constructorClass = target.constructor;

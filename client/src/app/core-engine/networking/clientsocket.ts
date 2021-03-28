@@ -128,7 +128,8 @@ export class BufferedNetwork extends Network {
     private latencyBuffer: number = -1;
     
     // Buffer by default
-    // TODO: Change this to big in terms of ms? Because if tick rate is slow (10fps) than this only really needs to be 1, because clumping is less of an issue
+    // TODO: Change this to big in terms of ms? 
+    // Because if tick rate is slow (10fps) than this only really needs to be 1, because clumping is less of an issue
     private additionalBuffer = 2;
 
     public SERVER_IS_TICKING: boolean = false;
@@ -230,9 +231,10 @@ export class BufferedNetwork extends Network {
             this.ping = pingThisTime;
         }
 
-        console.log("Ping:" + this.ping);
 
         this.latencyBuffer = ceil((this.ping / 1000) * this.SERVER_SEND_RATE);
+
+        console.log("Ping:" + this.ping);
         console.log("LatencyBuffer: " + this.latencyBuffer);
 
     
@@ -255,10 +257,12 @@ export class BufferedNetwork extends Network {
 
         // console.log(this.CLOCK_DELTA);
 
+        // In milliseconds
         const serverTime = Date.now() + this.CLOCK_DELTA;
         const referenceDelta = serverTime - Number(this.REFERENCE_SERVER_TICK_TIME);
 
-        const currentServerTick =  ((referenceDelta / (this.SERVER_SEND_INTERVAL * 1000))) + this.REFERENCE_SERVER_TICK_ID
+        // Need to convert to seconds
+        const currentServerTick = ((referenceDelta / (this.SERVER_SEND_INTERVAL * 1000))) + this.REFERENCE_SERVER_TICK_ID;
         
         // console.log(currentServerTick);
         
