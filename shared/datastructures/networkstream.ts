@@ -7,6 +7,8 @@
 //const s = /[\x00-\x7F]/;
 //s.test(string): true if is ok
 
+import { Vec2 } from "shared/shapes/vec2";
+
 export class BufferStreamReader  {
     
     private littleEndian = false;
@@ -203,7 +205,10 @@ export class BufferStreamWriter {
         this.seekRelative(4);
     }
 
-    // TODO:
-    // set/write Vec2
+    
+    // setVec2(vec: Vec2): void {
+
+    // }
+
     // set/write Array
 }

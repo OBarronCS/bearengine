@@ -3,42 +3,15 @@ import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { ServerEntity } from "../serverentity";
 
 
-/*
-    On serialization, writes marked variables to buffer in alphabetical order
-
-    How handle creation of entity?: 
-        For now: constructors are empty --> Just create one and get it working
-*/
-
+// On entity serialization, it writes marked variables to buffer in alphabetical order.
 
 type EntityNetworkedVariablesListType<T extends ServerEntity> = {
     variablename: keyof T,
     type: keyof NetworkedVariableTypes
 }[]
 
-/*
-// Getters/setters live on the prototype chain, not on the instances
-// Which is why it seems like the value is repeated multiple times in devtools
-
-function dec2(target, propertyKey): any {
-
-    Object.defineProperty(target, propertyKey, {
-        get: function() {
-            console.log('get', this['__'+propertyKey]);
-            return this['__'+propertyKey];
-        },
-        set: function (value) {
-            this['__'+propertyKey] = value;
-            console.log('set', value);
-        }
-        // enumerable: true,
-        // configurable: true
-      }); 
-};
-*/
-
 /**  Place this decorator before variables to sync them automatically to client side */
-export function networkedvariable<K extends keyof NetworkedVariableTypes>(variableType: K) {
+export function networkedvariable<K extends keyof NetworkedVariableTypes>(variableType: K, createSetterAndGetter = false) {
 
     // Property decorator
     return function<T extends ServerEntity>(target: T, propertyKey: keyof T){
@@ -56,6 +29,26 @@ export function networkedvariable<K extends keyof NetworkedVariableTypes>(variab
         });
 
         console.log(`Added networked variable, ${propertyKey}, of type ${variableType}`)
+
+        // This makes it so the entity is marked dirty automatically when a variable changes
+        if(createSetterAndGetter){
+            // this context is instance of the entity
+            Object.defineProperty(target, propertyKey, {
+                get: function(this: ServerEntity) {
+                    // console.log('get', this['__'+propertyKey]);
+                    return this['__'+propertyKey];
+                },
+                set: function (this: ServerEntity, value) {
+                    this['__'+propertyKey] = value;
+                    
+                    // console.log(`set ${propertyKey} to`, value);
+                    
+                    this.markDirty();
+                },
+                // enumerable: true,
+                // configurable: true
+            }); 
+        }
     }
 }
 
