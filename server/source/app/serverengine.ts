@@ -15,7 +15,11 @@ import { TickTimer } from "shared/ticktimer";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
 import { PacketWriter, RemoteFunctionLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
 
+
 class PlayerInformation {
+
+    personalStream = new BufferStreamWriter(new ArrayBuffer(2048));
+
     playerEntity: PlayerEntity;
 
     // Info that should be serialized and sent to player
@@ -200,9 +204,9 @@ export class ServerBearEngine implements AbstractBearEngine {
     private writeToNetwork(){
 
         for(const client of this.clients){
-            const stream = new BufferStreamWriter(new ArrayBuffer(256));
-            
-            const connection = this.players.get(client)
+            const connection = this.players.get(client);
+
+            const stream = connection.personalStream;
 
             for(const message of connection.personal_messages){
                 message.write(stream);
@@ -240,6 +244,9 @@ export class ServerBearEngine implements AbstractBearEngine {
             
         
             this.network.send(client, stream.cutoff());
+
+            // Allows it to be reused. Sets internal byteOffset to 0; 
+            stream.refresh();
         }
 
         this.globalPacketsToSerialize = [];
