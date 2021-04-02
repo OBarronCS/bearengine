@@ -8,7 +8,7 @@ import { GraphNode, LiveGridGraph } from "shared/datastructures/graphs";
 import { SparseGrid } from "shared/datastructures/hashtable";
 import { HermiteCurve } from "shared/datastructures/paths";
 import { GridQuadNode, GridQuadTree, LiveGridQuadTree, QuadTree } from "shared/datastructures/quadtree";
-import { chance, fillFunction, random, randomRangeSet, random_range } from "shared/randomhelpers";
+import { chance, fillFunction, random, randomInt, randomRangeSet, random_range } from "shared/randomhelpers";
 import { Ellipse } from "shared/shapes/ellipse";
 import { Line } from "shared/shapes/line";
 import { Polygon } from "shared/shapes/polygon";
@@ -18,7 +18,7 @@ import { Vec2, Coordinate, angleBetween, mix } from "shared/shapes/vec2";
 import { atan2, cos, floor, PI, second, sin } from "shared/mathutils";
 import { ColorTween } from "shared/core/tween"
 import { TickTimer } from "shared/ticktimer"
-import { ColliderPart } from "shared/core/abstractpart";
+import { ColliderPart, TagPart } from "shared/core/abstractpart";
 import { bearevent } from "shared/core/bearevents";
 import { Scene} from "shared/core/scene";
 import { DrawableEntity, Entity, GMEntity, SpriteEntity } from "../core-engine/entity";
@@ -37,7 +37,12 @@ class BasicSprite extends SpriteEntity {
 }
 
 class EmptyEntity extends AbstractEntity {
+
+    public tag = this.addPart(new ColliderPart(dimensions(50,50), Vec2.ZERO));
+    public position = new Vec2(randomInt(0, 1000), randomInt(0,1500));
+
     update(dt: number): void {
+
     }
 }
 
@@ -156,7 +161,7 @@ export function loadTestLevel(this: Scene): void {
 
     }
 
-    // this.addEntity(new EntityLoadTest());
+    this.addEntity(new EntityLoadTest());
 
 
     class TestEntityForVideo extends Entity {
@@ -861,7 +866,7 @@ export function loadTestLevel(this: Scene): void {
         }
 
     }
-    this.addEntity(new IK())
+    // this.addEntity(new IK())
 
 
     

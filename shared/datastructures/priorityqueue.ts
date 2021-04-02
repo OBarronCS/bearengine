@@ -26,7 +26,7 @@ export class PQ<T> {
         return this.arr[0];
     }
 
-    // TODO: once array gets small enough, splice it to get rid of the null indices.
+    // MAYBE: once array gets small enough, splice it to get rid of the null indices.
     public popMax(): T {
         if(this.isEmpty()) return null;
         const max = this.arr[0];

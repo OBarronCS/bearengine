@@ -14,7 +14,6 @@ import { Line } from "shared/shapes/line";
 import { Rect } from "shared/shapes/rectangle";
 import { SpatialGrid } from "shared/datastructures/spatialgrid";
 import { AbstractEntity } from "shared/core/abstractentity";
-import { PartQuery } from "shared/core/partquery";
 import { ColliderPart } from "./abstractpart";
 import { Subsystem } from "./subsystem";
 
@@ -60,7 +59,8 @@ export class CollisionManager extends Subsystem {
     remove(c: ColliderPart){
         const i = this.colliders.indexOf(c);
         if(i !== -1){
-            this.colliders.splice(i,1);
+            this.colliders[i] = this.colliders[this.colliders.length - 1];
+            this.colliders.pop();
 
             // Dont bother removing it from the grid yet.
             // It just won't be added back when I rebuild next step
