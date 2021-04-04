@@ -104,9 +104,9 @@ export class Player extends DrawableEntity {
                 effect.onStart(function(){
                 });
 
-                effect.onInterval(2, function(times){
-                    this.velocity.drotate(random_range(-6,6))
-                })
+                // effect.onInterval(2, function(times){
+                //     this.velocity.drotate(random_range(-6,6))
+                // })
                 effect.onInterval(4, function(lap){
                     // this.velocity.extend(10 + random(10));
                 })

@@ -3,7 +3,7 @@
 // because it's enum values wouldn't have changed, leading to it thinking its sending a different packet
 
 export enum ClientBoundPacket {
-    PONG, // response to client ping
+    PONG, // [ original stamp: BigInt64, server stamp: BigInt64]
     INIT, // [ tick_rate: uint8, reference time: biguint64, tick: uint16, uint8: your_player_id] 
     START_TICKING, // [tick: uint16]
 
@@ -29,13 +29,13 @@ export enum GamePacket {
 
 
 export enum ServerBoundPacket {
-    PING,
+    PING, // [timestamp: BigInt64]
     CLIENT_STATE_PACKET // envelopes ClientPacket's
 }
 
 export enum ClientPacket {
-    JOIN_GAME,
-    LEAVE_GAME, // sent internally
+    JOIN_GAME, // [empty packet]
+    LEAVE_GAME, // [empty packet]
     
     PLAYER_POSITION,
 

@@ -18,6 +18,65 @@ class Bullet extends SpriteEntity {
     draw(g: Graphics): void {}
 }
 
+export class GravityBulletEffect extends Effect {
+    // position = initialPosition
+    public position: Vec2;
+    public velocity: Vec2;
+    public bullet: Bullet;
+
+    public gravity = new Vec2(0,1);
+
+    constructor(posVec: Readonly<Vec2>, velocityVec: Vec2, shotInfo: ShotInfo){
+        super();
+
+        // Initial position
+        this.position = posVec.clone();
+        this.velocity = velocityVec.clone();
+
+        this.onStart(() => {
+            this.bullet = this.Scene.addEntity(new Bullet(this.position));
+            this.bullet.position.set(this.position);
+        })
+        
+        this.onUpdate(() => {
+            this.bullet.position.add(this.velocity);
+            this.velocity.add(this.gravity);
+
+            const testTerrain = this.Terrain.lineCollision(this.bullet.position,Vec2.add(this.bullet.position, this.velocity.clone().extend(100)))
+
+            if(testTerrain){
+                this.Terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, 25);
+                // Janky wow
+                const network = this.Scene.getSystem(NetworkWriteSystem);
+                network.queuePacket({
+                    write(stream){
+                        stream.setUint8(ClientPacket.TERRAIN_CARVE_CIRCLE);
+                        stream.setFloat64(testTerrain.point.x)
+                        stream.setFloat64(testTerrain.point.y)
+                        stream.setInt32(25);
+                    }
+                })
+                this.destroySelf();
+            }
+
+            if(!this.Level.bbox.contains(this.bullet.position)){
+                this.destroySelf();
+            }
+        })
+        
+        this.onFinish( () => {
+            this.Scene.destroyEntity(this.bullet);
+        })
+    }	
+
+}
+
+
+
+
+
+
+
 export class DefaultBulletEffect extends Effect {
     public position: Vec2;
     public velocity: Vec2;

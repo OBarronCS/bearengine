@@ -128,7 +128,7 @@ export class ServerBearEngine implements AbstractBearEngine {
                         this.entityManager.addEntity(player);
                         this.players.set(client, pInfo);
 
-                        // INIT DATA, tick rate, current time and tucj                        
+                        // INIT DATA, tick rate, current time and tick
                         const _this = this;
                         pInfo.personal_messages.push({
                             write(stream){

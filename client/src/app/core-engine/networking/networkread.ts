@@ -74,7 +74,7 @@ export class NetworkReadSystem extends Subsystem {
     update(delta: number): void {
         if(this.network.CONNECTED){
 
-            const packets = this.network.newPacketQueue();
+            const packets = this.network.getNewPacketQueue();
 
             while(!packets.isEmpty()){
 
@@ -196,7 +196,7 @@ export class NetworkReadSystem extends Subsystem {
             }
 
             // Interpolation of entities
-            const frameToSimulate = this.network.getTickToSimulate();
+            const frameToSimulate = this.network.getServerTickToSimulate();
 
             for(const obj of this.remotelocations){
                 obj.setPosition(frameToSimulate)

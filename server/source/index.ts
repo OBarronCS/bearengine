@@ -29,7 +29,6 @@ app.get("/", (request, response) => {
 const http_server = app.listen(80,() => {
     console.log("we are good to goo!")
 });
-// const http_server = app.listen(80,"10.0.0.144");
 
 const websocket = new Server({ server: http_server })
 
