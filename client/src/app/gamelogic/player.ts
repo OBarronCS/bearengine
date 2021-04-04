@@ -8,8 +8,8 @@ import { clamp, PI, RAD_TO_DEG } from "shared/mathutils";
 import { ColliderPart, TagPart } from "shared/core/abstractpart";
 
 import { SpritePart } from "../core-engine/parts";
-import { AddOnType } from "../core-engine/weapons/addon";
-import { SimpleGun } from "../core-engine/weapons/weapon";
+import { AddOnType, TerrainHitAddon } from "../core-engine/weapons/addon";
+import { BaseBulletGun } from "../core-engine/weapons/weapon";
 import { DrawableEntity } from "../core-engine/entity";
 
 
@@ -21,10 +21,13 @@ enum PlayerStates {
 export type PlayerActions = "left" | "right" | "jump";
 
 export class Player extends DrawableEntity {
+    // used when in air
     yspd = 0;
     xspd = 0;
     
+    // used while on ground
     gspd = 0;
+
     acc = 0.9;
     dec = 1.6;
     frc = 0.9
@@ -61,11 +64,13 @@ export class Player extends DrawableEntity {
     private colliderPart: ColliderPart;
     private tag = this.addPart(new TagPart("Player"))
 
+    private gun: BaseBulletGun;
+
     constructor(){
         super();
         this.position.set({x : 500, y: 100});
         this.Keyboard.bind("r", ()=> {
-            this.position.set({x : 500, y: 100});
+            this.position.set({x : 600, y: 100});
         });
 
         this.spritePart = new SpritePart("vector.jpg");
@@ -97,29 +102,42 @@ export class Player extends DrawableEntity {
         this.rightRayLeft = new Vec2(3 + x + width / 2,y);
 
 
-        this.gun = new SimpleGun();
-        this.gun.addons.push({
-            addontype: AddOnType.SPECIAL,
-            modifyShot : function(shotInfo, effect){
-                effect.onStart(function(){
-                });
+        this.gun = new BaseBulletGun([
+            new TerrainHitAddon(),
+            {
+                addontype: AddOnType.SPECIAL,
+                modifyShot(shotInfo, effect){
+                    // effect.onInterval(2, function(times){
+                    //     this.velocity.drotate(random_range(-6,6))
+                    // })
+   
+                    
+                    effect.destroyAfter(50);
+                }
+            },
+            {
+                addontype: AddOnType.SPECIAL,
+                gravity: new Vec2(0,1),
+                modifyShot(shotInfo, effect){
 
-                // effect.onInterval(2, function(times){
-                //     this.velocity.drotate(random_range(-6,6))
-                // })
-                effect.onInterval(4, function(lap){
-                    // this.velocity.extend(10 + random(10));
-                })
-                
-                effect.destroyAfter(100);
+                    const self = this;
+
+                    effect.onUpdate(function(){
+                        this.velocity.add(self.gravity);
+                    })
+                }
             }
-        })
+        ]);
+    }
 
-        // TODO: move to onAdd
+    onAdd(){
         this.Scene.addEntity(this.gun);
     }
 
-    private gun: SimpleGun;
+    onDestroy(){
+        this.Scene.destroyEntity(this.gun);
+    }
+    
     
     // setSensorLocations(){
     //     const dy = 0; 
@@ -134,12 +152,11 @@ export class Player extends DrawableEntity {
 
     update(dt: number): void {
         
-        
-        this.gun.setLocation({x: this.x, y: this.y - 50}, (new Vec2(0,0).set(this.Mouse.position).sub(this.position)));
+        this.gun.position.set({x: this.x, y: this.y - 50});
+        this.gun.dir.set(new Vec2(0,0).set(this.Mouse.position).sub(this.gun.position));
 
-        const difference = Vec2.subtract(this.Mouse.position, this.gun.position);
         const angleToMouse = angleBetween(this.gun.position, this.Mouse.position)
-        
+        const difference = Vec2.subtract(this.Mouse.position, this.gun.position);
         if(difference.x > 0){
             this.gun.image["sprite"].scale.x = 1;
             this.gun.image.angle = angleToMouse;

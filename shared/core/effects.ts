@@ -66,7 +66,7 @@ export class Effect extends AbstractEntity {
 		for (let i = this.delayFunctions.length - 1; i >= 0; --i) {
 			const delayInfo = this.delayFunctions[i];
 			const time = delayInfo[0];
-			if(this.time_alive % time == 0){
+			if(this.time_alive % time === 0){
 				delayInfo[1]();
 				this.delayFunctions.splice(i, 1)
 			}

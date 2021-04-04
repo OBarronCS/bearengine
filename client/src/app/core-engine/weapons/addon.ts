@@ -1,42 +1,75 @@
-
-import { DefaultBulletEffect } from "../clienteffects";
+import { ClientPacket } from "shared/core/sharedlogic/packetdefinitions";
+import { Vec2 } from "shared/shapes/vec2";
+import { NetworkWriteSystem } from "../networking/networkwrite";
+import { BaseBullet } from "./weapon";
 import { ShotInfo } from "./weaponinterfaces";
 
 export interface GunAddon {
-	modifyShot: (struct: ShotInfo, effect: DefaultBulletEffect) => void,
-	addontype: AddOnType;
+    modifyShot: (struct: ShotInfo, effect: BaseBullet) => void,
+    addontype: AddOnType;
+    [key: string]: any; // allow for random data
 }
 
 export enum AddOnType {
-	SCOPE,
-	CLIP, // effects reload speed and size --> maybe some hold specific types of bullets that have extra info
-	SPECIAL, // Everythihng else --> Like flash light, laser, wind fire ice 
-	TEMP
+    SCOPE,
+    CLIP, // effects reload speed and size --> maybe some hold specific types of bullets that have extra info
+    SPECIAL, // Everythihng else --> Like flash light, laser, wind fire ice 
+    TEMP
 }
 
 export class Clip implements GunAddon {
-	// Some way to define ammo types for pickups ... or no pickups for now?
-	constructor(
-		public ammo: number,
-		public capacity: number,
+    public addontype = AddOnType.CLIP
 
-		public reload_time: number,
-		public reload_sound: number
-	){};
-	
-	addontype = AddOnType.CLIP
-	modifyShot(struct: ShotInfo, effect: DefaultBulletEffect){
-	
-	}
+    constructor(
+        public ammo: number,
+        public capacity: number,
+        public reload_time: number,
+        public reload_sound: number
+    ){}
+    
+    modifyShot(struct: ShotInfo, effect: BaseBullet){
+    
+    }
 
-	// Returns amount of bullets we can shoot
-	// if return zero, we have no ammo and need to RELOAD
-	// Auto removes a bullet
-	getBullets(){
-		return 1;
-	}
-	
-	reload(){}
+    // Returns amount of bullets we can shoot
+    // if return zero, we have no ammo and need to RELOAD
+    getBullets(){
+        return 1;
+    }
+    
+    reload(){}
 }
+
+
+
+export class TerrainHitAddon implements GunAddon {
+    addontype: AddOnType = AddOnType.SPECIAL;
+
+    modifyShot(struct: ShotInfo, effect: BaseBullet){
+        effect.onUpdate(function(){
+            const testTerrain = this.Terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)))
+
+            if(testTerrain){
+                this.Terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, 25);
+                // Janky wow
+                const network = this.Scene.getSystem(NetworkWriteSystem);
+                network.queuePacket({
+                    write(stream){
+                        stream.setUint8(ClientPacket.TERRAIN_CARVE_CIRCLE);
+                        stream.setFloat64(testTerrain.point.x)
+                        stream.setFloat64(testTerrain.point.y)
+                        stream.setInt32(25);
+                    }
+                })
+                this.destroySelf();
+            }
+        })
+        
+    }
+}
+
+
+
+
 
 
