@@ -18,6 +18,13 @@ class Bullet extends SpriteEntity {
     draw(g: Graphics): void {}
 }
 
+export class BaseBullet extends Effect {
+    
+
+
+
+} 
+
 export class GravityBulletEffect extends Effect {
     // position = initialPosition
     public position: Vec2;

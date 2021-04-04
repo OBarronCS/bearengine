@@ -1,6 +1,5 @@
 
 // General interfaces
-
 import { SemiAutoController, AutoController, PulseController, GunshootController } from "./triggers";
 import { Clip } from "./addon";
 
