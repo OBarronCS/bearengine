@@ -29,7 +29,7 @@ export enum GamePacket {
 
 
 export enum ServerBoundPacket {
-    PING,
+    PING, // [timestamp: BigInt64]
     CLIENT_STATE_PACKET // envelopes ClientPacket's
 }
 

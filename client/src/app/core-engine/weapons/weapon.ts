@@ -1,6 +1,6 @@
 import { Coordinate, Vec2 } from "shared/shapes/vec2";
 import { GunAddon } from "./addon";
-import { DefaultBulletEffect } from "../clienteffects";
+import { DefaultBulletEffect, GravityBulletEffect } from "../clienteffects";
 import { GunInfo, CreateGunInfoStruct } from "./weaponinterfaces";
 import { SpriteEntity } from "../entity";
 import { Graphics } from "pixi.js";
@@ -69,7 +69,7 @@ export class SimpleGun extends SpriteEntity implements Gun {
 			if(bulletAmount > 0){
 				const defaultInfo = {...this.gunInfo.shotInfo};
 				
-				const shotEffect = new DefaultBulletEffect(this.position, this.dir.clone().extend(20), defaultInfo)
+				const shotEffect = new GravityBulletEffect(this.position, this.dir.clone().extend(20), defaultInfo)
 				
 				this.clip.modifyShot(defaultInfo,shotEffect);
 				

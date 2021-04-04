@@ -225,8 +225,16 @@ export class BufferedNetwork extends Network {
 
         const pingThisTime = ceil(Number((currentTime - originalStamp)) / 2);
         
-        //TODO: implement some sort of smoothing of the ping. Sample it multiple times
-        // only adjust the ping if it has changed sufficintely 
+        
+        /*  TODO: implement some sort of smoothing of the ping. Sample it multiple times
+            Because frameToGet depends on this.ping, constantly re-adjusting ping will cause jitter in game whenever receive pong packet. 
+            
+            If becomes noticible, calculate ping over many frames and take average to stand in for ping when calculating value.
+                and, if this value doesn't change enough, then don't bother jittering stuff, or 
+                slowly interpolate that value to the real one so it's a smooth transition    
+        */
+
+        // only adjust the ping if it has changed sufficintely
         if(abs(this.ping - pingThisTime) > 4){
             this.ping = pingThisTime;
         }
@@ -234,26 +242,15 @@ export class BufferedNetwork extends Network {
         if(this.ping === 0) this.ping = 1;
         if(this.ping < 0) console.log("Ping is negative") 
 
-
-        // this.latencyBuffer = ceil((this.ping / 1000) * this.SERVER_SEND_RATE);
-
         console.log("Ping:" + this.ping);
-        //  console.log("LatencyBuffer: " + this.latencyBuffer);
-
     
         // This method assumes latency is equal both ways
         const delta = serverStamp - currentTime + BigInt(this.ping);
 
         // LOCAL TIME + CLOCK_DELTA === TIME_ON_SERVER
-
         this.CLOCK_DELTA = Number(delta);
 
-        /*
-        ONE HUGE ISSUE HERE:
-            If we are constantly re-adjusting ping (it will flucuate)
-            than the buffer will constantly move forward/backwards one frame and cause noticable jitter for one frame
-            This might become an issue. If so, calculate ping over many frames and take average, and 
-        */
+        
     }
 
     /** Includes fractional part of tick */
