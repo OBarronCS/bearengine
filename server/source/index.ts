@@ -39,3 +39,35 @@ const engine = new ServerBearEngine(TICK_RATE);
 engine.start(websocket);
 
 
+
+
+// Callback for input --> 
+const readline = require("readline");
+
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
+rl.on('line', (input) => {
+
+    switch(input){
+        case "entity": {
+
+            engine.createRemoteEntityTest()
+            break;
+        }
+        
+        case "function": {
+
+            engine.queueRemoteFunction();
+            break;
+        }
+        
+        default: {
+            console.log(" You made a typo ")
+        }
+    }
+});
+
+

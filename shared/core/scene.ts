@@ -186,7 +186,6 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
                 if(!handler) {
                     console.log(`Handler for ${item.eventname} could not be found!`)
                 }
-                console.log("Handler: " + handler);
 
                 const methodName = item.methodname;
 

@@ -1,8 +1,9 @@
 
 import { Part } from "shared/core/abstractpart";
 import { ceil, floor } from "shared/mathutils";
+import { randomInt } from "shared/randomhelpers";
 import { mix, Vec2 } from "shared/shapes/vec2";
-import { Entity } from "../entity";
+import { DrawableEntity, Entity } from "../entity";
 import { SpritePart } from "../parts";
 import { networkedclass_client, remotevariable } from "./cliententitydecorators";
 
@@ -58,6 +59,39 @@ export class RemoteAuto extends Entity {
     }
 
 }
+
+
+@networkedclass_client("sharedEntityForVideo")
+export class ClientHealthEntity extends DrawableEntity {
+
+    public sprite = this.addPart(new SpritePart("tree.gif"));
+
+
+    @remotevariable("float")
+    public health = 100;
+
+    draw(g: PIXI.Graphics): void {
+        g.beginFill(0x000000)
+        g.drawRect(this.x-100, this.y-100, 60, 60);
+        g.beginFill(0x00FF00);
+        g.drawRect(this.x-100, this.y-100, (this.health / 100) * 60, 60);
+        g.endFill();
+    }
+    update(dt: number): void {
+
+        this.position.x += randomInt(-10,10);
+        this.position.x += randomInt(-10,10);
+
+        this.redraw();
+    }
+}
+
+
+
+
+
+
+
 
 
 

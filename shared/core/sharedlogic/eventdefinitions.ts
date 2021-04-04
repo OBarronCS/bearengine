@@ -1,5 +1,5 @@
 import { Vec2 } from "shared/shapes/vec2";
-import { MouseButton } from "../../../client/src/app/input/mouse"
+import type { MouseButton } from "../../../client/src/app/input/mouse"
 
 // interface CoreEventTypeDefinition {
 //     [key: string] : {

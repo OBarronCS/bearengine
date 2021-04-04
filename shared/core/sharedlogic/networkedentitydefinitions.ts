@@ -21,7 +21,7 @@ NetworkEntityDefinitions = {
 } as const;
 
 implementations would then have to use this "shared name" to linked variables. 
-= IDEA: It could enforce making the entity property the same name as well. 
+        = IDEA: It could enforce making the entity property the same name as well. 
 */
 
 export interface PacketWriter {
@@ -31,7 +31,16 @@ export interface PacketWriter {
 /** Linking networked entity classes */
 export interface NetworkedEntityNames {
     "flying_tree": false,
-    "auto": false 
+    "auto": false,
+
+
+
+
+    "sharedEntityForVideo": false,
+
+
+
+
 }
 
 
@@ -47,13 +56,19 @@ const RemoteFunctionStruct = {
     "test1": { 
         argTypes: ["int32", "float"],
         callback: (name: number, food: number) => void 0
+    },
+
+
+    "testFunction": {
+        argTypes: ["double"],
+        callback: (testNumber: number) => void 0
     }
 
 } as const;
 
 export type RemoteFunction = typeof RemoteFunctionStruct;
 
-// Returns the equivalent JS Types from the "int32" tuples
+// Returns a tuple of the equivalent JS Types from the "int32" tuples
 // type MappedTuple<T> =  { 
 //     [K in keyof T]: T[K] extends keyof NetworkedVariableTypes ? NetworkedVariableTypes[T[K]] : never 
 // };

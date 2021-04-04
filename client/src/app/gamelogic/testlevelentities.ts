@@ -161,7 +161,7 @@ export function loadTestLevel(this: Scene): void {
 
     }
 
-    this.addEntity(new EntityLoadTest());
+    //this.addEntity(new EntityLoadTest());
 
 
     class TestEntityForVideo extends Entity {

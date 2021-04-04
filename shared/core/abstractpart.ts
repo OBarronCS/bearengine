@@ -1,6 +1,6 @@
 import { AbstractEntity, EntityID } from "./abstractentity";
 import { Rect, Dimension } from "shared/shapes/rectangle";
-import { Coordinate } from "shared/shapes/vec2";
+import { Coordinate, Vec2 } from "shared/shapes/vec2";
 
 export abstract class Part {
     public static partID = -1; 
@@ -98,14 +98,12 @@ export class ColliderPart extends Part {
 
     public rect: Rect;
     //* Where on the rectangle is the position */
-    public offset: Coordinate;
+    public offset: Vec2;
 
     constructor(dimensions: Dimension,offset: Coordinate){
         super();
         this.rect = new Rect(0,0,dimensions.width, dimensions.height);
-        this.offset = {x: 0, y:0};
-        this.offset.x = -offset.x;
-        this.offset.y = -offset.y;
+        this.offset = new Vec2(-offset.x,-offset.y);
     }
 
     public setPosition(spot: Coordinate){

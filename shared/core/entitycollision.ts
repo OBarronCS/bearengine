@@ -1,10 +1,10 @@
 
 /*
 Two uses:
-    Deals with potential collision between entities (not terrain!)
-    Collision querys to find what entities lie under some query (line, box, circle)
+    Deals with potential collision between entities
+    Collision querys to find entities that lie under some query (line, box, circle)
 
-Entities are most likely things that move (player), things that can appear/dissapear (coins), 
+    Some entities are moving, some stay in place, many only live for a couple seconds. 
 
 Only for collision detection for AABB's. No resolution.
 */
@@ -22,7 +22,7 @@ export class CollisionManager extends Subsystem {
     
     init(): void {}
 
-    // With lots of entities, this will probably become a bottleneck, because it rebuilds the grid every step
+    // With lots of entities, this will probably become a bottleneck, because it rebuilds the grid every step, but it works fine for now
     private colliders: ColliderPart[] = [];
     private grid: SpatialGrid<ColliderPart>;
 

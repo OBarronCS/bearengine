@@ -40,6 +40,31 @@ export class FirstAutoEntity extends ServerEntity {
 
 
 
+@networkedclass_server("sharedEntityForVideo")
+export class AutomaticallyUpdatingEntity extends ServerEntity {
+    
+
+    @networkedvariable("float", true)
+    public health = 100;
+
+    
+    update(dt: number): void {
+        
+        if(random() < .1){
+            this.health -= 5;
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
 
 // Another possible ways to do entities: completely manually
 export abstract class TestTestTestNetworkedEntity extends ServerEntity {

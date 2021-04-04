@@ -10,7 +10,7 @@ import { ClientBoundPacket, ClientPacket, GamePacket } from "shared/core/sharedl
 import { Subsystem } from "shared/core/subsystem";
 import { BufferStreamWriter } from "shared/datastructures/networkstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
-import { FirstAutoEntity, PlayerEntity, ServerEntity } from "./serverentity";
+import { AutomaticallyUpdatingEntity, FirstAutoEntity, PlayerEntity, ServerEntity } from "./serverentity";
 import { TickTimer } from "shared/ticktimer";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
 import { PacketWriter, RemoteFunctionLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
@@ -256,13 +256,43 @@ export class ServerBearEngine implements AbstractBearEngine {
 
         this.globalPacketsToSerialize = [];
 
-        console.log(this.tick,Date.now()  - this.previousTick);
+        // console.log(this.tick,Date.now()  - this.previousTick);
     }
 
 
     private _boundLoop = this.loop.bind(this);
 
     private tickTimer = new TickTimer(30);
+
+
+    
+    queueRemoteFunction(){
+        this.globalPacketsToSerialize.push({
+
+            write(stream){
+                RemoteFunctionLinker.serializeRemoteFunction("testFunction", stream,Date.now());
+            }
+
+        });
+
+    }
+
+    createRemoteEntityTest(){
+
+        const e = new AutomaticallyUpdatingEntity();
+
+        this.entityManager.addEntity(e);
+        
+        this.globalPacketsToSerialize.push({
+            write(stream){
+                stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
+                stream.setUint8(e.constructor["SHARED_ID"]);
+                stream.setUint16(e.entityID);
+            }
+        });
+    }
+
+
 
     loop(){
         const now = Date.now();
@@ -272,24 +302,8 @@ export class ServerBearEngine implements AbstractBearEngine {
             const dt = 1000 / this.TICK_RATE;
 
             if(this.tickTimer.tick()){ 
-                // this.globalPacketsToSerialize.push({
-                //     write(stream){
-                //         RemoteFunctionLinker.serializeRemoteFunction("test1", stream,13234,100.3123);
-                //     }
-                // });
-                // console.log("AUTO ENTITY");
                 
-                // const e = new FirstAutoEntity();
-
-                // this.entityManager.addEntity(e);
-                
-                // this.globalPacketsToSerialize.push({
-                //     write(stream){
-                //         stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
-                //         stream.setUint8(e.constructor["SHARED_ID"]);
-                //         stream.setUint16(e.entityID);
-                //     }
-                // });
+              
             }
 
             this.tick += 1;
