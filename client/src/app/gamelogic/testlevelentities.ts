@@ -8,7 +8,7 @@ import { GraphNode, LiveGridGraph } from "shared/datastructures/graphs";
 import { SparseGrid } from "shared/datastructures/hashtable";
 import { HermiteCurve } from "shared/datastructures/paths";
 import { GridQuadNode, GridQuadTree, LiveGridQuadTree, QuadTree } from "shared/datastructures/quadtree";
-import { chance, fillFunction, random, randomRangeSet, random_range } from "shared/randomhelpers";
+import { chance, fillFunction, random, randomInt, randomRangeSet, random_range } from "shared/randomhelpers";
 import { Ellipse } from "shared/shapes/ellipse";
 import { Line } from "shared/shapes/line";
 import { Polygon } from "shared/shapes/polygon";
@@ -18,7 +18,7 @@ import { Vec2, Coordinate, angleBetween, mix } from "shared/shapes/vec2";
 import { atan2, cos, floor, PI, second, sin } from "shared/mathutils";
 import { ColorTween } from "shared/core/tween"
 import { TickTimer } from "shared/ticktimer"
-import { ColliderPart } from "shared/core/abstractpart";
+import { ColliderPart, TagPart } from "shared/core/abstractpart";
 import { bearevent } from "shared/core/bearevents";
 import { Scene} from "shared/core/scene";
 import { DrawableEntity, Entity, GMEntity, SpriteEntity } from "../core-engine/entity";
@@ -37,7 +37,12 @@ class BasicSprite extends SpriteEntity {
 }
 
 class EmptyEntity extends AbstractEntity {
+
+    public tag = this.addPart(new ColliderPart(dimensions(50,50), Vec2.ZERO));
+    public position = new Vec2(randomInt(0, 1000), randomInt(0,1500));
+
     update(dt: number): void {
+
     }
 }
 
@@ -156,7 +161,7 @@ export function loadTestLevel(this: Scene): void {
 
     }
 
-    // this.addEntity(new EntityLoadTest());
+    //this.addEntity(new EntityLoadTest());
 
 
     class TestEntityForVideo extends Entity {
@@ -795,25 +800,31 @@ export function loadTestLevel(this: Scene): void {
 
     class IK extends DrawableEntity {
         
+        // Min 2 points, this list creates the IK 'arm'
         private points: Vec2[] = []
 
         constructor(){
             super();
 
-            const segments = 25;
-            const length = 50;
+            
+            const points = 25;
+            const lengthPerSegment = 10;
 
-            for(let i = 0; i < segments; i++){
-                this.points.push(
-                    new Vec2(i * length, 0)
-                    )
+            for(let i = 0; i < points; i++){
+                this.points.push(new Vec2(i * lengthPerSegment, 0))
             }
         }
 
         update(dt: number): void {
 
+            if(this.Mouse.wasReleased("left")) this.points[this.points.length - 1] = this.Mouse.position.clone()
+
             let target = this.Mouse.position.clone() as Coordinate;
+            
+            // Last point in list is the anchor 
             const base = this.points[this.points.length - 1].clone();
+            //console.log(base)
+
 
             for (let i = 0; i < this.points.length - 1; i++) {
                 const newTail = this.moveSegment(this.points[i], this.points[i + 1], target);
@@ -832,6 +843,7 @@ export function loadTestLevel(this: Scene): void {
             this.redraw()
         }
 
+        // Sets head to target, moves tail so it follows it 
         moveSegment(head: Vec2, tail: Vec2, target: Coordinate){
             const length = Vec2.distance(head, tail);
             
@@ -849,13 +861,12 @@ export function loadTestLevel(this: Scene): void {
 
 
         draw(g: Graphics): void {
-            g.clear();
             drawPoint(g, this.points[0])
             drawLineArray(g, this.points, 0xFF0000, false)
         }
 
     }
-    //this.addEntity(new IK())
+    // this.addEntity(new IK())
 
 
     

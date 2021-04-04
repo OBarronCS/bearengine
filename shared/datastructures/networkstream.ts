@@ -7,10 +7,12 @@
 //const s = /[\x00-\x7F]/;
 //s.test(string): true if is ok
 
+import { Vec2 } from "shared/shapes/vec2";
+
 export class BufferStreamReader  {
     
     private littleEndian = false;
-    byteOffset: number = 0;
+    public byteOffset: number = 0;
 
     /** Size, in bytes */
     public readonly size: number;
@@ -102,106 +104,111 @@ export class BufferStreamReader  {
 
 export class BufferStreamWriter {
 
+    // The max position we have written to. Is same as byteOffset if never call seek() 
+    private maxOffset = 0
+    // The byte we write to on next call
+    private byteOffset = 0;
+
     private littleEndian = false;
-
-    // There's one issue: if seeks earlier, it loses the total length
-    byteOffset: number = 0;
-
     private dataview: DataView;
-
-    /** Seeks buffer to beginning. Sets offset to 0. Only data will then be overriden on future calls */
-    refresh(){
-        this.seek(0);
-    }
-
-    size() {
-        return this.byteOffset;
-    }
-
-    // Returns a copy of the underlying ArrayBuffer, leaving no extra data
-    cutoff(): ArrayBuffer {
-        return this.dataview.buffer.slice(0,this.byteOffset);
-    }
-
-    getBuffer(){
-        return this.dataview.buffer;
-    }
 
     constructor(buffer: ArrayBufferLike){
         this.dataview = new DataView(buffer);
     }
 
-    seek(toByte: number){
-        if(toByte < 0 || toByte >= this.dataview.byteLength) throw new Error("Moving stream out of bounds");
-        this.byteOffset = toByte;
+    size() { return this.maxOffset; }
+    getBuffer() { return this.dataview.buffer; }
+
+    /** Returns a copy of the underlying ArrayBuffer, cutting of at the max offset written to */
+    cutoff(): ArrayBuffer {
+        return this.dataview.buffer.slice(0,this.maxOffset);
     }
 
-    // Writes the bytes of given buffer to this stream. Copies it.
-    // TODO: Assert a given length? 
-    setBuffer(buffer: ArrayBuffer): void {
-        // Creates a temp Uint8 view of the buffer held by this stream
-        // this object allows writing another buffer to it.
-        // the underlying buffer of this stream is edited
+    refresh(){
+        this.byteOffset = 0;
+        this.maxOffset = 0;
+    }
 
-        // Probably very slow
+    seek(toByte: number){
+        this.byteOffset = toByte;
+
+        if(this.byteOffset > this.maxOffset){
+            this.maxOffset = this.byteOffset;
+        }
+    }
+
+    seekRelative(shift: number){
+        this.byteOffset += shift;
+
+        if(this.byteOffset > this.maxOffset){
+            this.maxOffset = this.byteOffset;
+        }
+    }
+    
+    /**  Writes the bytes of given buffer to this stream. Copies it.*/
+    setBuffer(buffer: ArrayBuffer): void {
+        // Unfortunately, DataView's don't allow settings buffers, so need another ArrayBufferView to do that
+        
         const uint8view = new Uint8Array(this.getBuffer());
         uint8view.set(new Uint8Array(buffer), this.byteOffset);
-        this.byteOffset += buffer.byteLength;
-
+        this.seekRelative(buffer.byteLength);
     }
 
 
     setBigInt64(value: bigint){
         this.dataview.setBigInt64(this.byteOffset, value, this.littleEndian)
-        this.byteOffset += 8;
+        this.seekRelative(8);
     }
 
     setBigUint64(value: bigint){
         this.dataview.setBigUint64(this.byteOffset, value, this.littleEndian)
-        this.byteOffset += 8;
+        this.seekRelative(8);
     }
 
     setFloat32(value: number): void {
         this.dataview.setFloat32(this.byteOffset, value, this.littleEndian)
-        this.byteOffset += 4;
+        this.seekRelative(4);
     }
 
     setFloat64(value: number): void {
         this.dataview.setFloat64(this.byteOffset, value, this.littleEndian)
-        this.byteOffset += 8;
+        this.seekRelative(8);
     }
 
     setInt8(value: number): void {
         this.dataview.setInt8(this.byteOffset,value);
-        this.byteOffset += 1;
+        this.seekRelative(1);
     }
 
     setInt16(value: number): void {
         this.dataview.setInt16(this.byteOffset, value, this.littleEndian);
-        this.byteOffset += 2;
+        this.seekRelative(2);
     }
 
     setInt32(value: number): void {
         this.dataview.setInt32(this.byteOffset, value, this.littleEndian);
-        this.byteOffset += 4;
+        this.seekRelative(4);
     }
 
     setUint8(value: number): void {
         this.dataview.setUint8(this.byteOffset,value);
-        this.byteOffset += 1;
+        this.seekRelative(1);
     }
 
     setUint16(value: number): void {
         this.dataview.setUint16(this.byteOffset, value, this.littleEndian);
-        this.byteOffset += 2;
+        this.seekRelative(2);
     }
 
     setUint32(value: number): void {
         this.dataview.setUint32(this.byteOffset,value, this.littleEndian);
-        this.byteOffset += 4;
+        this.seekRelative(4);
     }
 
-    // TODO:
-    // set/write Vec2
+    
+    // setVec2(vec: Vec2): void {
+
+    // }
+
     // set/write Array
 }

@@ -1,10 +1,7 @@
 import { AbstractBearEngine } from "shared/core/abstractengine";
-import { Part } from "shared/core/abstractpart";
-import { PartQuery } from "shared/core/partquery";
+import { Part, PartQuery} from "shared/core/abstractpart";
 import { EventRegistry } from "./bearevents";
 import { BearEvents } from "./sharedlogic/eventdefinitions";
-
-
 
 // new(engine: BearEngine) => T
 

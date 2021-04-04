@@ -208,6 +208,12 @@ export class NetworkReadSystem extends Subsystem {
     thisMethodNameDoesNotMatter(name: number, food: number){
         console.log(`REMOTE FUNCTION CALLED -> Name is ${name}, food is ${food}`);
     }
+
+
+    @remotefunction("testFunction")
+    asgdfygafsdjyafsdyasd(value: number){
+        console.log(value);
+    }
 }
 
 

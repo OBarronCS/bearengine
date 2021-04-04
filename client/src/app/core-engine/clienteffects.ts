@@ -62,7 +62,6 @@ export class DefaultBulletEffect extends Effect {
         })
         
         this.onFinish( () => {
-            console.log("Destroying entity")
             this.Scene.destroyEntity(this.bullet);
         })
     }	

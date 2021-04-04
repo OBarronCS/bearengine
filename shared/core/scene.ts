@@ -1,13 +1,16 @@
 
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
-import { Part, TagPart, TagType } from "shared/core/abstractpart";
-import { PartQuery } from "shared/core/partquery";
+import { Part, PartContainer, TagPart, TagType } from "shared/core/abstractpart";
+import { PartQuery } from "shared/core/abstractpart";
 import { Subsystem } from "shared/core/subsystem";
 import { EntityEventListType } from "shared/core/bearevents";
 
 export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends Subsystem {
     
     private partQueries: PartQuery<Part>[] = [];
+
+    private nextPartID = 0;
+    private partContainers: PartContainer<Part>[] = []
 
     // It finds this when iterating all the other systems.
     private tags: PartQuery<TagPart> = this.addQuery(TagPart);
@@ -24,15 +27,41 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         //@ts-expect-error --> This is a readonly property. This is the only time we should be changing it
         e.entityID = id;
 
+        // Add it to sparse set
         const indexInDense = this.entities.push(e) - 1;
         this.sparse[id] = indexInDense;
 
+
         e.onAdd();
         this.registerEvents(e);
-        this.partQueries.forEach(q => {
-            q.addEntity(e)
-        });
 
+        for(const part of e.parts){
+            
+            let uniquePartID = part.constructor["partID"];
+
+            // First time adding this type of part
+            if(uniquePartID === -1){
+                uniquePartID = part.constructor["partID"] = this.nextPartID++;
+
+                const container = new PartContainer();
+                this.partContainers.push(container);
+
+                const name = part.constructor.name;
+                for(const query of this.partQueries){
+                    
+                    if(query.name === name){
+                        container.onAdd.push(query.onAdd);
+                        container.onRemove.push(query.onRemove);
+
+                        query.parts = container.dense;
+                    }
+                    
+                }
+            }
+
+            const container = this.partContainers[uniquePartID];
+            container.addPart(part, id);
+        }
 
         // console.log("Sparse: ", this.sparse);
         // console.log("Dense: ", this.entities);
@@ -70,11 +99,8 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
             this.freeID = id;
         }
 
-
-        
         
         // Set the sparse array to point at the right one;
-
         // Edge case: removing the last entity in the list.
         const lastIndex = this.entities.length - 1;
         if(denseIndex !== lastIndex){
@@ -88,11 +114,14 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         this.entities.pop();
 
         // console.log(this.sparse, this.entities)
+        
+        // Delete all parts on this entity;
+        for(const part of entity.parts){
+            const container = this.partContainers[part.constructor["partID"]]
+            container.removePart(id);
+        }
 
         entity.onDestroy();
-        this.partQueries.forEach(q => {
-            q.deleteEntity(entity)
-        });
     }
 
     destroyEntity<T extends EntityType>(e: T): void {
@@ -131,10 +160,13 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         this.entities.forEach( e => {
             e.onDestroy();
 
-            this.partQueries.forEach(q => {
-                q.deleteEntity(e)
-            })
-        })
+            for(const part of e.parts){
+                const container = this.partContainers[part.constructor["partID"]]
+                container.removePart(e.entityID);
+            }
+        });
+    
+        // Keep that part containers as they are, really no point in resetting them.
 
         this.freeID = -1;
         this.sparse = [];
@@ -154,7 +186,6 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
                 if(!handler) {
                     console.log(`Handler for ${item.eventname} could not be found!`)
                 }
-                console.log("Handler: " + handler);
 
                 const methodName = item.methodname;
 

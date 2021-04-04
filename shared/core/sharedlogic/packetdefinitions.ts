@@ -36,6 +36,7 @@ export enum ServerBoundPacket {
 export enum ClientPacket {
     JOIN_GAME,
     LEAVE_GAME, // sent internally
+    
     PLAYER_POSITION,
 
     TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]

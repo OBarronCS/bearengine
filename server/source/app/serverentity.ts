@@ -10,7 +10,7 @@ export abstract class ServerEntity extends AbstractEntity {
     // Maybe in future make two seperate lists of entities, one for networked and one for not
     stateHasBeenChanged = false;
 
-    stateChanged(): void {
+    markDirty(): void {
         this.stateHasBeenChanged = true;
     }
 }
@@ -28,17 +28,40 @@ export class FirstAutoEntity extends ServerEntity {
     @networkedvariable("int32")
     public health = 1;
 
-    @networkedvariable("double")
+    @networkedvariable("double", true)
     public xpos = 1;
 
     update(dt: number): void {
         if(this.tick.tick()) {
-            this.health += 1;
             this.xpos += random(40)
-            this.stateChanged();
         }
     }
 }
+
+
+
+@networkedclass_server("sharedEntityForVideo")
+export class AutomaticallyUpdatingEntity extends ServerEntity {
+    
+
+    @networkedvariable("float", true)
+    public health = 100;
+
+    
+    update(dt: number): void {
+        
+        if(random() < .1){
+            this.health -= 5;
+        }
+    }
+}
+
+
+
+
+
+
+
 
 
 

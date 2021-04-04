@@ -1,10 +1,10 @@
 
 /*
 Two uses:
-    Deals with potential collision between entities (not terrain!)
-    Collision querys to find what entities lie under some query (line, box, circle)
+    Deals with potential collision between entities
+    Collision querys to find entities that lie under some query (line, box, circle)
 
-Entities are most likely things that move (player), things that can appear/dissapear (coins), 
+    Some entities are moving, some stay in place, many only live for a couple seconds. 
 
 Only for collision detection for AABB's. No resolution.
 */
@@ -14,7 +14,6 @@ import { Line } from "shared/shapes/line";
 import { Rect } from "shared/shapes/rectangle";
 import { SpatialGrid } from "shared/datastructures/spatialgrid";
 import { AbstractEntity } from "shared/core/abstractentity";
-import { PartQuery } from "shared/core/partquery";
 import { ColliderPart } from "./abstractpart";
 import { Subsystem } from "./subsystem";
 
@@ -23,7 +22,7 @@ export class CollisionManager extends Subsystem {
     
     init(): void {}
 
-    // With lots of entities, this will probably become a bottleneck, because it rebuilds the grid every step
+    // With lots of entities, this will probably become a bottleneck, because it rebuilds the grid every step, but it works fine for now
     private colliders: ColliderPart[] = [];
     private grid: SpatialGrid<ColliderPart>;
 
@@ -60,7 +59,8 @@ export class CollisionManager extends Subsystem {
     remove(c: ColliderPart){
         const i = this.colliders.indexOf(c);
         if(i !== -1){
-            this.colliders.splice(i,1);
+            this.colliders[i] = this.colliders[this.colliders.length - 1];
+            this.colliders.pop();
 
             // Dont bother removing it from the grid yet.
             // It just won't be added back when I rebuild next step
