@@ -29,10 +29,10 @@ export abstract class AbstractEntity {
 
     protected static GLOBAL_DATA_STRUCT: GlobalData = null;
 
-    protected get Scene(){ return AbstractEntity.GLOBAL_DATA_STRUCT.Scene }
-    protected get Level(){ return AbstractEntity.GLOBAL_DATA_STRUCT.Level }
-    protected get Terrain(){ return AbstractEntity.GLOBAL_DATA_STRUCT.Terrain }
-    protected get Collision(){ return AbstractEntity.GLOBAL_DATA_STRUCT.Collision }
+    get Scene(){ return AbstractEntity.GLOBAL_DATA_STRUCT.Scene }
+    get Level(){ return AbstractEntity.GLOBAL_DATA_STRUCT.Level }
+    get Terrain(){ return AbstractEntity.GLOBAL_DATA_STRUCT.Terrain }
+    get Collision(){ return AbstractEntity.GLOBAL_DATA_STRUCT.Collision }
 
     addPart<T extends Part>(part: T): T {
         this.parts.push(part);
