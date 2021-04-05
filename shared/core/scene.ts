@@ -6,8 +6,7 @@ import { Subsystem } from "shared/core/subsystem";
 import { EntityEventListType } from "shared/core/bearevents";
 
 
-
-// Most significant 8 bits are version number, unsigned int
+// Most significant 8 bits are version number, unsigned int --> wrap once get to 2 ^ 8
 // least significant 24 bits are sparse index, unsigned int
 
 const BITS_FOR_INDEX = 24;
@@ -20,14 +19,14 @@ export function getEntityIndex(id: EntityID): number {
 
 export const NULL_ENTITY_INDEX = MASK_TO_EXTRACT_INDEX;
 
+const BITS_FOR_VERSION = 2; 
+const MAX_VERSION_NUMBER_PLUS_ONE = (1 << BITS_FOR_VERSION);
 
-const BITS_FOR_VERSION = 8; 
-/** 
- * const onlyVBits = EntityID & MASK_TO_GET_VERSION_BITS --> Only version bits left in 32 bit integer 
-*/
+/** const onlyVBits = EntityID & MASK_TO_GET_VERSION_BITS --> Only version bits left in 32 bit integer */
 const MASK_TO_GET_VERSION_BITS = ((1 << BITS_FOR_VERSION) - 1) << BITS_FOR_INDEX;  
 
 export function getEntityVersion(id: EntityID): number { 
+    // Because bitwise operations in JavaScript turn numbers into SIGNED 32 bits integers, need triple > to stop the sign bit from propagating
     return id >>> BITS_FOR_INDEX;
 }
 
@@ -35,6 +34,7 @@ function entityIDFromIndexAndVersion(sparse_index: number, version: number){
     return sparse_index | (version << BITS_FOR_INDEX);
 }
 
+// Prints out the bits in an entity id, for debugging
 function entityToString(id: EntityID){
     let str = "";
     for(let i = 0; i < 32; i++){
@@ -62,8 +62,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
     private deleteEntityQueue: EntityID[] = [];
 
     private getNextEntityID(): EntityID {
-
-        // If no holes, the ID has never been used. Version number implicitly 0
+        // If this is true there are no sparse indices to re-use. Version number implicitly 0
         if(this.freeID === NULL_ENTITY_INDEX){
             return this.sparse.length;
         } else { 
@@ -168,7 +167,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         this.entities.pop();
 
         // Set free linked list 
-        this.sparse[sparseIndex] = entityIDFromIndexAndVersion(this.freeID,version + 1);
+        this.sparse[sparseIndex] = entityIDFromIndexAndVersion(this.freeID,(version + 1) % MAX_VERSION_NUMBER_PLUS_ONE);
         this.freeID = sparseIndex;
 
         for(const part of entity.parts){
