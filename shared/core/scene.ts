@@ -5,6 +5,52 @@ import { PartQuery } from "shared/core/abstractpart";
 import { Subsystem } from "shared/core/subsystem";
 import { EntityEventListType } from "shared/core/bearevents";
 
+
+
+/* 
+EntityID's: 32 bit integers --> technically are signed in JS, but that doesn't really matter
+
+Most significant 8 bits are version number, unsigned int
+least significant 24 bits are sparse index, unsigned int
+
+When creating new just ignore the first 8 bits, and return size of entities array - 1 
+    zero version implicitly
+
+
+legit just get version, and add one to it, and put it back
+
+
+*/
+
+const BITS_FOR_INDEX = 24;
+/**  EntityID & MASK_TO_EXTRACT_INDEX = sparse_index */
+const MASK_TO_EXTRACT_INDEX = (1 << BITS_FOR_INDEX) - 1;  
+
+
+const BITS_FOR_VERSION = 8; 
+/** 
+ * v = EntityID & MASK_TO_EXTRACT_VERSION 
+ *  --> Only version bits left in 32 bit in 
+ * 
+ * EntityID = sparse_index | v 
+*/
+const MASK_TO_KEEP_VERSION = ((1 << BITS_FOR_VERSION) - 1) << BITS_FOR_INDEX;  
+
+
+
+function getEntityVersion(id: EntityID): number {
+    // Shift the most significants bits down to get only the version number
+    // Need triple > to get rid of the sign 
+    return id >>> BITS_FOR_INDEX
+}
+
+function getSparseIndex(id: EntityID): number {
+    // Ignore the version bits
+    return id & MASK_TO_EXTRACT_INDEX;
+}
+
+
+
 export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends Subsystem {
     
     private partQueries: PartQuery<Part>[] = [];
@@ -21,6 +67,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
     private sparse: number[] = [];
     public entities: EntityType[] = [];
 
+    private deleteEntityQueue: EntityID[] = [];
 
     addEntity<T extends EntityType>(e: T): T {
         const id = this.getNextID();
@@ -85,9 +132,27 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         return (entity as T);         
     }
 
-    destroyEntityByID(id: number): void {
+    public destroyEntityByID(id: number): void {
+        this.deleteEntityQueue.push(id);
+    }
+
+    /** Queues the destroyal of an entity, end of scene system tick */
+    public destroyEntity<T extends EntityType>(e: T): void {
+        this.destroyEntityByID(e.entityID);
+    }
+
+    private destroyEntityImmediately(id: EntityID){
+        // Huge bug when trying to delete an entity that doesn't exist
+        /////////////////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////
+        ///////////////////////////////////////////////
+        ////////////////////////////////////////////////
+        ///////////////////////////////////////////
+        /////////////////////////////////
         const denseIndex = this.sparse[id];
         const entity = this.entities[denseIndex];
+
+
         // Set the free list
         
         if(this.freeID === -1){
@@ -124,18 +189,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         entity.onDestroy();
     }
 
-    destroyEntity<T extends EntityType>(e: T): void {
-        const id = e.entityID;
 
-        const denseIndex = this.sparse[id];
-        const entity = this.entities[denseIndex];
-        if(entity !== e) { 
-            console.log("TRYING TO DELETE AN ENTITY THAT DOESN'T EXIST ANYMORE");
-            return;
-        }
-
-        this.destroyEntityByID(id);
-    }
 
     init(): void {}
 
@@ -146,6 +200,13 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
             entity.update(delta);
             entity.postUpdate(); // Maybe get rid of this, swap it with systems that I call after step
         }
+
+        if(this.deleteEntityQueue.length > 0) console.log(this.deleteEntityQueue)
+        for(const id of this.deleteEntityQueue){
+            this.destroyEntityImmediately(id);
+        }
+
+        if(this.deleteEntityQueue.length > 0) this.deleteEntityQueue = [];
 
         // Delete all entities that need to be deleted 
     }
@@ -176,7 +237,6 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
     }
 
 
-
     private registerEvents<T extends EntityType>(e: T): void {
         if(e.constructor["EVENT_REGISTRY"]){
             const list = e.constructor["EVENT_REGISTRY"] as EntityEventListType<T>;
@@ -193,8 +253,6 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
             }
         }
     }
-
-
 
     getEntityByTag<T extends EntityType>(tag: TagType): T {
         for(const tagPart of this.tags){
