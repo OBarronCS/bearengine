@@ -13,6 +13,7 @@ interface GlobalData {
     Collision: CollisionManager;
 }
 
+// Signifies that a certain number is special
 export type EntityID = number; 
 
 export abstract class AbstractEntity {

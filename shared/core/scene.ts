@@ -1,4 +1,3 @@
-
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { Part, PartContainer, TagPart, TagType } from "shared/core/abstractpart";
 import { PartQuery } from "shared/core/abstractpart";
@@ -6,9 +5,8 @@ import { Subsystem } from "shared/core/subsystem";
 import { EntityEventListType } from "shared/core/bearevents";
 
 
-// Most significant 8 bits are version number, unsigned int --> wrap once get to 2 ^ 8
-// least significant 24 bits are sparse index, unsigned int
-
+// Most significant 8 bits are version number, unsigned int --> [0,255], wraps 
+// least significant 24 bits are sparse index, unsigned int --> means max 16,777,215 entities 
 const BITS_FOR_INDEX = 24;
 /**  EntityID & MASK_TO_EXTRACT_INDEX = sparse_index */
 const MASK_TO_EXTRACT_INDEX = (1 << BITS_FOR_INDEX) - 1;
@@ -19,8 +17,8 @@ export function getEntityIndex(id: EntityID): number {
 
 export const NULL_ENTITY_INDEX = MASK_TO_EXTRACT_INDEX;
 
-const BITS_FOR_VERSION = 2; 
-const MAX_VERSION_NUMBER_PLUS_ONE = (1 << BITS_FOR_VERSION);
+const BITS_FOR_VERSION = 8; 
+const MAX_VERSION_NUMBER = (1 << BITS_FOR_VERSION) - 1;
 
 /** const onlyVBits = EntityID & MASK_TO_GET_VERSION_BITS --> Only version bits left in 32 bit integer */
 const MASK_TO_GET_VERSION_BITS = ((1 << BITS_FOR_VERSION) - 1) << BITS_FOR_INDEX;  
@@ -124,8 +122,19 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         return e;
     }
 
-    getEntity<T extends EntityType = EntityType>(id: number): T {
-        const entity = this.entities[this.sparse[id]];
+    /** Null if entity has already been deleted */
+    getEntity<T extends EntityType = EntityType>(entityID: EntityID): T | null {
+        const sparseIndex = getEntityIndex(entityID);
+        const version = getEntityVersion(entityID); 
+        
+        if(getEntityVersion(this.sparse[sparseIndex]) !== version) {
+            // This is fairly common
+            // console.log("Trying to delete something that has already been deleted");
+            return null;
+        }
+        
+        const denseIndex = getEntityIndex(this.sparse[sparseIndex]);
+        const entity = this.entities[denseIndex];
         return (entity as T);         
     }
 
@@ -134,6 +143,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         this.destroyEntityID(e.entityID);
     }
 
+    /** Queues the destroyal of an entity, end of scene system tick */
     public destroyEntityID(id: EntityID): void {
         this.deleteEntityQueue.push(id);
     }
@@ -151,8 +161,6 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         const denseIndex = getEntityIndex(this.sparse[sparseIndex]);
         const entity = this.entities[denseIndex];
 
- 
-
         if(denseIndex !== this.entities.length - 1){
             // Makes sure dense indices point to correct places
             this.entities[denseIndex] = this.entities[this.entities.length - 1];
@@ -167,7 +175,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         this.entities.pop();
 
         // Set free linked list 
-        this.sparse[sparseIndex] = entityIDFromIndexAndVersion(this.freeID,(version + 1) % MAX_VERSION_NUMBER_PLUS_ONE);
+        this.sparse[sparseIndex] = entityIDFromIndexAndVersion(this.freeID,(version + 1) & MAX_VERSION_NUMBER);
         this.freeID = sparseIndex;
 
         for(const part of entity.parts){
