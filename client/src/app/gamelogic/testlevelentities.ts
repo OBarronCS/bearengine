@@ -38,8 +38,8 @@ class BasicSprite extends SpriteEntity {
 
 class EmptyEntity extends AbstractEntity {
 
-    public tag = this.addPart(new ColliderPart(dimensions(50,50), Vec2.ZERO));
-    public position = new Vec2(randomInt(0, 1000), randomInt(0,1500));
+    // public tag = this.addPart(new ColliderPart(dimensions(50,50), Vec2.ZERO));
+    // public position = new Vec2(randomInt(0, 1000), randomInt(0,1500));
 
     update(dt: number): void {
 
@@ -131,10 +131,19 @@ export function loadTestLevel(this: Scene): void {
 
         update(dt: number): void {
             if(this.Mouse.wasReleased("left")){
+                
+
+                // This avoids performance including time for JS engine to allocate memory for the objects
+                const tempEntities: EmptyEntity[] = []
+                for(let i = 0; i < this.AMOUNT; i++){
+                    tempEntities.push(new EmptyEntity());
+                }
+
+
                 const start = performance.now();
 
                 for(let i = 0; i < this.AMOUNT; i++){
-                    this.entities.push(this.Scene.addEntity(new EmptyEntity()).entityID);
+                    this.entities.push(this.Scene.addEntity(tempEntities[i]).entityID);
                 }
 
                 console.log("Time to create:",performance.now() - start)
@@ -146,7 +155,7 @@ export function loadTestLevel(this: Scene): void {
                     const start = performance.now();
 
                     for(let i = 0; i < this.AMOUNT; i++){
-                        this.Scene.destroyEntityByID(this.entities[i]);
+                        this.Scene.destroyEntityID(this.entities[i]);
                     }
 
                     this.entities = [];
@@ -161,7 +170,7 @@ export function loadTestLevel(this: Scene): void {
 
     }
 
-    //this.addEntity(new EntityLoadTest());
+    this.addEntity(new EntityLoadTest());
 
 
     class TestEntityForVideo extends Entity {
