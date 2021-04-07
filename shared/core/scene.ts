@@ -3,6 +3,8 @@ import { Part, PartContainer, TagPart, TagType } from "shared/core/abstractpart"
 import { PartQuery } from "shared/core/abstractpart";
 import { Subsystem } from "shared/core/subsystem";
 import { EntityEventListType } from "shared/core/bearevents";
+import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
+import { assert } from "shared/assertstatements";
 
 
 // Most significant 8 bits are version number, unsigned int --> [0,255], wraps 
@@ -41,6 +43,19 @@ function entityToString(id: EntityID){
     return str
 }
 
+// Sends entityIndex as 16 bit unsigned integer. Server should never have over 2 ^ 16 entities alive at same time. I 
+export function StreamWriteEntityID(stream: BufferStreamWriter, entityID: EntityID): void {
+    const indexNumber = getEntityIndex(entityID);
+    
+    // Ensure that it fits in 16 bits
+    assert(indexNumber <= ( (1 << 16) - 1), "Entity index to large to send over network!");
+    
+    stream.setUint16(indexNumber);
+}
+
+export function StreamReadEntityID(stream: BufferStreamReader): number {
+    return stream.getUint16();
+}
 
 export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends Subsystem {
     

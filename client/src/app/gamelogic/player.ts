@@ -107,17 +107,14 @@ export class Player extends DrawableEntity {
             {
                 addontype: AddOnType.SPECIAL,
                 modifyShot(shotInfo, effect){
-                    // effect.onInterval(2, function(times){
-                    //     this.velocity.drotate(random_range(-6,6))
-                    // })
-   
-                    
-                    effect.destroyAfter(50);
+                    effect.onInterval(2, function(times){
+                        this.velocity.drotate(random_range(-6,6))
+                    })
                 }
             },
             {
                 addontype: AddOnType.SPECIAL,
-                gravity: new Vec2(0,1),
+                gravity: new Vec2(0,.3),
                 modifyShot(shotInfo, effect){
 
                     const self = this;
