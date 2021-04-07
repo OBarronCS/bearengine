@@ -1,5 +1,6 @@
+import { StreamWriteEntityID } from "shared/core/scene";
 import { NetworkedVariableTypes, NetworkedEntityNames, SerializeTypedVariable } from "shared/core/sharedlogic/networkedentitydefinitions";
-import { BufferStreamWriter } from "shared/datastructures/networkstream";
+import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ServerEntity } from "../serverentity";
 
 
@@ -113,11 +114,11 @@ export class SharedEntityServerTable {
 
     static serialize(stream: BufferStreamWriter, entity: ServerEntity){
 
-        // Could make this a getter on the instance, I guess
+        // Could make this a getter on the prototype,
         const SHARED_ID = entity.constructor["SHARED_ID"];
 
         stream.setUint8(SHARED_ID);
-        stream.setUint16(entity.entityID);
+        StreamWriteEntityID(stream, entity.entityID);
 
         const variableslist = SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES[SHARED_ID].variableslist;
 

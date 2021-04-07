@@ -73,6 +73,7 @@ export class BaseBulletGun extends SpriteEntity {
 }
 
 
+// maybe: add onHitObject callback, onHitTerrain callback? make it easier to implement them?
 export class BaseBullet extends Effect {
     
     private sprite: SpritePart;

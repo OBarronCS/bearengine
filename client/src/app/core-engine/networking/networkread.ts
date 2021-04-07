@@ -1,7 +1,7 @@
 import { AssertUnreachable } from "shared/assertstatements";
 import { AbstractBearEngine } from "shared/core/abstractengine";
-import { AbstractEntity } from "shared/core/abstractentity";
-import { Scene } from "shared/core/scene";
+import { AbstractEntity, EntityID } from "shared/core/abstractentity";
+import { Scene, StreamReadEntityID } from "shared/core/scene";
 import { RemoteFunction, RemoteFunctionLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
@@ -56,7 +56,8 @@ export class NetworkReadSystem extends Subsystem {
         this.scene = this.getSystem(Scene);
     }
 
-    createAutoRemoteEntity(sharedID: number, entityID: number): Entity {
+    // This entityID is from the network, and doesn't contain the version number
+    private createAutoRemoteEntity(sharedID: number, entityID: EntityID): Entity {
         const _class = SharedEntityClientTable.getEntityClass(sharedID);
 
         //@ts-expect-error
@@ -89,7 +90,7 @@ export class NetworkReadSystem extends Subsystem {
                         case GamePacket.REMOTE_ENTITY_CREATE: {
 
                             const sharedClassID = stream.getUint8();
-                            const entityID = stream.getUint16();
+                            const entityID = StreamReadEntityID(stream);
                             
                             this.createAutoRemoteEntity(sharedClassID,entityID);
                            
@@ -100,7 +101,7 @@ export class NetworkReadSystem extends Subsystem {
                         case GamePacket.REMOTE_ENTITY_VARIABLE_CHANGE:{
 
                             const SHARED_ID = stream.getUint8();
-                            const entityID = stream.getUint16();
+                            const entityID = StreamReadEntityID(stream);
 
                             let entity = this.entities.get(entityID);
 
@@ -129,7 +130,7 @@ export class NetworkReadSystem extends Subsystem {
 
                         case GamePacket.ENTITY_DESTROY:{
                              // Find correct entity
-                            const id = stream.getUint16();
+                            const id = StreamReadEntityID(stream);
 
                             let e = this.entities.get(id);
                             if(e !== undefined){
@@ -143,7 +144,7 @@ export class NetworkReadSystem extends Subsystem {
                         case GamePacket.PLAYER_POSITION:{
                             
                             // Find correct entity
-                            const id = stream.getUint16();
+                            const id = StreamReadEntityID(stream);;
                             //  console.log("ID: " + id)
                             let e = this.entities.get(id);
                             if(e === undefined){
@@ -163,7 +164,8 @@ export class NetworkReadSystem extends Subsystem {
                         }
                         case GamePacket.SIMPLE_POSITION:{
                             // Find correct entity
-                            const id = stream.getUint16();
+                            const id = StreamReadEntityID(stream);
+                            
                             //  console.log("ID: " + id)
                             let e = this.entities.get(id);
                             if(e === undefined){

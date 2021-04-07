@@ -2,7 +2,7 @@ import { Vec2 } from "shared/shapes/vec2";
 import { Part } from "./abstractpart";
 import { CollisionManager } from "./entitycollision";
 import { LevelHandler } from "./level";
-import { Scene } from "./scene";
+import { NULL_ENTITY_INDEX, Scene } from "./scene";
 import { TerrainManager } from "./terrainmanager";
 
 
@@ -13,10 +13,11 @@ interface GlobalData {
     Collision: CollisionManager;
 }
 
+// Signifies that a certain number is special
 export type EntityID = number; 
 
 export abstract class AbstractEntity {
-    readonly entityID: EntityID = -1;
+    readonly entityID: EntityID = NULL_ENTITY_INDEX;
 
     readonly position: Vec2 = new Vec2(0,0);
     readonly parts: Part[] = [];

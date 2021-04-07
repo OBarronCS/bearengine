@@ -1,7 +1,7 @@
 
 
 import WS from "ws"
-import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/networkstream"
+import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream"
 import { ClientBoundPacket, ClientPacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { LinkedQueue } from "shared/datastructures/queue";
 import { AssertUnreachable } from "shared/assertstatements";

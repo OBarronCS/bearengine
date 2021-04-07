@@ -1,6 +1,7 @@
 import { AbstractEntity, EntityID } from "./abstractentity";
 import { Rect, Dimension } from "shared/shapes/rectangle";
 import { Coordinate, Vec2 } from "shared/shapes/vec2";
+import { getEntityIndex } from "./scene";
 
 export abstract class Part {
     public static partID = -1; 
@@ -17,21 +18,22 @@ export class PartContainer<T extends Part> {
     public dense: T[] = [];
 
 
-    addPart(part: T, entityID: EntityID){
+    addPart(part: T, sparseIndex: number){
         const indexInDense = this.dense.push(part) - 1;
-        this.sparse[entityID] = indexInDense;
+        this.sparse[sparseIndex] = indexInDense;
 
         for(const onAdd of this.onAdd){
             onAdd(part);
         }
     }
 
-    removePart(entityID: EntityID){
-        const denseIndex = this.sparse[entityID];
+    /** Remove entity at this sparse index. */
+    removePart(sparseIndex: number){
+        const denseIndex = this.sparse[sparseIndex];
         const part = this.dense[denseIndex];
 
         // Set the sparse to -1 to signify it's not here
-        this.sparse[entityID] = -1;
+        this.sparse[sparseIndex] = -1;
         
         // Edge case: removing the last part in the list.
         const lastIndex = this.dense.length - 1;
@@ -39,7 +41,7 @@ export class PartContainer<T extends Part> {
             // swap this with last entity in dense
             this.dense[denseIndex] = this.dense[lastIndex];
 
-            const swappedID = this.dense[denseIndex].owner.entityID;
+            const swappedID = getEntityIndex(this.dense[denseIndex].owner.entityID);
             this.sparse[swappedID] = denseIndex;
         }
 

@@ -1,5 +1,5 @@
 import { AbstractEntity} from "shared/core/abstractentity"
-import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/networkstream";
+import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { networkedclass_server, networkedvariable } from "./networking/serverentitydecorators";
 import { TickTimer } from "shared/ticktimer";
 import { random } from "shared/randomhelpers";

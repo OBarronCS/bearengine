@@ -1,5 +1,5 @@
 import { DeserializeTypedVariable, NetworkedEntityNames, NetworkedVariableTypes } from "shared/core/sharedlogic/networkedentitydefinitions";
-import { BufferStreamReader } from "shared/datastructures/networkstream";
+import { BufferStreamReader } from "shared/datastructures/bufferstream";
 import { Entity } from "../entity";
 
 

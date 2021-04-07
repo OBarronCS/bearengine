@@ -4,11 +4,11 @@ import type { Server } from "ws";
 import { AssertUnreachable } from "shared/assertstatements";
 import { AbstractBearEngine } from "shared/core/abstractengine";
 import { EventRegistry } from "shared/core/bearevents";
-import { Scene } from "shared/core/scene";
+import { Scene, StreamWriteEntityID } from "shared/core/scene";
 import { BearEvents } from "shared/core/sharedlogic/eventdefinitions";
 import { ClientBoundPacket, ClientPacket, GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
-import { BufferStreamWriter } from "shared/datastructures/networkstream";
+import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
 import { AutomaticallyUpdatingEntity, FirstAutoEntity, PlayerEntity, ServerEntity } from "./serverentity";
 import { TickTimer } from "shared/ticktimer";
@@ -164,7 +164,7 @@ export class ServerBearEngine implements AbstractBearEngine {
                         this.globalPacketsToSerialize.push({
                             write(stream){
                                 stream.setUint8(GamePacket.ENTITY_DESTROY);
-                                stream.setUint16(pInfo.playerEntity.entityID);
+                                StreamWriteEntityID(stream, pInfo.playerEntity.entityID);
                             }
                         });
 
@@ -234,7 +234,7 @@ export class ServerBearEngine implements AbstractBearEngine {
                 const player = this.players.get(connection).playerEntity;
 
                 stream.setUint8(GamePacket.PLAYER_POSITION);
-                stream.setUint16(player.entityID);
+                StreamWriteEntityID(stream, player.entityID);
                 stream.setFloat32(player.position.x);
                 stream.setFloat32(player.position.y);
             }
@@ -287,7 +287,7 @@ export class ServerBearEngine implements AbstractBearEngine {
             write(stream){
                 stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
                 stream.setUint8(e.constructor["SHARED_ID"]);
-                stream.setUint16(e.entityID);
+                StreamWriteEntityID(stream, e.entityID);
             }
         });
     }

@@ -1,7 +1,7 @@
 
 
 import { AssertUnreachable } from "shared/assertstatements";
-import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/networkstream";
+import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { GamePacket } from "./packetdefinitions";
 
 /*

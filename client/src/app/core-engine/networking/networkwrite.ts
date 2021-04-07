@@ -3,7 +3,7 @@ import { Scene } from "shared/core/scene";
 import { PacketWriter } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { ServerBoundPacket, ClientPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
-import { BufferStreamWriter } from "shared/datastructures/networkstream";
+import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { Player } from "../../gamelogic/player";
 import { RemoteLocations } from "./remotecontrol";
 import { BufferedNetwork } from "./clientsocket";
