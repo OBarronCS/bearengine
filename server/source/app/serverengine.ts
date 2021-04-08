@@ -18,6 +18,8 @@ import { PacketWriter, RemoteFunctionLinker } from "shared/core/sharedlogic/netw
 
 class PlayerInformation {
 
+    constructor(public connectionID: ConnectionID){}
+
     personalStream = new BufferStreamWriter(new ArrayBuffer(2048));
 
     playerEntity: PlayerEntity;
@@ -27,7 +29,6 @@ class PlayerInformation {
 
     //dirtyEntities: ServerEntity[] = [];
 
-    constructor(public connectionID: ConnectionID){}
 }
 
 
@@ -203,9 +204,9 @@ export class ServerBearEngine implements AbstractBearEngine {
 
     private writeToNetwork(){
 
+        // Get entities marked dirty
         const entitiesToSerialize: ServerEntity[] = []
 
-        // Entities auto updating variables over network
         for(const entity of this.entityManager.entities){
             if(entity.stateHasBeenChanged){
 
@@ -215,7 +216,7 @@ export class ServerBearEngine implements AbstractBearEngine {
             }
         }
 
-
+        
         for(const client of this.clients){
             const connection = this.players.get(client);
             const stream = connection.personalStream;
