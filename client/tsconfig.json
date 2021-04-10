@@ -1,0 +1,28 @@
+{
+    "compilerOptions": {
+        "baseUrl":"../",
+        
+        "moduleResolution": "node",
+        "target": "ESNext",
+        "lib": ["DOM","ESNext"],
+        
+        // Look into setting sourceMap = true for better debugging
+        
+        "experimentalDecorators":true,
+
+        //"noImplicitAny" : true,
+        "noImplicitThis":true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "strictBindCallApply":true,
+
+        "types": [
+            "webpack",
+            "webpack-env"
+        ]        
+    },
+    "exclude": [
+        "node_modules",
+        "**/node_modules/",
+    ],    
+}

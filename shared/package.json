@@ -1,0 +1,17 @@
+{
+  "name": "shared",
+  "version": "1.0.0",
+  "description": "Code shared between the client and server",
+  "main": "index.js",
+  "scripts": {
+  },
+  "author": "Otso",
+  "license": "ISC",
+  "dependencies": {
+    "earcut": "^2.2.2",
+    "pixi.js": "^5.3.5"
+  },
+  "devDependencies": {
+    "@types/earcut": "^2.1.1"
+  }
+}

@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+
+        "baseUrl":"../",
+        "outDir": "/build",
+        
+        "module": "CommonJS",
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        //"allowSyntheticDefaultImports": true
+
+        "target": "ESNext",
+        "lib": ["DOM","ESNext"],
+        
+        //"noImplicitAny" : true,
+        "noImplicitThis":true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "experimentalDecorators": true,
+    },
+    "exclude": [
+        "node_modules",
+        "**/node_modules/",
+    ]
+}

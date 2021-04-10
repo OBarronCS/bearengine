@@ -2,3 +2,5 @@ node_modules
 notes
 dist
 debug.log
+client/src/assets
+client/src/images
