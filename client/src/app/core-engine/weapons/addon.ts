@@ -1,6 +1,6 @@
-import { ClientPacket } from "shared/core/sharedlogic/packetdefinitions";
+import { ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { Vec2 } from "shared/shapes/vec2";
-import { NetworkWriteSystem } from "../networking/networkwrite";
+import { NetworkSystem } from "../networking/networksystem";
 import { BaseBullet } from "./weapon";
 import { ShotInfo } from "./weaponinterfaces";
 
@@ -52,10 +52,10 @@ export class TerrainHitAddon implements GunAddon {
             if(testTerrain){
                 this.Terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, 25);
                 // Janky wow
-                const network = this.Scene.getSystem(NetworkWriteSystem);
+                const network = this.Scene.getSystem(NetworkSystem);
                 network.queuePacket({
                     write(stream){
-                        stream.setUint8(ClientPacket.TERRAIN_CARVE_CIRCLE);
+                        stream.setUint8(ServerBoundPacket.TERRAIN_CARVE_CIRCLE);
                         stream.setFloat64(testTerrain.point.x)
                         stream.setFloat64(testTerrain.point.y)
                         stream.setInt32(25);

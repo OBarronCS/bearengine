@@ -11,36 +11,26 @@ import { BearEvents } from "shared/core/sharedlogic/eventdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { Vec2 } from "shared/shapes/vec2";
+import { TerrainManager } from "shared/core/terrainmanager";
+import { CollisionManager } from "shared/core/entitycollision";
+import { string2hex } from "shared/mathutils";
 
 import { loadTestLevel } from "../gamelogic/testlevelentities";
 import { EngineKeyboard } from "../input/keyboard";
 import { EngineMouse } from "../input/mouse";
 import { CameraSystem } from "./camera";
 import { Entity } from "./entity";
-import { NetworkReadSystem } from "./networking/networkread";
-import { NetworkWriteSystem } from "./networking/networkwrite";
+import { NetworkSystem } from "./networking/networksystem";
 import { BufferedNetwork } from "./networking/clientsocket";
 import { RendererSystem } from "./renderer";
 import { TestMouseDownEventDispatcher } from "./mouseevents";
-import { Player } from "../gamelogic/player";
-import { TerrainManager } from "shared/core/terrainmanager";
-import { CollisionManager } from "shared/core/entitycollision";
-import { string2hex } from "shared/mathutils";
-
 
 
 
 const SHARED_RESOURCES = Loader.shared.resources;
 const SHARED_LOADER = Loader.shared;
 
-let lastFrameTimeMs = 0;
-let accumulated = 0;
-const maxFPS = 60;
-const simulation_time = 1000 / maxFPS;
-
-
-const ASSET_FOLDER_NAME = "assets/"
-
+const ASSET_FOLDER_NAME = "assets/";
 
 // Returns names of files!
 // r is the require function
@@ -54,55 +44,62 @@ const images = importAll(require.context('../../assets', true, /\.(json|png|jpe?
 const ALL_TEXTURES: string[] = images.slice(0);
 console.log(ALL_TEXTURES)
 
+const maxFPS = 60;
+const simulation_time = 1000 / maxFPS;
 
 export class BearEngine implements AbstractBearEngine {
+
+    public tick = 0;
+    private lastFrameTimeMs = 0;
+    private accumulated = 0;
+    public totalTime = 0;
+
 
     public networkconnection: BufferedNetwork = new BufferedNetwork({ port: 80 });
 
 
-    // IMPORTANT SYSTEMS
-    public networksystem: NetworkReadSystem = null;
-    public renderer: RendererSystem = null;
-    public camera: CameraSystem = null;
-    public mouse: EngineMouse = null;
-    public keyboard: EngineKeyboard = null;
-    public level: LevelHandler = null;
-    public entityManager: Scene = null;
-    public terrain: TerrainManager = null;
-    public collisionManager: CollisionManager = null;
-    
+    // Subsystems
+    public networksystem: NetworkSystem;
+    public renderer: RendererSystem;
+    public camera: CameraSystem;
+    public mouse: EngineMouse;
+    public keyboard: EngineKeyboard;
+    public level: LevelHandler;
+    public entityManager: Scene;
+    public terrain: TerrainManager;
+    public collisionManager: CollisionManager;
+
 
     private systems: Subsystem[] = [];
     public systemEventMap: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();
 
 
-    // Total simulated time, in seconds
-    public totalTime = 0;
-
-    // DOES NOT start ticking yet
     init(): void {
         const div = document.querySelector("#display") as HTMLElement;
-            
-        //Order of registering = order of tick 
 
-        this.networksystem = this.registerSystem(new NetworkReadSystem(this, this.networkconnection));
+        // Register order matters due to dependencies
+        this.networksystem = this.registerSystem(new NetworkSystem(this, this.networkconnection));
+        
 
         this.mouse = this.registerSystem(new EngineMouse(this));
         this.keyboard = this.registerSystem(new EngineKeyboard(this));
         this.camera = this.registerSystem(new CameraSystem(this));
+
+
         this.level = this.registerSystem(new LevelHandler(this));
+
 
         this.terrain = this.registerSystem(new TerrainManager(this));
         this.collisionManager = this.registerSystem(new CollisionManager(this));
 
+        this.entityManager = this.registerSystem(new Scene(this))
+        
         // For testing
         this.registerSystem(new TestMouseDownEventDispatcher(this))
 
-        this.entityManager = this.registerSystem(new Scene(this))
-
-        this.registerSystem(new NetworkWriteSystem(this, this.networkconnection))
-
+        
         this.renderer = this.registerSystem(new RendererSystem(this, div, window));
+
 
 
         for(const system of this.systems){
@@ -174,7 +171,9 @@ export class BearEngine implements AbstractBearEngine {
 
 
         // this.camera["center"].set(this.player.position);
-        this.camera.zoom(Vec2.HALFHALF)
+        this.camera.left = 0;
+        this.camera.top = 0;
+        this.camera.zoom({x:.2,y:.2});
         // this.camera.follow(this.player.position)
     }
 
@@ -234,32 +233,54 @@ export class BearEngine implements AbstractBearEngine {
         return data;
     }
 
+    private _boundloop = this.loop.bind(this);
+
     loop(timestamp: number = performance.now()){
-        accumulated += timestamp - lastFrameTimeMs;
-        lastFrameTimeMs = timestamp;
+        this.accumulated += timestamp - this.lastFrameTimeMs;
+        this.lastFrameTimeMs = timestamp;
 
         // if we are more than a second behind, probably lost focus on page (rAF doesn't get called if the tab is not in focus)
-        if(accumulated > 1000){
-            accumulated = 0;
+        if(this.accumulated > 1000){
+            this.accumulated = 0;
         }
-
+        
         // both of these are in ms
-        while (accumulated >= (simulation_time)) {
-
+        while (this.accumulated >= (simulation_time)) {
             // divide by 1000 to get seconds
             const dt = simulation_time / 1000;
 
-            for(const system of this.systems){
-                system.update(dt);
-            }
 
+            this.networksystem.readPackets();
+
+
+            this.mouse.update();
+            this.keyboard.update();
+            this.camera.update(dt);
+            this.level.update(dt);
+
+            this.terrain.update(dt);
+            this.collisionManager.update(dt);
+
+            this.entityManager.update(dt);
+
+
+            this.networksystem.writePackets();
+
+
+
+            this.tick++;
             this.totalTime += dt;
-            accumulated -= simulation_time;
+            this.accumulated -= simulation_time;
         }
         
-        //console.log(performance.now() - timestamp)        
+       
+        // console.log(performance.now() - timestamp) 
 
-        requestAnimationFrame(t => this.loop(t))
+        this.renderer.update();
+
+               
+
+        requestAnimationFrame(this._boundloop);
     }
 
 }
