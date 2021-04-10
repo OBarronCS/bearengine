@@ -2,7 +2,7 @@
 
 import WS from "ws"
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream"
-import { ClientBoundPacket, ClientPacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
+import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { LinkedQueue } from "shared/datastructures/queue";
 import { AssertUnreachable } from "shared/assertstatements";
 
@@ -54,6 +54,14 @@ export class ServerNetwork {
         this.clientMap.set(socket,connectionID);
         this.reverseClientMap.set(connectionID, socket);
 
+        // Join message to engine
+        const stream = new BufferStreamWriter(new ArrayBuffer(1))
+        stream.setUint8(ServerBoundPacket.JOIN_GAME);
+        this.packets.enqueue({
+            client:connectionID,
+            buffer:new BufferStreamReader(stream.cutoff()),
+        });
+
         socket.on("close", () => {
             const client = this.clientMap.get(socket);
             console.log("Client disconnected, ", client);
@@ -62,9 +70,7 @@ export class ServerNetwork {
 
             // Sends this info to the engine as a packet. 
             const stream = new BufferStreamWriter(new ArrayBuffer(1))
-
-            stream.setUint8(ClientPacket.LEAVE_GAME);
-
+            stream.setUint8(ServerBoundPacket.LEAVE_GAME);
             this.packets.enqueue({
                 client:client,
                 buffer:new BufferStreamReader(stream.cutoff()),
@@ -81,40 +87,49 @@ export class ServerNetwork {
         socket.on('message', (data: ArrayBuffer) => {
             const stream = new BufferStreamReader(data);
 
-            const type: ServerBoundPacket = stream.getUint8();
+            const type: ServerPacketSubType = stream.getUint8();
 
             switch(type){
-                case ServerBoundPacket.PING: this.sendPong(socket,stream); break;
-                case ServerBoundPacket.CLIENT_STATE_PACKET: this.processGameData(socket, stream); break;
-                default: AssertUnreachable(type);
-            }
-        });
-    }
+                case ServerPacketSubType.IMMEDIATE: {
+                    const subtype: ServerImmediatePacket = stream.getUint8();
+                    switch(subtype){
+                        case ServerImmediatePacket.PING: {
+                            // Immediately send back pong
+                            const writer = new BufferStreamWriter(new ArrayBuffer(1 + 1 + 8 + 8));
 
-    private processGameData(socket: WS, stream: BufferStreamReader){
+                            writer.setUint8(ClientBoundSubType.IMMEDIATE);
+                            writer.setUint8(ClientBoundImmediate.PONG);
+                            // copies the timestamp that was received, sends it back
+                            writer.setBigInt64(stream.getBigInt64());
+                            writer.setBigInt64(BigInt(Date.now()));
 
-        const client = this.clientMap.get(socket);
+                            socket.send(writer.getBuffer());
+                            
+                            break;
+                        }
+                        default: AssertUnreachable(subtype);
+                    }
+                    break;
+                }
+                case ServerPacketSubType.QUEUE: {
+                    const client = this.clientMap.get(socket);
 
-        if(client === undefined) throw new Error("Processing game data from unknown client. If this error goes off then there is something deeply wrong");
-
-        this.packets.enqueue({
-            client:client,
-            buffer: stream,
-        });
-    }
-
-    private sendPong(socket: WS, stream: BufferStreamReader){
-        const writer = new BufferStreamWriter(new ArrayBuffer(1 + 8 + 8));
+                    if(client === undefined) throw new Error("Processing game data from unknown client. If this error goes off then there is something deeply wrong");
         
-        writer.setUint8(ClientBoundPacket.PONG);
-        // copies the timestamp that was received, sends it back
-        writer.setBigInt64(stream.getBigInt64());
-        writer.setBigInt64(BigInt(Date.now()));
+                    this.packets.enqueue({
+                        client:client,
+                        buffer: stream,
+                    });
+                    break;
+                }
 
-        socket.send(writer.getBuffer())
+                default: AssertUnreachable(type);
+            }           
+        });
     }
+    
 
-    public packetQueue(){
+    public getPacketQueue(){
         return this.packets;
     }
 

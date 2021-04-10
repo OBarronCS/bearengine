@@ -1,17 +1,20 @@
-// Make sure to recompile client after changing these, or else
+// Remember to recompile client after changing these, or else
 // everything will break and the bug will be impossible to track down
-// because it's enum values wouldn't have changed, leading to it thinking its sending a different packet
 
-export enum ClientBoundPacket {
+export enum ClientBoundSubType {
+    IMMEDIATE, // points to ClientBoundImmediate
+    QUEUE // points to GamePacket
+}
+
+export enum ClientBoundImmediate {
     PONG, // [ original stamp: BigInt64, server stamp: BigInt64]
-    INIT, // [ tick_rate: uint8, reference time: biguint64, tick: uint16, uint8: your_player_id] 
-    START_TICKING, // [tick: uint16]
-
-    
-    GAME_STATE_PACKET // points to GamePacket
 }
 
 export enum GamePacket {
+    INIT, // [ tick_rate: uint8, reference time: biguint64, tick: uint16, uint8: your_player_id] 
+    START_TICKING, // [tick: uint16]
+
+
     REMOTE_ENTITY_CREATE, // [ SHARED_ID: uint8, instance_id: uint16]
     REMOTE_ENTITY_VARIABLE_CHANGE, // [ SHARED_ID: uint8, instance id: uint16, ...data]
 
@@ -28,15 +31,20 @@ export enum GamePacket {
 }
 
 
-export enum ServerBoundPacket {
-    PING, // [timestamp: BigInt64]
-    CLIENT_STATE_PACKET // envelopes ClientPacket's
+
+export enum ServerPacketSubType {
+    IMMEDIATE, // not queue, reacted to immediately
+    QUEUE // points to ServerBoundPacket
 }
 
-export enum ClientPacket {
+export enum ServerImmediatePacket {
+    PING, // [timestamp: BigInt64]
+}
+
+export enum ServerBoundPacket {
     JOIN_GAME, // [empty packet]
     LEAVE_GAME, // [empty packet]
-    
+
     PLAYER_POSITION,
 
     TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]

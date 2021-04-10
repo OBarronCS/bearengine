@@ -1,11 +1,13 @@
 import { StackNode } from "./stack";
 
 
-export interface Queue<T> {
+export interface Queue<T> extends Iterable<T> {
     enqueue(item: T): void;
     dequeue(): T;
     size(): number;
     isEmpty(): boolean;
+
+    addAllQueue(queue: Queue<T>): void;
 }
 
 
@@ -54,6 +56,12 @@ export class LinkedQueue<T> implements Queue<T> {
         return this.internalSize;
     }
 
+    addAllQueue(queue: Queue<T>){
+        for(const val of queue){
+            this.enqueue(val);
+        }
+    }
+
     [Symbol.iterator](){
         let currentNode: StackNode<T> = this.first;
         const iterator = {
@@ -73,8 +81,10 @@ export class LinkedQueue<T> implements Queue<T> {
 
 }
 
-// 
+
 export class ArrayQueue<T> implements Queue<T> {
+    
+
 
     private innerArray: T[] = [];
     private startPointer = 0;
@@ -102,6 +112,12 @@ export class ArrayQueue<T> implements Queue<T> {
 
     isEmpty(): boolean {
         return this.size() === 0;
+    }
+
+    addAllQueue(queue: Queue<T>){
+        for(const val of queue){
+            this.enqueue(val);
+        }
     }
 
     [Symbol.iterator](){
