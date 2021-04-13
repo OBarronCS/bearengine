@@ -3,23 +3,29 @@ import { AbstractBearEngine } from "shared/core/abstractengine";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { Scene, StreamReadEntityID } from "shared/core/scene";
 import { PacketWriter, RemoteFunction, RemoteFunctionLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
-import { GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
+import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { SharedEntityClientTable } from "./cliententitydecorators";
 import { RemoteEntity, RemoteLocations, SimpleNetworkedSprite } from "./remotecontrol";
-import { BufferedNetwork } from "./clientsocket";
+import { CallbackNetwork, NetworkSettings } from "./clientsocket";
 import { Entity } from "../entity";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { Player } from "../../gamelogic/player";
 import { abs, ceil } from "shared/mathutils";
+import { LinkedQueue } from "shared/datastructures/queue";
 
-
+interface BufferedPacket {
+    buffer: BufferStreamReader;
+    id: number;
+}
 
 /** Reads packets from network, sends them */
 export class NetworkSystem extends Subsystem {
 
-    private network: BufferedNetwork;
+    private network: CallbackNetwork;
+    private packets = new LinkedQueue<BufferedPacket>();
+
 
     private scene: Scene;
     public remotelocations = this.addQuery(RemoteLocations);
@@ -31,8 +37,8 @@ export class NetworkSystem extends Subsystem {
 
     private remoteFunctionCallMap = new Map<keyof RemoteFunction,keyof NetworkSystem>()
 
-
     public PLAYER_ID = -1;
+
 
     public SERVER_IS_TICKING: boolean = false;
     private SERVER_SEND_RATE: number = -1;
@@ -55,10 +61,40 @@ export class NetworkSystem extends Subsystem {
     */
     private dejitterTime = 100;
     
-    constructor(engine: AbstractBearEngine, network: BufferedNetwork){
+    constructor(engine: AbstractBearEngine, settings: NetworkSettings){
         super(engine);
-        this.network = network;
-        network.pongcallback = this.calculatePong.bind(this);
+        this.network = new CallbackNetwork(settings, this.onmessage.bind(this));;
+    }
+
+    public connect(){
+        this.network.connect();
+    }
+
+    private onmessage(buffer: ArrayBuffer){
+        const stream = new BufferStreamReader(buffer);
+
+        const subtype: ClientBoundSubType = stream.getUint8();
+
+        switch(subtype){
+            case ClientBoundSubType.IMMEDIATE: {
+                const immediate: ClientBoundImmediate = stream.getUint8();
+
+                switch(immediate){
+                    case ClientBoundImmediate.PONG: this.calculatePong(stream); break;
+                    default: AssertUnreachable(immediate);
+                }
+                break;
+            }
+            case ClientBoundSubType.QUEUE: {
+                // Starts with Tick number, then jumps straight into subpackets
+                const id = stream.getUint16();
+                // console.log("Received: " + id)
+                this.packets.enqueue({ id: id, buffer: stream });
+                // console.log("Size of queue: " + this.packets.size()) 
+                break;
+            }
+            default: AssertUnreachable(subtype);
+        }
     }
 
     private getEntity<T extends AbstractEntity = AbstractEntity>(id: number): T {
@@ -78,6 +114,8 @@ export class NetworkSystem extends Subsystem {
 
     init(): void {
         this.scene = this.getSystem(Scene);
+
+        this.timeOfLastPing = Date.now();
 
         // Link shared entity classes
         SharedEntityClientTable.init();
@@ -110,7 +148,7 @@ export class NetworkSystem extends Subsystem {
         return e;
     }
 
-    calculatePong(stream: BufferStreamReader){
+    private calculatePong(stream: BufferStreamReader){
         // bigint64 : the unix timestamp I sent
         // bigint64 : server time stamp
         const originalStamp = stream.getBigInt64();
@@ -154,7 +192,8 @@ export class NetworkSystem extends Subsystem {
                 this.timeOfLastPing = now;
             }
 
-            const packets = this.network.getNewPacketQueue();
+            
+            const packets = this.packets;
 
             while(!packets.isEmpty()){
 

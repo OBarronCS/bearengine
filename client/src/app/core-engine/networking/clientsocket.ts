@@ -4,13 +4,7 @@
         Sending, Receiving buffers
 */
 
-import { LinkedQueue } from "shared/datastructures/queue";
-import { BufferStreamReader } from "shared/datastructures/bufferstream";
-import { ClientBoundImmediate, ClientBoundSubType } from "shared/core/sharedlogic/packetdefinitions";
-import { AssertUnreachable } from "shared/assertstatements";
-
-
-interface NetworkSettings {
+export interface NetworkSettings {
     port: number,
     url?: string,
 }
@@ -95,58 +89,29 @@ export abstract class Network {
     }
 }
 
-interface BufferedPacket {
-    buffer: BufferStreamReader;
-    id: number;
-}
 
-export class BufferedNetwork extends Network {
+export class CallbackNetwork extends Network {
 
-    private packets = new LinkedQueue<BufferedPacket>();
+    public onmessagecallback: (buffer: ArrayBuffer) => void
 
-    getNewPacketQueue(){ return this.packets; }
+    constructor(settings: NetworkSettings, onmessagecallback: (buffer: ArrayBuffer) => void){
+        super(settings);
+        this.onmessagecallback = onmessagecallback;
+    }
 
-    onclose(): void {}
+    onclose(): void {
+        console.log("Connection closed")
+    }
     onopen(): void {
         console.log("Buffered network connected");
     }
 
-    pongcallback: (stream: BufferStreamReader) => void = null;
-
     onmessage(ev: MessageEvent<any>): void {
-        const stream = new BufferStreamReader(ev.data);
-
-        const subtype: ClientBoundSubType = stream.getUint8();
-
-        switch(subtype){
-            case ClientBoundSubType.IMMEDIATE: {
-
-                const immediate: ClientBoundImmediate = stream.getUint8();
-
-                switch(immediate){
-                    case ClientBoundImmediate.PONG: {
-                        if(this.pongcallback !== null){
-                            this.pongcallback(stream);
-                        }
-                        break;
-                    }
-                    default: AssertUnreachable(immediate);
-                }
-                break;
-            }
-            case ClientBoundSubType.QUEUE: {
-                // Starts with Tick number, then jumps straight into subpackets
-                const id = stream.getUint16();
-                // console.log("Received: " + id)
-                this.packets.enqueue({ id: id, buffer: stream });
-                // console.log("Size of queue: " + this.packets.size()) 
-
-                break;
-            }
-            default: AssertUnreachable(subtype);
-        }
+        this.onmessagecallback(ev.data);
     }
 }
+
+
 
 
 

@@ -46,7 +46,7 @@ export class ServerBearEngine implements AbstractBearEngine {
     private referenceTime: bigint = 0n;
     private referenceTick: number = 0;
     public tick = 0;
-    private previousTick: number = 0;
+    private previousTickTime: number = 0;
     public totalTime = 0;
 
     public network: ServerNetwork = null;
@@ -104,7 +104,7 @@ export class ServerBearEngine implements AbstractBearEngine {
     start(socket: Server){
         this.network = new ServerNetwork(socket);
         this.network.start();
-        this.previousTick = Date.now();
+        this.previousTickTime = Date.now();
 
         this.loop();
     }
@@ -309,7 +309,7 @@ export class ServerBearEngine implements AbstractBearEngine {
         const now = Date.now();
 
         // If we have made it far enough to TICK THE GAME
-        if (this.previousTick + (1000 / this.TICK_RATE) <= now) {
+        if (this.previousTickTime + (1000 / this.TICK_RATE) <= now) {
             const dt = 1000 / this.TICK_RATE;
 
             if(this.tickTimer.tick()){ 
@@ -332,12 +332,12 @@ export class ServerBearEngine implements AbstractBearEngine {
 
             // console.log(Date.now() - now);
 
-            this.previousTick = now
+            this.previousTickTime = now
         }
     
         // if we are more than 16 milliseconds away from the next tick
         // This avoids blocking like in a while loop. while keeping the timer somewhat accurate
-        if(now - this.previousTick < (1000 / this.TICK_RATE) - 16) {
+        if(now - this.previousTickTime < (1000 / this.TICK_RATE) - 16) {
             setTimeout(this._boundLoop) // not accurate to the millisecond
         } else {
             setImmediate(this._boundLoop) // ultra accurate, sub millisecond

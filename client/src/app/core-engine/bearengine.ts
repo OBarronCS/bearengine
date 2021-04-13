@@ -21,7 +21,6 @@ import { EngineMouse } from "../input/mouse";
 import { CameraSystem } from "./camera";
 import { Entity } from "./entity";
 import { NetworkSystem } from "./networking/networksystem";
-import { BufferedNetwork } from "./networking/clientsocket";
 import { RendererSystem } from "./renderer";
 import { TestMouseDownEventDispatcher } from "./mouseevents";
 
@@ -55,9 +54,6 @@ export class BearEngine implements AbstractBearEngine {
     public totalTime = 0;
 
 
-    public networkconnection: BufferedNetwork = new BufferedNetwork({ port: 80 });
-
-
     // Subsystems
     public networksystem: NetworkSystem;
     public renderer: RendererSystem;
@@ -78,7 +74,7 @@ export class BearEngine implements AbstractBearEngine {
         const div = document.querySelector("#display") as HTMLElement;
 
         // Register order matters due to dependencies
-        this.networksystem = this.registerSystem(new NetworkSystem(this, this.networkconnection));
+        this.networksystem = this.registerSystem(new NetworkSystem(this, { port: 80 }));
         
 
         this.mouse = this.registerSystem(new EngineMouse(this));
@@ -218,7 +214,7 @@ export class BearEngine implements AbstractBearEngine {
     start(){
         if(this.renderer === null) console.error("RENDERER NOT INITIALIZED");
 
-        this.networkconnection.connect();
+        this.networksystem.connect();
 
         (this.loop.bind(this))();
     }

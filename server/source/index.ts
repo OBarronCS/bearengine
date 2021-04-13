@@ -48,9 +48,25 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-rl.on('line', (input) => {
+rl.on('line', (input: string) => {
 
-    switch(input){
+    const allWords = input.split(" ");
+
+    const first = allWords[0];
+
+    switch(first){
+        case "packets": {
+            console.log(engine["lifetimeImportantPackets"].size())
+            break;
+        }
+
+        case "engine": {
+            const variable = allWords[1];
+
+            console.log(engine[variable])
+            break;
+        }
+        
         case "entity": {
 
             engine.createRemoteEntityTest()
