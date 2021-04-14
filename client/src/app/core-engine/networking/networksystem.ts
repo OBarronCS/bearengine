@@ -115,7 +115,8 @@ export class NetworkSystem extends Subsystem {
     init(): void {
         this.scene = this.getSystem(Scene);
 
-        this.timeOfLastPing = Date.now();
+        // Put it pretty far in the past so forces it to calculate
+        this.timeOfLastPing = Date.now() - 1000000;
 
         // Link shared entity classes
         SharedEntityClientTable.init();

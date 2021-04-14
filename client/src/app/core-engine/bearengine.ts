@@ -41,7 +41,7 @@ function importAll(r: any): [] {
 // This cannot take variable for path because it just doesn't work...
 const images = importAll(require.context('../../assets', true, /\.(json|png|jpe?g|gif)$/));
 const ALL_TEXTURES: string[] = images.slice(0);
-console.log(ALL_TEXTURES)
+console.log("Assets: " + ALL_TEXTURES)
 
 const maxFPS = 60;
 const simulation_time = 1000 / maxFPS;
@@ -221,6 +221,8 @@ export class BearEngine implements AbstractBearEngine {
 
 
     getResource(path: string) {
+        if(path.startsWith("assets/")) path = path.substr(7);
+        
         const fullPath = ASSET_FOLDER_NAME + path;
         const data = SHARED_RESOURCES[fullPath];
 

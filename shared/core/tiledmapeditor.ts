@@ -1,6 +1,7 @@
+import { Ellipse } from "shared/shapes/ellipse";
 import { Polygon } from "shared/shapes/polygon";
 import { Rect } from "shared/shapes/rectangle";
-import { Coordinate, coordinateArraytoVec, flattenVecArray } from "shared/shapes/vec2";
+import { Coordinate, coordinateArraytoVec, flattenVecArray, Vec2 } from "shared/shapes/vec2";
 
 export interface CustomMapFormat {
     world:{
@@ -101,7 +102,6 @@ interface ImageObject extends TiledObject {
     width: number;
     // IMPORTANT: x and y is BOTTOM left, of image, NOT TOP LEFT
 }
-
 function isImageObject(object: any): object is ImageObject {
     return object.gid !== undefined
 }
@@ -109,7 +109,6 @@ function isImageObject(object: any): object is ImageObject {
 interface PolylineObject extends TiledObject {
     polyline: Coordinate[]
 }
-
 function isPolyline(object: any): object is PolylineObject {
     return object.polyline !== undefined
 }
@@ -117,7 +116,6 @@ function isPolyline(object: any): object is PolylineObject {
 interface PolygonObject extends TiledObject{
     polygon: Coordinate[] // first and last point do not repeat
 }
-
 function isPolygon(object: any): object is PolygonObject {
     return object.polygon !== undefined
 }
@@ -127,7 +125,6 @@ interface EllipseObject extends TiledObject {
     height: number;
     width: number;
 }
-
 function isEllipse(object: any): object is EllipseObject {
     return object.ellipse !== undefined
 }
@@ -135,7 +132,6 @@ function isEllipse(object: any): object is EllipseObject {
 interface PointObject extends TiledObject {
     point: true;
 }
-
 function isPoint(object: any): object is PointObject {
     return object.point !== undefined
 }
@@ -144,7 +140,6 @@ interface RectangleObject extends TiledObject {
     height: number;
     width: number;
 }
-
 function isRectangle(object: any): object is RectangleObject {
     return !isPoint(object) && !isEllipse(object) && !isImageObject(object) && !isPolygon(object) && !isPolyline(object);
 }
@@ -212,6 +207,16 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
 
                     sprites.push(sprite);
 
+                } else if(isEllipse(obj)){
+                    // Point is top left, 
+                    const ellipse = new Ellipse(new Vec2(obj.x + obj.width / 2, obj.y + obj.height / 2), obj.width / 2, obj.height / 2);
+                    const polygon = ellipse.toPolygon();
+
+                    bodies.push({
+                        points: flattenVecArray(polygon.points),
+                        normals: flattenVecArray(polygon.normals),
+                    })
+
                 } else if(isRectangle(obj)){
                     const rect = new Rect(obj.x,obj.y,obj.width, obj.height);
                     
@@ -236,125 +241,4 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
         sprites:sprites
     }
 }
-
-// const customMapFormat = {
-//     name: "Custom map format",
-//     extension: "custom",
-
-//     write: function(map: TiledMap, fileName: any) {
-//         const final_struct = {} as any
-
-//         const world_struct = {
-//             width : map.width * map.tileWidth,
-//             height : map.height * map.tileHeight,
-//             backgroundColor : map.backgroundColor
-//         }
-
-//         final_struct.world = world_struct;
-
-//         const bodyArray = [];
-
-//         // for each layer
-//         for (let i = 0; i < map.layerCount; ++i) {    
-    
-//             const layer = map.layerAt(i) as ObjectGroup;
-//             if (layer.isObjectLayer) {
-                
-//                 for(let j = 0; j < layer.objectCount; j++){
-//                     const obj = layer.objectAt(j);
-        
-//                     const body = {} as any
-//                     if(obj.shape == Shape.Polygon){
-//                         // Add all polygon points
-//                         const points = []
-//                         for(let k = 0; k < obj.polygon.length; k++){
-//                             points.push(obj.polygon[k].x + obj.x)
-//                             points.push(obj.polygon[k].y + obj.y)
-//                         }
-//                         body.points = points;
-                        
-//                         // Add normals
-//                         // have to check if clockwise or not!
-//                         let sum = 0;
-//                         let j = body.points.length - 2;
-//                         for(let n = 0; n < body.points.length; n += 2){
-//                             if(n != 0){
-//                                 j = n - 2
-//                             }
-//                             const x1 = body.points[n]
-//                             const y1 = body.points[n + 1]
-
-//                             const x2 = body.points[j]
-//                             const y2 = body.points[j + 1]
-
-//                             sum += (x2 - x1) * (y2 + y1)
-//                         }
-
-//                         // Clockwise as in FLIPPED clockwise
-//                         // so actually not clockwise
-//                         let clockwise: boolean;
-//                         if(sum < 0){
-//                             //CLOCK WISE
-//                             clockwise = true
-//                         } else {
-//                             clockwise = false
-//                         }
-
-//                         const normals = []
-//                         let m: number;
-//                         for(let n = 0; n < body.points.length; n += 2){
-//                             m = n + 2;
-//                             if(n == body.points.length - 2){
-//                                 m = 0
-//                             }
-
-//                             const x1 = body.points[n]
-//                             const y1 = body.points[n + 1]
-
-//                             const x2 = body.points[m]
-//                             const y2 = body.points[m + 1]
-
-//                             const dx = x2 - x1;
-//                             const dy = y2 - y1;
-
-//                             const magnitude = Math.sqrt((dx * dx) + (dy * dy));
-//                             if(clockwise){
-//                                 normals.push(-dy/magnitude, dx/magnitude)
-//                             } else {
-//                                 normals.push(dy/magnitude, -dx/magnitude)
-//                             }
-//                         }
-//                         body.normals = normals;
-//                     } else if(obj.shape == Shape.Rectangle){
-//                         const left = obj.x;
-//                         const top = obj.y;
-//                         const right = obj.x + obj.width;
-//                         const bot = obj.y + obj.height;
-
-//                         const points = []
-//                         points.push(left, top)
-//                         points.push(right, top)
-//                         points.push(right, bot)
-//                         points.push(left, bot)
-//                         body.points = points;
-
-//                         const normals = []
-//                         normals.push(0,-1)
-//                         normals.push(1,0)
-//                         normals.push(0,1)
-//                         normals.push(-1,0)
-//                         body.normals = normals;
-//                     }
-                    
-
-//                     bodyArray.push(body)
-//                 }
-//             }
-//         }
-
-//         final_struct.bodies = bodyArray;
-//     },
-// }
-
-
 

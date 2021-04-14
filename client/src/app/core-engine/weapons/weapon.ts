@@ -47,7 +47,6 @@ export class BaseBulletGun extends SpriteEntity {
             shot_sound:"",
             speed:20,
             spread:1,
-            
         }
     });
 

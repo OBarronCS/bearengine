@@ -50,7 +50,7 @@ export class Ellipse implements Shape<Ellipse>{
     }
 
 
-    static POLYGON_POINT_COUNT = 35;
+    static POLYGON_POINT_COUNT = 30;
 
     toPolygon(): Polygon {
 

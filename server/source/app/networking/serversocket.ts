@@ -35,7 +35,7 @@ export class ServerNetwork {
 
     /** Start handling connections */
     public start(){
-        this.server.on("connection", this.sendStartData.bind(this));
+        this.server.on("connection", this.newClient.bind(this));
 
         this.server.on("close", () => {
             console.log("Server closed")
@@ -43,7 +43,7 @@ export class ServerNetwork {
     }
 
     /** On client connection. Socket is unique to client */
-    private sendStartData(socket: WS){
+    private newClient(socket: WS){
         console.log("New connection");
 
         socket.binaryType = "arraybuffer";
