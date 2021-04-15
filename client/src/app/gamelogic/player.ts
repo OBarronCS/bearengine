@@ -12,6 +12,7 @@ import { AddOnType, TerrainHitAddon } from "../core-engine/weapons/addon";
 import { BaseBulletGun } from "../core-engine/weapons/weapon";
 import { DrawableEntity } from "../core-engine/entity";
 import { Line } from "shared/shapes/line";
+import { AssertUnreachable } from "shared/assertstatements";
 
 
 enum PlayerStates {
@@ -215,10 +216,10 @@ export class Player extends DrawableEntity {
             if(this.yspd >= 0 && hitSpace) this.space_time_to_jump = this.MAX_SPACE_TIME_TO_JUMP;
         }
 
-        if(this.state === PlayerStates.Ground){
-            this.Ground_State();
-        } else if(this.state === PlayerStates.Air){
-            this.Air_State();
+        switch(this.state){
+            case PlayerStates.Air: this.Air_State(); break;
+            case PlayerStates.Ground: this.Ground_State(); break;
+            default: AssertUnreachable(this.state)
         }
 
         // JUMP
@@ -401,6 +402,8 @@ export class Player extends DrawableEntity {
         const xdir = sign(this.xspd);
 
         if(xdir > 0){
+            // Look enough to the right so it doesn't phase through wall
+            this.rightWallRay.B.x += this.xspd;
             const wall_test = this.Terrain.lineCollision(this.rightWallRay.A, this.rightWallRay.B);
             
             if(wall_test === null){
@@ -409,6 +412,7 @@ export class Player extends DrawableEntity {
                 this.x = wall_test.point.x - this.wallSensorLength;
             }
         } else if(xdir < 0) {
+            this.rightWallRay.B.x += this.xspd;
             const wall_test = this.Terrain.lineCollision(this.leftWallRay.A, this.leftWallRay.B);
             
             if(wall_test === null){
