@@ -65,6 +65,8 @@ export class BearEngine implements AbstractBearEngine {
     public terrain: TerrainManager;
     public collisionManager: CollisionManager;
 
+    private mouseEventDispatcher: TestMouseDownEventDispatcher;
+
 
     private systems: Subsystem[] = [];
     public systemEventMap: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();
@@ -91,7 +93,7 @@ export class BearEngine implements AbstractBearEngine {
         this.entityManager = this.registerSystem(new Scene(this))
         
         // For testing
-        this.registerSystem(new TestMouseDownEventDispatcher(this))
+        this.mouseEventDispatcher = this.registerSystem(new TestMouseDownEventDispatcher(this))
 
         
         this.renderer = this.registerSystem(new RendererSystem(this, div, window));
@@ -258,6 +260,8 @@ export class BearEngine implements AbstractBearEngine {
 
             this.terrain.update(dt);
             this.collisionManager.update(dt);
+
+            this.mouseEventDispatcher.update(dt)
 
             this.entityManager.update(dt);
 

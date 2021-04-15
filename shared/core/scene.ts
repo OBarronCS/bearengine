@@ -256,7 +256,6 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
                 }
 
                 const methodName = item.methodname;
-
                 handler.addListener(e, methodName, item.extradata)
             }
         }
