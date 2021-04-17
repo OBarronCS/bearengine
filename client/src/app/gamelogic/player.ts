@@ -40,15 +40,14 @@ export class Player extends DrawableEntity {
     slope_normal = new Vec2(0, -1);
 
 
-
     downRayTop: Vec2
     downRayBot: Vec2
         
     feetRayDY = 16;
         
-    headRay: Line;
-
     // A in body, B away
+    headRay: Line;
+    
     wallSensorLength = 10;
     rightWallRay: Line;
     leftWallRay: Line;
@@ -74,7 +73,7 @@ export class Player extends DrawableEntity {
     // deals with edge cases of jumping, forces player to hit space button to jump again
     private forceSpacePress = false;
 
-    private readonly MAX_SPACE_TIME_TO_JUMP = 4;
+    private readonly MAX_SPACE_TIME_TO_JUMP = 3;
 
     
     private spritePart: SpritePart;
@@ -131,7 +130,7 @@ export class Player extends DrawableEntity {
             },
             {
                 addontype: AddOnType.SPECIAL,
-                gravity: new Vec2(0,.3),
+                gravity: new Vec2(0,.35),
                 modifyShot(shotInfo, effect){
 
                     const self = this;
@@ -140,7 +139,7 @@ export class Player extends DrawableEntity {
                         this.velocity.add(self.gravity);
                     })
                 }
-            }
+            },
         ]);
     }
 
@@ -152,9 +151,9 @@ export class Player extends DrawableEntity {
         this.Scene.destroyEntity(this.gun);
     }
     
-    setSensorLocations(){
+    private setSensorLocations(){
         // Down ray
-        this.downRayTop.set(this.position);
+        this.downRayTop.set({ x: this.position.x, y: this.position.y - this.player_height / 4});
         rotatePoint(this.downRayTop,this.position,this.slope_normal)
         
         this.downRayBot.set({ x: this.position.x, y: this.feetRayDY + this.position.y + this.player_height / 2});
@@ -260,11 +259,10 @@ export class Player extends DrawableEntity {
         }
     }
 
-
     private Ground_State(){	
         const horz_move = +this.Keyboard.isDown("KeyD") - +this.Keyboard.isDown("KeyA");
         
-        if (horz_move == -1) {
+        if (horz_move === -1) {
             if (this.gspd > 0) {
                 this.gspd -= this.dec;
             } else if (this.gspd > -this.top) {
@@ -272,7 +270,7 @@ export class Player extends DrawableEntity {
                 if (this.gspd <= -this.top)
                     this.gspd = -this.top;
             }
-        } else if (horz_move == 1) {
+        } else if (horz_move === 1) {
             if (this.gspd < 0) {
                 this.gspd += this.dec;
             } else if (this.gspd < this.top) {
@@ -289,7 +287,7 @@ export class Player extends DrawableEntity {
             this.gspd -= Math.min(Math.abs(this.gspd), this.frc) * Math.sign(this.gspd);
         }
         
-        //gspd -= -.125*slope_normal.x;
+        // this.gspd -= -.125*this.slope_normal.x;
         this.xspd = this.gspd*-this.slope_normal.y;
         this.yspd = this.gspd*this.slope_normal.x;
 
@@ -331,9 +329,7 @@ export class Player extends DrawableEntity {
             this.state = PlayerStates.Air
         }
     }
-    
-    
-    
+     
     private Air_State(){
         // gravity
         const grav = 1.2;
@@ -380,6 +376,7 @@ export class Player extends DrawableEntity {
 
         // if going up
         if(ydir < 0){
+            this.headRay.B.y += this.yspd;
             const head_test = this.Terrain.lineCollision(this.headRay.A, this.headRay.B);
 
             if(head_test === null){
@@ -446,7 +443,6 @@ export class Player extends DrawableEntity {
             }
         }
     }
-
 
     draw(g: Graphics) {
         drawPoint(g,this.position);

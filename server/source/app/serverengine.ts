@@ -45,6 +45,7 @@ export class ServerBearEngine implements AbstractBearEngine {
     public readonly TICK_RATE: number;
     private referenceTime: bigint = 0n;
     private referenceTick: number = 0;
+    
     public tick = 0;
     private previousTickTime: number = 0;
     public totalTime = 0;

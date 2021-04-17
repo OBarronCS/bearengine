@@ -38,7 +38,7 @@ function importAll(r: any): [] {
     return webpackObjs.map((v:any) => v.default)
 }
 
-// This cannot take variable for path because it just doesn't work...
+// This cannot take variable for path, webpack needs string literal for it to work ...
 const images = importAll(require.context('../../assets', true, /\.(json|png|jpe?g|gif)$/));
 const ALL_TEXTURES: string[] = images.slice(0);
 console.log("Assets: " + ALL_TEXTURES)
