@@ -1,5 +1,5 @@
-import { EngineKeyboard } from "client/src/app/input/keyboard";
 import { Vec2 } from "shared/shapes/vec2";
+
 import { AbstractBearEngine } from "./abstractengine";
 import { Part } from "./abstractpart";
 import { NULL_ENTITY_INDEX, Scene } from "./scene";
