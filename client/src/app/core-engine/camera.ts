@@ -7,8 +7,9 @@ import { EngineKeyboard } from "../input/keyboard";
 import { lerp, round, smoothNoise } from "shared/mathutils";
 import { Subsystem } from "shared/core/subsystem";
 import { EngineMouse } from "../input/mouse";
+import { BearEngine } from "./bearengine";
 
-export class CameraSystem extends Subsystem {
+export class CameraSystem extends Subsystem<BearEngine> {
     
     public container: Container;
     public renderer: RendererSystem;
@@ -26,7 +27,7 @@ export class CameraSystem extends Subsystem {
 
     // I couldn't get this to work well so just reverted to original DOM events
     init(): void {
-        const renderer = this.renderer = this.getSystem(RendererSystem);
+        const renderer = this.renderer = this.engine.renderer;
 
         this.mouse_info.x = 5;
         this.mouse_info.y = renderer.getPercentHeight(1) - 50;
@@ -38,8 +39,8 @@ export class CameraSystem extends Subsystem {
         container.position.x = renderer.renderer.width / 2;
         container.position.y = renderer.renderer.height / 2;
 
-        const keyboard = this.getSystem(EngineKeyboard);
-        const mouse = this.mouse = this.getSystem(EngineMouse);
+        const keyboard = this.engine.keyboard;
+        const mouse = this.mouse = this.engine.mouse;
 
         keyboard.bind("space", () => {
             this.center.set({x: 500, y:500});

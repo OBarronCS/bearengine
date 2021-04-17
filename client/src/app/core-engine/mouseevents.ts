@@ -1,7 +1,4 @@
-import { CollisionManager } from "shared/core/entitycollision";
-import { LevelHandler } from "shared/core/level";
 import { Subsystem } from "shared/core/subsystem";
-import { EngineMouse } from "../input/mouse";
 import { BearEngine } from "./bearengine";
 
 export class TestMouseDownEventDispatcher extends Subsystem<BearEngine> {
@@ -15,8 +12,8 @@ export class TestMouseDownEventDispatcher extends Subsystem<BearEngine> {
     private scroll = this.addEventDispatcher("scroll");
 
     update(delta: number): void {
-        const mouse = this.getSystem(EngineMouse);
-        const collision = this.getSystem(CollisionManager);
+        const mouse = this.engine.mouse;
+        const collision = this.engine.collisionManager;
 
 
         const underMouse = collision.circleQuery(mouse.x, mouse.y, 1);

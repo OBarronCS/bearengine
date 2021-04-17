@@ -1,11 +1,9 @@
 import { AssertUnreachable } from "shared/assertstatements";
-import { AbstractBearEngine } from "shared/core/abstractengine";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { Scene, StreamReadEntityID } from "shared/core/scene";
 import { PacketWriter, RemoteFunction, RemoteFunctionLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
-import { TerrainManager } from "shared/core/terrainmanager";
 import { SharedEntityClientTable } from "./cliententitydecorators";
 import { RemoteEntity, RemoteLocations, SimpleNetworkedSprite } from "./remotecontrol";
 import { CallbackNetwork, NetworkSettings } from "./clientsocket";
@@ -14,6 +12,7 @@ import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bu
 import { Player } from "../../gamelogic/player";
 import { abs, ceil } from "shared/mathutils";
 import { LinkedQueue } from "shared/datastructures/queue";
+import { BearEngine } from "../bearengine";
 
 interface BufferedPacket {
     buffer: BufferStreamReader;
@@ -21,7 +20,7 @@ interface BufferedPacket {
 }
 
 /** Reads packets from network, sends them */
-export class NetworkSystem extends Subsystem {
+export class NetworkSystem extends Subsystem<BearEngine> {
 
     private network: CallbackNetwork;
     private packets = new LinkedQueue<BufferedPacket>();
@@ -61,7 +60,7 @@ export class NetworkSystem extends Subsystem {
     */
     private dejitterTime = 100;
     
-    constructor(engine: AbstractBearEngine, settings: NetworkSettings){
+    constructor(engine: BearEngine, settings: NetworkSettings){
         super(engine);
         this.network = new CallbackNetwork(settings, this.onmessage.bind(this));;
     }
@@ -113,7 +112,7 @@ export class NetworkSystem extends Subsystem {
     }
 
     init(): void {
-        this.scene = this.getSystem(Scene);
+        this.scene = this.engine.entityManager;
 
         // Put it pretty far in the past so forces it to calculate
         this.timeOfLastPing = Date.now() - 1000000;
@@ -313,7 +312,7 @@ export class NetworkSystem extends Subsystem {
                             break;
                         }
                         case GamePacket.PASSTHROUGH_TERRAIN_CARVE_CIRCLE: {
-                            const terrain = this.getSystem(TerrainManager);
+                            const terrain = this.engine.terrain;
                             const pId = stream.getUint8();
                             const x = stream.getFloat64();
                             const y = stream.getFloat64();
@@ -376,7 +375,7 @@ export class NetworkSystem extends Subsystem {
     
     writePackets(){
         if(this.network.CONNECTED && this.SERVER_IS_TICKING){
-            const player = this.getSystem(Scene).getEntityByTag<Player>("Player");
+            const player = this.scene.getEntityByTag<Player>("Player");
             const stream = new BufferStreamWriter(new ArrayBuffer(256));
 
             stream.setUint8(ServerPacketSubType.QUEUE);

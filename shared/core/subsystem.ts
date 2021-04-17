@@ -19,10 +19,6 @@ export abstract class Subsystem<EngineType extends AbstractBearEngine = Abstract
     abstract init(): void;
     abstract update(delta: number): void;
 
-    getSystem<T extends Subsystem>(query: new(...args: any[]) => T): T {
-        return this.engine.getSystem(query);
-    }
-
     addEventDispatcher<T extends keyof BearEvents>(name: T): EventRegistry<T> {
         const eg = new EventRegistry(name);
         this.eventHandlers.push(eg);

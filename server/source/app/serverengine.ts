@@ -88,16 +88,6 @@ export class ServerBearEngine implements AbstractBearEngine {
         return system;
     }
     
-    getSystem<T extends Subsystem<AbstractBearEngine>>(query: new (...args: any[]) => T): T {
-        const name = query.name;
-        for(const system of this.systems){
-            // @ts-expect-error
-            if(system.constructor.name === name) return system;
-        }
-
-        return null;
-    }
-    
     start(socket: Server){
         this.network = new ServerNetwork(socket);
         this.network.start();
