@@ -85,7 +85,7 @@ export class Player extends DrawableEntity {
     constructor(){
         super();
         this.position.set({x : 500, y: 100});
-        this.Keyboard.bind("r", ()=> {
+        this.keyboard.bind("r", ()=> {
             this.position.set({x : 600, y: 100});
         });
 
@@ -142,11 +142,11 @@ export class Player extends DrawableEntity {
     }
 
     onAdd(){
-        this.Scene.addEntity(this.gun);
+        this.scene.addEntity(this.gun);
     }
 
     onDestroy(){
-        this.Scene.destroyEntity(this.gun);
+        this.scene.destroyEntity(this.gun);
     }
     
     private setSensorLocations(){
@@ -179,10 +179,10 @@ export class Player extends DrawableEntity {
         this.gun.position.set({x: this.x, y: this.y - 20});
         rotatePoint(this.gun.position,this.position,this.slope_normal);
 
-        this.gun.dir.set(new Vec2(0,0).set(this.Mouse.position).sub(this.gun.position));
+        this.gun.dir.set(new Vec2(0,0).set(this.mouse.position).sub(this.gun.position));
 
-        const angleToMouse = angleBetween(this.gun.position, this.Mouse.position)
-        const difference = Vec2.subtract(this.Mouse.position, this.gun.position);
+        const angleToMouse = angleBetween(this.gun.position, this.mouse.position)
+        const difference = Vec2.subtract(this.mouse.position, this.gun.position);
         if(difference.x > 0){
             this.gun.image.sprite.scale.x = 1;
             this.gun.image.angle = angleToMouse;
@@ -190,7 +190,7 @@ export class Player extends DrawableEntity {
             this.gun.image.sprite.scale.x = -1;
             this.gun.image.angle = angleToMouse + PI;
         }
-        this.gun.operate(this.Mouse.isDown("left"));
+        this.gun.operate(this.mouse.isDown("left"));
 
         // Adjust drawing angle 
         const angle = Math.atan2(this.slope_normal.y, this.slope_normal.x) * RAD_TO_DEG;
@@ -201,9 +201,9 @@ export class Player extends DrawableEntity {
             this.time_to_jump = 6;
         }
 
-        const hitSpace = this.Keyboard.isDown("KeyW");
+        const hitSpace = this.keyboard.isDown("KeyW");
 
-        const releaseSpace = this.Keyboard.wasPressed("KeyW");
+        const releaseSpace = this.keyboard.wasPressed("KeyW");
         if(releaseSpace) this.forceSpacePress = false;
 
 
@@ -241,7 +241,7 @@ export class Player extends DrawableEntity {
 
     /** If not collision to terrain, return bottom of bot ray, not rotated */
     private getFeetCollisionPoint():{ point: Vec2, normal: Vec2, collision: boolean} {
-        const rightRay = this.Terrain.lineCollision(this.downRayTop, this.downRayBot);
+        const rightRay = this.engine.terrain.lineCollision(this.downRayTop, this.downRayBot);
         
         if(rightRay != null){
             return {
@@ -258,7 +258,7 @@ export class Player extends DrawableEntity {
     }
 
     private Ground_State(){	
-        const horz_move = +this.Keyboard.isDown("KeyD") - +this.Keyboard.isDown("KeyA");
+        const horz_move = +this.keyboard.isDown("KeyD") - +this.keyboard.isDown("KeyA");
         
         if (horz_move === -1) {
             if (this.gspd > 0) {
@@ -297,14 +297,14 @@ export class Player extends DrawableEntity {
 
         //If going right. The product tests the difference in normals, makes sure doesn't go into too steep terrain
         if(gdir > 0){
-            const wall_test = this.Terrain.lineCollision(this.rightWallRay.A, this.rightWallRay.B);
+            const wall_test = this.engine.terrain.lineCollision(this.rightWallRay.A, this.rightWallRay.B);
             
             if(wall_test === null || Vec2.dot(wall_test.normal, this.slope_normal) > .3){
                 this.position.x += this.xspd;
                 this.position.y += this.yspd;
             }
         } else if(gdir < 0) {
-            const wall_test = this.Terrain.lineCollision(this.leftWallRay.A, this.leftWallRay.B);
+            const wall_test = this.engine.terrain.lineCollision(this.leftWallRay.A, this.leftWallRay.B);
             
             if(wall_test === null || Vec2.dot(wall_test.normal, this.slope_normal) > .3){
                 this.position.x += this.xspd;
@@ -331,7 +331,7 @@ export class Player extends DrawableEntity {
     private Air_State(){
         // gravity
         const grav = 1.2;
-        const horz_move = +this.Keyboard.isDown("KeyD") - +this.Keyboard.isDown("KeyA");   
+        const horz_move = +this.keyboard.isDown("KeyD") - +this.keyboard.isDown("KeyA");   
 
         if (horz_move == -1) {
             if (this.xspd > 0) {
@@ -375,7 +375,7 @@ export class Player extends DrawableEntity {
         // if going up
         if(ydir < 0){
             this.headRay.B.y += this.yspd;
-            const head_test = this.Terrain.lineCollision(this.headRay.A, this.headRay.B);
+            const head_test = this.engine.terrain.lineCollision(this.headRay.A, this.headRay.B);
 
             if(head_test === null){
                 this.position.y += this.yspd;
@@ -399,7 +399,7 @@ export class Player extends DrawableEntity {
         if(xdir > 0){
             // Look enough to the right so it doesn't phase through wall
             this.rightWallRay.B.x += this.xspd;
-            const wall_test = this.Terrain.lineCollision(this.rightWallRay.A, this.rightWallRay.B);
+            const wall_test = this.engine.terrain.lineCollision(this.rightWallRay.A, this.rightWallRay.B);
             
             if(wall_test === null){
                 this.position.x += this.xspd;
@@ -408,7 +408,7 @@ export class Player extends DrawableEntity {
             }
         } else if(xdir < 0) {
             this.rightWallRay.B.x += this.xspd;
-            const wall_test = this.Terrain.lineCollision(this.leftWallRay.A, this.leftWallRay.B);
+            const wall_test = this.engine.terrain.lineCollision(this.leftWallRay.A, this.leftWallRay.B);
             
             if(wall_test === null){
                 this.position.x += this.xspd;

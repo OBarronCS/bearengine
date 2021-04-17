@@ -107,6 +107,8 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
 
         this.sparse[sparseIndex] = indexInDense | (entityID & MASK_TO_GET_VERSION_BITS);
 
+        e.scene = this;
+
         e.onAdd();
         this.registerEvents(e);
 

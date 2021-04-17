@@ -5,6 +5,7 @@ import { SpriteEntity } from "../entity";
 import { Graphics } from "pixi.js";
 import { Effect } from "shared/core/effects";
 import { SpritePart } from "../parts";
+import { BearEngine } from "../bearengine";
 
 
 export class BaseBulletGun extends SpriteEntity {
@@ -65,7 +66,7 @@ export class BaseBulletGun extends SpriteEntity {
                     addon.modifyShot(baseShotInfo, shotEffect);
                 }
             
-                this.Scene.addEntity(shotEffect);
+                this.scene.addEntity(shotEffect);
             }
         }
     }
@@ -73,7 +74,7 @@ export class BaseBulletGun extends SpriteEntity {
 
 
 // maybe: add onHitObject callback, onHitTerrain callback? make it easier to implement them?
-export class BaseBullet extends Effect {
+export class BaseBullet extends Effect<BearEngine> {
     
     private sprite: SpritePart;
     
@@ -99,7 +100,7 @@ export class BaseBullet extends Effect {
             this.position.add(this.velocity);
             this.sprite.angle = angleBetween(this.position, Vec2.add(this.position, this.velocity))
 
-            if(!this.Level.bbox.contains(this.position)){
+            if(!this.engine.level.bbox.contains(this.position)){
                 this.destroySelf();
             }
         })

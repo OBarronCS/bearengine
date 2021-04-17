@@ -130,6 +130,9 @@ export class BearEngine implements AbstractBearEngine {
         console.log("Starting scene");
         if(this.level.loaded) throw new Error("TRYING TO LOAD A LEVEL WHEN ONE IS ALREADY LOADED");
         
+        // Set global reference that entities access
+        AbstractEntity["ENGINE_OBJECT"] = this;
+
         this.level.startLevel(levelData);
 
         this.entityManager.registerSceneSystems(this.systems);
@@ -145,16 +148,6 @@ export class BearEngine implements AbstractBearEngine {
             this.renderer.addSprite(sprite)
         });
 
-        // Global Data
-        // @ts-expect-error
-        AbstractEntity.GLOBAL_DATA_STRUCT = {
-            Scene:this.entityManager,
-            Level:this.level,
-            Collision:this.collisionManager,
-            Terrain:this.terrain,
-        }
-
-        Entity.BEAR_ENGINE = this;
         
         this.terrain.graphics = new Graphics();
         this.renderer.addSprite(this.terrain.graphics);

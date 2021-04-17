@@ -1,39 +1,38 @@
 import { Vec2 } from "shared/shapes/vec2";
+
+import { AbstractBearEngine } from "./abstractengine";
 import { Part } from "./abstractpart";
-import { CollisionManager } from "./entitycollision";
-import { LevelHandler } from "./level";
 import { NULL_ENTITY_INDEX, Scene } from "./scene";
-import { TerrainManager } from "./terrainmanager";
 
-
-interface GlobalData {
-    Scene: Scene
-    Level: LevelHandler,
-    Terrain: TerrainManager;
-    Collision: CollisionManager;
-}
-
-// Signifies that a certain number is special
+// Signifies that this number is special
 export type EntityID = number; 
 
-export abstract class AbstractEntity {
+export abstract class AbstractEntity<Engine extends AbstractBearEngine = AbstractBearEngine> {
     readonly entityID: EntityID = NULL_ENTITY_INDEX;
 
     readonly position: Vec2 = new Vec2(0,0);
     readonly parts: Part[] = [];
 
+    // Set by scene in "addEntity"
+    public scene: Scene;
+
+    //@ts-expect-error --> Server and client side just make this equal to "engine.this"
+    private static ENGINE_OBJECT: Engine;
+    get engine(): Engine { return AbstractEntity.ENGINE_OBJECT; }
+
     get x() { return this.position.x; }
-    set x(_x) { this.position.x = _x; }
+    set x(x: number) { this.position.x = x; }
 
     get y() { return this.position.y; }
-    set y(_y) { this.position.y = _y; }
+    set y(y: number) { this.position.y = y; }
 
-    protected static GLOBAL_DATA_STRUCT: GlobalData = null;
+    abstract update(dt: number): void;
 
-    get Scene(){ return AbstractEntity.GLOBAL_DATA_STRUCT.Scene }
-    get Level(){ return AbstractEntity.GLOBAL_DATA_STRUCT.Level }
-    get Terrain(){ return AbstractEntity.GLOBAL_DATA_STRUCT.Terrain }
-    get Collision(){ return AbstractEntity.GLOBAL_DATA_STRUCT.Collision }
+    onAdd(): void {};
+    onDestroy(): void {};
+
+    // Intended for us by abstract classes for behind the scenes work
+    postUpdate(): void {}
 
     addPart<T extends Part>(part: T): T {
         this.parts.push(part);
@@ -41,17 +40,9 @@ export abstract class AbstractEntity {
         return part;
     }
 
-    abstract update(dt: number): void;
-
     destroySelf(){
-        this.Scene.destroyEntity(this);
+        this.scene.destroyEntity(this);
     }
-    
-    onAdd(): void {};
-    onDestroy(): void {};
-
-    // Intended for us by abstract classes for behind the scenes work
-    postUpdate(): void {}
 }
 
 
