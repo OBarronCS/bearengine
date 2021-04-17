@@ -47,12 +47,12 @@ export class TerrainHitAddon implements GunAddon {
 
     modifyShot(struct: ShotInfo, effect: BaseBullet){
         effect.onUpdate(function(){
-            const testTerrain = this.Terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)))
+            const testTerrain = this.engine.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)))
 
             if(testTerrain){
-                this.Terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, 25);
+                this.engine.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, 25);
                 // Janky wow
-                const network = this.Scene.getSystem(NetworkSystem);
+                const network = this.scene.getSystem(NetworkSystem);
                 network.queuePacket({
                     write(stream){
                         stream.setUint8(ServerBoundPacket.TERRAIN_CARVE_CIRCLE);

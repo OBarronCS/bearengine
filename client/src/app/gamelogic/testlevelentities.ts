@@ -36,7 +36,7 @@ class BasicSprite extends SpriteEntity {
     update(dt: number): void {}
 }
 
-class EmptyEntity extends AbstractEntity {
+class EmptyEntity extends Entity {
 
     // public tag = this.addPart(new ColliderPart(dimensions(50,50), Vec2.ZERO));
     // public position = new Vec2(randomInt(0, 1000), randomInt(0,1500));
@@ -63,13 +63,13 @@ export function loadTestLevel(this: Scene): void {
         }
 
         update(dt: number): void {
-            this.point = this.Mouse.position.clone()// this.poly.polygon.closestPoint(this.Mouse.position);
+            this.point = this.mouse.position.clone()// this.poly.polygon.closestPoint(this.Mouse.position);
             //console.log(this.point)
-            if(this.Mouse.wasPressed("left")) { 
-                this.Terrain.carvePolygon(this.polygon, this.point);
+            if(this.mouse.wasPressed("left")) { 
+                this.terrain.carvePolygon(this.polygon, this.point);
             }
 
-            if(this.Keyboard.wasReleased("KeyY")) this.polygon = Polygon.random(5,180)
+            if(this.keyboard.wasReleased("KeyY")) this.polygon = Polygon.random(5,180)
             
             this.redraw(true);
         }
@@ -95,10 +95,10 @@ export function loadTestLevel(this: Scene): void {
         }
 
         update(dt: number): void {
-            this.point = this.Mouse.position.clone()// this.poly.polygon.closestPoint(this.Mouse.position);
+            this.point = this.mouse.position.clone()// this.poly.polygon.closestPoint(this.Mouse.position);
            //console.log(this.point)
-            if(this.Mouse.wasPressed("left")) { 
-                this.Terrain.carveCircle(this.point.x, this.point.y, this.radius);
+            if(this.mouse.wasPressed("left")) { 
+                this.terrain.carveCircle(this.point.x, this.point.y, this.radius);
             }
             
             this.redraw(true);
@@ -106,8 +106,8 @@ export function loadTestLevel(this: Scene): void {
 
         draw(g: Graphics): void {
             const factor = 3;
-            if(this.Keyboard.isDown("ArrowUp")) this.radius += 1 * factor
-            if(this.Keyboard.isDown("ArrowDown")) this.radius -= 1 * factor
+            if(this.keyboard.isDown("ArrowUp")) this.radius += 1 * factor
+            if(this.keyboard.isDown("ArrowDown")) this.radius -= 1 * factor
         
             drawCircle(g,this.point, this.radius, undefined, .3)
 
@@ -130,7 +130,7 @@ export function loadTestLevel(this: Scene): void {
         ticking = false;
 
         update(dt: number): void {
-            if(this.Mouse.wasReleased("left")){
+            if(this.mouse.wasReleased("left")){
                 
 
                 // This avoids performance including time for JS engine to allocate memory for the objects
@@ -143,7 +143,7 @@ export function loadTestLevel(this: Scene): void {
                 const start = performance.now();
 
                 for(let i = 0; i < this.AMOUNT; i++){
-                    this.entities.push(this.Scene.addEntity(tempEntities[i]).entityID);
+                    this.entities.push(this.scene.addEntity(tempEntities[i]).entityID);
                 }
 
                 console.log("Time to create:",performance.now() - start)
@@ -155,7 +155,7 @@ export function loadTestLevel(this: Scene): void {
                     const start = performance.now();
 
                     for(let i = 0; i < this.AMOUNT; i++){
-                        this.Scene.destroyEntityID(this.entities[i]);
+                        this.scene.destroyEntityID(this.entities[i]);
                     }
 
                     this.entities = [];
@@ -212,7 +212,7 @@ export function loadTestLevel(this: Scene): void {
         }
         draw(g: Graphics): void {
             g.clear();
-            this.Collision.draw(g);
+            this.engine.collisionManager.draw(g);
         }
     }
     // this.addEntity(new Debug())
@@ -255,9 +255,9 @@ export function loadTestLevel(this: Scene): void {
         draw(g: Graphics): void {
             drawCircle(g, this.circle, 50)
 
-            if(this.Mouse.wasPressed("left")) this.point = this.Mouse.position.clone();
+            if(this.mouse.wasPressed("left")) this.point = this.mouse.position.clone();
 
-            const otherPoint = this.Mouse.position.clone();
+            const otherPoint = this.mouse.position.clone();
 
             drawLineBetweenPoints(g,this.point,otherPoint);
 
@@ -285,9 +285,9 @@ export function loadTestLevel(this: Scene): void {
         }
 
         update(dt: number): void {
-            this.position.set(this.Mouse.position);
+            this.position.set(this.mouse.position);
 
-            if(this.Keyboard.isDown("KeyK")) this.Scene.destroyEntity(this)
+            if(this.keyboard.isDown("KeyK")) this.scene.destroyEntity(this)
 
             this.redraw();
         }
@@ -311,9 +311,9 @@ export function loadTestLevel(this: Scene): void {
         }
 
         update(dt: number): void {
-            this.line.B.set(this.Mouse.position);
-            if(this.Mouse.wasPressed("left")){
-                this.line.A.set(this.Mouse.position);
+            this.line.B.set(this.mouse.position);
+            if(this.mouse.wasPressed("left")){
+                this.line.A.set(this.mouse.position);
             }
 
             this.redraw();
@@ -336,8 +336,8 @@ export function loadTestLevel(this: Scene): void {
         private anchorPoint = new Vec2(0,0);
 
         update(dt: number): void {
-            if(this.Mouse.wasPressed("left")){
-                this.anchorPoint.set(this.Mouse.position);
+            if(this.mouse.wasPressed("left")){
+                this.anchorPoint.set(this.mouse.position);
             }
             this.redraw()
         }
@@ -347,7 +347,7 @@ export function loadTestLevel(this: Scene): void {
             g.lineStyle(3, rgb(255,0,0).hex());
             this.rec1.draw(g, 0xFF0000);
     
-            const rec2 = Rect.fromPoints(this.anchorPoint, this.Mouse.position);
+            const rec2 = Rect.fromPoints(this.anchorPoint, this.mouse.position);
             rec2.draw(g, 0x00FF00)
 
             const overlap =  this.rec1.intersection(rec2);
@@ -379,13 +379,13 @@ export function loadTestLevel(this: Scene): void {
             super();
             this.color = rgb(255,255,255);
 
-            this.Scene.addEntity(
+            this.scene.addEntity(
                 new ColorTween(this, "color", 5).from(this.color.clone()).to(rgb(255,5,5)).go()
             ).chain(new ColorTween(this, "color", 2).from((rgb(255,5,5))).to(rgb(1,0,255)))
         }
 
         update(dt: number): void {
-            this.percent += +this.Mouse.isDown("left") * .01;
+            this.percent += +this.mouse.isDown("left") * .01;
             this.percent %= 1;
             this.redraw()
         }
@@ -419,10 +419,10 @@ export function loadTestLevel(this: Scene): void {
 
 
         update(dt: number): void {
-            if(this.Mouse.isDown("left")){
+            if(this.mouse.isDown("left")){
 
-                const x = floor(this.Mouse.position.x / this.scale);
-                const y = floor(this.Mouse.position.y / this.scale)
+                const x = floor(this.mouse.position.x / this.scale);
+                const y = floor(this.mouse.position.y / this.scale)
 
                 this.q.insert(x,y);
                 
@@ -442,9 +442,9 @@ export function loadTestLevel(this: Scene): void {
                 this.q.startPath(this.start.x, this.start.y, this.target.x, this.target.y);
 
                 this.redraw();
-            } else if(this.Keyboard.wasPressed("KeyE")){
-                const x = floor(this.Mouse.position.x / this.scale);
-                const y = floor(this.Mouse.position.y / this.scale);
+            } else if(this.keyboard.wasPressed("KeyE")){
+                const x = floor(this.mouse.position.x / this.scale);
+                const y = floor(this.mouse.position.y / this.scale);
 
                 if(!this.flip)
                     this.start.set({x: x, y: y});
@@ -455,7 +455,7 @@ export function loadTestLevel(this: Scene): void {
                 this.flip = !this.flip;
                 this.q.startPath(this.start.x, this.start.y, this.target.x, this.target.y)
                 this.redraw();
-            } else if(this.Mouse.isDown("right")){
+            } else if(this.mouse.isDown("right")){
                  
 
                 this.q.stepPath();
@@ -465,8 +465,8 @@ export function loadTestLevel(this: Scene): void {
 
             this.hoverGraphic.clear();
 
-            const x = floor(this.Mouse.position.x / this.scale);
-            const y = floor(this.Mouse.position.y / this.scale);
+            const x = floor(this.mouse.position.x / this.scale);
+            const y = floor(this.mouse.position.y / this.scale);
 
             const node = this.q.getNode(x,y)
             if(node !== null) node.draw(this.hoverGraphic,this.scale, 9, 0x0000FF);
@@ -503,9 +503,9 @@ export function loadTestLevel(this: Scene): void {
         private flip = false;
 
         update(dt: number): void {
-            if(this.Mouse.isDown("left")){
-                const x = floor(this.Mouse.position.x / this.scale);
-                const y = floor(this.Mouse.position.y / this.scale);
+            if(this.mouse.isDown("left")){
+                const x = floor(this.mouse.position.x / this.scale);
+                const y = floor(this.mouse.position.y / this.scale);
                 
                 this.grid.blockcell(x,y);
 
@@ -522,9 +522,9 @@ export function loadTestLevel(this: Scene): void {
                 this.grid.start_astar(this.start.x, this.start.y, this.target.x, this.target.y);
                 
                 this.redraw();
-            } else if(this.Keyboard.wasPressed("KeyE")){
-                const x = floor(this.Mouse.position.x / this.scale);
-                const y = floor(this.Mouse.position.y / this.scale);
+            } else if(this.keyboard.wasPressed("KeyE")){
+                const x = floor(this.mouse.position.x / this.scale);
+                const y = floor(this.mouse.position.y / this.scale);
 
                 if(!this.flip)
                     this.start.set({x: x, y: y});
@@ -536,7 +536,7 @@ export function loadTestLevel(this: Scene): void {
                 this.grid.start_astar(this.start.x, this.start.y, this.target.x, this.target.y)
                 this.redraw();
                 
-            } else if(this.Mouse.isDown("right")){
+            } else if(this.mouse.isDown("right")){
                 this.grid.step_astar();
                 this.redraw();
             }
@@ -558,8 +558,8 @@ export function loadTestLevel(this: Scene): void {
 
         update(dt: number): void {
             // SimpleMovement(this,250 * dt);
-            this.moveTowards(this.Mouse.position,21);
-            this.image.angleTowardsPoint(this.Mouse.position, PI / 30);
+            this.moveTowards(this.mouse.position,21);
+            this.image.angleTowardsPoint(this.mouse.position, PI / 30);
         }
 
         draw(g: Graphics): void {
@@ -575,8 +575,8 @@ export function loadTestLevel(this: Scene): void {
         private nope = this.redraw();
     
         update(dt: number): void {
-            if(this.Keyboard.wasPressed("KeyF")){
-                this.tree.insert(this.Mouse.position.clone());
+            if(this.keyboard.wasPressed("KeyF")){
+                this.tree.insert(this.mouse.position.clone());
                 this.redraw();
             }
         }
@@ -618,7 +618,7 @@ export function loadTestLevel(this: Scene): void {
             }
 
             this.testobject =  new test3(Vec2.ZERO, "flower.png");
-            this.Scene.addEntity(this.testobject);
+            this.scene.addEntity(this.testobject);
 
             for(let i = 1; i < 30; i++){
                 for(const index of randomRangeSet(0,30,30)){
@@ -642,7 +642,7 @@ export function loadTestLevel(this: Scene): void {
             this.testobject.collider.rect.draw(g);
             
 
-            drawPoint(g,this.Mouse.position, this.map.isSolid(this.Mouse.position.x, this.Mouse.position.y) ? 0xFF0000:0x0000FF);
+            drawPoint(g,this.mouse.position, this.map.isSolid(this.mouse.position.x, this.mouse.position.y) ? 0xFF0000:0x0000FF);
         }
 
 
@@ -694,10 +694,10 @@ export function loadTestLevel(this: Scene): void {
         update(dt: number): void {
             if(!this.ticker.tick()) return;
             this.lines = [];
-            if(this.Mouse.wasPressed("left")){
-                this.startPoint = this.Mouse.position.clone();
+            if(this.mouse.wasPressed("left")){
+                this.startPoint = this.mouse.position.clone();
             }
-            const mousePoint = this.Mouse.position.clone();
+            const mousePoint = this.mouse.position.clone();
 
             this.lines.push(new Line(this.startPoint, mousePoint));
             
@@ -753,8 +753,8 @@ export function loadTestLevel(this: Scene): void {
         private nope = this.redraw();
     
         update(dt: number): void {
-            if(this.Keyboard.wasPressed("KeyF")){
-                this.sparse.insert(this.Mouse.position.clone());
+            if(this.keyboard.wasPressed("KeyF")){
+                this.sparse.insert(this.mouse.position.clone());
                 this.redraw();
                 console.log(this.sparse["hashmap"]["arr"])
             }
@@ -778,7 +778,7 @@ export function loadTestLevel(this: Scene): void {
         draw(g: Graphics): void {
             g.clear();
             this.line.draw(g);
-            drawPoint(g,this.line.pointClosestTo(this.Mouse.position));
+            drawPoint(g,this.line.pointClosestTo(this.mouse.position));
         }
 
     }
@@ -790,13 +790,13 @@ export function loadTestLevel(this: Scene): void {
         private tree = new DynamicAABBTree();
 
         update(dt: number): void {
-            if(this.Mouse.wasPressed("left")){
-                this.tree.insert(new Ellipse(this.Mouse.position.clone(),40,40))
+            if(this.mouse.wasPressed("left")){
+                this.tree.insert(new Ellipse(this.mouse.position.clone(),40,40))
                 console.log(this.tree["root"])
                 this.redraw();
             }
 
-            this.tree.pointQueryTestNodes(this.Mouse.position).forEach(e => e.aabb.draw(this.canvas.graphics,0x00F0FF));
+            this.tree.pointQueryTestNodes(this.mouse.position).forEach(e => e.aabb.draw(this.canvas.graphics,0x00F0FF));
         }
         draw(g: Graphics): void {
             g.clear();
@@ -826,9 +826,9 @@ export function loadTestLevel(this: Scene): void {
 
         update(dt: number): void {
 
-            if(this.Mouse.wasReleased("left")) this.points[this.points.length - 1] = this.Mouse.position.clone()
+            if(this.mouse.wasReleased("left")) this.points[this.points.length - 1] = this.mouse.position.clone()
 
-            let target = this.Mouse.position.clone() as Coordinate;
+            let target = this.mouse.position.clone() as Coordinate;
             
             // Last point in list is the anchor 
             const base = this.points[this.points.length - 1].clone();

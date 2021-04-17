@@ -10,16 +10,17 @@ import { BearEngine } from "./bearengine";
 import { MouseInput } from "../input/mouse";
 import { EngineKeyboard } from "../input/keyboard";
 import { ColliderPart } from "shared/core/abstractpart";
+import { TerrainManager } from "shared/core/terrainmanager";
 
 
 // Client specific entity
-export abstract class Entity extends AbstractEntity {
-    
-    static BEAR_ENGINE: BearEngine = null;
+export abstract class Entity extends AbstractEntity<BearEngine> {
 
-    get Engine(): BearEngine { return Entity.BEAR_ENGINE }
-    get Mouse(): MouseInput { return Entity.BEAR_ENGINE.mouse }
-    get Keyboard(): EngineKeyboard { return Entity.BEAR_ENGINE.keyboard }
+
+    get terrain(): TerrainManager { return this.engine.terrain; }
+    get mouse(): MouseInput { return this.engine.mouse; }
+    get keyboard(): EngineKeyboard { return this.engine.keyboard; }
+    
 
     // Used for quick movement implementation
     simpleMovement(speed: number){
@@ -31,8 +32,8 @@ export abstract class Entity extends AbstractEntity {
 
     simpleKeyboardCheck(magnitude: number = 1): Coordinate {
         return {
-            x: magnitude * (+this.Keyboard.isDown("KeyD") - +this.Keyboard.isDown("KeyA")), 
-            y: magnitude * (+this.Keyboard.isDown("KeyS") - +this.Keyboard.isDown("KeyW"))
+            x: magnitude * (+this.keyboard.isDown("KeyD") - +this.keyboard.isDown("KeyA")), 
+            y: magnitude * (+this.keyboard.isDown("KeyS") - +this.keyboard.isDown("KeyW"))
         }
     }
 }

@@ -1,6 +1,7 @@
 import { Color, blend } from "shared/datastructures/color";
 import { clamp } from "shared/mathutils";
 import { Coordinate, mix } from "shared/shapes/vec2";
+import { AbstractBearEngine } from "./abstractengine";
 import { Effect } from "./effects";
 
 
@@ -43,7 +44,7 @@ abstract class Tween<T> extends Effect  {
     
                 if(this.t >= 1){
                     if(this.nextChain){
-                        this.Scene.addEntity(this.nextChain)
+                        this.scene.addEntity(this.nextChain)
                         this.nextChain.active = true;
                         this.destroySelf();
                     }
