@@ -2,9 +2,10 @@ import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { Part, PartContainer, TagPart, TagType } from "shared/core/abstractpart";
 import { PartQuery } from "shared/core/abstractpart";
 import { Subsystem } from "shared/core/subsystem";
-import { EntityEventListType } from "shared/core/bearevents";
+import { EntityEventListType, EventRegistry } from "shared/core/bearevents";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { assert } from "shared/assertstatements";
+import { BearEvents } from "./sharedlogic/eventdefinitions";
 
 
 // Most significant 8 bits are version number, unsigned int --> [0,255], wraps 
@@ -60,6 +61,8 @@ export function StreamReadEntityID(stream: BufferStreamReader): number {
 export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends Subsystem {
     
     private partQueries: PartQuery<Part>[] = [];
+    private allEntityEventHandlers: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();;
+
 
     private nextPartID = 0;
     private partContainers: PartContainer<Part>[] = []
@@ -201,9 +204,20 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         entity.onDestroy();
     }
 
+    registerSceneSystems(systems: Subsystem[]){
 
+        for(const system of systems){
+            this.partQueries.push(...system.queries);
+
+            for(const handler of system.eventHandlers){
+                this.allEntityEventHandlers.set(handler.eventName, handler);
+            }
+        }
+        
+    }
 
     init(): void {}
+
     update(delta: number): void {
 
         for (let i = 0; i < this.entities.length; i++) {
@@ -219,29 +233,26 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         if(this.deleteEntityQueue.length > 0) this.deleteEntityQueue = [];
     }
 
-    registerPartQueries(systems: Subsystem[]){
-        for(const system of systems){
-            this.partQueries.push(...system.queries);
-        }
-    }
+    
 
     clear(){
-        this.entities.forEach( e => {
-            e.onDestroy();
+        const entityCopy = this.entities.slice(0);
 
-            for(const part of e.parts){
-                const container = this.partContainers[part.constructor["partID"]]
-                container.removePart(e.entityID);
-            }
-        });
-    
-        // Keep that part containers as they are, really no point in resetting them.
+        for(const e of entityCopy){
+            this.destroyEntityImmediately(e.entityID);
+        }    
 
+        for(const id of this.deleteEntityQueue){
+            this.destroyEntityImmediately(id);
+        }
+        this.deleteEntityQueue = [];
+        
         this.freeID = NULL_ENTITY_INDEX;
         this.sparse = [];
         this.entities = [];
 
         this.partQueries = [];
+        this.allEntityEventHandlers = new Map();
     }
 
 
@@ -250,7 +261,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
             const list = e.constructor["EVENT_REGISTRY"] as EntityEventListType<T>;
 
             for(const item of list){
-                const handler = this.engine.systemEventMap.get(item.eventname);
+                const handler = this.allEntityEventHandlers.get(item.eventname);
                 if(!handler) {
                     console.log(`Handler for ${item.eventname} could not be found!`)
                 }

@@ -56,7 +56,6 @@ export class ServerBearEngine implements AbstractBearEngine {
     private entityManager: Scene<ServerEntity>;
 
     private systems: Subsystem[] = [];
-    public systemEventMap: Map<keyof BearEvents, EventRegistry<keyof BearEvents>>;
     
 
     // Serializes the packets in here to at end of tick, sends to every player
@@ -81,9 +80,6 @@ export class ServerBearEngine implements AbstractBearEngine {
 
         // Links shared entity classes
         SharedEntityServerTable.init()
-
-
-        //  Set event handlers on server?
     }
 
 
@@ -325,9 +321,11 @@ export class ServerBearEngine implements AbstractBearEngine {
 
             this.readNetwork();
 
-            for(const system of this.systems){
-                system.update(dt);
-            }
+
+
+            this.entityManager.update(dt);
+
+
 
             this.writeToNetwork()
 

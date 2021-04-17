@@ -116,8 +116,6 @@ export class Player extends DrawableEntity {
         this.rightWallRay = new Line(new Vec2(x, y), new Vec2(3 + x + width / 2,y));
         this.leftWallRay = new Line(new Vec2(x, y), new Vec2(-3 + x - width / 2, y));
 
-        
-
         this.gun = new BaseBulletGun([
             new TerrainHitAddon(),
             {
@@ -186,10 +184,10 @@ export class Player extends DrawableEntity {
         const angleToMouse = angleBetween(this.gun.position, this.Mouse.position)
         const difference = Vec2.subtract(this.Mouse.position, this.gun.position);
         if(difference.x > 0){
-            this.gun.image["sprite"].scale.x = 1;
+            this.gun.image.sprite.scale.x = 1;
             this.gun.image.angle = angleToMouse;
         } else {
-            this.gun.image["sprite"].scale.x = -1;
+            this.gun.image.sprite.scale.x = -1;
             this.gun.image.angle = angleToMouse + PI;
         }
         this.gun.operate(this.Mouse.isDown("left"));

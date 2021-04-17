@@ -49,6 +49,7 @@ export class TerrainManager extends Subsystem {
 
     clear(){
         this.grid.clear();
+        this.terrains = [];
     }
 
     redrawQueued = false;

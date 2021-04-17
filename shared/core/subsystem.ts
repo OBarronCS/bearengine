@@ -7,8 +7,8 @@ import { BearEvents } from "./sharedlogic/eventdefinitions";
 
 // Optional type override for more flexibility, for server/client specific subsystems
 export abstract class Subsystem<EngineType extends AbstractBearEngine = AbstractBearEngine> {
+    
     public queries: PartQuery<any>[] = [];
-
     public eventHandlers: EventRegistry<keyof BearEvents>[] = [];
 
     public engine: EngineType;

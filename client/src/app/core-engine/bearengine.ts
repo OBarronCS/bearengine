@@ -71,8 +71,6 @@ export class BearEngine implements AbstractBearEngine {
 
 
     private systems: Subsystem[] = [];
-    public systemEventMap: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();
-
 
     init(): void {
         const div = document.querySelector("#display") as HTMLElement;
@@ -106,12 +104,6 @@ export class BearEngine implements AbstractBearEngine {
             system.init();
         }
 
-        for(const system of this.systems){
-            for(const handler of system.eventHandlers){
-                this.systemEventMap.set(handler.eventName, handler);
-            }
-        }
-
         this.keyboard.bind("k", () => {
             this.restartCurrentLevel()
         });
@@ -123,7 +115,7 @@ export class BearEngine implements AbstractBearEngine {
         return system;
     }
 
-    /** Takes in class name, returns instance of it */
+    /** Takes in class, returns instance of it */
     getSystem<T extends Subsystem>(query: new(...args: any[]) => T): T {
         const name = query.name;
         for(const system of this.systems){
@@ -135,14 +127,14 @@ export class BearEngine implements AbstractBearEngine {
     }
 
     loadLevel(levelData: CustomMapFormat){
+        console.log("Starting scene");
         if(this.level.loaded) throw new Error("TRYING TO LOAD A LEVEL WHEN ONE IS ALREADY LOADED");
         
         this.level.startLevel(levelData);
 
-        this.entityManager.registerPartQueries(this.systems);
+        this.entityManager.registerSceneSystems(this.systems);
 
         this.renderer.renderer.backgroundColor = string2hex(levelData.world.backgroundcolor);
-       
         // Load sprites from map 
         levelData.sprites.forEach(s => {
             const sprite = new Sprite(this.renderer.getTexture(ASSET_FOLDER_NAME + s.file_path));
@@ -165,8 +157,8 @@ export class BearEngine implements AbstractBearEngine {
         Entity.BEAR_ENGINE = this;
         
         this.terrain.graphics = new Graphics();
-        this.terrain.queueRedraw();
         this.renderer.addSprite(this.terrain.graphics);
+        this.terrain.queueRedraw();
 
         loadTestLevel.call(this.entityManager);
 
@@ -187,9 +179,10 @@ export class BearEngine implements AbstractBearEngine {
         this.collisionManager.clear()
 
         const children = this.renderer.mainContainer.removeChildren();
+        const moreChildren = this.renderer.guiContainer.removeChildren();
         // This is crucial --> otherwise there is a memory leak
         children.forEach(child => child.destroy());
-
+        moreChildren.forEach(child => child.destroy());
 
         this.level.loaded = false;
     }   

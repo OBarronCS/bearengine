@@ -25,7 +25,7 @@ export class RendererSystem extends Subsystem<BearEngine> {
     public targetWindow: Window;
     public targetDiv: HTMLElement;
 
-    public graphics_query = this.addQuery(GraphicsPart,
+    private graphics_query = this.addQuery(GraphicsPart,
             g => {
                 g.graphics.zIndex = 1;
                 this.addSprite(g.graphics)
@@ -33,7 +33,7 @@ export class RendererSystem extends Subsystem<BearEngine> {
             g => this.removeSprite(g.graphics)
         );
 
-    public sprite_query = this.addQuery(SpritePart,
+    private sprite_query = this.addQuery(SpritePart,
             s => {
                 s.sprite.texture = this.getTexture(s.file_path);
                 this.addSprite(s.sprite)
@@ -95,9 +95,7 @@ export class RendererSystem extends Subsystem<BearEngine> {
         (this.renderer.plugins.interaction as InteractionManager).cursorStyles.default = css;
     }
 
-    init(){
-        
-    }
+    init(){}
 
     update(){
         for(const sprite of this.sprite_query){
