@@ -4,13 +4,9 @@ import { Graphics, Loader, Sprite } from "pixi.js";
 
 import { AbstractBearEngine } from "shared/core/abstractengine";
 import { AbstractEntity } from "shared/core/abstractentity";
-import { EventRegistry } from "shared/core/bearevents";
-import { LevelHandler } from "shared/core/level";
 import { Scene } from "shared/core/scene";
-import { BearEvents } from "shared/core/sharedlogic/eventdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { CustomMapFormat } from "shared/core/tiledmapeditor";
-import { Vec2 } from "shared/shapes/vec2";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { CollisionManager } from "shared/core/entitycollision";
 import { string2hex } from "shared/mathutils";
@@ -19,10 +15,10 @@ import { loadTestLevel } from "../gamelogic/testlevelentities";
 import { EngineKeyboard } from "../input/keyboard";
 import { EngineMouse } from "../input/mouse";
 import { CameraSystem } from "./camera";
-import { Entity } from "./entity";
 import { NetworkSystem } from "./networking/networksystem";
 import { RendererSystem } from "./renderer";
 import { TestMouseDownEventDispatcher } from "./mouseevents";
+import { Rect } from "shared/shapes/rectangle";
 
 
 
@@ -46,7 +42,7 @@ console.log("Assets: " + ALL_TEXTURES)
 const maxFPS = 60;
 const simulation_time = 1000 / maxFPS;
 
-export class BearEngine implements AbstractBearEngine {
+export class BearEngine extends AbstractBearEngine {
 
     public tick = 0;
     private lastFrameTimeMs = 0;
@@ -62,7 +58,6 @@ export class BearEngine implements AbstractBearEngine {
     public camera: CameraSystem;
     public mouse: EngineMouse;
     public keyboard: EngineKeyboard;
-    public level: LevelHandler;
     public entityManager: Scene;
     public terrain: TerrainManager;
     public collisionManager: CollisionManager;
@@ -70,7 +65,10 @@ export class BearEngine implements AbstractBearEngine {
     private mouseEventDispatcher: TestMouseDownEventDispatcher;
 
 
-    private systems: Subsystem[] = [];
+    public currentLevelData: CustomMapFormat;
+    public levelbbox: Rect;
+    public levelLoaded = false;
+
 
     init(): void {
         const div = document.querySelector("#display") as HTMLElement;
@@ -83,8 +81,6 @@ export class BearEngine implements AbstractBearEngine {
         this.keyboard = this.registerSystem(new EngineKeyboard(this));
         this.camera = this.registerSystem(new CameraSystem(this));
 
-
-        this.level = this.registerSystem(new LevelHandler(this));
 
 
         this.terrain = this.registerSystem(new TerrainManager(this));
@@ -110,32 +106,35 @@ export class BearEngine implements AbstractBearEngine {
         this.keyboard.bind("g", () => this.paused = !this.paused);
     }
 
-    registerSystem<T extends Subsystem>(system: T): T {
-        this.systems.push(system);
-        return system;
-    }
-
-    /** Takes in class, returns instance of it */
-    getSystem<T extends Subsystem>(query: new(...args: any[]) => T): T {
-        const name = query.name;
-        for(const system of this.systems){
-            // @ts-expect-error
-            if(system.constructor.name === name) return system;
-        }
-
-        return null;
-    }
+    
 
     loadLevel(levelData: CustomMapFormat){
         console.log("Starting scene");
-        if(this.level.loaded) throw new Error("TRYING TO LOAD A LEVEL WHEN ONE IS ALREADY LOADED");
+        if(this.levelLoaded) throw new Error("TRYING TO LOAD A LEVEL WHEN ONE IS ALREADY LOADED");
         
+        this.currentLevelData = levelData;
         // Set global reference that entities access
         AbstractEntity["ENGINE_OBJECT"] = this;
 
-        this.level.startLevel(levelData);
+        // Create terrain and world size
+        const worldInfo = levelData.world;
+        const width = worldInfo.width;
+        const height = worldInfo.height;
 
+        this.levelbbox = new Rect(0,0,width,height);
+        
+        const bodies = levelData.bodies;
+        this.terrain.setupGrid(width, height);
+        bodies.forEach( (body) => {
+            this.terrain.addTerrain(body.points, body.normals)
+        });
+
+
+        this.collisionManager.setupGrid(width, height);
+        
+ 
         this.entityManager.registerSceneSystems(this.systems);
+
 
         this.renderer.renderer.backgroundColor = string2hex(levelData.world.backgroundcolor);
         // Load sprites from map 
@@ -155,6 +154,7 @@ export class BearEngine implements AbstractBearEngine {
 
         loadTestLevel.call(this.entityManager);
 
+        this.levelLoaded = true;
 
         // this.camera["center"].set(this.player.position);
         this.camera.left = 0;
@@ -165,7 +165,6 @@ export class BearEngine implements AbstractBearEngine {
 
     endCurrentLevel(){
         console.log("Ending level")
-        this.level.end();
 
         this.entityManager.clear();
         this.terrain.clear();
@@ -177,16 +176,13 @@ export class BearEngine implements AbstractBearEngine {
         children.forEach(child => child.destroy());
         moreChildren.forEach(child => child.destroy());
 
-        this.level.loaded = false;
+        this.levelLoaded = false;
     }   
 
     restartCurrentLevel(){
-        const data = this.level.data_struct;
         this.endCurrentLevel();
-        this.loadLevel(data);
+        this.loadLevel(this.currentLevelData);
     }
-
-    
 
     // Loads all assets from server
     async loadAssets(): Promise<typeof SHARED_RESOURCES>{
@@ -201,16 +197,6 @@ export class BearEngine implements AbstractBearEngine {
         });
     }
 
-    /** Starts main loop. Connects to server */
-    start(){
-        if(this.renderer === null) console.error("RENDERER NOT INITIALIZED");
-
-        this.networksystem.connect();
-
-        (this.loop.bind(this))();
-    }
-
-
     getResource(path: string) {
         if(path.startsWith("assets/")) path = path.substr(7);
         
@@ -220,6 +206,15 @@ export class BearEngine implements AbstractBearEngine {
         if(data === undefined) throw new Error("Trying to get a resource that we don't have, " + path);
         
         return data;
+    }
+
+    /** Starts main loop. Connects to server */
+    start(){
+        if(this.renderer === null) console.error("RENDERER NOT INITIALIZED");
+
+        this.networksystem.connect();
+
+        (this.loop.bind(this))();
     }
 
     private _boundloop = this.loop.bind(this);
@@ -243,11 +238,9 @@ export class BearEngine implements AbstractBearEngine {
 
                 this.networksystem.readPackets();
 
-
                 this.mouse.update();
                 this.keyboard.update();
                 this.camera.update(dt);
-                this.level.update(dt);
 
                 this.terrain.update(dt);
                 this.collisionManager.update(dt);
@@ -265,7 +258,8 @@ export class BearEngine implements AbstractBearEngine {
                 this.totalTime += dt;
                 this.accumulated -= simulation_time;
             }
-            // console.log(performance.now() - timestamp) 
+            
+            //console.log(performance.now() - timestamp) 
         }
                
         this.renderer.update();

@@ -1,8 +1,8 @@
 import { Vec2 } from "shared/shapes/vec2";
 import { sign } from "shared/mathutils";
 import { Subsystem } from "shared/core/subsystem";
-import { RendererSystem } from "../core-engine/renderer";
 import { Point } from "pixi.js";
+import { BearEngine } from "../core-engine/bearengine";
 
 export type MouseButton = "left" | "middle" | "right" 
 
@@ -26,7 +26,7 @@ export interface MouseInput {
     onmousemove(func: (worldPoint:Vec2,screenPoint:Vec2) => void): void,
 }
 
-export class EngineMouse extends Subsystem {
+export class EngineMouse extends Subsystem<BearEngine> {
     // Really far away so doesn't overlap with anyone at beginning
     position: Vec2 = new Vec2(-99999999,-99999999);
     screenPosition: Vec2 = new Vec2(-99999999,-99999999);
@@ -59,7 +59,7 @@ export class EngineMouse extends Subsystem {
     private _onscroll: ((direction: number,worldPoint:Vec2,screenPoint:Vec2) => void)[] = [];
 
     init(){
-        const renderer = this.getSystem(RendererSystem);
+        const renderer = this.engine.renderer;
         const targetWindow: Window = renderer.renderer.view.ownerDocument.defaultView;
 
         const setPositionFromEvent = (e: MouseEvent) => {
@@ -130,7 +130,7 @@ export class EngineMouse extends Subsystem {
     update(){
         // Set position of mouse
         const canvasPoint = new Point();
-        const renderer = this.getSystem(RendererSystem);
+        const renderer = this.engine.renderer;
         renderer.renderer.plugins.interaction.mapPositionToPoint(canvasPoint,this.screenPosition.x,this.screenPosition.y);
         // @ts-expect-error
         renderer.mainContainer.toLocal(canvasPoint,undefined,this.position);

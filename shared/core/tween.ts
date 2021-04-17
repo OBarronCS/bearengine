@@ -1,7 +1,6 @@
 import { Color, blend } from "shared/datastructures/color";
 import { clamp } from "shared/mathutils";
 import { Coordinate, mix } from "shared/shapes/vec2";
-import { AbstractBearEngine } from "./abstractengine";
 import { Effect } from "./effects";
 
 

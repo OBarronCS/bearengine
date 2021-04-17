@@ -1,11 +1,11 @@
 import * as Mousetrap from "mousetrap"
 import { ExtendedKeyboardEvent, MousetrapInstance } from "mousetrap";
 import { KECode } from "../apiwrappers/keyboardapiwrapper";
-import { RendererSystem } from "../core-engine/renderer";
 import { Subsystem } from "shared/core/subsystem";
+import { BearEngine } from "../core-engine/bearengine";
 
 
-export class EngineKeyboard extends Subsystem {
+export class EngineKeyboard extends Subsystem<BearEngine> {
 
     // Things that were down last tick
     private lastKeyDownMap = new Map<KECode,boolean>();
@@ -22,7 +22,7 @@ export class EngineKeyboard extends Subsystem {
     private mousetrap: MousetrapInstance;
 
     init(){
-        const renderer = this.getSystem(RendererSystem);
+        const renderer = this.engine.renderer;
         const form: Window = renderer.renderer.view.ownerDocument.defaultView;
     
         //The types definitions are incorrect as you can bind a window

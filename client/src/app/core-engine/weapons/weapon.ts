@@ -100,7 +100,7 @@ export class BaseBullet extends Effect<BearEngine> {
             this.position.add(this.velocity);
             this.sprite.angle = angleBetween(this.position, Vec2.add(this.position, this.velocity))
 
-            if(!this.engine.level.bbox.contains(this.position)){
+            if(!this.engine.levelbbox.contains(this.position)){
                 this.destroySelf();
             }
         })

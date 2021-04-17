@@ -3,9 +3,7 @@
 import type { Server } from "ws";
 import { AssertUnreachable } from "shared/assertstatements";
 import { AbstractBearEngine } from "shared/core/abstractengine";
-import { EventRegistry } from "shared/core/bearevents";
 import { Scene, StreamWriteEntityID } from "shared/core/scene";
-import { BearEvents } from "shared/core/sharedlogic/eventdefinitions";
 import { GamePacket, ServerBoundPacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
@@ -40,7 +38,7 @@ class PlayerInformation {
 }
 
 
-export class ServerBearEngine implements AbstractBearEngine {
+export class ServerBearEngine extends AbstractBearEngine {
     
     public readonly TICK_RATE: number;
     private referenceTime: bigint = 0n;
@@ -50,15 +48,15 @@ export class ServerBearEngine implements AbstractBearEngine {
     private previousTickTime: number = 0;
     public totalTime = 0;
 
+
     public network: ServerNetwork = null;
     
 
+    // Subsystems
     private entityManager: Scene<ServerEntity>;
-
-    private systems: Subsystem[] = [];
     
 
-    // Serializes the packets in here to at end of tick, sends to every player
+    // Serializes the packets in here at end of tick, sends to every player
     private globalPacketsToSerialize: PacketWriter[] = [];
 
     private lifetimeImportantPackets: Queue<PacketWriter> = new LinkedQueue<PacketWriter>();
@@ -67,8 +65,9 @@ export class ServerBearEngine implements AbstractBearEngine {
     private players = new Map<ConnectionID,PlayerInformation>();
     private clients: ConnectionID[] = [];
 
-   
+
     constructor(tick_rate: number){
+        super();
         this.TICK_RATE = tick_rate;
 
         this.entityManager = this.registerSystem(new Scene<ServerEntity>(this));
@@ -86,16 +85,6 @@ export class ServerBearEngine implements AbstractBearEngine {
     registerSystem<T extends Subsystem>(system: T): T {
         this.systems.push(system);
         return system;
-    }
-    
-    getSystem<T extends Subsystem<AbstractBearEngine>>(query: new (...args: any[]) => T): T {
-        const name = query.name;
-        for(const system of this.systems){
-            // @ts-expect-error
-            if(system.constructor.name === name) return system;
-        }
-
-        return null;
     }
     
     start(socket: Server){
