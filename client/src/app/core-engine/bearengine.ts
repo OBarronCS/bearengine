@@ -184,8 +184,6 @@ export class BearEngine extends AbstractBearEngine {
         this.loadLevel(this.currentLevelData);
     }
 
-    
-
     // Loads all assets from server
     async loadAssets(): Promise<typeof SHARED_RESOURCES>{
         return new Promise( (resolve) => {
@@ -199,16 +197,6 @@ export class BearEngine extends AbstractBearEngine {
         });
     }
 
-    /** Starts main loop. Connects to server */
-    start(){
-        if(this.renderer === null) console.error("RENDERER NOT INITIALIZED");
-
-        this.networksystem.connect();
-
-        (this.loop.bind(this))();
-    }
-
-
     getResource(path: string) {
         if(path.startsWith("assets/")) path = path.substr(7);
         
@@ -218,6 +206,15 @@ export class BearEngine extends AbstractBearEngine {
         if(data === undefined) throw new Error("Trying to get a resource that we don't have, " + path);
         
         return data;
+    }
+
+    /** Starts main loop. Connects to server */
+    start(){
+        if(this.renderer === null) console.error("RENDERER NOT INITIALIZED");
+
+        this.networksystem.connect();
+
+        (this.loop.bind(this))();
     }
 
     private _boundloop = this.loop.bind(this);
@@ -261,7 +258,8 @@ export class BearEngine extends AbstractBearEngine {
                 this.totalTime += dt;
                 this.accumulated -= simulation_time;
             }
-            // console.log(performance.now() - timestamp) 
+            
+            //console.log(performance.now() - timestamp) 
         }
                
         this.renderer.update();
