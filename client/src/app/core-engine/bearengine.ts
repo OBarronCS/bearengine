@@ -42,7 +42,7 @@ console.log("Assets: " + ALL_TEXTURES)
 const maxFPS = 60;
 const simulation_time = 1000 / maxFPS;
 
-export class BearEngine implements AbstractBearEngine {
+export class BearEngine extends AbstractBearEngine {
 
     public tick = 0;
     private lastFrameTimeMs = 0;
@@ -63,8 +63,6 @@ export class BearEngine implements AbstractBearEngine {
     public collisionManager: CollisionManager;
 
     private mouseEventDispatcher: TestMouseDownEventDispatcher;
-
-    private systems: Subsystem[] = [];
 
 
     public currentLevelData: CustomMapFormat;
@@ -108,10 +106,7 @@ export class BearEngine implements AbstractBearEngine {
         this.keyboard.bind("g", () => this.paused = !this.paused);
     }
 
-    registerSystem<T extends Subsystem>(system: T): T {
-        this.systems.push(system);
-        return system;
-    }
+    
 
     loadLevel(levelData: CustomMapFormat){
         console.log("Starting scene");
@@ -137,10 +132,9 @@ export class BearEngine implements AbstractBearEngine {
 
         this.collisionManager.setupGrid(width, height);
         
-        
-        
-
+ 
         this.entityManager.registerSceneSystems(this.systems);
+
 
         this.renderer.renderer.backgroundColor = string2hex(levelData.world.backgroundcolor);
         // Load sprites from map 
