@@ -38,7 +38,7 @@ function importAll(r: any): [] {
     return webpackObjs.map((v:any) => v.default)
 }
 
-// This cannot take variable for path because it just doesn't work...
+// This cannot take variable for path, webpack needs string literal for it to work ...
 const images = importAll(require.context('../../assets', true, /\.(json|png|jpe?g|gif)$/));
 const ALL_TEXTURES: string[] = images.slice(0);
 console.log("Assets: " + ALL_TEXTURES)
@@ -53,6 +53,8 @@ export class BearEngine implements AbstractBearEngine {
     private accumulated = 0;
     public totalTime = 0;
 
+    public paused = false;
+
 
     // Subsystems
     public networksystem: NetworkSystem;
@@ -64,6 +66,8 @@ export class BearEngine implements AbstractBearEngine {
     public entityManager: Scene;
     public terrain: TerrainManager;
     public collisionManager: CollisionManager;
+
+    private mouseEventDispatcher: TestMouseDownEventDispatcher;
 
 
     private systems: Subsystem[] = [];
@@ -91,7 +95,7 @@ export class BearEngine implements AbstractBearEngine {
         this.entityManager = this.registerSystem(new Scene(this))
         
         // For testing
-        this.registerSystem(new TestMouseDownEventDispatcher(this))
+        this.mouseEventDispatcher = this.registerSystem(new TestMouseDownEventDispatcher(this))
 
         
         this.renderer = this.registerSystem(new RendererSystem(this, div, window));
@@ -110,7 +114,8 @@ export class BearEngine implements AbstractBearEngine {
 
         this.keyboard.bind("k", () => {
             this.restartCurrentLevel()
-        })
+        });
+        this.keyboard.bind("g", () => this.paused = !this.paused);
     }
 
     registerSystem<T extends Subsystem>(system: T): T {
@@ -170,7 +175,7 @@ export class BearEngine implements AbstractBearEngine {
         this.camera.left = 0;
         this.camera.top = 0;
         this.camera.zoom({x:.2,y:.2});
-        // this.camera.follow(this.player.position)
+        this.camera.follow(this.entityManager.getEntityByTag("Player").position)
     }
 
     endCurrentLevel(){
@@ -234,50 +239,52 @@ export class BearEngine implements AbstractBearEngine {
     private _boundloop = this.loop.bind(this);
 
     loop(timestamp: number = performance.now()){
-        this.accumulated += timestamp - this.lastFrameTimeMs;
-        this.lastFrameTimeMs = timestamp;
 
-        // if we are more than a second behind, probably lost focus on page (rAF doesn't get called if the tab is not in focus)
-        if(this.accumulated > 1000){
-            this.accumulated = 0;
-        }
         
-        // both of these are in ms
-        while (this.accumulated >= (simulation_time)) {
-            // divide by 1000 to get seconds
-            const dt = simulation_time / 1000;
+        if(!this.paused){
+            this.accumulated += timestamp - this.lastFrameTimeMs;
+
+            // if we are more than a second behind, probably lost focus on page (rAF doesn't get called if the tab is not in focus)
+            if(this.accumulated > 1000){
+                this.accumulated = 0;
+            }
+
+            // both of these are in ms
+            while (this.accumulated >= (simulation_time)) {
+                // divide by 1000 to get seconds
+                const dt = simulation_time / 1000;
 
 
-            this.networksystem.readPackets();
+                this.networksystem.readPackets();
 
 
-            this.mouse.update();
-            this.keyboard.update();
-            this.camera.update(dt);
-            this.level.update(dt);
+                this.mouse.update();
+                this.keyboard.update();
+                this.camera.update(dt);
+                this.level.update(dt);
 
-            this.terrain.update(dt);
-            this.collisionManager.update(dt);
+                this.terrain.update(dt);
+                this.collisionManager.update(dt);
 
-            this.entityManager.update(dt);
+                this.mouseEventDispatcher.update(dt)
 
-
-            this.networksystem.writePackets();
-
+                this.entityManager.update(dt);
 
 
-            this.tick++;
-            this.totalTime += dt;
-            this.accumulated -= simulation_time;
+                this.networksystem.writePackets();
+
+
+
+                this.tick++;
+                this.totalTime += dt;
+                this.accumulated -= simulation_time;
+            }
+            // console.log(performance.now() - timestamp) 
         }
-        
-       
-        // console.log(performance.now() - timestamp) 
-
+               
         this.renderer.update();
 
-               
-
+        this.lastFrameTimeMs = timestamp;
         requestAnimationFrame(this._boundloop);
     }
 

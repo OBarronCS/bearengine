@@ -29,7 +29,7 @@ export interface MouseInput {
 export class EngineMouse extends Subsystem {
     // Really far away so doesn't overlap with anyone at beginning
     position: Vec2 = new Vec2(-99999999,-99999999);
-    screenPosition: Vec2 = new Vec2(0,0);
+    screenPosition: Vec2 = new Vec2(-99999999,-99999999);
     velocity: Vec2 = new Vec2(0,0);
     scroll: number = 0;
 
@@ -128,6 +128,13 @@ export class EngineMouse extends Subsystem {
 
     // run before update loop
     update(){
+        // Set position of mouse
+        const canvasPoint = new Point();
+        const renderer = this.getSystem(RendererSystem);
+        renderer.renderer.plugins.interaction.mapPositionToPoint(canvasPoint,this.screenPosition.x,this.screenPosition.y);
+        // @ts-expect-error
+        renderer.mainContainer.toLocal(canvasPoint,undefined,this.position);
+
         this.velocity.set({x: this.position.x - this.lastPosition.x, y: this.position.y - this.lastPosition.y}) 
 
         this.released = [false, false, false];
