@@ -36,6 +36,13 @@ export abstract class Entity extends AbstractEntity<BearEngine> {
             y: magnitude * (+this.keyboard.isDown("KeyS") - +this.keyboard.isDown("KeyW"))
         }
     }
+
+    simpleKeyboardPressedCheck(magnitude: number = 1): Coordinate {
+        return {
+            x: magnitude * (+this.keyboard.wasPressed("KeyD") - +this.keyboard.wasPressed("KeyA")), 
+            y: magnitude * (+this.keyboard.wasPressed("KeyS") - +this.keyboard.wasPressed("KeyW"))
+        }
+    }
 }
 
 export abstract class DrawableEntity extends Entity {

@@ -1,5 +1,5 @@
 
-import { Graphics } from "pixi.js";
+import { BaseTexture, Graphics, Sprite, Texture } from "pixi.js";
 
 import { Tilemap } from "shared/datastructures/tilemap";
 import { rgb, Color } from "shared/datastructures/color";
@@ -20,11 +20,13 @@ import { ColorTween } from "shared/core/tween"
 import { TickTimer } from "shared/ticktimer"
 import { ColliderPart, TagPart } from "shared/core/abstractpart";
 import { bearevent } from "shared/core/bearevents";
-import { Scene} from "shared/core/scene";
+
 import { DrawableEntity, Entity, GMEntity, SpriteEntity } from "../core-engine/entity";
 import { Player } from "./player";
 import { SpritePart } from "../core-engine/parts";
-import { AbstractEntity, EntityID } from "shared/core/abstractentity";
+import { EntityID } from "shared/core/abstractentity";
+import { BearEngine } from "../core-engine/bearengine";
+import { GUI } from "dat.gui";
 
 class BasicSprite extends SpriteEntity {
 
@@ -46,11 +48,651 @@ class EmptyEntity extends Entity {
     }
 }
 
+export function frameEditor(engine: BearEngine): void {
+    
+    engine.renderer.setBackgroundColor(rgb(22, 30, 80));
 
-export function loadTestLevel(this: Scene): void {
+    const scene = engine.entityManager;
+
+    class DraggableEntity extends DrawableEntity {
+            
+        public sprite: SpritePart;
+
+        constructor(path: string){
+            super();
+            this.sprite = this.addPart(new SpritePart(path));
+
+            const pixi = this.sprite.sprite;
+            pixi.interactive = true;
+
+            let offset: Vec2 = new Vec2(0,0);
+
+            let dragging = false;
+    
+            pixi.addListener("mousedown", (event) => {
+                dragging = true;
+                const pos = event.data.getLocalPosition(pixi.parent);
+                offset.x = this.position.x - pos.x;
+                offset.y = this.position.y - pos.y; 
+            });
+    
+            pixi.addListener("mouseup", (e)=> {
+                dragging = false;
+            })
+
+            pixi.addListener("mouseupoutside", (e)=> {
+                dragging = false;
+            })
+
+            // while dragging
+            pixi.addListener("mousemove",event => {
+                if(!dragging) return;
+                const pos = event.data.getLocalPosition(pixi.parent);
+                this.position.x = pos.x + offset.x
+                this.position.y = pos.y + offset.x
+            });      
+        }
+        
+        update(dt: number): void {
+            this.redraw();
+        }
+
+        draw(g: Graphics): void {
+            g.beginFill(0xFF0000)
+            g.drawCircle(this.x, this.y, 3)
+        }
+    }
+
+    /*
+
+        Have a sub "art canvas" for each body part for each frame
+
+    */
+   
+    interface PlayerAnimation {
+        frameData: PlayerAnimationFrame[];
+        // The "origin" of the animation. Arbitrary, but helpful in practice as can set user position to something near this number
+        // and have the animation line up in game 
+        // All BodyPart positions are relative to this number. So -1 body part position is originX - 1.
+        originX: number
+        originY: number
+    }
+
+    interface PlayerAnimationFrame {
+        frame: number;
+        
+        head: BodyPartFrameInfo;
+        body: BodyPartFrameInfo;
+            
+        leftHand: BodyPartFrameInfo;
+        rightHand: BodyPartFrameInfo;
+
+        leftFoot: BodyPartFrameInfo;
+        rightFoot: BodyPartFrameInfo;
+    }
+
+    interface BodyPartFrameInfo {
+        canvas: PixelArtCanvas;
+        // Relative to the origin of the entire animation
+        relativeX: number
+        relativeY: number
+    }
 
 
-    this.addEntity(new Player());
+
+    class PlayerAnimator extends Entity {
+        // What we are drawing on
+        private sprite: SpritePart;
+        private canvas = new PixelArtCanvas(80,80);
+        private scale = 20;
+        private canvasBBOX = new Rect(0,0,this.canvas.width * this.scale,this.canvas.height * this.scale);
+
+        private lines = new Graphics();
+
+
+        private preview: Sprite;
+        private gui: GUI
+
+
+
+        // Final data to be exported
+        private animationData: PlayerAnimation = {
+            frameData: [],
+            originX: 0,
+            originY: 0
+        }
+
+        // The frame we are currently working on
+        private currentWorkingFrame = 0;
+        private selectedBodyPart: "head" | "body" | "leftFoot" | "rightFoot" | "leftHand" | "rightHand";
+
+
+        // Where we can click
+        private highlightSelectedPart = new Graphics();
+        private bodyPartGraphics = new Graphics()
+        private workingFrameGraphics = new Graphics();
+
+        constructor(){
+            super();
+
+            const spr = new Sprite(this.canvas.texture);
+            this.preview = new Sprite(this.canvas.texture);
+
+            this.sprite = this.addPart(new SpritePart(spr));
+            this.sprite.scale = {x: this.scale,y:this.scale}
+
+
+            this.lines.lineStyle(3,0x000000);
+            this.lines.zIndex = 1000;
+            for(let i = 0; i < this.canvas.width; i++){
+                this.lines.moveTo(i * this.scale, 0);
+                this.lines.lineTo(i * this.scale, this.canvas.height * this.scale);
+            }
+            
+            for(let j = 0; j < this.canvas.height; j++){
+                this.lines.moveTo(0,j * this.scale);
+                this.lines.lineTo(this.canvas.width * this.scale, j  * this.scale);
+            }
+
+
+            this.startNewFrame();
+
+            
+            this.gui = new GUI();
+            this.gui.add(this,"currentWorkingFrame");
+            this.gui.add(this, "editHead")
+            this.gui.add(this, "editBody")
+            this.gui.add(this, "editLeftHand")
+            this.gui.add(this, "editRightHand")
+            this.gui.add(this, "editLeftFoot")
+            this.gui.add(this, "editRightFoot")
+
+            this.gui.add(this, "startNewFrame")
+            this.gui.add(this, "save");
+        }
+
+        // Called to select a part
+        private editPart(part: "head" | "body" | "leftHand" | "rightHand" | "leftFoot" | "rightFoot" ){
+            const frame = this.animationData.frameData[this.currentWorkingFrame];
+            if(frame[part] === null){
+                const answer = prompt("Size");
+                if(answer === undefined || answer === null) return alert("Undefined");
+
+                const size = answer.split(" ");
+                const width = Number(size[0]);
+                const height = Number(size[1]);
+
+                if(width === undefined || height === undefined) return alert("Undefined")
+
+                if(width > this.canvas.width) return alert("Too wide")
+                if(height > this.canvas.height) return alert("Too tall")
+
+                const sub = new PixelArtCanvas(width,height);
+                frame[part] = {
+                    canvas : sub,
+                    relativeX : 0,
+                    relativeY : 0,
+                }
+            } else if (this.selectedBodyPart === part){
+                // If already editing this, offer to resize
+
+                const answer = prompt("Resize, must be larger");
+                if(answer === undefined || answer === null) return alert("Undefined");
+
+                if(answer === "delete") {
+                    frame[part] = null;
+                    this.selectedBodyPart = undefined;
+                    this.redraw();
+                    return;
+                }
+
+                const size = answer.split(" ");
+                const width = Number(size[0]);
+                const height = Number(size[1]);
+
+                if(width === undefined || height === undefined) return alert("Undefined")
+
+                if(width < frame[part].canvas.width) return alert("Must be wider")
+                if(height < frame[part].canvas.height) return alert("Must be wider")
+
+                if(width > this.canvas.width) return alert("Too wide");
+                if(height > this.canvas.height) return alert("Too tall");
+
+                const sub = new PixelArtCanvas(width,height);
+                sub.setSubCanvas(frame[part].canvas, 0, 0);
+                frame[part] = {
+                    canvas : sub,
+                    relativeX : frame[part].relativeX,
+                    relativeY : frame[part].relativeY,
+                }
+            }
+            this.selectedBodyPart = part;
+            this.redraw();
+        }
+
+        private editHead(){
+            this.editPart("head");
+        }
+
+        private editBody(){
+            this.editPart("body");
+        }
+
+        private editLeftHand(){
+            this.editPart("leftHand");
+        }
+
+        private editRightHand(){
+            this.editPart("rightHand");
+        }
+
+        private editLeftFoot(){
+            this.editPart("leftFoot");
+        }
+
+        private editRightFoot(){
+            this.editPart("rightFoot")          
+        }
+
+        onAdd(){
+            this.engine.renderer.addSprite(this.lines);
+
+            this.preview.y = -this.canvas.height;
+
+            const g = new Graphics();
+            g.lineStyle(1, 0xFFFFFF)
+            g.drawRect(0, 0, this.canvas.width, this.canvas.height)
+            this.preview.addChild(g)
+
+            this.engine.renderer.addSprite(this.preview);
+
+            this.workingFrameGraphics.x = -200;
+            this.engine.renderer.addSprite(this.workingFrameGraphics);
+            this.bodyPartGraphics.x = this.canvas.width * this.scale
+            this.engine.renderer.addSprite(this.bodyPartGraphics);
+            this.engine.renderer.addSprite(this.highlightSelectedPart);
+        }
+        onDestroy(){
+            this.engine.renderer.removeSprite(this.lines);
+            this.engine.renderer.removeSprite(this.preview);
+            this.engine.renderer.removeSprite(this.workingFrameGraphics);
+            this.engine.renderer.removeSprite(this.bodyPartGraphics);
+            this.engine.renderer.removeSprite(this.highlightSelectedPart);
+        }
+
+        private switchToFrame(frame: number){
+            this.currentWorkingFrame = frame;
+            this.selectedBodyPart = undefined;
+            this.redraw();
+        }
+
+        private startNewFrame(){
+            // Copies everything from the frame before it;
+
+            this.currentWorkingFrame = this.animationData.frameData.length;
+
+            let data: PlayerAnimationFrame;
+            if(this.currentWorkingFrame === 0){
+
+                
+
+                data = {
+                    frame: this.currentWorkingFrame,
+                    body: null,
+                    head: null,
+                    leftFoot: null,
+                    leftHand: null,
+                    rightFoot: null,
+                    rightHand: null,
+                }
+            } else {
+
+                if(!this.validateFrame(this.currentWorkingFrame - 1)) { 
+                    this.currentWorkingFrame = this.animationData.frameData.length - 1;
+                    return alert("Last frame not complete");
+                }
+               
+                
+
+                const lastFrame = this.animationData.frameData[this.currentWorkingFrame - 1];
+                data = {
+                    frame: this.currentWorkingFrame,
+                    body: {
+                        canvas:lastFrame.body.canvas.clone(),
+                        relativeX:lastFrame.body.relativeX,
+                        relativeY:lastFrame.body.relativeY,
+                    },
+                    head: {
+                        canvas:lastFrame.head.canvas.clone(),
+                        relativeX:lastFrame.head.relativeX,
+                        relativeY:lastFrame.head.relativeY,
+                    },
+                    leftFoot: {
+                        canvas:lastFrame.leftFoot.canvas.clone(),
+                        relativeX:lastFrame.leftFoot.relativeX,
+                        relativeY:lastFrame.leftFoot.relativeY,
+                    },
+                    leftHand:{
+                        canvas:lastFrame.leftHand.canvas.clone(),
+                        relativeX:lastFrame.leftHand.relativeX,
+                        relativeY:lastFrame.leftHand.relativeY,
+                    },
+                    rightFoot: {
+                        canvas:lastFrame.rightFoot.canvas.clone(),
+                        relativeX:lastFrame.rightFoot.relativeX,
+                        relativeY:lastFrame.rightFoot.relativeY,
+                    },
+                    rightHand: {
+                        canvas:lastFrame.rightHand.canvas.clone(),
+                        relativeX:lastFrame.rightHand.relativeX,
+                        relativeY:lastFrame.rightHand.relativeY,
+                    },
+                }
+            }
+            this.selectedBodyPart = undefined;
+            this.animationData.frameData.push(data);
+            this.redraw();
+        }
+
+        private validateFrame(frameNumber: number): boolean {
+            const frame = this.animationData.frameData[frameNumber];
+            if(frame.head === null ||
+                frame.body === null ||
+                frame.leftHand === null ||
+                frame.rightHand === null ||
+                frame.leftFoot === null ||
+                frame.rightFoot === null){
+                    return false;
+            }
+            
+            return true;
+        }
+
+        save(): string {
+            // Validation, fail if any null data
+            for(let i = 0; i < this.animationData.frameData.length; i++){
+                if(!this.validateFrame(i)) {
+                    alert("Null body data on frame " + i);
+                    return null;
+                }
+            }
+
+            const saved = {};
+
+            return JSON.stringify(saved);
+        }
+
+        update(dt: number): void {
+            this.redrawUI();
+
+            const currentFrame = this.animationData.frameData[this.currentWorkingFrame];
+            // console.log(currentFrame)
+            if(this.selectedBodyPart !== undefined){
+                const selectedCanvas = currentFrame[this.selectedBodyPart];
+
+                const left = selectedCanvas.relativeX * this.scale;
+                const top = selectedCanvas.relativeY * this.scale;
+
+                const rect = new Rect(left, top, selectedCanvas.canvas.width * this.scale, selectedCanvas.canvas.height * this.scale); 
+
+                // Draw to THAT canvas
+                if(rect.contains(this.mouse.position)){
+                    if(this.mouse.isDown("left")){
+                        const mouse = this.mouse.position;
+
+                        const R = 0;
+                        const G = 0;
+                        const B = 0;
+                        const A = 255;
+
+                        selectedCanvas.canvas.setPixel(floor((mouse.x - left) / this.scale), floor((mouse.y - top) / this.scale), R, G, B, A);
+                        this.redraw();
+                    } else if(this.mouse.isDown("right")){
+                        const mouse = this.mouse.position.clone().floor();
+                        selectedCanvas.canvas.setPixel(floor((mouse.x - left) / this.scale), floor((mouse.y - top) / this.scale), 0, 0, 0, 0);
+                        this.redraw();
+                    }
+                }
+
+                const keyboard = this.keyboard.isDown("ShiftLeft") ? this.simpleKeyboardPressedCheck() : this.simpleKeyboardCheck()
+                selectedCanvas.relativeX += keyboard.x;
+                selectedCanvas.relativeY += keyboard.y;
+
+                if(keyboard.x !== 0 || keyboard.y !== 0) this.redraw();
+            }
+
+            if(this.mouse.wasReleased("left")){
+                for(let i = 0; i < this.animationData.frameData.length; i++){
+                    if(this.mouse.x > -200 && this.mouse.x < 0 && this.mouse.y > i * 100 && this.mouse.y < i * 100 + 99) {
+                        this.switchToFrame(i);
+                    }                    
+                }
+            }
+        }
+
+        private redrawUI(){
+            this.workingFrameGraphics.clear();
+
+            for(let i = 0; i < this.animationData.frameData.length; i++){
+                if(i === this.currentWorkingFrame) this.workingFrameGraphics.beginFill(0xFFFFF0)
+                else this.workingFrameGraphics.lineStyle(3, 0xFFFFFF)
+
+                if(this.mouse.x > -200 && this.mouse.x < 0 && this.mouse.y > i * 100 && this.mouse.y < i * 100 + 99) this.workingFrameGraphics.beginFill(0x00FFF0)
+                this.workingFrameGraphics.drawRect(0, i * 100, 200, 100);
+                this.workingFrameGraphics.endFill()
+            }
+
+            
+
+            this.bodyPartGraphics.clear();
+
+            const currentFrame = this.animationData.frameData[this.currentWorkingFrame];
+            
+            //#region 
+            let i = 0;
+            if(currentFrame.head !== null){
+                this.bodyPartGraphics.beginFill(0x00FF00);
+                this.bodyPartGraphics.drawRect(0,i * 200,200,200);
+                this.bodyPartGraphics.endFill();
+            }
+            i++
+
+            if(currentFrame.body !== null){
+                this.bodyPartGraphics.beginFill(0x00FF00);
+                this.bodyPartGraphics.drawRect(0,i * 200,200,200);
+                this.bodyPartGraphics.endFill();
+            }
+            i++
+           
+
+            if(currentFrame.leftHand !== null){
+                this.bodyPartGraphics.beginFill(0x00FF00);
+                this.bodyPartGraphics.drawRect(0,i * 200,200,200);
+                this.bodyPartGraphics.endFill();
+            }
+            i++
+
+            if(currentFrame.rightHand !== null){
+                this.bodyPartGraphics.beginFill(0x00FF00);
+                this.bodyPartGraphics.drawRect(0,i * 200,200,200);
+                this.bodyPartGraphics.endFill();
+            }
+            i++
+
+            if(currentFrame.leftFoot !== null){
+                this.bodyPartGraphics.beginFill(0x00FF00);
+                this.bodyPartGraphics.drawRect(0,i * 200,200,200);
+                this.bodyPartGraphics.endFill();
+            }
+            i++
+
+            if(currentFrame.rightFoot !== null){
+                this.bodyPartGraphics.beginFill(0x00FF00);
+                this.bodyPartGraphics.drawRect(0,i * 200,200,200);
+                this.bodyPartGraphics.endFill();
+            }
+            //#endregion
+
+            this.highlightSelectedPart.clear();
+            if(this.selectedBodyPart !== undefined){
+                this.highlightSelectedPart.beginFill(0x00FF00, .2)
+
+                const selectedCanvas = currentFrame[this.selectedBodyPart];
+
+                this.highlightSelectedPart.drawRect(selectedCanvas.relativeX * this.scale, selectedCanvas.relativeY * this.scale, selectedCanvas.canvas.width * this.scale, selectedCanvas.canvas.height * this.scale)
+            }
+        }
+
+        private redraw(){
+            const currentFrame = this.animationData.frameData[this.currentWorkingFrame];
+            this.canvas.clear();
+
+            if(currentFrame.head !== null){
+                this.canvas.setSubCanvas(currentFrame.head.canvas, currentFrame.head.relativeX, currentFrame.head.relativeY)
+            }
+
+            if(currentFrame.body !== null){
+                this.canvas.setSubCanvas(currentFrame.body.canvas, currentFrame.body.relativeX, currentFrame.body.relativeY)
+            }
+            
+            if(currentFrame.leftHand !== null){
+                this.canvas.setSubCanvas(currentFrame.leftHand.canvas, currentFrame.leftHand.relativeX, currentFrame.leftHand.relativeY)
+            }
+
+            if(currentFrame.rightHand !== null){
+                this.canvas.setSubCanvas(currentFrame.rightHand.canvas, currentFrame.rightHand.relativeX, currentFrame.rightHand.relativeY)
+            }
+
+            if(currentFrame.leftFoot !== null){
+                this.canvas.setSubCanvas(currentFrame.leftFoot.canvas, currentFrame.leftFoot.relativeX, currentFrame.leftFoot.relativeY)
+            }
+
+            if(currentFrame.rightFoot !== null){
+                this.canvas.setSubCanvas(currentFrame.rightFoot.canvas, currentFrame.rightFoot.relativeX, currentFrame.rightFoot.relativeY)
+            }
+        }
+    }
+
+    scene.addEntity(new PlayerAnimator());
+}
+
+
+
+// Represents a canvas that can be drawn to, pixel by pixel
+class PixelArtCanvas {
+    readonly width: number;
+    readonly height: number;
+    readonly colorData: Uint8Array;
+    readonly texture: Texture;
+
+    constructor(width: number, height: number){
+        this.width = width;
+        this.height = height;
+
+        this.colorData = new Uint8Array(4 * width * height);
+        
+        //White by default
+        //this.colorData.fill(255);
+
+        this.texture = Texture.fromBuffer(this.colorData, width, height)
+    }
+
+    clear(){
+        this.colorData.fill(0);
+        this.update();
+    }
+
+    update(){
+        this.texture.update();
+    }
+
+    clone(): PixelArtCanvas {
+        const canvas = new PixelArtCanvas(this.width, this.height);
+        canvas.setSubCanvas(this,0,0);
+        return canvas;
+    }
+ 
+    /** If point is transparent, value ignored */
+    setSubCanvas(canvas: PixelArtCanvas, x: number, y: number){
+        for(let i = 0; i < canvas.width; i++){
+            const thisCanvasX = x + i;
+
+            for(let j = 0; j < canvas.height; j++){
+                const thisCanvasY = y + j;
+
+                const subCanvasIndex = (i + j * canvas.width) * 4;
+
+                const R = canvas.colorData[subCanvasIndex];
+                const G = canvas.colorData[subCanvasIndex + 1];
+                const B = canvas.colorData[subCanvasIndex + 2];
+                const A = canvas.colorData[subCanvasIndex + 3];
+
+                if(A === 0) continue;
+                this.setPixel(thisCanvasX, thisCanvasY, R, G, B, A); 
+            }
+        }
+    }
+
+    createSubCanvas(x: number, y: number, width: number, height: number): PixelArtCanvas {
+        const canvas = new PixelArtCanvas(width, height);
+
+        // Transfer over data
+        for(let i = 0; i < width; i++){
+            const canvasX = x + i;
+
+            for(let j = 0; j < height; j++){
+                const canvasY = y + j;
+
+                const canvasIndex = (canvasX + canvasY * this.width) * 4;
+
+                const R = this.colorData[canvasIndex];
+                const G = this.colorData[canvasIndex + 1];
+                const B = this.colorData[canvasIndex + 2];
+                const A = this.colorData[canvasIndex + 3];
+
+                canvas.setPixel(i, j, R, G, B, A); 
+            }
+        }
+
+        return canvas;
+    }
+
+
+
+    // rbga [0,255]
+    setPixel(x: number, y: number, R: number, G: number, B: number, A: number){
+        const index = x + y * this.width;
+        
+        const realIndex = index * 4;
+
+        if(realIndex < this.colorData.length){
+            this.colorData[realIndex] = R;
+            this.colorData[realIndex + 1] = G;
+            this.colorData[realIndex + 2] = B;
+            this.colorData[realIndex + 3] = A;
+            
+            this.texture.update();
+        }
+    }
+
+    
+}
+
+
+
+export function loadTestLevel(engine: BearEngine): void {
+    const scene = engine.entityManager;
+
+
+    scene.addEntity(new Player());
+
+
+
+    
+
+
+
+    
 
     class TerrainPolygonCarveTest extends DrawableEntity {
         
@@ -83,7 +725,7 @@ export function loadTestLevel(this: Scene): void {
         }
     }
     
-    // this.addEntity(new TerrainPolygonCarveTest());
+    // scene.addEntity(new TerrainPolygonCarveTest());
 
     class TerrainCarveTest extends DrawableEntity {
         
@@ -115,7 +757,7 @@ export function loadTestLevel(this: Scene): void {
         }
     }
     
-    // this.addEntity(new TerrainCarveTest());
+    // scene.addEntity(new TerrainCarveTest());
 
 
     class EntityLoadTest extends Entity {
@@ -203,7 +845,7 @@ export function loadTestLevel(this: Scene): void {
         }
 
     }
-    this.addEntity(new TestEntityForVideo());
+    // scene.addEntity(new TestEntityForVideo());
     
     // Drawing the collision grid
     class Debug extends DrawableEntity {

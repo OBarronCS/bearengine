@@ -24,7 +24,7 @@ export class CollisionManager extends Subsystem {
 
     // With lots of entities, this will probably become a bottleneck, because it rebuilds the grid every step, but it works fine for now
     private colliders: ColliderPart[] = [];
-    private grid: SpatialGrid<ColliderPart>;
+    private grid: SpatialGrid<ColliderPart> = new SpatialGrid(1,1,1,1,(collider) => collider.rect);
 
     public collider_query = this.addQuery(ColliderPart,
         e => this.add(e), 

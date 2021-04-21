@@ -1,6 +1,6 @@
 
-import { Graphics, Loader, Sprite } from "pixi.js";
-// import { GUI } from "dat.gui";
+import { Graphics, Loader, Point, Sprite, SpriteMaskFilter, Texture } from "pixi.js";
+import { GUI, GUIController } from "dat.gui";
 
 import { AbstractBearEngine } from "shared/core/abstractengine";
 import { AbstractEntity } from "shared/core/abstractentity";
@@ -11,7 +11,7 @@ import { TerrainManager } from "shared/core/terrainmanager";
 import { CollisionManager } from "shared/core/entitycollision";
 import { string2hex } from "shared/mathutils";
 
-import { loadTestLevel } from "../gamelogic/testlevelentities";
+import { frameEditor, loadTestLevel } from "../gamelogic/testlevelentities";
 import { EngineKeyboard } from "../input/keyboard";
 import { EngineMouse } from "../input/mouse";
 import { CameraSystem } from "./camera";
@@ -19,6 +19,10 @@ import { NetworkSystem } from "./networking/networksystem";
 import { RendererSystem } from "./renderer";
 import { TestMouseDownEventDispatcher } from "./mouseevents";
 import { Rect } from "shared/shapes/rectangle";
+import { Color, rgb } from "shared/datastructures/color";
+import { DrawableEntity, Entity } from "./entity";
+import { SpritePart } from "./parts";
+import { Coordinate, mix, Vec2 } from "shared/shapes/vec2";
 
 
 
@@ -106,61 +110,62 @@ export class BearEngine extends AbstractBearEngine {
         this.keyboard.bind("g", () => this.paused = !this.paused);
     }
 
+    loadFrameEditor(){
+        AbstractEntity["ENGINE_OBJECT"] = this;
     
+        this.entityManager.registerSceneSystems(this.systems);
+        frameEditor(this)
+    }
 
     loadLevel(levelData: CustomMapFormat){
         console.log("Starting scene");
         if(this.levelLoaded) throw new Error("TRYING TO LOAD A LEVEL WHEN ONE IS ALREADY LOADED");
+
+        AbstractEntity["ENGINE_OBJECT"] = this;
         
         this.currentLevelData = levelData;
-        // Set global reference that entities access
-        AbstractEntity["ENGINE_OBJECT"] = this;
 
-        // Create terrain and world size
-        const worldInfo = levelData.world;
-        const width = worldInfo.width;
-        const height = worldInfo.height;
-
-        this.levelbbox = new Rect(0,0,width,height);
-        
-        const bodies = levelData.bodies;
-        this.terrain.setupGrid(width, height);
-        bodies.forEach( (body) => {
-            this.terrain.addTerrain(body.points, body.normals)
-        });
-
-
-        this.collisionManager.setupGrid(width, height);
-        
- 
         this.entityManager.registerSceneSystems(this.systems);
 
+        
 
-        this.renderer.renderer.backgroundColor = string2hex(levelData.world.backgroundcolor);
-        // Load sprites from map 
-        levelData.sprites.forEach(s => {
-            const sprite = new Sprite(this.renderer.getTexture(ASSET_FOLDER_NAME + s.file_path));
-            sprite.x = s.x;
-            sprite.y = s.y;
-            sprite.width = s.width;
-            sprite.height = s.height;
-            this.renderer.addSprite(sprite)
-        });
+        {
+            // Create terrain and world size
+            const worldInfo = levelData.world;
+            const width = worldInfo.width;
+            const height = worldInfo.height;
 
+            this.levelbbox = new Rect(0,0,width,height);
+            
+            const bodies = levelData.bodies;
+            this.terrain.setupGrid(width, height);
+            bodies.forEach( (body) => {
+                this.terrain.addTerrain(body.points, body.normals)
+            });
+
+            this.collisionManager.setupGrid(width, height);
+
+            this.renderer.renderer.backgroundColor = string2hex(levelData.world.backgroundcolor);
+            // Load sprites from map 
+            levelData.sprites.forEach(s => {
+                const sprite = new Sprite(this.renderer.getTexture(ASSET_FOLDER_NAME + s.file_path));
+                sprite.x = s.x;
+                sprite.y = s.y;
+                sprite.width = s.width;
+                sprite.height = s.height;
+                this.renderer.addSprite(sprite)
+            });
+        }
         
         this.terrain.graphics = new Graphics();
         this.renderer.addSprite(this.terrain.graphics);
         this.terrain.queueRedraw();
 
-        loadTestLevel.call(this.entityManager);
+
+        loadTestLevel(this);
+
 
         this.levelLoaded = true;
-
-        // this.camera["center"].set(this.player.position);
-        this.camera.left = 0;
-        this.camera.top = 0;
-        this.camera.zoom({x:.2,y:.2});
-        this.camera.follow(this.entityManager.getEntityByTag("Player").position)
     }
 
     endCurrentLevel(){

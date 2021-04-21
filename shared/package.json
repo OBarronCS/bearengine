@@ -3,13 +3,12 @@
   "version": "1.0.0",
   "description": "Code shared between the client and server",
   "main": "index.js",
-  "scripts": {
-  },
+  "scripts": {},
   "author": "Otso",
   "license": "ISC",
   "dependencies": {
     "earcut": "^2.2.2",
-    "pixi.js": "^5.3.5"
+    "pixi.js": "^5.3.9"
   },
   "devDependencies": {
     "@types/earcut": "^2.1.1"

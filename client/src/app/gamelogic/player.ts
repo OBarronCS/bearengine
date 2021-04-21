@@ -1,4 +1,4 @@
-import type { Graphics } from "pixi.js";
+import { Graphics, Sprite } from "pixi.js";
 
 import { Vec2, rotatePoint, angleBetween } from "shared/shapes/vec2";
 import { random_range } from "shared/randomhelpers";
@@ -10,7 +10,7 @@ import { ColliderPart, TagPart } from "shared/core/abstractpart";
 import { SpritePart } from "../core-engine/parts";
 import { AddOnType, TerrainHitAddon } from "../core-engine/weapons/addon";
 import { BaseBulletGun } from "../core-engine/weapons/weapon";
-import { DrawableEntity } from "../core-engine/entity";
+import { DrawableEntity, Entity, SpriteEntity } from "../core-engine/entity";
 import { Line } from "shared/shapes/line";
 import { AssertUnreachable } from "shared/assertstatements";
 
@@ -21,6 +21,20 @@ enum PlayerStates {
 }
 
 export type PlayerActions = "left" | "right" | "jump";
+
+
+class BodyPart extends Entity {
+    
+    sprite: SpritePart;
+
+    constructor(path: string){
+        super();
+        this.sprite = this.addPart(new SpritePart(path));
+    }
+
+    update(dt: number): void {}
+
+}
 
 export class Player extends DrawableEntity {
     // used when in air
@@ -82,8 +96,22 @@ export class Player extends DrawableEntity {
 
     private gun: BaseBulletGun;
 
+
+
+    private body = new BodyPart("player/body.png");
+    private head = new BodyPart("player/head.png");
+    private leftfoot = new BodyPart("player/leftfoot.png");
+    private rightfoot = new BodyPart("player/leftfoot.png");
+    private lefthand = new BodyPart("player/lefthand.png");
+    private righthand = new BodyPart("player/righthand.png");
+
+
     constructor(){
         super();
+
+        const bodyparts: BodyPart[] = [this.body, this.head, this.leftfoot, this.rightfoot, this.lefthand, this.righthand];
+        bodyparts.forEach(e => e.sprite.scale = {x:3,y:3})
+
         this.position.set({x : 500, y: 100});
         this.keyboard.bind("r", ()=> {
             this.position.set({x : 600, y: 100});
@@ -143,10 +171,24 @@ export class Player extends DrawableEntity {
 
     onAdd(){
         this.scene.addEntity(this.gun);
+        
+        this.scene.addEntity(this.head);
+        this.scene.addEntity(this.body);
+        this.scene.addEntity(this.lefthand);
+        this.scene.addEntity(this.righthand);
+        this.scene.addEntity(this.leftfoot);
+        this.scene.addEntity(this.rightfoot);
     }
 
     onDestroy(){
         this.scene.destroyEntity(this.gun);
+
+        this.scene.destroyEntity(this.head);
+        this.scene.destroyEntity(this.body);
+        this.scene.destroyEntity(this.lefthand);
+        this.scene.destroyEntity(this.righthand);
+        this.scene.destroyEntity(this.leftfoot);
+        this.scene.destroyEntity(this.rightfoot);
     }
     
     private setSensorLocations(){
@@ -235,6 +277,16 @@ export class Player extends DrawableEntity {
 
         this.time_to_jump -= 1;
         this.space_time_to_jump -= 1;
+
+
+
+        this.head.position.set({ x: this.x, y: this.y - 100});
+        this.body.position.set({ x: this.x - 4, y: this.y - 75});
+        this.lefthand.position.set({ x: this.x - 20, y: this.y - 85});
+        this.righthand.position.set({ x: this.x + 28, y: this.y - 85});
+        this.leftfoot.position.set({ x: this.x - 15, y: this.y - 40});
+        this.rightfoot.position.set({ x: this.x + 15, y: this.y - 40});
+
 
         this.redraw();
     }
