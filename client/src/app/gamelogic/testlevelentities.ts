@@ -27,6 +27,7 @@ import { SpritePart } from "../core-engine/parts";
 import { EntityID } from "shared/core/abstractentity";
 import { BearEngine } from "../core-engine/bearengine";
 import { GUI } from "dat.gui";
+import { NewPlayer } from "./newplayer";
 
 class BasicSprite extends SpriteEntity {
 
@@ -37,6 +38,58 @@ class BasicSprite extends SpriteEntity {
     draw(g: Graphics): void {}
     update(dt: number): void {}
 }
+
+export interface PlayerAnimation {
+    frameData: PlayerAnimationFrame[];
+    originX: number
+    originY: number
+}
+
+interface PlayerAnimationFrame {
+    frame: number;
+    
+    head: BodyPartFrameInfo;
+    body: BodyPartFrameInfo;
+        
+    leftHand: BodyPartFrameInfo;
+    rightHand: BodyPartFrameInfo;
+
+    leftFoot: BodyPartFrameInfo;
+    rightFoot: BodyPartFrameInfo;
+}
+
+interface BodyPartFrameInfo {
+    canvas: PixelArtCanvas;
+    relativeX: number
+    relativeY: number
+}
+
+//#region Save Format  
+export interface SavePlayerAnimation {
+    frameData: SavePlayerAnimationFrame[];
+    originX: number
+    originY: number
+}
+
+interface SavePlayerAnimationFrame {
+    frame: number;
+    
+    head: SaveBodyPartFrameInfo;
+    body: SaveBodyPartFrameInfo;
+        
+    leftHand: SaveBodyPartFrameInfo;
+    rightHand: SaveBodyPartFrameInfo;
+
+    leftFoot: SaveBodyPartFrameInfo;
+    rightFoot: SaveBodyPartFrameInfo;
+}
+
+interface SaveBodyPartFrameInfo {
+    canvas: ReturnType<PixelArtCanvas["saveableVersion"]>;
+    relativeX: number
+    relativeY: number
+}
+//#endregion
 
 class EmptyEntity extends Entity {
 
@@ -103,49 +156,13 @@ export function frameEditor(engine: BearEngine): void {
         }
     }
 
-    /*
-
-        Have a sub "art canvas" for each body part for each frame
-
-    */
-   
-    interface PlayerAnimation {
-        frameData: PlayerAnimationFrame[];
-        // The "origin" of the animation. Arbitrary, but helpful in practice as can set user position to something near this number
-        // and have the animation line up in game 
-        // All BodyPart positions are relative to this number. So -1 body part position is originX - 1.
-        originX: number
-        originY: number
-    }
-
-    interface PlayerAnimationFrame {
-        frame: number;
-        
-        head: BodyPartFrameInfo;
-        body: BodyPartFrameInfo;
-            
-        leftHand: BodyPartFrameInfo;
-        rightHand: BodyPartFrameInfo;
-
-        leftFoot: BodyPartFrameInfo;
-        rightFoot: BodyPartFrameInfo;
-    }
-
-    interface BodyPartFrameInfo {
-        canvas: PixelArtCanvas;
-        // Relative to the origin of the entire animation
-        relativeX: number
-        relativeY: number
-    }
-
-
+    
 
     class PlayerAnimator extends Entity {
         // What we are drawing on
         private sprite: SpritePart;
         private canvas = new PixelArtCanvas(80,80);
         private scale = 20;
-        private canvasBBOX = new Rect(0,0,this.canvas.width * this.scale,this.canvas.height * this.scale);
 
         private lines = new Graphics();
 
@@ -209,6 +226,60 @@ export function frameEditor(engine: BearEngine): void {
 
             this.gui.add(this, "startNewFrame")
             this.gui.add(this, "save");
+            this.gui.add(this, "startEditingFromFilePrompt");
+        }
+
+        private startEditingFromFilePrompt(){
+            const data = prompt("Info");
+            this.startEditingSavedData(data);
+        }
+
+         // Assume you call this first thing, 
+        private startEditingSavedData(dataAsString: string){
+            this.animationData.frameData = [];
+            
+            const animation = JSON.parse(dataAsString);
+        
+            const frameData = animation.frameData;
+        
+            for(const frame of frameData){
+
+                this.animationData.frameData.push({
+                    frame: frame.frame,
+                    body: {
+                        canvas: PixelArtCanvas.fromSave(frame.body.canvas),
+                        relativeX: frame.body.relativeX,
+                        relativeY: frame.body.relativeY,
+                    },
+                    head: {
+                        canvas: PixelArtCanvas.fromSave(frame.head.canvas),
+                        relativeX: frame.head.relativeX,
+                        relativeY: frame.head.relativeY,
+                    },
+                    leftFoot: {
+                        canvas: PixelArtCanvas.fromSave(frame.leftFoot.canvas),
+                        relativeX: frame.leftFoot.relativeX,
+                        relativeY: frame.leftFoot.relativeY,
+                    },
+                    leftHand: {
+                        canvas: PixelArtCanvas.fromSave(frame.leftHand.canvas),
+                        relativeX: frame.leftHand.relativeX,
+                        relativeY: frame.leftHand.relativeY,
+                    },
+                    rightFoot: {
+                        canvas: PixelArtCanvas.fromSave(frame.rightFoot.canvas),
+                        relativeX: frame.rightFoot.relativeX,
+                        relativeY: frame.rightFoot.relativeY,
+                    },  
+                    rightHand: {
+                        canvas: PixelArtCanvas.fromSave(frame.rightHand.canvas),
+                        relativeX: frame.rightHand.relativeX,
+                        relativeY: frame.rightHand.relativeY,
+                    },
+                })
+            }
+
+            this.redraw();
         }
 
         // Called to select a part
@@ -333,9 +404,6 @@ export function frameEditor(engine: BearEngine): void {
 
             let data: PlayerAnimationFrame;
             if(this.currentWorkingFrame === 0){
-
-                
-
                 data = {
                     frame: this.currentWorkingFrame,
                     body: null,
@@ -351,8 +419,6 @@ export function frameEditor(engine: BearEngine): void {
                     this.currentWorkingFrame = this.animationData.frameData.length - 1;
                     return alert("Last frame not complete");
                 }
-               
-                
 
                 const lastFrame = this.animationData.frameData[this.currentWorkingFrame - 1];
                 data = {
@@ -408,6 +474,7 @@ export function frameEditor(engine: BearEngine): void {
             return true;
         }
 
+        /** Returns JSON Stringified version of the data, so can be stored */
         save(): string {
             // Validation, fail if any null data
             for(let i = 0; i < this.animationData.frameData.length; i++){
@@ -417,10 +484,58 @@ export function frameEditor(engine: BearEngine): void {
                 }
             }
 
-            const saved = {};
+            const frameData = this.animationData.frameData.map((value) => {
+                return {
+                    frame: value.frame,
+                    // Pretty huge export size even for simple data
+                    body: {
+                        canvas: value.body.canvas.saveableVersion(),
+                        relativeX: value.body.relativeX,
+                        relativeY: value.body.relativeY
+                    },
+                    head: {
+                        canvas: value.head.canvas.saveableVersion(),
+                        relativeX: value.head.relativeX,
+                        relativeY: value.head.relativeY
+                    },
+                    leftFoot: {
+                        canvas: value.leftFoot.canvas.saveableVersion(),
+                        relativeX: value.leftFoot.relativeX,
+                        relativeY: value.leftFoot.relativeY
+                    },
+                    leftHand: {
+                        canvas: value.leftHand.canvas.saveableVersion(),
+                        relativeX: value.leftHand.relativeX,
+                        relativeY: value.leftHand.relativeY
+                    },
+                    rightFoot: {
+                        canvas: value.rightFoot.canvas.saveableVersion(),
+                        relativeX: value.rightFoot.relativeX,
+                        relativeY: value.rightFoot.relativeY
+                    },
+                    rightHand: {
+                        canvas: value.rightHand.canvas.saveableVersion(),
+                        relativeX: value.rightHand.relativeX,
+                        relativeY: value.rightHand.relativeY
+                    }
 
-            return JSON.stringify(saved);
+                }
+            })
+            
+
+            const saved = {
+                originX:0,
+                originY:0,
+                frameData: frameData
+            };
+
+            const str = JSON.stringify(saved)
+            console.log(str)
+
+            return str;
         }
+
+       
 
         update(dt: number): void {
             this.redrawUI();
@@ -597,6 +712,25 @@ class PixelArtCanvas {
         this.texture = Texture.fromBuffer(this.colorData, width, height)
     }
 
+    static fromSave(data: {color: number[], width: number, height: number}): PixelArtCanvas {
+        const canvas = new PixelArtCanvas(data.width, data.height);
+    
+        const colorData = data.color;
+        for(let i = 0; i < data.color.length; i++){
+            canvas.colorData[i] = colorData[i];
+        }
+        
+        return canvas;
+    }
+
+    saveableVersion(): {color: number[], width: number, height: number}{
+        return {
+            width: this.width,
+            height: this.height,
+            color: Array.from(this.colorData),
+        }
+    }
+
     clear(){
         this.colorData.fill(0);
         this.update();
@@ -683,8 +817,9 @@ class PixelArtCanvas {
 export function loadTestLevel(engine: BearEngine): void {
     const scene = engine.entityManager;
 
+    scene.addEntity(new NewPlayer());
 
-    scene.addEntity(new Player());
+    // scene.addEntity(new Player());
 
 
 

@@ -12,9 +12,9 @@ game.loadAssets().then(RESOURCES => {
     
     console.log("ALL ASSETS DOWNLOADED")
     
-    // game.loadLevel(ParseTiledMapData(RESOURCES["assets/firsttest.json"].data as TiledMap));
+    game.loadLevel(ParseTiledMapData(RESOURCES["assets/firsttest.json"].data as TiledMap));
     
-    game.loadFrameEditor();
+    //game.loadFrameEditor();
     game.start();
 })
 
