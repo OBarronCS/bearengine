@@ -3,6 +3,7 @@ import { clamp } from "shared/mathutils";
 import { BearEngine } from "./bearengine";
 import { GraphicsPart, SpritePart } from "./parts";
 import { Subsystem } from "shared/core/subsystem";
+import { Color } from "shared/datastructures/color";
 
 
 // arbitrary, but make it high enough so it looks good --> this is the base render texture height!
@@ -35,7 +36,9 @@ export class RendererSystem extends Subsystem<BearEngine> {
 
     private sprite_query = this.addQuery(SpritePart,
             s => {
-                s.sprite.texture = this.getTexture(s.file_path);
+                if(s.file_path !== ""){
+                    s.sprite.texture = this.getTexture(s.file_path);
+                }
                 this.addSprite(s.sprite)
             },
             s => {
@@ -93,6 +96,10 @@ export class RendererSystem extends Subsystem<BearEngine> {
         // "url('assets/flower.png'),auto";
         const css = `url('${path}'),auto`;
         (this.renderer.plugins.interaction as InteractionManager).cursorStyles.default = css;
+    }
+
+    setBackgroundColor(color: Color){
+        this.renderer.backgroundColor = color.hex()
     }
 
     init(){}

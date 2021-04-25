@@ -8,6 +8,9 @@ export type MouseButton = "left" | "middle" | "right"
 
 export interface MouseInput {
     readonly position: Vec2,
+    readonly x: number,
+    readonly y: number,
+
     readonly screenPosition: Vec2;
     // movement of mouse from last step to this step
     readonly velocity: Vec2;

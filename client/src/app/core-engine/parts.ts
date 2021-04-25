@@ -12,10 +12,15 @@ export class SpritePart extends Part {
     public file_path: string;
     public sprite: Sprite;
 
-    constructor(spr_source: string){
+    constructor(spr_source: string | Sprite){
         super();
-        this.file_path = spr_source;
-        this.sprite = new Sprite();
+        if(typeof spr_source === "string"){
+            this.file_path = spr_source;
+            this.sprite = new Sprite();
+        } else {
+            this.file_path = ""
+            this.sprite = spr_source;
+        }
     }
 
     /** Sets point on the sprite that sits on position vector */

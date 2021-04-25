@@ -176,7 +176,6 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
                     const vecArray = coordinateArraytoVec(rawPoints);
                     // Automatically puts everything in clockwise, creates normals.
                     const polygon = Polygon.from(vecArray);
-                    console.log("AHH:" + Polygon.isClockwise(polygon.points))
 
                     const points = flattenVecArray(polygon.points);
                     const normals = flattenVecArray(polygon.normals);

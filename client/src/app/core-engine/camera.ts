@@ -127,10 +127,6 @@ export class CameraSystem extends Subsystem<BearEngine> {
             startMiddle = null;
         })
 
-
-
-
-
         // ZOOM
         window.addEventListener("wheel", (event) => {
             const point = new Point(0,0);
@@ -183,17 +179,17 @@ export class CameraSystem extends Subsystem<BearEngine> {
 
     private center: Vec2 = new Vec2(0,0);
 
-    set left(x: number) { this.container.pivot.x = x + (this.container.position.x / this.container.scale.x); }
-    get left(): number { return this.container.pivot.x - (this.container.position.x / this.container.scale.x); }
+    set left(x: number) { this.center.x = x + (this.container.position.x / this.container.scale.x); }
+    get left(): number { return this.center.x - (this.container.position.x / this.container.scale.x); }
 
-    set right(x: number) { this.container.pivot.x = x - (this.container.position.x / this.container.scale.x); }
-    get right(): number { return this.container.pivot.x + (this.container.position.x / this.container.scale.x); }
+    set right(x: number) { this.center.x = x - (this.container.position.x / this.container.scale.x); }
+    get right(): number { return this.center.x + (this.container.position.x / this.container.scale.x); }
 
-    set top(y: number) { this.container.pivot.y = y + (this.container.position.y / this.container.scale.y); }
-    get top(): number { return this.container.pivot.y - (this.container.position.y / this.container.scale.y); }
+    set top(y: number) { this.center.y = y + (this.container.position.y / this.container.scale.y); }
+    get top(): number { return this.center.y - (this.container.position.y / this.container.scale.y); }
 
-    set bot(y: number) { this.container.pivot.y = y - (this.container.position.y / this.container.scale.y); }
-    get bot(): number { return this.container.pivot.y + (this.container.position.y / this.container.scale.y); }
+    set bot(y: number) { this.center.y = y - (this.container.position.y / this.container.scale.y); }
+    get bot(): number { return this.center.y + (this.container.position.y / this.container.scale.y); }
 
     // Takes into account zoom. How many pixels are being shown on screen
     get viewWidth(){ return 2 * this.container.position.x / this.container.scale.x; }

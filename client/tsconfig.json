@@ -3,6 +3,8 @@
         "baseUrl":"../",
         
         "moduleResolution": "node",
+        "esModuleInterop": true,
+
         "target": "ESNext",
         "lib": ["DOM","ESNext"],
         
