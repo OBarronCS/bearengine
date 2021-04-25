@@ -14,7 +14,7 @@ game.loadAssets().then(RESOURCES => {
     
     game.loadLevel(ParseTiledMapData(RESOURCES["assets/firsttest.json"].data as TiledMap));
     
-    //game.loadFrameEditor();
+    // game.loadFrameEditor();
     game.start();
 })
 

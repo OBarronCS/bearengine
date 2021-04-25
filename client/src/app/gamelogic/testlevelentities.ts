@@ -27,7 +27,6 @@ import { SpritePart } from "../core-engine/parts";
 import { EntityID } from "shared/core/abstractentity";
 import { BearEngine } from "../core-engine/bearengine";
 import { GUI } from "dat.gui";
-import { NewPlayer } from "./newplayer";
 
 class BasicSprite extends SpriteEntity {
 
@@ -817,15 +816,8 @@ class PixelArtCanvas {
 export function loadTestLevel(engine: BearEngine): void {
     const scene = engine.entityManager;
 
-    scene.addEntity(new NewPlayer());
 
-    // scene.addEntity(new Player());
-
-
-
-    
-
-
+    scene.addEntity(new Player());
 
     
 

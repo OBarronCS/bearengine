@@ -1,6 +1,6 @@
-import { Graphics, Sprite } from "pixi.js";
+import { AnimatedSprite, Container, Graphics, Sprite, Texture } from "pixi.js";
 
-import { Vec2, rotatePoint, angleBetween } from "shared/shapes/vec2";
+import { Vec2, rotatePoint, angleBetween, Coordinate } from "shared/shapes/vec2";
 import { random_range } from "shared/randomhelpers";
 import { dimensions } from "shared/shapes/rectangle";
 import { drawLineBetweenPoints, drawPoint } from "shared/shapes/shapedrawing";
@@ -13,30 +13,143 @@ import { BaseBulletGun } from "../core-engine/weapons/weapon";
 import { DrawableEntity, Entity, SpriteEntity } from "../core-engine/entity";
 import { Line } from "shared/shapes/line";
 import { AssertUnreachable } from "shared/assertstatements";
+import { SavePlayerAnimation } from "./testlevelentities";
+import { TickTimer } from "shared/ticktimer";
 
 
 enum PlayerStates {
-    Ground,
-    Air
+    GROUND,
+    AIR
 }
 
-export type PlayerActions = "left" | "right" | "jump";
+interface PartData {
+    textures: Texture;
+    x: number,
+    y: number
+}
 
-
-class BodyPart extends Entity {
+class PlayerAnimationState {
     
-    sprite: SpritePart;
+    public container: Container = new Container();
+    public length: number;
 
-    constructor(path: string){
-        super();
-        this.sprite = this.addPart(new SpritePart(path));
+    headSprite: AnimatedSprite;
+    bodySprite: AnimatedSprite;
+    leftHandSprite: AnimatedSprite;
+    rightHandSprite: AnimatedSprite;
+    leftFootSprite: AnimatedSprite;
+    rightFootSprite: AnimatedSprite;
+
+    headTextures: PartData[] = [];
+    bodyTexture: PartData[] = [];
+    leftHandTextures: PartData[] = [];
+    rightHandTextures: PartData[] = [];
+    leftFootTextures: PartData[] = [];
+    rightFootTextures: PartData[] = [];
+
+    constructor(public data: SavePlayerAnimation){
+        this.length = data.frameData.length;
+
+        for(const frame of data.frameData){
+            this.headTextures.push({ 
+                textures:Texture.fromBuffer(new Uint8Array(frame.head.canvas.color),frame.head.canvas.width,frame.head.canvas.height),
+                x: frame.head.relativeX,
+                y: frame.head.relativeY
+            })
+
+            this.bodyTexture.push({ 
+                textures:Texture.fromBuffer(new Uint8Array(frame.body.canvas.color),frame.body.canvas.width,frame.body.canvas.height),
+                x: frame.body.relativeX,
+                y: frame.body.relativeY
+            })
+
+            this.leftHandTextures.push({ 
+                textures:Texture.fromBuffer(new Uint8Array(frame.leftHand.canvas.color),frame.leftHand.canvas.width,frame.leftHand.canvas.height),
+                x: frame.leftHand.relativeX,
+                y: frame.leftHand.relativeY
+            })
+
+            this.rightHandTextures.push({ 
+                textures:Texture.fromBuffer(new Uint8Array(frame.rightHand.canvas.color),frame.rightHand.canvas.width,frame.rightHand.canvas.height),
+                x: frame.rightHand.relativeX,
+                y: frame.rightHand.relativeY
+            })
+
+            this.leftFootTextures.push({ 
+                textures:Texture.fromBuffer(new Uint8Array(frame.leftFoot.canvas.color),frame.leftFoot.canvas.width,frame.leftFoot.canvas.height),
+                x: frame.leftFoot.relativeX,
+                y: frame.leftFoot.relativeY
+            })
+
+            this.rightFootTextures.push({ 
+                textures:Texture.fromBuffer(new Uint8Array(frame.rightFoot.canvas.color),frame.rightFoot.canvas.width,frame.rightFoot.canvas.height),
+                x: frame.rightFoot.relativeX,
+                y: frame.rightFoot.relativeY
+            })
+        }
+
+        this.headSprite = new AnimatedSprite(this.headTextures.map(e => e.textures));
+        this.bodySprite = new AnimatedSprite(this.bodyTexture.map(e => e.textures));
+        this.leftHandSprite = new AnimatedSprite(this.leftHandTextures.map(e => e.textures));
+        this.rightHandSprite = new AnimatedSprite(this.rightHandTextures.map(e => e.textures));
+        this.leftFootSprite = new AnimatedSprite(this.leftFootTextures.map(e => e.textures));
+        this.rightFootSprite = new AnimatedSprite(this.rightFootTextures.map(e => e.textures));
+
+        this.container.addChild(this.headSprite)
+        this.container.addChild(this.headSprite);
+        this.container.addChild(this.bodySprite);
+        this.container.addChild(this.leftHandSprite);
+        this.container.addChild(this.rightHandSprite);
+        this.container.addChild(this.leftFootSprite);
+        this.container.addChild(this.rightFootSprite);
     }
 
-    update(dt: number): void {}
+    setScale(value: number){
+        this.container.scale.x = value;
+        this.container.scale.y = value;
+    }
 
+    setPosition(pos: Coordinate){
+        this.container.position.set(pos.x, pos.y);
+    }
+
+    setFrame(rawFrame: number){
+        const frame = rawFrame % this.length;
+
+        this.headSprite.gotoAndStop(frame);
+        this.headSprite.x = this.headTextures[frame].x;
+        this.headSprite.y = this.headTextures[frame].y;
+
+        this.bodySprite.gotoAndStop(frame)
+        this.bodySprite.x = this.bodyTexture[frame].x
+        this.bodySprite.y = this.bodyTexture[frame].y
+
+        this.leftHandSprite.gotoAndStop(frame);
+        this.leftHandSprite.x = this.leftHandTextures[frame].x
+        this.leftHandSprite.y = this.leftHandTextures[frame].y
+
+        this.rightHandSprite.gotoAndStop(frame)
+        this.rightHandSprite.x = this.rightHandTextures[frame].x
+        this.rightHandSprite.y = this.rightHandTextures[frame].y
+
+        this.leftFootSprite.gotoAndStop(frame)
+        this.leftFootSprite.x = this.leftFootTextures[frame].x
+        this.leftFootSprite.y = this.leftFootTextures[frame].y
+
+        this.rightFootSprite.gotoAndStop(frame);
+        this.rightFootSprite.x = this.rightFootTextures[frame].x
+        this.rightFootSprite.y = this.rightFootTextures[frame].y
+    }
 }
 
 export class Player extends DrawableEntity {
+    
+    private runAnimation: PlayerAnimationState    
+
+    private speed = 4;    // Frames per animation tick
+    private tick = new TickTimer(this.speed, true);
+
+
     // used when in air
     yspd = 0;
     xspd = 0;
@@ -74,8 +187,8 @@ export class Player extends DrawableEntity {
     player_height: number;
     player_width: number;
 
-    state = PlayerStates.Air;
-    last_state = PlayerStates.Ground;
+    state = PlayerStates.AIR;
+    last_state = PlayerStates.GROUND;
     
     
     // If both these values are >= 0, and the player is on the ground, the player will ju,mp
@@ -97,20 +210,12 @@ export class Player extends DrawableEntity {
     private gun: BaseBulletGun;
 
 
-
-    private body = new BodyPart("player/body.png");
-    private head = new BodyPart("player/head.png");
-    private leftfoot = new BodyPart("player/leftfoot.png");
-    private rightfoot = new BodyPart("player/leftfoot.png");
-    private lefthand = new BodyPart("player/lefthand.png");
-    private righthand = new BodyPart("player/righthand.png");
-
-
     constructor(){
         super();
 
-        const bodyparts: BodyPart[] = [this.body, this.head, this.leftfoot, this.rightfoot, this.lefthand, this.righthand];
-        bodyparts.forEach(e => e.sprite.scale = {x:3,y:3})
+        const animationData = this.engine.getResource("player/run.json");
+        const data: SavePlayerAnimation = animationData.data;
+        this.runAnimation = new PlayerAnimationState(data);
 
         this.position.set({x : 500, y: 100});
         this.keyboard.bind("r", ()=> {
@@ -170,25 +275,14 @@ export class Player extends DrawableEntity {
     }
 
     onAdd(){
-        this.scene.addEntity(this.gun);
-        
-        this.scene.addEntity(this.head);
-        this.scene.addEntity(this.body);
-        this.scene.addEntity(this.lefthand);
-        this.scene.addEntity(this.righthand);
-        this.scene.addEntity(this.leftfoot);
-        this.scene.addEntity(this.rightfoot);
+        this.scene.addEntity(this.gun)
+        this.runAnimation.setScale(2);
+        this.engine.renderer.addSprite(this.runAnimation.container);
     }
 
     onDestroy(){
-        this.scene.destroyEntity(this.gun);
-
-        this.scene.destroyEntity(this.head);
-        this.scene.destroyEntity(this.body);
-        this.scene.destroyEntity(this.lefthand);
-        this.scene.destroyEntity(this.righthand);
-        this.scene.destroyEntity(this.leftfoot);
-        this.scene.destroyEntity(this.rightfoot);
+        this.scene.destroyEntity(this.gun)
+        this.engine.renderer.removeSprite(this.runAnimation.container);
     }
     
     private setSensorLocations(){
@@ -239,7 +333,7 @@ export class Player extends DrawableEntity {
         this.spritePart.dangle = angle + 90;
 
         // Jump logic
-        if(this.state == PlayerStates.Ground){
+        if(this.state == PlayerStates.GROUND){
             this.time_to_jump = 6;
         }
 
@@ -249,15 +343,15 @@ export class Player extends DrawableEntity {
         if(releaseSpace) this.forceSpacePress = false;
 
 
-        if(this.state === PlayerStates.Ground && hitSpace){
+        if(this.state === PlayerStates.GROUND && hitSpace){
             this.space_time_to_jump = this.MAX_SPACE_TIME_TO_JUMP;
         } else {
             if(this.yspd >= 0 && hitSpace) this.space_time_to_jump = this.MAX_SPACE_TIME_TO_JUMP;
         }
 
         switch(this.state){
-            case PlayerStates.Air: this.Air_State(); break;
-            case PlayerStates.Ground: this.Ground_State(); break;
+            case PlayerStates.AIR: this.Air_State(); break;
+            case PlayerStates.GROUND: this.Ground_State(); break;
             default: AssertUnreachable(this.state)
         }
 
@@ -271,22 +365,18 @@ export class Player extends DrawableEntity {
             this.yspd = this.last_ground_yspd - this.jump_power * this.slope_normal.y;
                 
             this.gspd = 0;
-            this.state = PlayerStates.Air;
+            this.state = PlayerStates.AIR;
             this.slope_normal.set({ x: 0, y: -1});
         }
 
         this.time_to_jump -= 1;
         this.space_time_to_jump -= 1;
 
-
-
-        this.head.position.set({ x: this.x, y: this.y - 100});
-        this.body.position.set({ x: this.x - 4, y: this.y - 75});
-        this.lefthand.position.set({ x: this.x - 20, y: this.y - 85});
-        this.righthand.position.set({ x: this.x + 28, y: this.y - 85});
-        this.leftfoot.position.set({ x: this.x - 15, y: this.y - 40});
-        this.rightfoot.position.set({ x: this.x + 15, y: this.y - 40});
-
+        
+        this.runAnimation.setPosition(this.position);
+        if(this.tick.tick()){
+            this.runAnimation.setFrame(this.tick.timesRepeated);
+        }
 
         this.redraw();
     }
@@ -376,7 +466,7 @@ export class Player extends DrawableEntity {
         
         // If nothing below me suddenly
         if(!downray.collision){
-            this.state = PlayerStates.Air
+            this.state = PlayerStates.AIR
         }
     }
      
@@ -483,7 +573,7 @@ export class Player extends DrawableEntity {
             this.position.y = ray.point.y + this.slope_normal.y * (this.player_height / 2);
 
             if(ray.collision){
-                this.state = PlayerStates.Ground
+                this.state = PlayerStates.GROUND
                 // Set GSPD here
                 this.gspd += this.yspd * this.slope_normal.x
                 this.gspd += this.xspd * -this.slope_normal.y

@@ -23,11 +23,13 @@ export abstract class Entity extends AbstractEntity<BearEngine> {
     
 
     // Used for quick movement implementation
-    simpleMovement(speed: number){
+    simpleMovement(speed: number): Coordinate {
         const check = this.simpleKeyboardCheck();
 
         this.x += check.x * speed;
         this.y += check.y * speed;
+
+        return check;
     }
 
     simpleKeyboardCheck(magnitude: number = 1): Coordinate {
