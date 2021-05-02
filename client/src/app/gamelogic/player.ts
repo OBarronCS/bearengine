@@ -3,23 +3,25 @@ import { AnimatedSprite, Container, Graphics, Sprite, Texture } from "pixi.js";
 import { Vec2, rotatePoint, angleBetween, Coordinate } from "shared/shapes/vec2";
 import { random_range } from "shared/randomhelpers";
 import { dimensions } from "shared/shapes/rectangle";
-import { drawLineBetweenPoints, drawPoint } from "shared/shapes/shapedrawing";
-import { clamp, PI, RAD_TO_DEG, sign } from "shared/mathutils";
+import { drawPoint } from "shared/shapes/shapedrawing";
+import { clamp, E, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/mathutils";
 import { ColliderPart, TagPart } from "shared/core/abstractpart";
 
 import { SpritePart } from "../core-engine/parts";
 import { AddOnType, TerrainHitAddon } from "../core-engine/weapons/addon";
 import { BaseBulletGun } from "../core-engine/weapons/weapon";
-import { DrawableEntity, Entity, SpriteEntity } from "../core-engine/entity";
+import { DrawableEntity } from "../core-engine/entity";
 import { Line } from "shared/shapes/line";
 import { AssertUnreachable } from "shared/assertstatements";
 import { SavePlayerAnimation } from "./testlevelentities";
 import { TickTimer } from "shared/ticktimer";
 
 
-enum PlayerStates {
+enum PlayerState {
     GROUND,
-    AIR
+    AIR,
+    CLIMB,
+    WALL_SLIDE
 }
 
 interface PartData {
@@ -32,6 +34,7 @@ class PlayerAnimationState {
     
     public container: Container = new Container();
     public length: number;
+    private timer: TickTimer;
 
     headSprite: AnimatedSprite;
     bodySprite: AnimatedSprite;
@@ -47,7 +50,9 @@ class PlayerAnimationState {
     leftFootTextures: PartData[] = [];
     rightFootTextures: PartData[] = [];
 
-    constructor(public data: SavePlayerAnimation){
+    constructor(public data: SavePlayerAnimation, public framesPerTick: number, public originOffset = new Vec2(0,0)){
+        this.timer = new TickTimer(this.framesPerTick, true);
+
         this.length = data.frameData.length;
 
         for(const frame of data.frameData){
@@ -102,9 +107,24 @@ class PlayerAnimationState {
         this.container.addChild(this.rightHandSprite);
         this.container.addChild(this.leftFootSprite);
         this.container.addChild(this.rightFootSprite);
+
+        this.container.pivot.set(this.originOffset.x,this.originOffset.y);
+
+        this.setFrame(0);
     }
 
+    xFlip(value: number){
+        if(value < 0){
+            this.container.scale.x = -this.scale;
+        } else if(value > 0){
+            this.container.scale.x = this.scale
+        }
+    }
+
+    private scale: number;
+
     setScale(value: number){
+        this.scale = value;
         this.container.scale.x = value;
         this.container.scale.y = value;
     }
@@ -113,7 +133,14 @@ class PlayerAnimationState {
         this.container.position.set(pos.x, pos.y);
     }
 
+    tick(){
+        if(this.timer.tick()){
+            this.setFrame(this.timer.timesRepeated);
+        }
+    }
+
     setFrame(rawFrame: number){
+        this.container.pivot.set(this.originOffset.x,this.originOffset.y);
         const frame = rawFrame % this.length;
 
         this.headSprite.gotoAndStop(frame);
@@ -144,17 +171,19 @@ class PlayerAnimationState {
 
 export class Player extends DrawableEntity {
     
-    private runAnimation: PlayerAnimationState    
+    private readonly runAnimation = new PlayerAnimationState(this.engine.getResource("player/run.json").data as SavePlayerAnimation, 4, new Vec2(40,16));
+    private readonly wallslideAnimation = new PlayerAnimationState(this.engine.getResource("player/wallslide.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
+    private readonly idleAnimation = new PlayerAnimationState(this.engine.getResource("player/idle.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
+    private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
 
-    private speed = 4;    // Frames per animation tick
-    private tick = new TickTimer(this.speed, true);
 
 
-    // used when in air
+    last_ground_xspd = 0;
+    last_ground_yspd = 0;
+
     yspd = 0;
     xspd = 0;
-    
-    // used while on ground
+
     gspd = 0;
 
     acc = 0.9;
@@ -162,48 +191,69 @@ export class Player extends DrawableEntity {
     frc = 0.9
     top = 6;
     
-    jump_power = -14.5;
+    jump_power = -14;
     
+
+    // Normal of the slope I'm making contact with. Is (0,-1) if in air
     slope_normal = new Vec2(0, -1);
 
+    player_height: number = 48;
+    player_width: number = 30;
 
-    downRayTop: Vec2
-    downRayBot: Vec2
-        
-    feetRayDY = 16;
-        
-    // A in body, B away
-    headRay: Line;
+
+    // For all of these: A in body, B is away from body
+    leftHeadRay: Line;
+    rightHeadRay: Line;
+
+    downRayAdditionalLength = 6;
+    leftDownRay: Line;
+    midDownRay: Line;
+    rightDownRay: Line;
+
     
-    wallSensorLength = 10;
+
+    wallSensorLength = 16 + 5;
     rightWallRay: Line;
     leftWallRay: Line;
-    
-    
-    last_ground_xspd = 0;
-    last_ground_yspd = 0;
-    
-    
-    player_height: number;
-    player_width: number;
 
-    state = PlayerStates.AIR;
-    last_state = PlayerStates.GROUND;
+    slideSensorLength = this.wallSensorLength + 16;
+
+    climbSensorLength = this.wallSensorLength + 5;
+    
+    rightClimbRay: Line = new Line(new Vec2(0,0), new Vec2(0,0));
+    leftClimbRay: Line = new Line(new Vec2(0,0), new Vec2(0,0));
+    
+
+
+    private timeToClimb = 26;
+    climbStateData: {
+        // Climbing to the right? false means left
+        right: boolean;
+        targetX: number, //
+        targetY: number, // where buttom of sensors will be when finish climbing
+        climbingTimer: number;
+        startX: number,
+        startY: number,
+    }
+
+    private timeToSlide = 35; // How many ticks can hold in place until start falling
+    slideStateData: {
+        right: boolean; 
+        timeSliding: number
+    }
+
+    state = PlayerState.AIR;
+    last_state = PlayerState.GROUND;
     
     
-    // If both these values are >= 0, and the player is on the ground, the player will ju,mp
+    // If both these values are >= 0, and the player is on the ground, the player will jump
     // Used for coyote time
-    private time_to_jump = -1;
-    // Allows to press space just before hitting ground and will jump. 
-    private space_time_to_jump = -1;
+    private ticksSinceGroundState = 100000;
+    private timeSincePressedJumpedButton = 10000;
 
-    // deals with edge cases of jumping, forces player to hit space button to jump again
-    private forceSpacePress = false;
+    private readonly COYOTE_TIME = 4;
+    private readonly timeSincePressedAllowed = 10;
 
-    private readonly MAX_SPACE_TIME_TO_JUMP = 3;
-
-    
-    private spritePart: SpritePart;
     private colliderPart: ColliderPart;
     private tag = this.addPart(new TagPart("Player"))
 
@@ -213,41 +263,28 @@ export class Player extends DrawableEntity {
     constructor(){
         super();
 
-        const animationData = this.engine.getResource("player/run.json");
-        const data: SavePlayerAnimation = animationData.data;
-        this.runAnimation = new PlayerAnimationState(data);
-
         this.position.set({x : 500, y: 100});
         this.keyboard.bind("r", ()=> {
             this.position.set({x : 600, y: 100});
         });
 
-        this.spritePart = new SpritePart("vector.jpg");
-        this.spritePart.originPercent = {x:.5 ,y:.5};
-        this.addPart(this.spritePart);
         
         this.colliderPart = new ColliderPart(dimensions(32,32),{x:16, y:16});
         this.addPart(this.colliderPart);
-
-        // sprite not initialized yet
-        // Maybe make textures globally accessible, since they don't actually depend on the renderer
-        this.player_width = 32//this.spritePart.width;
-        this.player_height = 32//this.spritePart.height;
         
         
-        const {width, height} = {width:this.player_width, height:this.player_height}//this.spritePart.sprite
         const {x, y} = this.position;
 
-        this.downRayTop = new Vec2(x,y);
-        this.downRayBot = new Vec2(x,y + height / 2);
 
-        this.headRay = new Line(new Vec2(x,y), new Vec2(x,y - height / 2))
-        
-        
-        // LEFT AND RIGHT sensors
-        // Not in use right now
-        this.rightWallRay = new Line(new Vec2(x, y), new Vec2(3 + x + width / 2,y));
-        this.leftWallRay = new Line(new Vec2(x, y), new Vec2(-3 + x - width / 2, y));
+        this.leftHeadRay = new Line(new Vec2(0,0), new Vec2(0,0));
+        this.rightHeadRay = new Line(new Vec2(0,0), new Vec2(0,0))
+
+        this.leftDownRay = new Line(new Vec2(x - this.player_width / 2,y), new Vec2(x - this.player_width / 2,y - this.player_height / 2));
+        this.rightDownRay = new Line(new Vec2(x + this.player_width / 2,y), new Vec2(x + this.player_width / 2,y - this.player_height / 2));
+        this.midDownRay = new Line(new Vec2(0,0), new Vec2(0,0));
+
+        this.rightWallRay = new Line(new Vec2(x, y), new Vec2(3 + x + this.player_width / 2,y));
+        this.leftWallRay = new Line(new Vec2(x, y), new Vec2(-3 + x - this.player_width / 2, y));
 
         this.gun = new BaseBulletGun([
             new TerrainHitAddon(),
@@ -275,38 +312,241 @@ export class Player extends DrawableEntity {
     }
 
     onAdd(){
-        this.scene.addEntity(this.gun)
+        // this.scene.addEntity(this.gun)
         this.runAnimation.setScale(2);
+        this.wallslideAnimation.setScale(2);
+        this.idleAnimation.setScale(2);
+        this.climbAnimation.setScale(2);
+
         this.engine.renderer.addSprite(this.runAnimation.container);
+        this.engine.renderer.addSprite(this.wallslideAnimation.container);
+        this.engine.renderer.addSprite(this.idleAnimation.container)
+        this.engine.renderer.addSprite(this.climbAnimation.container)
+
+        this.setSprite("run");
     }
 
     onDestroy(){
-        this.scene.destroyEntity(this.gun)
+        // this.scene.destroyEntity(this.gun)
         this.engine.renderer.removeSprite(this.runAnimation.container);
+        this.engine.renderer.removeSprite(this.wallslideAnimation.container);
+        this.engine.renderer.removeSprite(this.idleAnimation.container);
+        this.engine.renderer.removeSprite(this.climbAnimation.container);
+    }
+
+    private setSprite(sprite: "idle"|"run"|"wall"|"climb"|"none"){
+        this.runAnimation.container.visible = false;
+        this.runAnimation.setPosition(this.position)
+
+        this.wallslideAnimation.container.visible = false;
+        this.wallslideAnimation.setPosition(this.position);
+
+        this.idleAnimation.container.visible = false;
+        this.idleAnimation.setPosition(this.position);
+
+        this.climbAnimation.container.visible = false;
+        this.climbAnimation.setPosition(this.position)
+
+        switch(sprite){
+            case "run": this.runAnimation.container.visible = true; break;
+            case "wall": this.wallslideAnimation.container.visible = true; break;
+            case "idle": this.idleAnimation.container.visible = true; break;
+            case "climb": { 
+                if(!this.climbStateData.right){
+                    this.climbAnimation.originOffset.x = 63
+                } else {
+                    this.climbAnimation.originOffset.x = 50;
+                }
+                this.climbAnimation.container.visible = true; break; 
+            }
+            case "none": break;
+            default: AssertUnreachable(sprite);
+        }
     }
     
+    private setSensorLocationsAndRotate(){
+        this.setSensorLocations();
+
+        // Ground sensors
+        rotatePoint(this.leftDownRay.A,this.position,this.slope_normal);
+        rotatePoint(this.leftDownRay.B,this.position,this.slope_normal);
+
+        rotatePoint(this.rightDownRay.A,this.position,this.slope_normal);
+        rotatePoint(this.rightDownRay.B,this.position,this.slope_normal);
+
+        // Head rays
+        rotatePoint(this.leftHeadRay.A,this.position,this.slope_normal);
+        rotatePoint(this.leftHeadRay.B,this.position,this.slope_normal);
+
+        rotatePoint(this.rightHeadRay.A,this.position,this.slope_normal);
+        rotatePoint(this.rightHeadRay.B,this.position,this.slope_normal);
+
+        // LEFT AND RIGHT sensors
+        rotatePoint(this.rightWallRay.B,this.position,this.slope_normal);
+        rotatePoint(this.leftWallRay.B,this.position,this.slope_normal);
+    }
+
     private setSensorLocations(){
-        // Down ray
-        this.downRayTop.set({ x: this.position.x, y: this.position.y - this.player_height / 4});
-        rotatePoint(this.downRayTop,this.position,this.slope_normal)
+        //FEET RAYS
+        this.leftDownRay.A.set({x: this.x - this.player_width / 2,y:this.y});
+        this.leftDownRay.B.set({x: this.x - this.player_width / 2,y: this.downRayAdditionalLength + this.y + this.player_height / 2});
+
+        this.rightDownRay.A.set({x: this.x + this.player_width / 2,y:this.y});
+        this.rightDownRay.B.set({x: this.x + this.player_width / 2,y: this.downRayAdditionalLength + this.y + this.player_height / 2});
+
+
+        this.midDownRay.A.set(this.position);
+        this.midDownRay.B.set({x: this.x, y: this.downRayAdditionalLength + this.y + this.player_height / 2});
+
+        //HEAD ray
+        this.leftHeadRay.A.set({x: this.x - this.player_width / 2,y:this.y});
+        this.leftHeadRay.B.set({x: this.x - this.player_width / 2,y: -this.downRayAdditionalLength + this.y - this.player_height / 2});
         
-        this.downRayBot.set({ x: this.position.x, y: this.feetRayDY + this.position.y + this.player_height / 2});
-        rotatePoint(this.downRayBot,this.position,this.slope_normal)
-
-        //head ray
-
-        this.headRay.A.set(this.position)
-        this.headRay.B.set({x: this.x,y:this.y - this.player_height / 2});
-        rotatePoint(this.headRay.B,this.position,this.slope_normal);
+        this.rightHeadRay.A.set({x: this.x + this.player_width / 2,y:this.y});
+        this.rightHeadRay.B.set({x: this.x + this.player_width / 2,y: -this.downRayAdditionalLength + this.y - this.player_height / 2});
 
         // LEFT AND RIGHT sensors
         this.rightWallRay.A.set(this.position)
-        this.rightWallRay.B.set({x: 3 + this.x + this.wallSensorLength,y:this.y});
-        rotatePoint(this.rightWallRay.B,this.position,this.slope_normal);
+        this.rightWallRay.B.set({x: this.x + this.wallSensorLength,y:this.y});
 
         this.leftWallRay.A.set(this.position);
-        this.leftWallRay.B.set({x:-3 + this.x - this.wallSensorLength, y:this.y});
-        rotatePoint(this.leftWallRay.B,this.position,this.slope_normal);
+        this.leftWallRay.B.set({x: this.x - this.wallSensorLength, y:this.y});
+
+        // Climbing rays --> used to climb on ledge, and wall collision at head level
+        this.rightClimbRay.A.set({x:this.x, y:this.y - this.player_height / 2});
+        this.rightClimbRay.B.set({x: this.x + this.climbSensorLength,y:this.y - this.player_height / 2});
+
+        this.leftClimbRay.A.set({x:this.x, y:this.y - this.player_height / 2});
+        this.leftClimbRay.B.set({x: this.x - this.climbSensorLength, y:this.y - this.player_height / 2});
+    }
+
+    // Sets both climb and wall sensor to the same width;
+    private setWallSensorsEven(length = this.wallSensorLength){
+        // LEFT AND RIGHT sensors
+        this.rightWallRay.A.set(this.position)
+        this.rightWallRay.B.set({x: this.x + length,y:this.y});
+
+        this.leftWallRay.A.set(this.position);
+        this.leftWallRay.B.set({x: this.x - length, y:this.y});
+
+        // Climbing rays --> used to climb on ledge, and wall collision at head level
+        this.rightClimbRay.A.set({x:this.x, y:this.y - this.player_height / 2});
+        this.rightClimbRay.B.set({x: this.x + length,y:this.y - this.player_height / 2});
+
+        this.leftClimbRay.A.set({x:this.x, y:this.y - this.player_height / 2});
+        this.leftClimbRay.B.set({x: this.x - length, y:this.y - this.player_height / 2});
+    }
+
+    /** If not collision to terrain, return bottom of bot ray, not rotated */
+    private getFeetCollisionPoint():{ point: Vec2, normal: Vec2, collision: boolean} {
+        // The player has already moved at this point
+        const leftRay = this.engine.terrain.lineCollision(this.leftDownRay.A, this.leftDownRay.B);
+        const rightRay = this.engine.terrain.lineCollision(this.rightDownRay.A, this.rightDownRay.B);
+        const midRay = this.engine.terrain.lineCollision(this.midDownRay.A, this.midDownRay.B);
+
+        const tempWinningRay = (leftRay === null && rightRay === null) ? null : 
+                            (leftRay === null) ? rightRay : 
+                            (rightRay === null) ? leftRay :
+                            leftRay.point.y < rightRay.point.y ? leftRay : rightRay;
+            
+        const winningRay = (tempWinningRay === null && midRay === null) ? null : 
+                        (tempWinningRay === null) ? midRay : 
+                        (midRay === null) ? tempWinningRay :
+                        tempWinningRay.point.y < midRay.point.y ? tempWinningRay : midRay;
+
+        if(winningRay !== null){
+            return {
+                collision: true,
+                ...winningRay
+            }
+        } else {
+            return {
+                collision : false,
+                point : new Vec2(this.position.x, this.position.y + this.player_height / 2),
+                normal : new Vec2(0,-1),
+            }
+        }
+    }
+
+    /** If not collision to terrain, return bottom of bot ray, not rotated */
+    private getHeadCollisionPoint():{ point: Vec2, normal: Vec2, collision: boolean} {
+        // The player has already moved at this point
+        const leftRay = this.engine.terrain.lineCollision(this.leftHeadRay.A, this.leftHeadRay.B);
+        const rightRay = this.engine.terrain.lineCollision(this.rightHeadRay.A, this.rightHeadRay.B);
+        
+        const winningRay = (leftRay === null && rightRay === null) ? null : 
+                            (leftRay === null) ? rightRay : 
+                            (rightRay === null) ? leftRay :
+                             leftRay.point.y > rightRay.point.y ? leftRay : rightRay;
+
+        if(winningRay !== null){
+            return {
+                collision: true,
+                ...winningRay
+            }
+        } else {
+            return {
+                point : new Vec2(this.position.x, this.position.y + this.player_height / 2),
+                normal : new Vec2(0,-1),
+                collision : false
+            }
+        }
+    }
+
+    /** return nearest point of intersection, else collision = false */
+    private getRightWallCollisionPoint():{ point: Vec2, normal: Vec2, collision: boolean, both: boolean } {
+        const waistRay = this.engine.terrain.lineCollision(this.rightWallRay.A, this.rightWallRay.B);
+        const climbRay = this.engine.terrain.lineCollision(this.rightClimbRay.A, this.rightClimbRay.B);
+        
+        const winningRay = (waistRay === null && climbRay === null) ? null : 
+                            (waistRay === null) ? climbRay : 
+                            (climbRay === null) ? waistRay :
+                            waistRay.point.x > climbRay.point.x ? waistRay : climbRay;
+
+        const both = (waistRay !== null && climbRay !== null);
+
+        if(winningRay !== null){
+            return {
+                collision: true,
+                both,
+                ...winningRay
+            }
+        } else {
+            return {
+                collision : false,
+                both,
+                point : new Vec2(this.position.x, this.position.y + this.player_height / 2),
+                normal : new Vec2(0,-1),
+            }
+        }
+    }
+
+    /** return nearest point of intersection, else collision = false */
+    private getLeftWallCollisionPoint():{ point: Vec2, normal: Vec2, collision: boolean, both: boolean } {
+        const waistRay = this.engine.terrain.lineCollision(this.leftWallRay.A, this.leftWallRay.B);
+        const climbRay = this.engine.terrain.lineCollision(this.leftClimbRay.A, this.leftClimbRay.B);
+        
+        const winningRay = (waistRay === null && climbRay === null) ? null : 
+                            (waistRay === null) ? climbRay : 
+                            (climbRay === null) ? waistRay :
+                            waistRay.point.x > climbRay.point.x ? waistRay : climbRay;
+
+        const both = (waistRay !== null && climbRay !== null);
+
+        if(winningRay !== null){
+            return {
+                collision: true,
+                both,
+                ...winningRay
+            }
+        } else {
+            return {
+                both,
+                point : new Vec2(this.position.x, this.position.y + this.player_height / 2),
+                normal : new Vec2(0,-1),
+                collision : false
+            }
+        }
     }
 
 
@@ -330,79 +570,182 @@ export class Player extends DrawableEntity {
 
         // Adjust drawing angle 
         const angle = Math.atan2(this.slope_normal.y, this.slope_normal.x) * RAD_TO_DEG;
-        this.spritePart.dangle = angle + 90;
 
-        // Jump logic
-        if(this.state == PlayerStates.GROUND){
-            this.time_to_jump = 6;
-        }
-
-        const hitSpace = this.keyboard.isDown("KeyW");
-
-        const releaseSpace = this.keyboard.wasPressed("KeyW");
-        if(releaseSpace) this.forceSpacePress = false;
-
-
-        if(this.state === PlayerStates.GROUND && hitSpace){
-            this.space_time_to_jump = this.MAX_SPACE_TIME_TO_JUMP;
-        } else {
-            if(this.yspd >= 0 && hitSpace) this.space_time_to_jump = this.MAX_SPACE_TIME_TO_JUMP;
-        }
-
-        switch(this.state){
-            case PlayerStates.AIR: this.Air_State(); break;
-            case PlayerStates.GROUND: this.Ground_State(); break;
-            default: AssertUnreachable(this.state)
-        }
-
-        // JUMP
-        if(!this.forceSpacePress && this.time_to_jump >= 0 && this.space_time_to_jump >= 0){
-            this.space_time_to_jump = -1;
-            this.time_to_jump = -1;
-            
-            //yspd = jump_power;
-            this.xspd = this.last_ground_xspd - this.jump_power * this.slope_normal.x;
-            this.yspd = this.last_ground_yspd - this.jump_power * this.slope_normal.y;
-                
-            this.gspd = 0;
-            this.state = PlayerStates.AIR;
-            this.slope_normal.set({ x: 0, y: -1});
-        }
-
-        this.time_to_jump -= 1;
-        this.space_time_to_jump -= 1;
+        if(this.keyboard.wasPressed("KeyW")) this.timeSincePressedJumpedButton = 0;
 
         
-        this.runAnimation.setPosition(this.position);
-        if(this.tick.tick()){
-            this.runAnimation.setFrame(this.tick.timesRepeated);
+        switch(this.state){
+            case PlayerState.AIR: this.Air_State(); break;
+            case PlayerState.GROUND: this.Ground_State(); break;
+            case PlayerState.CLIMB: this.Climb_State(); break;
+            case PlayerState.WALL_SLIDE: this.Wall_Slide_State(); break;
+            default: AssertUnreachable(this.state)
         }
+        
+        this.timeSincePressedJumpedButton++;
+
 
         this.redraw();
     }
 
-    /** If not collision to terrain, return bottom of bot ray, not rotated */
-    private getFeetCollisionPoint():{ point: Vec2, normal: Vec2, collision: boolean} {
-        const rightRay = this.engine.terrain.lineCollision(this.downRayTop, this.downRayBot);
-        
-        if(rightRay != null){
-            return {
-                collision: true,
-                ...rightRay
-            }
+    private Climb_State() {
+        const fraction = this.climbStateData.climbingTimer++ / this.timeToClimb;
+
+        console.log(fraction)
+
+        this.x = this.climbStateData.targetX - this.player_width / 2;
+        this.y = this.climbStateData.targetY - this.player_height / 2;
+
+        if(!this.climbStateData.right){
+            this.climbAnimation.originOffset.x = 63
         } else {
-            return {
-                point : new Vec2(this.position.x, this.position.y + this.player_height / 2),
-                normal : new Vec2(0,-1),
-                collision : false
-            }
+            this.climbAnimation.originOffset.x = 50;
+        }
+
+
+        this.climbAnimation.setFrame(floor(fraction * this.climbAnimation.length));
+        this.climbAnimation.setPosition(this.position);
+        this.climbAnimation.xFlip(this.climbStateData.right ? 1 : -1)
+
+        if(this.climbStateData.climbingTimer > this.timeToClimb){
+            this.setSprite("idle")
+            this.state = PlayerState.GROUND;
+            this.gspd = 0;
         }
     }
 
-    private Ground_State(){	
-        const horz_move = +this.keyboard.isDown("KeyD") - +this.keyboard.isDown("KeyA");
+    private wallSlideNormalIsValid(normal: Vec2): boolean {
+        return (-.44 < normal.y) && (normal.y < .25);
+    }
+
+    private doRightSlideSensorsHit(){
+        this.setWallSensorsEven(this.slideSensorLength);
+        return this.getRightWallCollisionPoint().collision;
+    }
+
+    private doLeftSlideSensorsHit(){
+        this.setWallSensorsEven(this.slideSensorLength);
+        return this.getLeftWallCollisionPoint().collision;
+    }
+
+    private Wall_Slide_State(){
+        this.slideStateData.timeSliding++;
+
+        this.wallslideAnimation.setPosition(this.position);
+        this.wallslideAnimation.tick();
+        this.wallslideAnimation.xFlip(this.slideStateData.right ? 1 : -1);
+
+        // Wall jump
+        if(this.timeSincePressedJumpedButton <= this.timeSincePressedAllowed){
+            this.state = PlayerState.AIR;
+            this.yspd = -14
+            this.xspd = this.slideStateData.right ? -9 : 9;
+            this.timeSincePressedJumpedButton = 10000;
+
+            this.setSprite("run")
+
+            return;
+        }
+
         
-        if (horz_move === -1) {
+
+        //while below timer, slow yspd to 0
+        if(this.slideStateData.timeSliding < this.timeToSlide){
+            this.yspd = lerp(this.yspd,0,.3);
+        } else {
+            this.yspd = lerp(this.yspd,3.6,.1);
+        }
+
+        this.y += this.yspd;
+
+        let myWallNormal: Vec2;
+
+        // Slide down wall
+        this.setWallSensorsEven(this.slideSensorLength);
+
+        if(this.slideStateData.right){
+            const rightWall = this.getRightWallCollisionPoint();
+            
+            if(rightWall.collision){
+                if(!this.wallSlideNormalIsValid(rightWall.normal)){
+                    console.log("To Steep")
+                    this.state = PlayerState.AIR;
+                    this.xspd = 0;
+                    this.setSprite("run")
+                    return;
+                } 
+                
+                this.x = rightWall.point.x - this.wallSensorLength;
+                myWallNormal = rightWall.normal;
+            } 
+
+            if(!rightWall.both){
+                this.state = PlayerState.AIR;
+                this.yspd = 2;
+                this.xspd = 0;
+                this.setSprite("run")
+            }
+        } else {
+            const leftWall = this.getLeftWallCollisionPoint();
+            
+            if(leftWall.collision){
+                if(!this.wallSlideNormalIsValid(leftWall.normal)){
+                    console.log("To Steep")
+                    this.state = PlayerState.AIR;
+                    this.xspd = 0;
+                    this.setSprite("run")
+                    return;
+                } 
+                this.x = leftWall.point.x + this.wallSensorLength;
+                myWallNormal = leftWall.normal;
+            }
+
+            if(!leftWall.both){
+                this.state = PlayerState.AIR;
+                this.xspd = 0;
+                this.setSprite("run")
+            }
+        }
+        
+
+        this.setSensorLocations();
+        const ground = this.getFeetCollisionPoint();
+        // Hit ground, snap to it!
+        if(ground.collision){
+
+            // Ignore collision if its with same wall we are sliding against
+            if(myWallNormal !== undefined && myWallNormal.equals(ground.normal)) return;
+
+            this.position.y = ground.point.y - this.player_height / 2
+
+            this.slope_normal.set(ground.normal);
+
+            this.state = PlayerState.GROUND;
+            this.setSprite("run")
+            // Set GSPD here
+            // this.gspd = this.yspd * this.slope_normal.x
+            // this.gspd = this.xspd * -this.slope_normal.y
+            this.gspd = 0;
+            this.yspd = 0;
+            this.xspd = 0;
+        }
+
+    }
+
+    private Ground_State(){
+    
+    
+
+
+        this.ticksSinceGroundState = 0;
+        this.last_ground_xspd = this.xspd;
+        this.last_ground_yspd = this.yspd;
+
+        const horz_move = +this.keyboard.isDown("KeyD") - +this.keyboard.isDown("KeyA");
+
+
+        // Set ground speed
+        if (horz_move === -1) { // Left
             if (this.gspd > 0) {
                 this.gspd -= this.dec;
             } else if (this.gspd > -this.top) {
@@ -410,7 +753,7 @@ export class Player extends DrawableEntity {
                 if (this.gspd <= -this.top)
                     this.gspd = -this.top;
             }
-        } else if (horz_move === 1) {
+        } else if (horz_move === 1) { // Right
             if (this.gspd < 0) {
                 this.gspd += this.dec;
             } else if (this.gspd < this.top) {
@@ -427,51 +770,112 @@ export class Player extends DrawableEntity {
             this.gspd -= Math.min(Math.abs(this.gspd), this.frc) * Math.sign(this.gspd);
         }
         
-        // this.gspd -= -.125*this.slope_normal.x;
         this.xspd = this.gspd*-this.slope_normal.y;
         this.yspd = this.gspd*this.slope_normal.x;
 
-        this.last_ground_xspd = this.xspd;
-        this.last_ground_yspd = this.yspd;
-
-        // Wall check
+        // Before moving, check walls
         const gdir = sign(this.gspd);
 
-        //If going right. The product tests the difference in normals, makes sure doesn't go into too steep terrain
+        //If going right. The dot product tests the difference in normals, makes sure doesn't go into too steep terrain
+
+        this.setWallSensorsEven();
+        
+
         if(gdir > 0){
-            const wall_test = this.engine.terrain.lineCollision(this.rightWallRay.A, this.rightWallRay.B);
-            
-            if(wall_test === null || Vec2.dot(wall_test.normal, this.slope_normal) > .3){
-                this.position.x += this.xspd;
-                this.position.y += this.yspd;
+            this.rightWallRay.B.x += this.xspd;
+            this.rightClimbRay.B.x += this.xspd
+            const rightWall = this.getRightWallCollisionPoint();
+
+            // If hit wall, adjust speed so don't hit wall
+            if(rightWall.collision){ //  || Vec2.dot(wall_test.normal, this.slope_normal) > .3
+                // this.rightWalRay.B.x is the same as climbRay. Maybe make it another variable
+                const distanceInWall = this.rightWallRay.B.x - rightWall.point.x;
+                this.xspd -= distanceInWall;
+                this.gspd = 0;
             }
         } else if(gdir < 0) {
-            const wall_test = this.engine.terrain.lineCollision(this.leftWallRay.A, this.leftWallRay.B);
-            
-            if(wall_test === null || Vec2.dot(wall_test.normal, this.slope_normal) > .3){
-                this.position.x += this.xspd;
-                this.position.y += this.yspd;
+            this.leftWallRay.B.x += this.xspd;
+            this.leftClimbRay.B.x += this.xspd
+
+            const leftWall = this.getLeftWallCollisionPoint();
+
+            if(leftWall.collision){
+                const distanceInWall = leftWall.point.x - this.leftWallRay.B.x;
+                this.xspd += distanceInWall;
+                this.gspd = 0;
             }
         }
-        
-        this.setSensorLocations();
 
+        // Move player
+        this.position.x += this.xspd;
+        this.position.y += this.yspd;
+
+        // Now that player has moved, clamp them to the ground
+        this.setSensorLocations();
         const downray = this.getFeetCollisionPoint();
+
+        if(downray.collision){
+            if(!this.wallSlideNormalIsValid(downray.normal)){
+
+                this.position.y = downray.point.y - (this.player_height / 2);
+
+                this.slope_normal.set(downray.normal);
+            } else {
+                // Hit ground for wall slide
+                this.state = PlayerState.AIR;
+            }
+        } else {
+            this.state = PlayerState.AIR;
+        }
+
+
+        if(this.gspd === 0) this.setSprite("idle")
+        else this.setSprite("run")
+
+        this.idleAnimation.setPosition(this.position);
+        this.idleAnimation.tick();
+        this.idleAnimation.xFlip(horz_move);
+                
+        this.runAnimation.setPosition(this.position);
+        this.runAnimation.tick();
+        this.runAnimation.xFlip(horz_move);
+
+        // Check for jumping
+        const jumpButtonDown = this.keyboard.isDown("KeyW");
         
-        this.slope_normal.set(downray.normal);
-    
-        // Clamps player to ground
-        this.position.x = downray.point.x +  this.slope_normal.x * (this.player_height / 2);
-        this.position.y  = downray.point.y +  this.slope_normal.y * (this.player_height / 2);
-        
-        // If nothing below me suddenly
-        if(!downray.collision){
-            this.state = PlayerStates.AIR
+        // JUMP
+        if(jumpButtonDown || (this.timeSincePressedJumpedButton <= this.timeSincePressedAllowed)){
+            //yspd = jump_power;
+            // this.xspd = this.last_ground_xspd - this.jump_power * this.slope_normal.x;
+            this.yspd = /** this.last_ground_yspd + */ this.jump_power // * this.slope_normal.y;
+            
+            this.timeSincePressedJumpedButton = 10000;
+
+            this.setSprite("run")
+
+            this.gspd = 0;
+            this.state = PlayerState.AIR;
+            this.slope_normal.set({ x: 0, y: -1});
+            return;
         }
     }
      
     private Air_State(){
+        this.runAnimation.setPosition(this.position);
+        this.runAnimation.tick();
+        this.runAnimation.xFlip(this.xspd)
+        
         // gravity
+        this.ticksSinceGroundState += 1;
+
+        if(this.ticksSinceGroundState <= this.COYOTE_TIME){
+            if(this.timeSincePressedJumpedButton <= this.timeSincePressedAllowed){
+                this.timeSincePressedJumpedButton = 10000;
+                // this.xspd = this.last_ground_xspd - this.jump_power * this.slope_normal.x;
+                this.yspd = /** this.last_ground_yspd + */ this.jump_power // * this.slope_normal.y;
+            }
+        }
+
         const grav = 1.2;
         const horz_move = +this.keyboard.isDown("KeyD") - +this.keyboard.isDown("KeyA");   
 
@@ -497,100 +901,203 @@ export class Player extends DrawableEntity {
         
         // This implies that sideways is the default left and right --> have to rethink the jumping mechanics of sides to side ..
         // Maybe make the loop-de-loop a special case and a special walltypes
-        // Only in this wall type would I change the direction of the RAY cast and 
-        // If going too fast, slowdown to top speed
+
+        // Drag
         if(Math.abs(this.xspd) > this.top){
             this.xspd -= Math.min(Math.abs(this.xspd), this.frc/7) * Math.sign(this.xspd);
         }
         
-        // Don't add gravity if we are on the ground
+        // Gravity
         if(Math.sign(this.yspd) >= 0){
             this.yspd += .7 * grav
         } else {
             this.yspd += .65 * grav;
         }
         
-        this.yspd = clamp(this.yspd, -100, 20)
-        
+        // Clamp yspd
+        this.yspd = clamp(this.yspd, -100, 20);
+
+        const xdir = sign(this.xspd);
         const ydir = sign(this.yspd);
+        
+        // In air, collision checking is different than on ground.
+        // First MOVE player, then snap player out of walls
+        this.position.x += this.xspd;
+        this.position.y += this.yspd;
 
-        // if going up
+
+        // WALLS, and wall sliding
+        this.setWallSensorsEven();
+        if(xdir > 0){
+            const rightWall = this.getRightWallCollisionPoint();
+            
+            if(rightWall.collision){
+                this.x = rightWall.point.x - this.wallSensorLength;
+
+                if(rightWall.both && this.wallSlideNormalIsValid(rightWall.normal)){
+                    if(ydir > 0){
+                        this.state = PlayerState.WALL_SLIDE;
+                        this.slideStateData = {
+                            right: true,
+                            timeSliding: 0
+                        }
+                        this.setSprite("wall");
+                        return;
+                    }
+                }
+            } 
+        } else if(xdir < 0) {
+            const leftWall = this.getLeftWallCollisionPoint();
+            
+            if(leftWall.collision){
+                this.x = leftWall.point.x + this.wallSensorLength;
+
+                if(leftWall.both && this.wallSlideNormalIsValid(leftWall.normal)){
+                    if(ydir > 0){
+                        this.state = PlayerState.WALL_SLIDE;
+                        this.slideStateData = {
+                            right: false,
+                            timeSliding: 0
+                        }
+                        this.setSprite("wall");
+                        return;
+                    }
+                }
+            }
+        }
+
+        // CLIMBING
+        this.setSensorLocations();
+        if(horz_move > 0){
+            const climbTest = this.engine.terrain.lineCollision(this.rightClimbRay.A, this.rightClimbRay.B);
+                
+            if(climbTest === null){
+
+                this.rightClimbRay.B.x += 8;
+
+                const targetPoint = this.engine.terrain.lineCollision(this.rightClimbRay.B, this.rightClimbRay.B.clone().add({x:0,y:this.player_height / 2}));
+                if(targetPoint !== null){
+                    if(targetPoint.normal.y < -.8){
+                        this.climbStateData = {
+                            right:true,
+                            climbingTimer:0,
+                            targetX: targetPoint.point.x + 3,
+                            targetY: targetPoint.point.y,
+                            startX:this.x,
+                            startY:this.y
+                        }
+
+                        this.state = PlayerState.CLIMB;
+
+                        this.x = this.climbStateData.targetX - this.player_width / 2;
+                        this.y = this.climbStateData.targetY - this.player_height / 2;
+
+                        this.setSprite("climb")
+                        return;
+                    }
+                }
+            }
+        } else if(horz_move < 0){
+            // left
+            const climbTest = this.engine.terrain.lineCollision(this.leftClimbRay.A, this.leftClimbRay.B);
+                
+            if(climbTest === null){
+
+                this.leftClimbRay.B.x -= 8;
+
+                const targetPoint = this.engine.terrain.lineCollision(this.leftClimbRay.B, this.leftClimbRay.B.clone().add({x:0,y:this.player_height / 2}));
+                if(targetPoint !== null){
+                    if(targetPoint.normal.y < -.8){
+                        this.climbStateData = {
+                            right:false,
+                            climbingTimer:0,
+                            targetX: targetPoint.point.x - 3,
+                            targetY: targetPoint.point.y,
+                            startX:this.x,
+                            startY:this.y
+                        }
+
+                        this.x = this.climbStateData.targetX - this.player_width / 2;
+                        this.y = this.climbStateData.targetY - this.player_height / 2;
+
+                        this.state = PlayerState.CLIMB;
+                        this.setSprite("climb")
+                        return;
+                    }
+                }
+            }
+        }
+
+        // UP AND DOWN
+        this.setSensorLocations();
         if(ydir < 0){
-            this.headRay.B.y += this.yspd;
-            const head_test = this.engine.terrain.lineCollision(this.headRay.A, this.headRay.B);
+            const headTest = this.getHeadCollisionPoint();
 
-            if(head_test === null){
-                this.position.y += this.yspd;
-            } else {
+            if(headTest.collision === true){
                 // Hit head!
                 this.yspd = 0;
-                this.position.y = head_test.point.y + this.player_height / 2;
-                this.space_time_to_jump = -1;
-                this.time_to_jump = -1;
-                this.forceSpacePress = true
+                this.position.y = headTest.point.y + this.player_height / 2;
             }
-        } else {
-            this.position.y += this.yspd;
-        }
-
-        this.setSensorLocations();
-        
-        // Check wall collisions
-        const xdir = sign(this.xspd);
-
-        if(xdir > 0){
-            // Look enough to the right so it doesn't phase through wall
-            this.rightWallRay.B.x += this.xspd;
-            const wall_test = this.engine.terrain.lineCollision(this.rightWallRay.A, this.rightWallRay.B);
+        } else if (ydir > 0){ 
+            // going down
             
-            if(wall_test === null){
-                this.position.x += this.xspd;
-            } else {
-                this.x = wall_test.point.x - this.wallSensorLength;
-            }
-        } else if(xdir < 0) {
-            this.rightWallRay.B.x += this.xspd;
-            const wall_test = this.engine.terrain.lineCollision(this.leftWallRay.A, this.leftWallRay.B);
-            
-            if(wall_test === null){
-                this.position.x += this.xspd;
-            } else {
-                this.x = wall_test.point.x + this.wallSensorLength;
-            }
-        }
-
-
-        this.setSensorLocations();
-        
-
-        // If going down, check to see if hit ground
-        if(this.yspd > 0){
             const ray = this.getFeetCollisionPoint();
-        
-            this.slope_normal.set(ray.normal);
-    
-            this.position.x = ray.point.x + this.slope_normal.x * (this.player_height / 2);
-            this.position.y = ray.point.y + this.slope_normal.y * (this.player_height / 2);
 
-            if(ray.collision){
-                this.state = PlayerStates.GROUND
-                // Set GSPD here
-                this.gspd += this.yspd * this.slope_normal.x
-                this.gspd += this.xspd * -this.slope_normal.y
-                
-                this.yspd = 0;
-                this.xspd = 0;
+            // Hit ground, snap to it!
+            if(ray.collision){                
+                // Hitting ground that is valid for ground sliding
+                const right = ray.normal.x < 0;
+                const wallsensors = right ? this.doRightSlideSensorsHit() : this.doLeftSlideSensorsHit();
+
+                if(this.wallSlideNormalIsValid(ray.normal)){
+                    if(wallsensors){
+                        this.state = PlayerState.WALL_SLIDE;
+                        this.slideStateData = {
+                            right,
+                            timeSliding: 0
+                        }
+                        this.setSprite("wall");
+                    } 
+                } else {
+                    this.position.y = ray.point.y - this.player_height / 2
+
+                    this.slope_normal.set(ray.normal);
+
+                    this.state = PlayerState.GROUND
+                    this.setSprite("run");
+                    // Set GSPD here
+                    // this.gspd = this.yspd * this.slope_normal.x
+                    this.gspd = this.xspd * -this.slope_normal.y
+
+                    this.yspd = 0;
+                    this.xspd = 0;
+                }
             }
         }
+
     }
 
     draw(g: Graphics) {
         drawPoint(g,this.position);
-        this.headRay.draw(g, 0xFF00FF)
+
+        g.alpha = .04;
+
+        g.beginFill(0xFF00FF,.4)
+        g.drawRect(this.x - this.player_width / 2, this.y - this.player_height / 2, this.player_width, this.player_height)
+        g.endFill();
+
         this.rightWallRay.draw(g, 0x00FF00);
         this.leftWallRay.draw(g);
-        drawLineBetweenPoints(g, this.downRayBot, this.downRayTop,0x0000FF)
-        
+
+        this.leftDownRay.draw(g,0xFF0000);
+        this.rightDownRay.draw(g, 0xFF00FF);
+        this.midDownRay.draw(g, 0x0FF00F)
+
+        this.leftHeadRay.draw(g, 0x00FFFF);
+        this.rightHeadRay.draw(g, 0xFFFF00);
+
+        this.leftClimbRay.draw(g,0x00000)
+        this.rightClimbRay.draw(g, 0xFFFFFF)
     }
 }
 
