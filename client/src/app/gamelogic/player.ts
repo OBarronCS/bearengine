@@ -1,10 +1,10 @@
-import { AnimatedSprite, Container, Graphics, Texture } from "pixi.js";
+import { AnimatedSprite, Container, Graphics, Sprite, Texture } from "pixi.js";
 
 import { Vec2, rotatePoint, angleBetween, Coordinate } from "shared/shapes/vec2";
 import { random_range } from "shared/randomhelpers";
 import { dimensions } from "shared/shapes/rectangle";
 import { drawPoint } from "shared/shapes/shapedrawing";
-import { clamp, E, lerp, PI, RAD_TO_DEG, sign } from "shared/mathutils";
+import { clamp, E, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/mathutils";
 import { ColliderPart, TagPart } from "shared/core/abstractpart";
 
 import { SpritePart } from "../core-engine/parts";
@@ -34,6 +34,7 @@ class PlayerAnimationState {
     
     public container: Container = new Container();
     public length: number;
+    private timer: TickTimer;
 
     headSprite: AnimatedSprite;
     bodySprite: AnimatedSprite;
@@ -49,7 +50,9 @@ class PlayerAnimationState {
     leftFootTextures: PartData[] = [];
     rightFootTextures: PartData[] = [];
 
-    constructor(public data: SavePlayerAnimation, public originOffset = new Vec2(0,0)){
+    constructor(public data: SavePlayerAnimation, public framesPerTick: number, public originOffset = new Vec2(0,0)){
+        this.timer = new TickTimer(this.framesPerTick, true);
+
         this.length = data.frameData.length;
 
         for(const frame of data.frameData){
@@ -106,6 +109,8 @@ class PlayerAnimationState {
         this.container.addChild(this.rightFootSprite);
 
         this.container.pivot.set(this.originOffset.x,this.originOffset.y);
+
+        this.setFrame(0);
     }
 
     xFlip(value: number){
@@ -128,7 +133,14 @@ class PlayerAnimationState {
         this.container.position.set(pos.x, pos.y);
     }
 
+    tick(){
+        if(this.timer.tick()){
+            this.setFrame(this.timer.timesRepeated);
+        }
+    }
+
     setFrame(rawFrame: number){
+        this.container.pivot.set(this.originOffset.x,this.originOffset.y);
         const frame = rawFrame % this.length;
 
         this.headSprite.gotoAndStop(frame);
@@ -159,9 +171,11 @@ class PlayerAnimationState {
 
 export class Player extends DrawableEntity {
     
-    private runAnimation: PlayerAnimationState    
-    private speed = 4; // Frames per animation tick
-    private tick = new TickTimer(this.speed, true);
+    private readonly runAnimation = new PlayerAnimationState(this.engine.getResource("player/run.json").data as SavePlayerAnimation, 4, new Vec2(40,16));
+    private readonly wallslideAnimation = new PlayerAnimationState(this.engine.getResource("player/wallslide.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
+    private readonly idleAnimation = new PlayerAnimationState(this.engine.getResource("player/idle.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
+    private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
+
 
 
     last_ground_xspd = 0;
@@ -211,7 +225,7 @@ export class Player extends DrawableEntity {
     
 
 
-    private timeToClimb = 18;
+    private timeToClimb = 26;
     climbStateData: {
         // Climbing to the right? false means left
         right: boolean;
@@ -240,8 +254,6 @@ export class Player extends DrawableEntity {
     private readonly COYOTE_TIME = 4;
     private readonly timeSincePressedAllowed = 10;
 
-    
-    private spritePart: SpritePart;
     private colliderPart: ColliderPart;
     private tag = this.addPart(new TagPart("Player"))
 
@@ -251,19 +263,11 @@ export class Player extends DrawableEntity {
     constructor(){
         super();
 
-        const animationData = this.engine.getResource("player/run.json");
-        const data: SavePlayerAnimation = animationData.data;
-        this.runAnimation = new PlayerAnimationState(data, new Vec2(40,16));
-
         this.position.set({x : 500, y: 100});
         this.keyboard.bind("r", ()=> {
             this.position.set({x : 600, y: 100});
         });
 
-        this.spritePart = new SpritePart("vector.jpg");
-        this.spritePart.originPercent = {x:.5 ,y:.5};
-        this.spritePart.visible = false;
-        this.addPart(this.spritePart);
         
         this.colliderPart = new ColliderPart(dimensions(32,32),{x:16, y:16});
         this.addPart(this.colliderPart);
@@ -310,12 +314,54 @@ export class Player extends DrawableEntity {
     onAdd(){
         this.scene.addEntity(this.gun)
         this.runAnimation.setScale(2);
+        this.wallslideAnimation.setScale(2);
+        this.idleAnimation.setScale(2);
+        this.climbAnimation.setScale(2);
+
         this.engine.renderer.addSprite(this.runAnimation.container);
+        this.engine.renderer.addSprite(this.wallslideAnimation.container);
+        this.engine.renderer.addSprite(this.idleAnimation.container)
+        this.engine.renderer.addSprite(this.climbAnimation.container)
+
+        this.setSprite("run");
     }
 
     onDestroy(){
         this.scene.destroyEntity(this.gun)
         this.engine.renderer.removeSprite(this.runAnimation.container);
+        this.engine.renderer.removeSprite(this.wallslideAnimation.container);
+        this.engine.renderer.removeSprite(this.idleAnimation.container);
+        this.engine.renderer.removeSprite(this.climbAnimation.container);
+    }
+
+    private setSprite(sprite: "idle"|"run"|"wall"|"climb"|"none"){
+        this.runAnimation.container.visible = false;
+        this.runAnimation.setPosition(this.position)
+
+        this.wallslideAnimation.container.visible = false;
+        this.wallslideAnimation.setPosition(this.position);
+
+        this.idleAnimation.container.visible = false;
+        this.idleAnimation.setPosition(this.position);
+
+        this.climbAnimation.container.visible = false;
+        this.climbAnimation.setPosition(this.position)
+
+        switch(sprite){
+            case "run": this.runAnimation.container.visible = true; break;
+            case "wall": this.wallslideAnimation.container.visible = true; break;
+            case "idle": this.idleAnimation.container.visible = true; break;
+            case "climb": { 
+                if(!this.climbStateData.right){
+                    this.climbAnimation.originOffset.x = 63
+                } else {
+                    this.climbAnimation.originOffset.x = 50;
+                }
+                this.climbAnimation.container.visible = true; break; 
+            }
+            case "none": break;
+            default: AssertUnreachable(sprite);
+        }
     }
     
     private setSensorLocationsAndRotate(){
@@ -524,10 +570,10 @@ export class Player extends DrawableEntity {
 
         // Adjust drawing angle 
         const angle = Math.atan2(this.slope_normal.y, this.slope_normal.x) * RAD_TO_DEG;
-        this.spritePart.dangle = angle + 90;
 
         if(this.keyboard.wasPressed("KeyW")) this.timeSincePressedJumpedButton = 0;
 
+        
         switch(this.state){
             case PlayerState.AIR: this.Air_State(); break;
             case PlayerState.GROUND: this.Ground_State(); break;
@@ -538,10 +584,6 @@ export class Player extends DrawableEntity {
         
         this.timeSincePressedJumpedButton++;
 
-        this.runAnimation.setPosition(this.position);
-        if(this.tick.tick()){
-            this.runAnimation.setFrame(this.tick.timesRepeated);
-        }
 
         this.redraw();
     }
@@ -549,13 +591,24 @@ export class Player extends DrawableEntity {
     private Climb_State() {
         const fraction = this.climbStateData.climbingTimer++ / this.timeToClimb;
 
-        this.x = this.climbStateData.right ?  
-            lerp(this.climbStateData.startX, this.climbStateData.targetX - this.player_width / 2, fraction) : 
-            lerp(this.climbStateData.startX, this.climbStateData.targetX + this.player_width / 2, fraction);
-        
-        this.y = lerp(this.climbStateData.startY, this.climbStateData.targetY - this.player_height / 2, fraction)
+        console.log(fraction)
+
+        this.x = this.climbStateData.targetX - this.player_width / 2;
+        this.y = this.climbStateData.targetY - this.player_height / 2;
+
+        if(!this.climbStateData.right){
+            this.climbAnimation.originOffset.x = 63
+        } else {
+            this.climbAnimation.originOffset.x = 50;
+        }
+
+
+        this.climbAnimation.setFrame(floor(fraction * this.climbAnimation.length));
+        this.climbAnimation.setPosition(this.position);
+        this.climbAnimation.xFlip(this.climbStateData.right ? 1 : -1)
 
         if(this.climbStateData.climbingTimer > this.timeToClimb){
+            this.setSprite("idle")
             this.state = PlayerState.GROUND;
             this.gspd = 0;
         }
@@ -578,12 +631,18 @@ export class Player extends DrawableEntity {
     private Wall_Slide_State(){
         this.slideStateData.timeSliding++;
 
+        this.wallslideAnimation.setPosition(this.position);
+        this.wallslideAnimation.tick();
+        this.wallslideAnimation.xFlip(this.slideStateData.right ? 1 : -1);
+
         // Wall jump
         if(this.timeSincePressedJumpedButton <= this.timeSincePressedAllowed){
             this.state = PlayerState.AIR;
             this.yspd = -14
             this.xspd = this.slideStateData.right ? -9 : 9;
             this.timeSincePressedJumpedButton = 10000;
+
+            this.setSprite("run")
 
             return;
         }
@@ -612,6 +671,7 @@ export class Player extends DrawableEntity {
                     console.log("To Steep")
                     this.state = PlayerState.AIR;
                     this.xspd = 0;
+                    this.setSprite("run")
                     return;
                 } 
                 
@@ -623,6 +683,7 @@ export class Player extends DrawableEntity {
                 this.state = PlayerState.AIR;
                 this.yspd = 2;
                 this.xspd = 0;
+                this.setSprite("run")
             }
         } else {
             const leftWall = this.getLeftWallCollisionPoint();
@@ -632,6 +693,7 @@ export class Player extends DrawableEntity {
                     console.log("To Steep")
                     this.state = PlayerState.AIR;
                     this.xspd = 0;
+                    this.setSprite("run")
                     return;
                 } 
                 this.x = leftWall.point.x + this.wallSensorLength;
@@ -641,6 +703,7 @@ export class Player extends DrawableEntity {
             if(!leftWall.both){
                 this.state = PlayerState.AIR;
                 this.xspd = 0;
+                this.setSprite("run")
             }
         }
         
@@ -658,6 +721,7 @@ export class Player extends DrawableEntity {
             this.slope_normal.set(ground.normal);
 
             this.state = PlayerState.GROUND;
+            this.setSprite("run")
             // Set GSPD here
             // this.gspd = this.yspd * this.slope_normal.x
             // this.gspd = this.xspd * -this.slope_normal.y
@@ -668,14 +732,17 @@ export class Player extends DrawableEntity {
 
     }
 
-    private Ground_State(){	
+    private Ground_State(){
+    
+    
+
+
         this.ticksSinceGroundState = 0;
         this.last_ground_xspd = this.xspd;
         this.last_ground_yspd = this.yspd;
 
         const horz_move = +this.keyboard.isDown("KeyD") - +this.keyboard.isDown("KeyA");
-        
-        this.runAnimation.xFlip(horz_move);
+
 
         // Set ground speed
         if (horz_move === -1) { // Left
@@ -761,6 +828,18 @@ export class Player extends DrawableEntity {
             this.state = PlayerState.AIR;
         }
 
+
+        if(this.gspd === 0) this.setSprite("idle")
+        else this.setSprite("run")
+
+        this.idleAnimation.setPosition(this.position);
+        this.idleAnimation.tick();
+        this.idleAnimation.xFlip(horz_move);
+                
+        this.runAnimation.setPosition(this.position);
+        this.runAnimation.tick();
+        this.runAnimation.xFlip(horz_move);
+
         // Check for jumping
         const jumpButtonDown = this.keyboard.isDown("KeyW");
         
@@ -772,6 +851,8 @@ export class Player extends DrawableEntity {
             
             this.timeSincePressedJumpedButton = 10000;
 
+            this.setSprite("run")
+
             this.gspd = 0;
             this.state = PlayerState.AIR;
             this.slope_normal.set({ x: 0, y: -1});
@@ -780,6 +861,10 @@ export class Player extends DrawableEntity {
     }
      
     private Air_State(){
+        this.runAnimation.setPosition(this.position);
+        this.runAnimation.tick();
+        this.runAnimation.xFlip(this.xspd)
+        
         // gravity
         this.ticksSinceGroundState += 1;
 
@@ -856,6 +941,7 @@ export class Player extends DrawableEntity {
                             right: true,
                             timeSliding: 0
                         }
+                        this.setSprite("wall");
                         return;
                     }
                 }
@@ -873,6 +959,7 @@ export class Player extends DrawableEntity {
                             right: false,
                             timeSliding: 0
                         }
+                        this.setSprite("wall");
                         return;
                     }
                 }
@@ -901,6 +988,11 @@ export class Player extends DrawableEntity {
                         }
 
                         this.state = PlayerState.CLIMB;
+
+                        this.x = this.climbStateData.targetX - this.player_width / 2;
+                        this.y = this.climbStateData.targetY - this.player_height / 2;
+
+                        this.setSprite("climb")
                         return;
                     }
                 }
@@ -925,7 +1017,11 @@ export class Player extends DrawableEntity {
                             startY:this.y
                         }
 
+                        this.x = this.climbStateData.targetX - this.player_width / 2;
+                        this.y = this.climbStateData.targetY - this.player_height / 2;
+
                         this.state = PlayerState.CLIMB;
+                        this.setSprite("climb")
                         return;
                     }
                 }
@@ -960,6 +1056,7 @@ export class Player extends DrawableEntity {
                             right,
                             timeSliding: 0
                         }
+                        this.setSprite("wall");
                     } 
                 } else {
                     this.position.y = ray.point.y - this.player_height / 2
@@ -967,6 +1064,7 @@ export class Player extends DrawableEntity {
                     this.slope_normal.set(ray.normal);
 
                     this.state = PlayerState.GROUND
+                    this.setSprite("run");
                     // Set GSPD here
                     // this.gspd = this.yspd * this.slope_normal.x
                     this.gspd = this.xspd * -this.slope_normal.y
@@ -981,6 +1079,8 @@ export class Player extends DrawableEntity {
 
     draw(g: Graphics) {
         drawPoint(g,this.position);
+
+        g.alpha = .04;
 
         g.beginFill(0xFF00FF,.4)
         g.drawRect(this.x - this.player_width / 2, this.y - this.player_height / 2, this.player_width, this.player_height)
