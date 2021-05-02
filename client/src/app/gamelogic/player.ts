@@ -312,7 +312,7 @@ export class Player extends DrawableEntity {
     }
 
     onAdd(){
-        this.scene.addEntity(this.gun)
+        // this.scene.addEntity(this.gun)
         this.runAnimation.setScale(2);
         this.wallslideAnimation.setScale(2);
         this.idleAnimation.setScale(2);
@@ -327,7 +327,7 @@ export class Player extends DrawableEntity {
     }
 
     onDestroy(){
-        this.scene.destroyEntity(this.gun)
+        // this.scene.destroyEntity(this.gun)
         this.engine.renderer.removeSprite(this.runAnimation.container);
         this.engine.renderer.removeSprite(this.wallslideAnimation.container);
         this.engine.renderer.removeSprite(this.idleAnimation.container);
