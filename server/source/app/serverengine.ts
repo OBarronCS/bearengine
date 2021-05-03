@@ -161,7 +161,7 @@ export class ServerBearEngine extends AbstractBearEngine {
 
                         this.globalPacketsToSerialize.push({
                             write(stream){
-                                stream.setUint8(GamePacket.ENTITY_DESTROY);
+                                stream.setUint8(GamePacket.PLAYER_DESTROY);
                                 StreamWriteEntityID(stream, pInfo.playerEntity.entityID);
                             }
                         });
@@ -172,6 +172,8 @@ export class ServerBearEngine extends AbstractBearEngine {
                         const p = this.players.get(client).playerEntity;
                         p.position.x = stream.getFloat32();
                         p.position.y = stream.getFloat32();
+                        p.state = stream.getUint8();
+                        p.flipped = stream.getBool();
 
                         break;
                     }
@@ -231,6 +233,8 @@ export class ServerBearEngine extends AbstractBearEngine {
                 StreamWriteEntityID(stream, player.entityID);
                 stream.setFloat32(player.position.x);
                 stream.setFloat32(player.position.y);
+                stream.setUint8(player.state);
+                stream.setBool(player.flipped);
             }
 
             for(const packet of this.globalPacketsToSerialize){

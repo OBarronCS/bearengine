@@ -15,6 +15,7 @@ import { Line } from "shared/shapes/line";
 import { AssertUnreachable } from "shared/assertstatements";
 import { SavePlayerAnimation } from "./testlevelentities";
 import { TickTimer } from "shared/ticktimer";
+import { RemoteEntity, RemoteLocations } from "../core-engine/networking/remotecontrol";
 
 
 enum PlayerState {
@@ -357,6 +358,7 @@ export class Player extends DrawableEntity {
                 } else {
                     this.climbAnimation.originOffset.x = 50;
                 }
+                this.climbAnimation.xFlip(this.climbStateData.right ? 1 : -1)
                 this.climbAnimation.container.visible = true; break; 
             }
             case "none": break;
@@ -1100,4 +1102,96 @@ export class Player extends DrawableEntity {
         this.rightClimbRay.draw(g, 0xFFFFFF)
     }
 }
+
+
+
+
+export class RemotePlayer extends RemoteEntity {
+
+    public locations = this.addPart(new RemoteLocations());
+    
+    private readonly runAnimation = new PlayerAnimationState(this.engine.getResource("player/run.json").data as SavePlayerAnimation, 4, new Vec2(40,16));
+    private readonly wallslideAnimation = new PlayerAnimationState(this.engine.getResource("player/wallslide.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
+    private readonly idleAnimation = new PlayerAnimationState(this.engine.getResource("player/idle.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
+    private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
+
+    onAdd(){
+        // this.scene.addEntity(this.gun)
+        this.runAnimation.setScale(2);
+        this.wallslideAnimation.setScale(2);
+        this.idleAnimation.setScale(2);
+        this.climbAnimation.setScale(2);
+
+        this.engine.renderer.addSprite(this.runAnimation.container);
+        this.engine.renderer.addSprite(this.wallslideAnimation.container);
+        this.engine.renderer.addSprite(this.idleAnimation.container);
+        this.engine.renderer.addSprite(this.climbAnimation.container);
+    }
+
+    onDestroy(){
+        // this.scene.destroyEntity(this.gun)
+        this.engine.renderer.removeSprite(this.runAnimation.container);
+        this.engine.renderer.removeSprite(this.wallslideAnimation.container);
+        this.engine.renderer.removeSprite(this.idleAnimation.container);
+        this.engine.renderer.removeSprite(this.climbAnimation.container);
+    }
+
+    setState(state: PlayerState, flipped: boolean){
+    
+        this.runAnimation.xFlip(flipped ? -1 : 1);
+        this.wallslideAnimation.xFlip(flipped ? -1 : 1);
+        this.idleAnimation.xFlip(flipped ? -1 : 1);
+        this.climbAnimation.xFlip(flipped ? -1 : 1);
+        
+
+
+        this.runAnimation.container.visible = false;
+        this.runAnimation.setPosition(this.position)
+
+        this.wallslideAnimation.container.visible = false;
+        this.wallslideAnimation.setPosition(this.position);
+
+        this.idleAnimation.container.visible = false;
+        this.idleAnimation.setPosition(this.position);
+
+        this.climbAnimation.container.visible = false;
+        this.climbAnimation.setPosition(this.position)
+
+        switch(state){
+            case PlayerState.AIR: this.runAnimation.container.visible = true; break;
+            case PlayerState.WALL_SLIDE: this.wallslideAnimation.container.visible = true; break;
+            // case PlayerState.GROUND "idle": this.idleAnimation.container.visible = true; break;
+            case PlayerState.CLIMB: { 
+                
+                // if(!this.climbStateData.right){
+                //     this.climbAnimation.originOffset.x = 63
+                // } else {
+                //     this.climbAnimation.originOffset.x = 50;
+                // }
+                //this.climbAnimation.xFlip(this.climbStateData.right ? 1 : -1)
+                this.climbAnimation.container.visible = true; break; 
+            }
+            case PlayerState.GROUND: this.runAnimation.container.visible = true; break;
+            default: AssertUnreachable(state);
+        }
+        
+    }
+
+    update(dt: number): void {
+        this.runAnimation.setPosition(this.position);
+        this.wallslideAnimation.setPosition(this.position);
+        this.idleAnimation.setPosition(this.position);
+        this.climbAnimation.setPosition(this.position);
+
+        this.runAnimation.tick();
+        this.wallslideAnimation.tick();
+        this.idleAnimation.tick();
+        this.climbAnimation.tick();
+    }
+    
+}
+
+
+
+
 

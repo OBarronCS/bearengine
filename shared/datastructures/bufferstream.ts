@@ -40,6 +40,7 @@ export class BufferStreamReader  {
         return this.dataview.buffer;
     }
 
+
     getBigInt64(){
         const val = this.dataview.getBigInt64(this.byteOffset, this.littleEndian)
         this.byteOffset += 8;
@@ -86,6 +87,12 @@ export class BufferStreamReader  {
         const val = this.dataview.getUint8(this.byteOffset);
         this.byteOffset += 1;
         return val;
+    }
+
+    getBool(): boolean {
+        const val = this.dataview.getUint8(this.byteOffset);
+        this.byteOffset += 1;
+        return val > 0;
     }
 
     getUint16(): number {
@@ -192,6 +199,11 @@ export class BufferStreamWriter {
 
     setUint8(value: number): void {
         this.dataview.setUint8(this.byteOffset,value);
+        this.seekRelative(1);
+    }
+
+    setBool(bool: boolean): void {
+        this.dataview.setUint8(this.byteOffset,bool ? 1 : 0);
         this.seekRelative(1);
     }
 

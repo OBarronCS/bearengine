@@ -21,10 +21,9 @@ export enum GamePacket {
 
     REMOTE_FUNCTION_CALL, // [shared function id, ...function argument data]
 
-    
-    SIMPLE_POSITION,
-    PLAYER_POSITION,
-    ENTITY_DESTROY, // used with players right now 
+
+    PLAYER_POSITION, // [entityID, x: float32, y: float32, uint8: animationstate, bool: flipped]
+    PLAYER_DESTROY, // used with players right now 
 
     
     PASSTHROUGH_TERRAIN_CARVE_CIRCLE, // [playerWhoDidIt: uint8, x: double, y: double, r: int32]
@@ -45,7 +44,7 @@ export enum ServerBoundPacket {
     JOIN_GAME, // [empty packet]
     LEAVE_GAME, // [empty packet]
 
-    PLAYER_POSITION,
+    PLAYER_POSITION, // [x: float32, y: float32, uint8: animationstate, bool: flipped]
 
     TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
 }

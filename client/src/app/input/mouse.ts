@@ -127,6 +127,10 @@ export class EngineMouse extends Subsystem<BearEngine> {
             this.down[index] = false;
         }
         targetWindow.addEventListener("pointerup", pointer_up);
+
+        targetWindow.addEventListener("blur", () => {
+            this.down = [false, false, false];
+        })
     }
 
     // run before update loop

@@ -5,11 +5,11 @@ import { PacketWriter, RemoteFunction, RemoteFunctionLinker } from "shared/core/
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { SharedEntityClientTable } from "./cliententitydecorators";
-import { RemoteEntity, RemoteLocations, SimpleNetworkedSprite } from "./remotecontrol";
+import { RemoteEntity, RemoteLocations } from "./remotecontrol";
 import { CallbackNetwork, NetworkSettings } from "./clientsocket";
 import { Entity } from "../entity";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
-import { Player } from "../../gamelogic/player";
+import { Player, RemotePlayer } from "../../gamelogic/player";
 import { abs, ceil } from "shared/mathutils";
 import { LinkedQueue } from "shared/datastructures/queue";
 import { BearEngine } from "../bearengine";
@@ -261,7 +261,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             
                             break;
                         }
-                        case GamePacket.ENTITY_DESTROY:{
+                        case GamePacket.PLAYER_DESTROY:{
                              // Find correct entity
                             const id = StreamReadEntityID(stream);
 
@@ -282,33 +282,20 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             if(e === undefined){
                                 console.log("creating new server player entity");
                                 // e should be an instance of this
-                                e = new SimpleNetworkedSprite();
+                                e = new RemotePlayer();
                                 this.entities.set(id, e);
                                 this.scene.addEntity(e);
                             }
 
                             const x = stream.getFloat32();
                             const y = stream.getFloat32();
+                            const state = stream.getUint8();
+                            const flipped = stream.getBool();
 
-                            (e as SimpleNetworkedSprite).locations.addPosition(frame, x,y);
+                            (e as RemotePlayer).locations.addPosition(frame, x,y);
+                            (e as RemotePlayer).setState(state,flipped);
+
                             
-                            break;
-                        }
-                        case GamePacket.SIMPLE_POSITION:{
-                            // Find correct entity
-                            const id = StreamReadEntityID(stream);
-                            
-                            //  console.log("ID: " + id)
-                            let e = this.entities.get(id);
-                            if(e === undefined){
-                                console.log("creating new server entity");
-                                // e should be an instance of this
-                                e = new SimpleNetworkedSprite()
-                                this.entities.set(id, e);
-                                this.scene.addEntity(e);
-                            }
-                            
-                            (e as SimpleNetworkedSprite).locations.addPosition(frame, stream.getFloat32(), stream.getFloat32());
                             break;
                         }
                         case GamePacket.PASSTHROUGH_TERRAIN_CARVE_CIRCLE: {
@@ -382,6 +369,8 @@ export class NetworkSystem extends Subsystem<BearEngine> {
             stream.setUint8(ServerBoundPacket.PLAYER_POSITION);
             stream.setFloat32(player.x);
             stream.setFloat32(player.y);
+            stream.setUint8(player.state);
+            stream.setBool(player.xspd < 0);
 
 
             for(const packet of this.packetsToSerialize){

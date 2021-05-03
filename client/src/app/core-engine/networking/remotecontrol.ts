@@ -10,20 +10,6 @@ import { networkedclass_client, remotevariable } from "./cliententitydecorators"
 
 export abstract class RemoteEntity extends Entity {} 
 
-export class SimpleNetworkedSprite extends RemoteEntity {
-    
-    public locations = this.addPart(new RemoteLocations());
-    public image = this.addPart(new SpritePart("flower.png"));
-
-    constructor(){
-        super();
-        this.image.originPercent = Vec2.HALFHALF;
-    }
-
-    update(dt: number): void {}
-}
-
-
 export class RemoteLocations extends Part {
 
     public positions = new Map<number,Vec2>();
