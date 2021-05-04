@@ -3,7 +3,7 @@
 
 export enum ClientBoundSubType {
     IMMEDIATE, // points to ClientBoundImmediate
-    QUEUE // points to GamePacket
+    QUEUE, // points to GamePacket
 }
 
 export enum ClientBoundImmediate {
@@ -11,7 +11,7 @@ export enum ClientBoundImmediate {
 }
 
 export enum GamePacket {
-    INIT, // [ tick_rate: uint8, reference time: biguint64, tick: uint16, uint8: your_player_id] 
+    INIT, // [ hash: uint64, tick_rate: uint8, reference time: biguint64, tick: uint16, uint8: your_player_id] 
     START_TICKING, // [tick: uint16]
 
 

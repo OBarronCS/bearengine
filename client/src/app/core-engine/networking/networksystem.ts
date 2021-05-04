@@ -13,6 +13,7 @@ import { Player, RemotePlayer } from "../../gamelogic/player";
 import { abs, ceil } from "shared/mathutils";
 import { LinkedQueue } from "shared/datastructures/queue";
 import { BearEngine } from "../bearengine";
+import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 
 interface BufferedPacket {
     buffer: BufferStreamReader;
@@ -206,7 +207,15 @@ export class NetworkSystem extends Subsystem<BearEngine> {
 
                     switch(type){
                         case GamePacket.INIT: {
-                            // [ tick_rate: uint8, reference time: biguint64, tick: uint16, uint8: your_player_id] 
+                            
+                            const hash = stream.getBigUint64();
+                            if(hash !== NETWORK_VERSION_HASH){
+
+                                throw new Error("Network protocol out of date");
+
+                                return;
+                            }
+
                             const rate = stream.getUint8();
                             this.SERVER_SEND_RATE = rate;
 

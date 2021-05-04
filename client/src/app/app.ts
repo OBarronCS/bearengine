@@ -3,8 +3,11 @@ import { DropTarget } from "./apiwrappers/draganddrop";
 import { Texture, BaseTexture, Sprite, Point, resources } from "pixi.js";
 import { LockKeys } from "./apiwrappers/keyboardapiwrapper";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
+import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 
 const game = new BearEngine();
+
+const n = NETWORK_VERSION_HASH;
 
 game.init();
 game.loadAssets().then(RESOURCES => {

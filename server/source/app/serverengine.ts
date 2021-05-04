@@ -13,6 +13,8 @@ import { TickTimer } from "shared/ticktimer";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
 import { PacketWriter, RemoteFunctionLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
+import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
+
 
 
 const MAX_DATA_PER_PACKET = 2048;
@@ -131,6 +133,7 @@ export class ServerBearEngine extends AbstractBearEngine {
                             write(stream){
                                 stream.setUint8(GamePacket.INIT);
 
+                                stream.setBigUint64(NETWORK_VERSION_HASH);
                                 stream.setUint8(_this.TICK_RATE)
                                 stream.setBigUint64(_this.referenceTime);
                                 stream.setUint16(_this.referenceTick);

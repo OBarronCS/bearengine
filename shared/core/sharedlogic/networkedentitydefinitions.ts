@@ -11,7 +11,7 @@ But, still need to validate stuff with live server on connect.
 NetworkEntityDefinitions = {
     // Could define client constructor stuff using this method
     "shared_class_name": {
-        create: null as () => void,
+        create: () => void 0,
         variables: {
             variable_name: type of variable,
             variable_name2: ect...
@@ -46,13 +46,13 @@ export interface NetworkedEntityNames {
 
 /* 
 Remote function linking:
-    Server needs to connect string to an id, which the client can decode back into the string.
+    Server connects string to an integer, which the client decodes back into the string.
     
     Put function names into alphabetical order
         ID of a function name is its index in the array
 */
 
-const RemoteFunctionStruct = {
+export const RemoteFunctionStruct = {
     "test1": { 
         argTypes: ["int32", "float"],
         callback: (name: number, food: number) => void 0

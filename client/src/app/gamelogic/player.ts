@@ -568,7 +568,18 @@ export class Player extends DrawableEntity {
             this.gun.image.sprite.scale.x = -1;
             this.gun.image.angle = angleToMouse + PI;
         }
-        this.gun.operate(this.mouse.isDown("left"));
+
+        const kb = difference.negate().extend(15);
+        if(this.mouse.wasPressed("left")){
+            if(this.state === PlayerState.AIR) this.knockback(kb);
+            else if (this.state === PlayerState.GROUND) {
+                this.gspd += -kb.x * this.slope_normal.y
+                this.gspd += kb.y * this.slope_normal.x
+            }
+        }
+            
+
+        // this.gun.operate(this.mouse.isDown("left"));
 
         // Adjust drawing angle 
         const angle = Math.atan2(this.slope_normal.y, this.slope_normal.x) * RAD_TO_DEG;
@@ -590,10 +601,15 @@ export class Player extends DrawableEntity {
         this.redraw();
     }
 
+    knockback(dir: Coordinate){
+        this.xspd += dir.x;
+        this.yspd += dir.y;
+    }
+
     private Climb_State() {
         const fraction = this.climbStateData.climbingTimer++ / this.timeToClimb;
 
-        console.log(fraction)
+        // console.log(fraction);
 
         this.x = this.climbStateData.targetX - this.player_width / 2;
         this.y = this.climbStateData.targetY - this.player_height / 2;
