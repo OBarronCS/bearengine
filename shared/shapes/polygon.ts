@@ -276,6 +276,39 @@ export class Polygon implements Shape<Polygon>{
 
         return answer;
     }
+
+    /** Returns intersection point closest to A, or null */
+    lineIntersectionWithExtraInfo(A: Coordinate, B: Coordinate): { point: Vec2, normal: Vec2, line: Line } {
+        
+        let answer: ReturnType<Polygon["lineIntersectionWithExtraInfo"]> = null;
+        let answer_dist = -1;
+
+        let k = this.points.length - 1;
+        for (let i = 0; i < this.points.length; k = i++) {
+            const point = this.points[k];
+            const point2 = this.points[i];
+
+            const result = Line.LineLineIntersection(A, B, point, point2);
+
+            if(result === null) continue;
+
+            const dist = Vec2.distanceSquared(result, A);
+				
+            // If no answer yet, choose this
+            if(answer === null || dist < answer_dist) {
+                answer_dist = dist
+                answer = { 
+                    line: new Line(point, point2),
+                    point: result,
+                    normal: this.normals[k]
+                };
+            }
+        }
+
+        return answer;
+    }
+
+
     /** Returns intersection points, sorted by distance to A, or empty array. SHIFT IS FOR POLYGON POINTS */
     lineIntersectionExtended(A: Coordinate, B: Coordinate, shift = Vec2.ZERO): { point: Vec2, t: number, internalT: number }[] {
         

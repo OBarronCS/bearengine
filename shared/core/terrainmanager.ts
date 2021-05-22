@@ -5,6 +5,7 @@ import { atan2, ceil, cos, floor, sin, TWO_PI } from "shared/mathutils";
 import { Ellipse } from "shared/shapes/ellipse";
 import { Line } from "shared/shapes/line";
 import { Polygon } from "shared/shapes/polygon";
+import { Rect } from "shared/shapes/rectangle";
 import { Coordinate, coordinateArraytoVec, mix, Vec2 } from "shared/shapes/vec2";
 import { Subsystem } from "./subsystem";
 
@@ -13,13 +14,13 @@ import { Subsystem } from "./subsystem";
 
 export class TerrainManager extends Subsystem {
 
-	private grid: SpatialGrid<TerrainMesh>;
-	
-	width: number;
-	height: number;
-	
-	grid_width = 20;
-	grid_height = 20;
+    private grid: SpatialGrid<TerrainMesh>;
+    
+    width: number;
+    height: number;
+    
+    grid_width = 20;
+    grid_height = 20;
 
     /// TerrainMesh objects --> the individual bodies
     terrains: TerrainMesh[] = [];
@@ -27,11 +28,11 @@ export class TerrainManager extends Subsystem {
     // call this externally to properly initialize
     setupGrid(world_width: number, world_height: number){
         this.width = world_width
-		this.height = world_height; 
+        this.height = world_height; 
 
-		this.grid = new SpatialGrid<TerrainMesh>(world_width, world_height,this.grid_width, this.grid_height,
-			terrain => terrain.polygon.getAABB()
-		);
+        this.grid = new SpatialGrid<TerrainMesh>(world_width, world_height,this.grid_width, this.grid_height,
+            terrain => terrain.polygon.getAABB()
+        );
     }
 
     init(): void {
@@ -57,137 +58,166 @@ export class TerrainManager extends Subsystem {
         this.redrawQueued = true;
     }
 
-	private draw(g: Graphics){
+    private draw(g: Graphics){
         g.clear();
         
-		this.terrains.forEach((t) => {
-			t.draw(g);
-		});
+        this.terrains.forEach((t) => {
+            t.draw(g);
+        });
         
-		this.grid.draw(g); // Draws it with grid lines included, and with the aabbs of the lines
+        this.grid.draw(g); // Draws it with grid lines included, and with the aabbs of the lines
     }
-	
-	/// Adds all terrain info --> adds to grid buckets
-	addTerrain(points: number[],normals: number[]): void{
-		const newTerrain = new TerrainMesh(new Polygon(coordinateArraytoVec(points),coordinateArraytoVec(normals)));
-		this.terrains.push(newTerrain);
-		this.grid.insert(newTerrain)
-	}
-	
-	/** Terrain Raycast: return null if no collision, otherwise closest point of intersection */
-	lineCollision(A: Coordinate,B: Coordinate): {point:Vec2,normal:Vec2} {
-		const box = (new Line(A,B)).getAABB();
-		
-		const possibleCollisions = this.grid.region(box);
-		
-		let answer:ReturnType<TerrainManager["lineCollision"]> = null;
-		let answer_dist = -1;
-			
-		// This might be a performance barrier --> its a set, not an array. Iterable though
-		for(const terrainMesh of possibleCollisions){
-			
-			const collision = terrainMesh.lineCollision(A, B);
+    
+    /// Adds all terrain info --> adds to grid buckets
+    addTerrain(points: number[],normals: number[]): void{
+        const newTerrain = new TerrainMesh(new Polygon(coordinateArraytoVec(points),coordinateArraytoVec(normals)));
+        this.terrains.push(newTerrain);
+        this.grid.insert(newTerrain)
+    }
+    
+    /** Terrain Raycast: return null if no collision, otherwise closest point of intersection */
+    lineCollision(A: Coordinate,B: Coordinate): {point:Vec2,normal:Vec2} {
+        const box = (new Line(A,B)).getAABB();
+        
+        const possibleCollisions = this.grid.region(box);
+        
+        let answer:ReturnType<TerrainManager["lineCollision"]> = null;
+        let answer_dist = -1;
+            
+        // This might be a performance barrier --> its a set, not an array. Iterable though
+        for(const terrainMesh of possibleCollisions){
+            
+            const collision = terrainMesh.lineCollision(A, B);
 
-			if(collision === null) continue;
+            if(collision === null) continue;
 
-			const dist = Vec2.distanceSquared(A, collision.point);
-			
-			// If no answer yet, choose this
-			if(answer === null || dist < answer_dist) {
-				answer_dist = dist
-		
-				answer = collision;
-			}
-		}
-		
-		return answer;
-	}
+            const dist = Vec2.distanceSquared(A, collision.point);
+            
+            // If no answer yet, choose this
+            if(answer === null || dist < answer_dist) {
+                answer_dist = dist
+        
+                answer = collision;
+            }
+        }
+        
+        return answer;
+    }
 
-	carveCircle(x: number,y: number, r: number): void {
-		const box = (new Line({x: x-r, y: y-r},{x: x+r, y: y+r})).getAABB();
+    lineCollisionExt(A: Coordinate, B: Coordinate): { point: Vec2, normal: Vec2, line: Line } {
+        const box = Vec2.AABB(A,B);
+        
+        const possibleCollisions = this.grid.region(box);
+        
+        let answer:ReturnType<TerrainManager["lineCollisionExt"]> = null;
+        let answer_dist = -1;
+            
+        // This might be a performance barrier --> its a set, not an array. Iterable though
+        for(const terrainMesh of possibleCollisions){
+            
+            const collision = terrainMesh.polygon.lineIntersectionWithExtraInfo(A, B);
 
-		const possibleCollisions = this.grid.region(box);
+            if(collision === null) continue;
 
-		for(const mesh of possibleCollisions){
+            const dist = Vec2.distanceSquared(A, collision.point);
+            
+            // If no answer yet, choose this
+            if(answer === null || dist < answer_dist) {
+                answer_dist = dist
+        
+                answer = collision;
+            }
+        }
+        
+        return answer;
+    }
 
-			this.grid.remove(mesh);
-			const result = mesh.carveCircle(x, y, r);
 
-			if(result !== null){
-				// reinsert the original one, since it has been broken up,
-				this.grid.insert(mesh);
-				
-				//All the other ones
-				for(const newMesh of result){
-					this.grid.insert(newMesh);
-					this.terrains.push(newMesh);
-				}
-			} else {
-				// It might have gotten deleten
-				if(mesh.polygon === null){
-					this.terrains.splice(this.terrains.indexOf(mesh),1);
-				} else {
-					// it didn't get deleted: it only altered the original
-					this.grid.insert(mesh);
-				}
-			}
-		}
+    carveCircle(x: number,y: number, r: number): void {
+        const box = (new Line({x: x-r, y: y-r},{x: x+r, y: y+r})).getAABB();
+
+        const possibleCollisions = this.grid.region(box);
+
+        for(const mesh of possibleCollisions){
+
+            this.grid.remove(mesh);
+            const result = mesh.carveCircle(x, y, r);
+
+            if(result !== null){
+                // reinsert the original one, since it has been broken up,
+                this.grid.insert(mesh);
+                
+                //All the other ones
+                for(const newMesh of result){
+                    this.grid.insert(newMesh);
+                    this.terrains.push(newMesh);
+                }
+            } else {
+                // It might have gotten deleten
+                if(mesh.polygon === null){
+                    this.terrains.splice(this.terrains.indexOf(mesh),1);
+                } else {
+                    // it didn't get deleted: it only altered the original
+                    this.grid.insert(mesh);
+                }
+            }
+        }
 
         this.queueRedraw();
-	}
+    }
 
     carvePolygon(polygon: Polygon, shift: Vec2,): void {
-		const box = polygon.getAABB().translate(shift);
+        const box = polygon.getAABB().translate(shift);
 
         /// console.log(box)
 
-		const possibleCollisions = this.grid.region(box);
+        const possibleCollisions = this.grid.region(box);
 
-		for(const mesh of possibleCollisions){
+        for(const mesh of possibleCollisions){
 
-			this.grid.remove(mesh);
-			const result = mesh.carvePolygon(polygon, shift);
+            this.grid.remove(mesh);
+            const result = mesh.carvePolygon(polygon, shift);
 
-			if(result !== null){
-				// reinsert the original one, since it has been broken up,
-				this.grid.insert(mesh);
-				
-				//All the other ones
-				for(const newMesh of result){
-					this.grid.insert(newMesh);
-					this.terrains.push(newMesh);
-				}
-			} else {
-				// It might have gotten deleten
-				if(mesh.polygon === null){
-					this.terrains.splice(this.terrains.indexOf(mesh),1);
-				} else {
-					// it didn't get deleted: it only altered the original
-					this.grid.insert(mesh);
-				}
-			}
-		}
+            if(result !== null){
+                // reinsert the original one, since it has been broken up,
+                this.grid.insert(mesh);
+                
+                //All the other ones
+                for(const newMesh of result){
+                    this.grid.insert(newMesh);
+                    this.terrains.push(newMesh);
+                }
+            } else {
+                // It might have gotten deleten
+                if(mesh.polygon === null){
+                    this.terrains.splice(this.terrains.indexOf(mesh),1);
+                } else {
+                    // it didn't get deleted: it only altered the original
+                    this.grid.insert(mesh);
+                }
+            }
+        }
 
         this.queueRedraw();
-	}
+    }
 
 }
 
 // A polygon wrapper with extra functionality 
 // special for colliding, mostly static, terrain
 class TerrainMesh  {
-	public polygon: Polygon;
+    public polygon: Polygon;
 
-	constructor(polygon: Polygon){
-		this.polygon = polygon;
+    constructor(polygon: Polygon){
+        this.polygon = polygon;
     }
 
-	lineCollision(A: Coordinate, B: Coordinate): ReturnType<Polygon["lineIntersection"]> {
-		return this.polygon.lineIntersection(A, B)
-	}
+    lineCollision(A: Coordinate, B: Coordinate): ReturnType<Polygon["lineIntersection"]> {
+        return this.polygon.lineIntersection(A, B)
+    }
 
-	carveCircle(x: number,y: number, r: number): TerrainMesh[] | null{
-		// console.log("Polygon is clockwise : "  + Polygon.isClockwise(this.polygon.points));
+    carveCircle(x: number,y: number, r: number): TerrainMesh[] | null{
+        // console.log("Polygon is clockwise : "  + Polygon.isClockwise(this.polygon.points));
         //  if this breaks, its because of an edge case with overlapping points and floating point error
 
         const circle = new Ellipse(new Vec2(x,y),r,r);
@@ -234,8 +264,8 @@ class TerrainMesh  {
             return null;
         }
 
-		// Circle didn't even collide with lines or points
-		if(addedIndices.length === 0) return null;
+        // Circle didn't even collide with lines or points
+        if(addedIndices.length === 0) return null;
 
         // If not even number of collisions on edges, something broke due to edge case with vertex on sphere edge, 
         // try again with slightly different radius
@@ -376,19 +406,19 @@ class TerrainMesh  {
         // ONE MORE EDGE CASE CHECK MAYBE:
         // In some floating point math error cases, I will get polygon's that are just two points on top of each other
    
-		this.polygon = Polygon.from(components[0]);
+        this.polygon = Polygon.from(components[0]);
 
-		const returnMeshes: TerrainMesh[] = [];
+        const returnMeshes: TerrainMesh[] = [];
         for(let i = 1; i < components.length; i++){
-			returnMeshes.push(new TerrainMesh(Polygon.from(components[i])));
+            returnMeshes.push(new TerrainMesh(Polygon.from(components[i])));
         }
 
-		return returnMeshes.length === 0 ? null : returnMeshes;
+        return returnMeshes.length === 0 ? null : returnMeshes;
     }
 
     /** Assumes given polygon is in clockwise order */
     carvePolygon(shape: Polygon, shift: Vec2): TerrainMesh[] | null {
-		// Every point in 'shape' is translated by 'shift' 
+        // Every point in 'shape' is translated by 'shift' 
 
         //  if this breaks, its because of an edge case with overlapping points and floating point error
         // contains the points of the resulting polygon
@@ -421,8 +451,8 @@ class TerrainMesh  {
             return null;
         }
 
-		// Circle didn't even collide with lines or points
-		if(addedIndices.length === 0) return null;
+        // Circle didn't even collide with lines or points
+        if(addedIndices.length === 0) return null;
 
         // If not even number of collisions on edges, something broke due to edge case with vertex on sphere edge, 
         // try again with different position
@@ -552,19 +582,19 @@ class TerrainMesh  {
         }
 
    
-		this.polygon = Polygon.from(components[0]);
+        this.polygon = Polygon.from(components[0]);
 
-		const returnMeshes: TerrainMesh[] = [];
+        const returnMeshes: TerrainMesh[] = [];
         for(let i = 1; i < components.length; i++){
-			returnMeshes.push(new TerrainMesh(Polygon.from(components[i])));
+            returnMeshes.push(new TerrainMesh(Polygon.from(components[i])));
         }
 
-		return returnMeshes.length === 0 ? null : returnMeshes;
+        return returnMeshes.length === 0 ? null : returnMeshes;
     }
 
-	draw(g: Graphics){
-		this.polygon.draw(g, 0x900C3F, false, true, false);
-	}
+    draw(g: Graphics){
+        this.polygon.draw(g, 0x900C3F, false, true, false);
+    }
 }
 
 

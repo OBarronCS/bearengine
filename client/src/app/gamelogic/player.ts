@@ -553,6 +553,9 @@ export class Player extends DrawableEntity {
 
 
     update(dt: number): void {
+        if(this.y > this.engine.levelbbox.height + 800) this.y = 0;
+
+
         // Weapon logic
         this.gun.position.set({x: this.x, y: this.y - 20});
         rotatePoint(this.gun.position,this.position,this.slope_normal);

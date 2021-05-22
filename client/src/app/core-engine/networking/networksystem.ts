@@ -1,7 +1,7 @@
 import { AssertUnreachable } from "shared/assertstatements";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { Scene, StreamReadEntityID } from "shared/core/scene";
-import { PacketWriter, RemoteFunction, RemoteFunctionLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
+import { PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { SharedEntityClientTable } from "./cliententitydecorators";
@@ -14,6 +14,7 @@ import { abs, ceil } from "shared/mathutils";
 import { LinkedQueue } from "shared/datastructures/queue";
 import { BearEngine } from "../bearengine";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
+import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 
 interface BufferedPacket {
     buffer: BufferStreamReader;
@@ -210,10 +211,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             
                             const hash = stream.getBigUint64();
                             if(hash !== NETWORK_VERSION_HASH){
-
                                 throw new Error("Network protocol out of date");
-
-                                return;
                             }
 
                             const rate = stream.getUint8();
@@ -268,6 +266,23 @@ export class NetworkSystem extends Subsystem<BearEngine> {
 
                             RemoteFunctionLinker.callRemoteFunction(functionName, stream, this, methodOfThisObject);
                             
+                            break;
+                        }
+                        case GamePacket.START_ROUND: {
+                            const x = stream.getFloat32();
+                            const y = stream.getFloat32();
+                            const level = RemoteResourceLinker.getResourceFromID(stream.getUint8());
+
+                            this.engine.endCurrentLevel();
+                            this.engine.loadLevel(ParseTiledMapData(this.engine.getResource(level).data as TiledMap));
+
+                            const p = this.scene.getEntityByTag<Player>("Player");
+                            
+                            if(p === null) throw new Error("Player not found. This shouldn't happen");
+
+                            p.x = x;
+                            p.y = y;
+
                             break;
                         }
                         case GamePacket.PLAYER_DESTROY:{

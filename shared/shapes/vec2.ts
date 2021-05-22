@@ -1,5 +1,6 @@
 
-import { DEG_TO_RAD, RAD_TO_DEG, dcos, dsin, floor } from "shared/mathutils";
+import { DEG_TO_RAD, RAD_TO_DEG, dcos, dsin, floor, min, max } from "shared/mathutils";
+import { Rect } from "./rectangle";
 
 export interface Coordinate {
     x: number,
@@ -39,6 +40,16 @@ export class Vec2 {
         const dx = p1.x - p2.x;
         const dy = p1.y - p2.y;
         return (dx * dx) + (dy * dy);
+    }
+
+    static AABB(p1: Coordinate, p2: Coordinate){
+        const left = min(p1.x, p2.x);
+        const right = max(p1.x, p2.x);
+
+        const top = min(p1.y, p2.y);
+        const bot = max(p1.y, p2.y);
+
+        return new Rect(left, top, right - left, bot - top);
     }
 
     static distance(p1: Coordinate, p2: Coordinate): number {

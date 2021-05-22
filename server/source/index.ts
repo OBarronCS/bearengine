@@ -55,6 +55,11 @@ rl.on('line', (input: string) => {
     const first = allWords[0];
 
     switch(first){
+        case "starts": {
+            engine.testBeginLevel(allWords[1] as any);
+            break;
+        }
+
         case "packets": {
             console.log(engine["lifetimeImportantPackets"].size())
             break;

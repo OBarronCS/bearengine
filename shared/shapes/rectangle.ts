@@ -10,10 +10,9 @@ export interface Dimension {
     height: number;
 }
 
-export function dimensions(w: number, h: number): Dimension{
+export function dimensions(w: number, h: number): Dimension {
     return {width: w, height: h};
 }
-
 
 export class Rect implements Shape<Rect> {
 

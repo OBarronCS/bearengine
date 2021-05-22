@@ -12,20 +12,23 @@ export enum ClientBoundImmediate {
 
 export enum GamePacket {
     INIT, // [ hash: uint64, tick_rate: uint8, reference time: biguint64, tick: uint16, uint8: your_player_id] 
-    START_TICKING, // [tick: uint16]
-
+    START_TICKING, // [tick: uint16];
 
     REMOTE_ENTITY_CREATE, // [ SHARED_ID: uint8, instance_id: uint16]
     REMOTE_ENTITY_VARIABLE_CHANGE, // [ SHARED_ID: uint8, instance id: uint16, ...data]
 
+    REMOTE_FUNCTION_CALL, // [shared function id: uint8, ...function argument data]
 
-    REMOTE_FUNCTION_CALL, // [shared function id, ...function argument data]
-
-
-    PLAYER_POSITION, // [entityID, x: float32, y: float32, uint8: animationstate, bool: flipped]
-    PLAYER_DESTROY, // used with players right now 
-
+    // x y and is your respawn point, level is value that points to level string
     
+    START_ROUND, //[x:float32, y: float32, level_enum: uint8]
+
+    // Player created if entity not found
+    PLAYER_POSITION, // [entityID, x: float32, y: float32, uint8: animationstate, bool: flipped]
+    PLAYER_DESTROY, // [entityID]
+
+    // TODO: EXPLOSION: [fromPlayer: uint8, x: float32, y: float32, strength: uint8] // handle knockback on clients
+
     PASSTHROUGH_TERRAIN_CARVE_CIRCLE, // [playerWhoDidIt: uint8, x: double, y: double, r: int32]
 }
 

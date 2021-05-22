@@ -1,6 +1,13 @@
-import { RemoteFunctionStruct } from "./networkedentitydefinitions";
+import { RemoteFunctionStruct, RemoteResources } from "./networkedentitydefinitions";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "./packetdefinitions";
 
+/*
+need to add:
+    resource folder structure and names
+
+    enums that connect to strings for resources
+
+*/
 
 
 // Prints out the bits for debugging
@@ -22,22 +29,18 @@ const HASH_MASK = (1n << BITS_FOR_HASH) - 1n;
 function StringHash(str: string): bigint {
     let stringHash = 0n;
     for(const char of str){
-        stringHash = BigInt(char.charCodeAt(0)) + (31n * stringHash);
+        stringHash = BigInt(char.charCodeAt(0)) + (17n * stringHash);
     }
     return stringHash;
 }
 
+// Assumes the enum values are numbers
 function EnumHash(hash: object): bigint {
     let totalHash = 3n;
     for(const key in hash){
         // Only lets the strings filter through
         if(isNaN(Number(key))){
-
-            let stringHash = StringHash(key);
-            
-            stringHash *= (BigInt(hash[key]) + 1n);
-
-            totalHash += stringHash * 17n;
+            totalHash += StringHash(key) * (BigInt(hash[key]) + 1n) * 17n;
         }
     }
 
@@ -91,15 +94,19 @@ function CreateHash(manual: number): bigint {
 
     let hash = 17n;
 
-    hash += EnumHash(ClientBoundSubType)
-    hash += EnumHash(ClientBoundImmediate)
+    hash += EnumHash(ClientBoundSubType);
+    hash += EnumHash(ClientBoundImmediate);
     hash += EnumHash(GamePacket);
 
-    hash += EnumHash(ServerPacketSubType)
-    hash += EnumHash(ServerImmediatePacket)
-    hash += EnumHash(ServerBoundPacket)
-    
+    hash += EnumHash(ServerPacketSubType);
+    hash += EnumHash(ServerImmediatePacket);
+    hash += EnumHash(ServerBoundPacket);
+
+    hash += ObjectHash(RemoteResources);
     hash += ObjectHash(RemoteFunctionStruct);
+
+    // Approximate number of bits needed to represent it: 
+    // console.log(Math.log2(Number(hash)))
 
     return (manualMask) | (hash & HASH_MASK);
 }

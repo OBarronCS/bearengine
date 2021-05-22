@@ -813,11 +813,110 @@ class PixelArtCanvas {
 
 
 
+
+// attempt at circle line physics
+export class CircleEntity extends DrawableEntity {
+    
+    radius = (25);
+    speed = 40;
+    velocity = new Vec2(0,30);
+
+    constructor(point: Coordinate){
+        super();
+        this.position.set(point);
+        this.redraw();
+    }
+
+    draw(g: Graphics): void {
+        g.beginFill(0x00FF00);
+        g.drawCircle(this.x, this.y, this.radius);
+    }
+
+    tick = new TickTimer(20,true)
+
+    update(dt: number): void {
+        if(!this.tick.tick()) return;
+        this.redraw(true)
+        // this.velocity.y += .1;
+
+
+        const destination = Vec2.add(this.velocity,this.position);
+
+        // This is gonna fail in colliding with edge of polygon
+        const test = this.terrain.lineCollisionExt(this.position, destination);
+
+        if(test !== null){
+            // console.log("AHHH")
+            const x1 = test.line.A.clone().sub(this.position);
+            const x2 = test.line.B.clone().sub(this.position);
+
+            const a = test.point.sub(this.position);
+            const b = Line.PointClosestToLine(x1,x2,this.velocity);
+            const c = Line.PointClosestToLine(Vec2.ZERO, this.velocity, x1);
+            const d = Line.PointClosestToLine(Vec2.ZERO, this.velocity, x2);
+
+            const p1 = Line.PointClosestToLine(x1, x2,Vec2.ZERO);
+
+            // Final position
+            const p2 = Vec2.subtract(a, this.velocity.clone().normalize().scale(this.radius * a.length()/p1.length()));
+
+
+            const pointC = Line.PointClosestToLine(x1, x2, p2);
+
+
+            const p3 = Vec2.add(p2, Vec2.subtract(p1, pointC));
+
+            const r = Vec2.add(Vec2.subtract(p3, p2).scale(2),p2).normalize().negate();
+
+            
+    
+            //this.position.set(p2.add(this.position));
+
+            const temp = r.scale(this.velocity.length())
+
+            this.velocity.set(temp);
+            this.position.add(this.velocity);
+
+            drawVecAsArrow(this.canvas.graphics,temp,this.x, this.y,1);
+
+            this.canvas.graphics.drawCircle(a.x + this.x, a.y + this.y, 3)
+            this.canvas.graphics.drawCircle(b.x + this.x, b.y + this.y, 3)
+            this.canvas.graphics.drawCircle(c.x + this.x, c.y + this.y, 3)
+            this.canvas.graphics.drawCircle(d.x + this.x, d.y + this.y, 3)
+            
+            this.canvas.graphics.beginFill(0x0000FF)
+            this.canvas.graphics.drawCircle(pointC.x + this.x, pointC.y + this.y, 3)
+
+            this.canvas.graphics.beginFill(0xFF0000)
+            this.canvas.graphics.drawCircle(p2.x + this.x, p2.y + this.y, 25)
+        } else {
+            this.position.add(this.velocity);
+        }
+
+        
+        
+    }
+
+
+}
+
+
 export function loadTestLevel(engine: BearEngine): void {
     const scene = engine.entityManager;
 
-
     scene.addEntity(new Player());
+
+    // class Test123 extends Entity {
+
+    //     update(dt: number): void {
+    //         if(this.mouse.wasPressed("left")){
+    //             this.scene.addEntity(new CircleEntity(this.mouse.position));
+    //         }
+    //     }
+
+    // }
+
+    // scene.addEntity(new Test123()); 
 
     
 

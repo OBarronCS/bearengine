@@ -11,7 +11,7 @@ import { ConnectionID, ServerNetwork } from "./networking/serversocket";
 import { AutomaticallyUpdatingEntity, FirstAutoEntity, PlayerEntity, ServerEntity } from "./serverentity";
 import { TickTimer } from "shared/ticktimer";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
-import { PacketWriter, RemoteFunctionLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
+import { PacketWriter, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 
@@ -83,6 +83,20 @@ export class ServerBearEngine extends AbstractBearEngine {
         SharedEntityServerTable.init()
     }
 
+
+    testBeginLevel(str: keyof typeof RemoteResources){
+
+        const value = RemoteResourceLinker.getIDFromResource(str);
+
+        this.globalPacketsToSerialize.push({
+            write(stream){
+                stream.setUint8(GamePacket.START_ROUND);
+                stream.setFloat32(0);
+                stream.setFloat32(0);
+                stream.setUint8(value);
+            }
+        })
+    }
 
     registerSystem<T extends Subsystem>(system: T): T {
         this.systems.push(system);
