@@ -292,7 +292,6 @@ export class NetworkSystem extends Subsystem<BearEngine> {
 
                             if(pId === this.PLAYER_ID){
                                 // Destroy my own
-
                                 const p = this.scene.getEntityByTag<Player>("Player");
                                 p.dead = true;
 
@@ -434,6 +433,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
             const stream = new BufferStreamWriter(new ArrayBuffer(256));
 
             stream.setUint8(ServerPacketSubType.QUEUE);
+            
             stream.setUint8(ServerBoundPacket.PLAYER_POSITION);
             stream.setFloat32(player.x);
             stream.setFloat32(player.y);
