@@ -904,8 +904,6 @@ export class CircleEntity extends DrawableEntity {
 export function loadTestLevel(engine: BearEngine): void {
     const scene = engine.entityManager;
 
-    scene.addEntity(new Player());
-
     // class Test123 extends Entity {
 
     //     update(dt: number): void {
@@ -917,7 +915,6 @@ export function loadTestLevel(engine: BearEngine): void {
     // }
 
     // scene.addEntity(new Test123()); 
-
     
 
     class TerrainPolygonCarveTest extends DrawableEntity {

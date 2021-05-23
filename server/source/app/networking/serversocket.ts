@@ -150,6 +150,11 @@ export class ServerNetwork {
         }
     }
 
+    public kickclient(clientID: ConnectionID){
+        const socket = this.reverseClientMap.get(clientID);
+        socket.close();
+    }
+
     public closeServer(){
         this.server.close();
     }

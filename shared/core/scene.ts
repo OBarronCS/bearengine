@@ -273,16 +273,6 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
             }
         }
     }
-
-    getEntityByTag<T extends EntityType>(tag: TagType): T {
-        for(const tagPart of this.tags){
-            if(tagPart.name === tag){
-                return <T>tagPart.owner;
-            }
-        }
-        console.log("COULD NOT FIND ENTITY BY TAG: " + tag)
-        return null;
-    }
 }
 
 

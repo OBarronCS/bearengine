@@ -1,5 +1,5 @@
 
-import { Graphics, Loader, Point, Sprite, SpriteMaskFilter, Texture } from "pixi.js";
+import { Graphics, Loader, Sprite, Texture } from "pixi.js";
 import { GUI, GUIController } from "dat.gui";
 
 import { AbstractBearEngine } from "shared/core/abstractengine";
@@ -23,6 +23,7 @@ import { Color, rgb } from "shared/datastructures/color";
 import { DrawableEntity, Entity } from "./entity";
 import { SpritePart } from "./parts";
 import { Coordinate, mix, Vec2 } from "shared/shapes/vec2";
+import { Player } from "../gamelogic/player";
 
 
 
@@ -72,6 +73,8 @@ export class BearEngine extends AbstractBearEngine {
     public currentLevelData: CustomMapFormat;
     public levelbbox: Rect;
     public levelLoaded = false;
+
+    public player: Player = null;
 
 
     init(): void {
@@ -160,9 +163,6 @@ export class BearEngine extends AbstractBearEngine {
         this.terrain.graphics = new Graphics();
         this.renderer.addSprite(this.terrain.graphics);
         this.terrain.queueRedraw();
-
-
-        loadTestLevel(this);
 
 
         this.levelLoaded = true;

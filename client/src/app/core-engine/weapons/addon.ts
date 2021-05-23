@@ -63,21 +63,6 @@ export class TerrainHitAddon implements GunAddon {
                         stream.setInt32(RADIUS);
                     }
                 })
-                const otherPlayer = this.engine.collisionManager.circleQuery(this.x, this.y, DMG_RADIUS);
-
-                for(const player of otherPlayer as Iterable<RemotePlayer>){
-                    // Need to check that the other entity is player
-                    if(player.IS_REMOTE_PLAYER !== undefined){
-                        console.log("HIT");
-                        network.queuePacket({
-                            write(stream){
-                                stream.setUint8(ServerBoundPacket.DAMAGE_OTHER_PLAYER);
-                                stream.setUint8(player.id)
-                                stream.setUint8(17)
-                            }
-                        })
-                    }
-                }
             
                
                 this.destroySelf();

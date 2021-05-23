@@ -8,13 +8,15 @@ import { GamePacket, ServerBoundPacket, ServerPacketSubType } from "shared/core/
 import { Subsystem } from "shared/core/subsystem";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
-import { AutomaticallyUpdatingEntity, FirstAutoEntity, PlayerEntity, ServerEntity } from "./serverentity";
-import { TickTimer } from "shared/ticktimer";
+import { AutomaticallyUpdatingEntity, PlayerEntity, ServerEntity } from "./serverentity";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
 import { PacketWriter, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
-import { doesNotMatch } from "assert";
+import { TerrainManager } from "shared/core/terrainmanager";
+import { readFileSync } from "fs";
+import path from "path";
+import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 
 
 
@@ -36,8 +38,6 @@ class PlayerInformation {
             packet.write(stream);
         }
     }
-
-    
 }
 
 
@@ -52,15 +52,21 @@ export class ServerBearEngine extends AbstractBearEngine {
     public totalTime = 0;
 
 
+
     public network: ServerNetwork = null;
     
 
+    public isStageActive: boolean = false;
+
     // Subsystems
+    public terrain: TerrainManager;
+
     private entityManager: Scene<ServerEntity>;
     
 
     // Serializes the packets in here at end of tick, sends to every player
-    private globalPacketsToSerialize: PacketWriter[] = [];
+
+    private currentTickPacketsForEveryone: PacketWriter[] = [];
 
     private lifetimeImportantPackets: Queue<PacketWriter> = new LinkedQueue<PacketWriter>();
 
@@ -74,7 +80,7 @@ export class ServerBearEngine extends AbstractBearEngine {
         this.TICK_RATE = tick_rate;
 
         this.entityManager = this.registerSystem(new Scene<ServerEntity>(this));
-
+        this.terrain = this.registerSystem(new TerrainManager(this));
 
         for(const system of this.systems){
             system.init()
@@ -84,26 +90,6 @@ export class ServerBearEngine extends AbstractBearEngine {
         SharedEntityServerTable.init()
     }
 
-
-    testBeginLevel(str: keyof typeof RemoteResources){
-
-        const value = RemoteResourceLinker.getIDFromResource(str);
-
-        this.globalPacketsToSerialize.push({
-            write(stream){
-                stream.setUint8(GamePacket.START_ROUND);
-                stream.setFloat32(0);
-                stream.setFloat32(0);
-                stream.setUint8(value);
-            }
-        })
-    }
-
-    registerSystem<T extends Subsystem>(system: T): T {
-        this.systems.push(system);
-        return system;
-    }
-    
     start(socket: Server){
         this.network = new ServerNetwork(socket);
         this.network.start();
@@ -112,6 +98,89 @@ export class ServerBearEngine extends AbstractBearEngine {
         this.loop();
     }
 
+    // Resets everything to prepare for a new level, sends data to clients
+    beginStage(str: keyof typeof RemoteResources){
+
+        this.lifetimeImportantPackets.clear();
+        this.currentTickPacketsForEveryone = [];
+
+        const levelPath = RemoteResources[str];
+        const tiledData: TiledMap = JSON.parse(readFileSync(path.join(__dirname, "../../../client/dist/assets/" + levelPath), "utf-8"));
+        const levelData = ParseTiledMapData(tiledData);
+
+        {
+            // Create terrain and world size
+            const worldInfo = levelData.world;
+            const width = worldInfo.width;
+            const height = worldInfo.height;
+
+            // this.levelbbox = new Rect(0,0,width,height);
+            
+            const bodies = levelData.bodies;
+            this.terrain.setupGrid(width, height);
+            bodies.forEach( (body) => {
+                this.terrain.addTerrain(body.points, body.normals)
+            });
+
+            //  this.collisionManager.setupGrid(width, height);
+        }
+
+
+        const value = RemoteResourceLinker.getIDFromResource(str);
+
+
+        let i = 0;
+        for(const clientID of this.clients){
+            
+            i++;
+            const p = this.players.get(clientID);
+
+            const player = new PlayerEntity();
+            p.playerEntity = player;
+            this.entityManager.addEntity(player);
+
+            p.personalPackets.enqueue({
+                write(stream){
+                    stream.setUint8(GamePacket.START_ROUND);
+                    stream.setFloat32(i * 200);
+                    stream.setFloat32(0);
+                    stream.setUint8(value);
+                }
+            });
+
+            this.currentTickPacketsForEveryone.push({
+                write(stream){
+                    stream.setUint8(GamePacket.PLAYER_CREATE);
+                    stream.setUint8(clientID);
+                    stream.setFloat32(i * 200);
+                    stream.setFloat32(0);
+                }
+            });
+        }
+
+
+        this.isStageActive = true;
+    }
+
+    endStage(){
+        this.terrain.clear();
+        this.entityManager.clear();
+
+
+        this.isStageActive = false;
+
+        this.currentTickPacketsForEveryone.push({
+            write(stream){
+                stream.setUint8(GamePacket.END_ROUND);
+            }
+        });
+    }
+
+    registerSystem<T extends Subsystem>(system: T): T {
+        this.systems.push(system);
+        return system;
+    }
+    
     // Reads from queue of data since last tick
     private readNetwork(){
         const packets = this.network.getPacketQueue();
@@ -124,10 +193,11 @@ export class ServerBearEngine extends AbstractBearEngine {
 
             while(stream.hasMoreData()){
                 const type: ServerBoundPacket = stream.getUint8();
-                // console.log("Reading type: ", ClientPacket[type]);
 
                 switch(type){
                     case ServerBoundPacket.JOIN_GAME: {
+
+                        if(this.isStageActive) continue;
 
                         console.log("Player joining: ", clientID)
                         if(this.players.get(clientID) !== undefined) throw new Error("Client attempting to join twice")
@@ -135,12 +205,8 @@ export class ServerBearEngine extends AbstractBearEngine {
                         const pInfo = new PlayerInformation(clientID);
                         
                         this.clients.push(clientID);
-                        
-                        const player = new PlayerEntity();
-                        pInfo.playerEntity = player;
-
-                        this.entityManager.addEntity(player);
                         this.players.set(clientID, pInfo);
+                        
 
                         // INIT DATA, tick rate, current time and tick
                         const _this = this;
@@ -159,44 +225,38 @@ export class ServerBearEngine extends AbstractBearEngine {
                         // START TICKING
                         pInfo.personalPackets.enqueue({
                             write(stream){
-                                stream.setUint8(GamePacket.START_TICKING);
+                                stream.setUint8(GamePacket.SERVER_IS_TICKING);
                                 stream.setUint16(_this.tick);
                             }
                         });
                         
                         pInfo.personalPackets.addAllQueue(this.lifetimeImportantPackets);
 
-                        this.globalPacketsToSerialize.push({
-                            write(stream){
-                                stream.setUint8(GamePacket.PLAYER_CREATE);
-                                stream.setUint8(clientID);
-                                StreamWriteEntityID(stream, player.entityID);
-                                stream.setFloat32(0);
-                                stream.setFloat32(0);
-                            }
-                        });
 
                         break;
                     }
                     case ServerBoundPacket.LEAVE_GAME: {
                         console.log(`Player ${clientID} has left the game, engine acknowledge`);
-                        const pInfo = this.players.get(clientID);
 
-                        this.players.delete(clientID);
                         const index = this.clients.indexOf(clientID);
-                        if(index === -1) throw new Error("Trying to delete a client we don't have.... how is this possible")
+                        if(index === -1) {
+                            console.log("Trying to delete a client we don't have....")
+                            continue;
+                        }
+                        
+                        this.players.delete(clientID);
                         this.clients.splice(index,1);
 
-                        this.globalPacketsToSerialize.push({
+                        this.currentTickPacketsForEveryone.push({
                             write(stream){
                                 stream.setUint8(GamePacket.PLAYER_DESTROY);
                                 stream.setUint8(clientID);
-                                StreamWriteEntityID(stream, pInfo.playerEntity.entityID);
                             }
                         });
 
                         break;
                     }
+                    
                     case ServerBoundPacket.PLAYER_POSITION: {
                         const p = this.players.get(clientID).playerEntity;
                         p.position.x = stream.getFloat32();
@@ -205,26 +265,8 @@ export class ServerBearEngine extends AbstractBearEngine {
                         p.flipped = stream.getBool();
                         p.health = stream.getUint8();
 
-                        break;
-                    }
+                        const isMouseDown = stream.getBool()
 
-                    case ServerBoundPacket.DAMAGE_OTHER_PLAYER: {
-                        const targetPlayer = stream.getUint8();
-                        const dmg = stream.getUint8();
-
-                        const p = this.players.get(targetPlayer);
-
-                        if(p !== undefined){
-                            p.playerEntity.health -= dmg;
-
-                            p.personalPackets.enqueue({
-                                write(stream){
-                                    stream.setUint8(GamePacket.DAMAGE_PLAYER);
-                                    stream.setUint8(dmg);
-                                }
-                            })
-                        }
-                        
                         break;
                     }
 
@@ -233,7 +275,7 @@ export class ServerBearEngine extends AbstractBearEngine {
                         const y = stream.getFloat64();
                         const r = stream.getInt32();
 
-                        this.globalPacketsToSerialize.push({
+                        this.currentTickPacketsForEveryone.push({
                             write(stream){
                                 stream.setUint8(GamePacket.PASSTHROUGH_TERRAIN_CARVE_CIRCLE);
                                 stream.setUint8(clientID);
@@ -254,6 +296,7 @@ export class ServerBearEngine extends AbstractBearEngine {
 
     private writeToNetwork(){
 
+        
         // Get entities marked dirty
         const entitiesToSerialize: ServerEntity[] = []
 
@@ -276,50 +319,50 @@ export class ServerBearEngine extends AbstractBearEngine {
 
             connection.serializePersonalPackets(stream);
 
-            // Write all player positions to packet
-            for(const connection of this.clients){
-                const player = this.players.get(connection).playerEntity;
+            // Don't update players or entities when stage inactive
+            if(this.isStageActive){
+                // Write all player positions to packet
+                for(const connection of this.clients){
+                    const player = this.players.get(connection).playerEntity;
 
-                stream.setUint8(GamePacket.PLAYER_POSITION);
-                stream.setUint8(connection);
-                StreamWriteEntityID(stream, player.entityID);
-                stream.setFloat32(player.position.x);
-                stream.setFloat32(player.position.y);
-                stream.setUint8(player.state);
-                stream.setBool(player.flipped);
-                stream.setUint8(player.health);
+                    stream.setUint8(GamePacket.PLAYER_POSITION);
+                    stream.setUint8(connection);
+                    stream.setFloat32(player.position.x);
+                    stream.setFloat32(player.position.y);
+                    stream.setUint8(player.state);
+                    stream.setBool(player.flipped);
+                    stream.setUint8(player.health);
+                }
+                
+                for(const entity of entitiesToSerialize){
+                    stream.setUint8(GamePacket.REMOTE_ENTITY_VARIABLE_CHANGE);
+                    SharedEntityServerTable.serialize(stream, entity);
+                }
             }
 
-            for(const packet of this.globalPacketsToSerialize){
+            for(const packet of this.currentTickPacketsForEveryone){
                 packet.write(stream);
             }
 
-            for(const entity of entitiesToSerialize){
-                stream.setUint8(GamePacket.REMOTE_ENTITY_VARIABLE_CHANGE);
-                SharedEntityServerTable.serialize(stream, entity);
-            }
+            
                     
             this.network.send(client, stream.cutoff());
  
             stream.refresh();
         }
 
-        for(const packet of this.globalPacketsToSerialize){
+        for(const packet of this.currentTickPacketsForEveryone){
             this.lifetimeImportantPackets.enqueue(packet);
         }
         
-        this.globalPacketsToSerialize = [];
+        this.currentTickPacketsForEveryone = [];
 
         // console.log(this.tick,Date.now()  - this.previousTick);
     }
 
-
-   
-
-
-    
+    //#region testing
     queueRemoteFunction(){
-        this.globalPacketsToSerialize.push({
+        this.currentTickPacketsForEveryone.push({
 
             write(stream){
                 RemoteFunctionLinker.serializeRemoteFunction("testFunction", stream,Date.now());
@@ -335,7 +378,7 @@ export class ServerBearEngine extends AbstractBearEngine {
 
         this.entityManager.addEntity(e);
         
-        this.globalPacketsToSerialize.push({
+        this.currentTickPacketsForEveryone.push({
             write(stream){
                 stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
                 stream.setUint8(e.constructor["SHARED_ID"]);
@@ -343,10 +386,9 @@ export class ServerBearEngine extends AbstractBearEngine {
             }
         });
     }
-
+    //#endregion
 
     private _boundLoop = this.loop.bind(this);
-
 
     loop(){
         const now = Date.now();
@@ -364,22 +406,22 @@ export class ServerBearEngine extends AbstractBearEngine {
             this.readNetwork();
 
             // Check for dead players
-            for(const player of this.clients){
-                const p = this.players.get(player);
-                if(p.playerEntity.health <= 0 && p.playerEntity.dead === false){
-                    p.playerEntity.dead = true;
+            if(this.isStageActive){
+                for(const player of this.clients){
+                    const p = this.players.get(player);
+                    if(p.playerEntity.health <= 0 && p.playerEntity.dead === false){
+                        p.playerEntity.dead = true;
 
-                    console.log("Death!")
-                    this.globalPacketsToSerialize.push({
-                        write(stream){
-                            stream.setUint8(GamePacket.PLAYER_DESTROY);
-                            stream.setUint8(player);
-                            StreamWriteEntityID(stream, p.playerEntity.entityID);
-                        }
-                    })
+                        console.log("Death!")
+                        this.currentTickPacketsForEveryone.push({
+                            write(stream){
+                                stream.setUint8(GamePacket.PLAYER_DESTROY);
+                                stream.setUint8(player);
+                            }
+                        })
+                    }
                 }
             }
-
 
             this.entityManager.update(dt);
 

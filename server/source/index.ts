@@ -56,7 +56,12 @@ rl.on('line', (input: string) => {
 
     switch(first){
         case "starts": {
-            engine.testBeginLevel(allWords[1] as any);
+            engine.beginStage(allWords[1] as any);
+            break;
+        }
+
+        case "end": {
+            engine.endStage()
             break;
         }
 

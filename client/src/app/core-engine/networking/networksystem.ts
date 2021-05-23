@@ -31,12 +31,19 @@ export class NetworkSystem extends Subsystem<BearEngine> {
     private scene: Scene;
     public remotelocations = this.addQuery(RemoteLocations);
 
-    // contains networked entities
-    private entities: Map<number, RemoteEntity> = new Map(); 
+
+    private remoteEntities: Map<number, RemoteEntity> = new Map();
+    private remotePlayers: Map<number, RemotePlayer> = new Map(); 
 
     private packetsToSerialize: PacketWriter[] = [];
 
     private remoteFunctionCallMap = new Map<keyof RemoteFunction,keyof NetworkSystem>()
+
+
+
+    public LEVEL_ACTIVE = false;
+
+
 
     public PLAYER_ID = -1;
 
@@ -98,10 +105,6 @@ export class NetworkSystem extends Subsystem<BearEngine> {
         }
     }
 
-    private getEntity<T extends AbstractEntity = AbstractEntity>(id: number): T {
-        return this.entities.get(id) as any as T;
-    }
-
     private sendPing(){
         // Sends unix time stamp in ms 
         const stream = new BufferStreamWriter(new ArrayBuffer(10));
@@ -144,7 +147,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
         const e = new _class();
 
         // Adds it to the scene
-        this.entities.set(entityID, e);
+        this.remoteEntities.set(entityID, e);
         this.scene.addEntity(e);
 
         return e;
@@ -225,7 +228,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             console.log("My player id is: " + this.PLAYER_ID);
                             break;
                         }
-                        case GamePacket.START_TICKING: {
+                        case GamePacket.SERVER_IS_TICKING: {
                             this.SERVER_IS_TICKING = true;
                             const tick = stream.getUint16(); // Reads this number so stream isn't broken
                             break;
@@ -245,7 +248,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             const SHARED_ID = stream.getUint8();
                             const entityID = StreamReadEntityID(stream);
 
-                            let entity = this.entities.get(entityID);
+                            let entity = this.remoteEntities.get(entityID);
 
                             if(entity === undefined){
                                 // Will try to create the entity for now, but we missed the REMOTE_ENTITY_CREATE packet clearly
@@ -276,41 +279,41 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             this.engine.endCurrentLevel();
                             this.engine.loadLevel(ParseTiledMapData(this.engine.getResource(level).data as TiledMap));
 
-                            const p = this.scene.getEntityByTag<Player>("Player");
-                            
-                            if(p === null) throw new Error("Player not found. This shouldn't happen");
+                            const p = this.engine.player = new Player();
+
+                            this.scene.addEntity(p);
 
                             p.x = x;
                             p.y = y;
 
+                            this.LEVEL_ACTIVE = true;
+                            console.log("Round begun")
                             break;
                         }
-                        case GamePacket.PLAYER_DESTROY:{
-                             // Find correct entity
-                            const pId = stream.getUint8();
-                            const id = StreamReadEntityID(stream);
+                        case GamePacket.END_ROUND: {
+                            console.log("Round ended")
 
-                            if(pId === this.PLAYER_ID){
-                                // Destroy my own
-                                const p = this.scene.getEntityByTag<Player>("Player");
-                                p.dead = true;
-
-                                continue;
+                            for(const e of this.remotePlayers.values()){
+                                e.destroySelf();
                             }
 
-                            let e = this.entities.get(id);
-                            if(e !== undefined){
-                                console.log("Destroying entity: " + id);
-
-                                this.scene.destroyEntity(e);
+                            for(const e of this.remoteEntities.values()){
+                                e.destroySelf();
                             }
+
+                            this.remotePlayers.clear();
+                            this.remoteEntities.clear();
+
+                            this.engine.player = null;
+
+                            this.LEVEL_ACTIVE = false;
+
                             break;
                         }
                         case GamePacket.PLAYER_CREATE : {
                             // [playerID: uint8, entityID, x: float32, y: float32]
 
                             const pID = stream.getUint8();
-                            const eId = StreamReadEntityID(stream);
                             const x = stream.getFloat32();
                             const y = stream.getFloat32();
 
@@ -318,30 +321,48 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                                 console.log("Don't create self")
                                 continue;
                             }
-                            let checkIfExists = this.entities.get(eId);
+                            let checkIfExists = this.remotePlayers.get(pID);
                             if(checkIfExists !== undefined){
                                 console.log("Trying to create player entity that already exists")
                                 continue;
                             }
 
                             const entity = new RemotePlayer(pID);
-                            this.entities.set(eId, entity);
+                            this.remotePlayers.set(pID, entity);
                             this.scene.addEntity(entity);
                             
                             break;
                         }
+                        case GamePacket.PLAYER_DESTROY:{
+                            // Find correct entity
+                           const pId = stream.getUint8();
+
+                           if(pId === this.PLAYER_ID){
+                               // Destroy my own
+                               this.engine.player.dead = true;
+
+                               continue;
+                           }
+
+                           let e = this.remotePlayers.get(pId);
+                           if(e !== undefined){
+                               console.log("Destroying player: " + pId);
+
+                               this.scene.destroyEntity(e);
+                           }
+                           break;
+                       }
                         case GamePacket.DAMAGE_PLAYER : {
                             const dmg = stream.getUint8();
 
 
-                            this.scene.getEntityByTag<Player>("Player").health -= dmg;
+                            this.engine.player.health -= dmg;
                             break;
                         }
                         case GamePacket.PLAYER_POSITION:{
                             
                             // Find correct entity
                             const playerID = stream.getUint8();
-                            const id = StreamReadEntityID(stream);
                     
                             const x = stream.getFloat32();
                             const y = stream.getFloat32();
@@ -353,7 +374,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                                 continue;
                             }
 
-                            let e = this.entities.get(id) as RemotePlayer;
+                            let e = this.remotePlayers.get(playerID);
                             if(e === undefined){
                                 console.log("Unknown player data");
                                 continue;
@@ -428,19 +449,21 @@ export class NetworkSystem extends Subsystem<BearEngine> {
     }
     
     writePackets(){
-        if(this.network.CONNECTED && this.SERVER_IS_TICKING){
-            const player = this.scene.getEntityByTag<Player>("Player");
+        if(this.network.CONNECTED && this.SERVER_IS_TICKING && this.LEVEL_ACTIVE){
+            const player = this.engine.player;
+
             const stream = new BufferStreamWriter(new ArrayBuffer(256));
-
             stream.setUint8(ServerPacketSubType.QUEUE);
-            
-            stream.setUint8(ServerBoundPacket.PLAYER_POSITION);
-            stream.setFloat32(player.x);
-            stream.setFloat32(player.y);
-            stream.setUint8(player.state);
-            stream.setBool(player.xspd < 0);
-            stream.setUint8(player.health < 0 ? 0 : player.health);
 
+            if(!player.dead){    
+                stream.setUint8(ServerBoundPacket.PLAYER_POSITION);
+                stream.setFloat32(player.x);
+                stream.setFloat32(player.y);
+                stream.setUint8(player.state);
+                stream.setBool(player.xspd < 0);
+                stream.setUint8(player.health < 0 ? 0 : player.health);
+                stream.setBool(this.engine.mouse.isDown("left"));
+            }
 
             for(const packet of this.packetsToSerialize){
                 packet.write(stream);
