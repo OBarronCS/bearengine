@@ -351,13 +351,6 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                                this.scene.destroyEntity(e);
                            }
                            break;
-                       }
-                        case GamePacket.DAMAGE_PLAYER : {
-                            const dmg = stream.getUint8();
-
-
-                            this.engine.player.health -= dmg;
-                            break;
                         }
                         case GamePacket.PLAYER_POSITION:{
                             
@@ -371,6 +364,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             const health = stream.getUint8();
 
                             if(playerID === this.PLAYER_ID){
+                                this.engine.player.health = health;
                                 continue;
                             }
 
@@ -461,7 +455,6 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                 stream.setFloat32(player.y);
                 stream.setUint8(player.state);
                 stream.setBool(player.xspd < 0);
-                stream.setUint8(player.health < 0 ? 0 : player.health);
                 stream.setBool(this.engine.mouse.isDown("left"));
             }
 

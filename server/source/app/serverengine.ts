@@ -17,6 +17,7 @@ import { TerrainManager } from "shared/core/terrainmanager";
 import { readFileSync } from "fs";
 import path from "path";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
+import { Vec2 } from "shared/shapes/vec2";
 
 
 
@@ -263,7 +264,6 @@ export class ServerBearEngine extends AbstractBearEngine {
                         p.position.y = stream.getFloat32();
                         p.state = stream.getUint8();
                         p.flipped = stream.getBool();
-                        p.health = stream.getUint8();
 
                         const isMouseDown = stream.getBool()
 
@@ -284,6 +284,18 @@ export class ServerBearEngine extends AbstractBearEngine {
                                 stream.setInt32(r);
                             }
                         });
+
+                        const point = new Vec2(x,y);
+
+                        // Check in radius to see if any players are hurt
+                        for(const client of this.clients){
+                            if(client === clientID) continue;
+                            const p = this.players.get(client);
+
+                            if(Vec2.distanceSquared(p.playerEntity.position,point) < r * r){
+                                p.playerEntity.health -= 16;
+                            }
+                        } 
                         
                         break;
                     }

@@ -35,8 +35,6 @@ export enum GamePacket {
     
     PLAYER_DESTROY, // [playerID: uint8]
 
-    DAMAGE_PLAYER, // [dmg: uint8] damages the local client
-
     // TODO: EXPLOSION: [fromPlayer: uint8, x: float32, y: float32, strength: uint8] // handle knockback on clients
 
     PASSTHROUGH_TERRAIN_CARVE_CIRCLE, // [playerWhoDidIt: uint8, x: double, y: double, r: int32]
@@ -58,7 +56,7 @@ export enum ServerBoundPacket {
     LEAVE_GAME, // [empty packet]
 
 
-    PLAYER_POSITION, // [x: float32, y: float32, uint8: animationstate, bool: flipped, health: uint8, isMouseDown: bool]
+    PLAYER_POSITION, // [x: float32, y: float32, uint8: animationstate, bool: flipped, isMouseDown: bool]
 
     TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
 }
