@@ -21,11 +21,17 @@ export enum GamePacket {
 
     // x y and is your respawn point, level is value that points to level string
     
-    START_ROUND, //[x:float32, y: float32, level_enum: uint8]
+    START_ROUND, // [x:float32, y: float32, level_enum: uint8]
 
     // Player created if entity not found
-    PLAYER_POSITION, // [entityID, x: float32, y: float32, uint8: animationstate, bool: flipped]
-    PLAYER_DESTROY, // [entityID]
+    // PLAYER_CREATE --> sent to each player to make the create a new player object
+    PLAYER_CREATE, // [playerID: uint8, entityID, x: float32, y: float32]
+
+    PLAYER_POSITION, // [playerID: uint8, entityID, x: float32, y: float32, uint8: animationstate, bool: flipped, health: uint8];
+
+    PLAYER_DESTROY, // [playerID: uint8, entityID]
+
+    DAMAGE_PLAYER, // [dmg: uint8] damages the local client
 
     // TODO: EXPLOSION: [fromPlayer: uint8, x: float32, y: float32, strength: uint8] // handle knockback on clients
 
@@ -47,7 +53,9 @@ export enum ServerBoundPacket {
     JOIN_GAME, // [empty packet]
     LEAVE_GAME, // [empty packet]
 
-    PLAYER_POSITION, // [x: float32, y: float32, uint8: animationstate, bool: flipped]
+    PLAYER_POSITION, // [x: float32, y: float32, uint8: animationstate, bool: flipped, health: uint8]
+
+    DAMAGE_OTHER_PLAYER, // [otherPlayerID: uint8, dmg: uint8]
 
     TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
 }

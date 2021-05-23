@@ -14,6 +14,7 @@ import { SharedEntityServerTable } from "./networking/serverentitydecorators";
 import { PacketWriter, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
+import { doesNotMatch } from "assert";
 
 
 
@@ -118,7 +119,7 @@ export class ServerBearEngine extends AbstractBearEngine {
         while(!packets.isEmpty()){
             const packet = packets.dequeue();
             
-            const client = packet.client;
+            const clientID = packet.client;
             const stream = packet.buffer;
 
             while(stream.hasMoreData()){
@@ -128,18 +129,18 @@ export class ServerBearEngine extends AbstractBearEngine {
                 switch(type){
                     case ServerBoundPacket.JOIN_GAME: {
 
-                        console.log("Someone is trying to join: ", client)
-                        if(this.players.get(client) !== undefined) throw new Error("Client attempting to join twice")
+                        console.log("Player joining: ", clientID)
+                        if(this.players.get(clientID) !== undefined) throw new Error("Client attempting to join twice")
 
-                        const pInfo = new PlayerInformation(client);
+                        const pInfo = new PlayerInformation(clientID);
                         
-                        this.clients.push(client);
+                        this.clients.push(clientID);
                         
                         const player = new PlayerEntity();
                         pInfo.playerEntity = player;
 
                         this.entityManager.addEntity(player);
-                        this.players.set(client, pInfo);
+                        this.players.set(clientID, pInfo);
 
                         // INIT DATA, tick rate, current time and tick
                         const _this = this;
@@ -151,7 +152,7 @@ export class ServerBearEngine extends AbstractBearEngine {
                                 stream.setUint8(_this.TICK_RATE)
                                 stream.setBigUint64(_this.referenceTime);
                                 stream.setUint16(_this.referenceTick);
-                                stream.setUint8(client);
+                                stream.setUint8(clientID);
                             }
                         })
 
@@ -165,20 +166,31 @@ export class ServerBearEngine extends AbstractBearEngine {
                         
                         pInfo.personalPackets.addAllQueue(this.lifetimeImportantPackets);
 
+                        this.globalPacketsToSerialize.push({
+                            write(stream){
+                                stream.setUint8(GamePacket.PLAYER_CREATE);
+                                stream.setUint8(clientID);
+                                StreamWriteEntityID(stream, player.entityID);
+                                stream.setFloat32(0);
+                                stream.setFloat32(0);
+                            }
+                        });
+
                         break;
                     }
                     case ServerBoundPacket.LEAVE_GAME: {
-                        console.log(`Player ${client} has left the game, engine acknowledge`);
-                        const pInfo = this.players.get(client);
+                        console.log(`Player ${clientID} has left the game, engine acknowledge`);
+                        const pInfo = this.players.get(clientID);
 
-                        this.players.delete(client);
-                        const index = this.clients.indexOf(client);
+                        this.players.delete(clientID);
+                        const index = this.clients.indexOf(clientID);
                         if(index === -1) throw new Error("Trying to delete a client we don't have.... how is this possible")
                         this.clients.splice(index,1);
 
                         this.globalPacketsToSerialize.push({
                             write(stream){
                                 stream.setUint8(GamePacket.PLAYER_DESTROY);
+                                stream.setUint8(clientID);
                                 StreamWriteEntityID(stream, pInfo.playerEntity.entityID);
                             }
                         });
@@ -186,14 +198,36 @@ export class ServerBearEngine extends AbstractBearEngine {
                         break;
                     }
                     case ServerBoundPacket.PLAYER_POSITION: {
-                        const p = this.players.get(client).playerEntity;
+                        const p = this.players.get(clientID).playerEntity;
                         p.position.x = stream.getFloat32();
                         p.position.y = stream.getFloat32();
                         p.state = stream.getUint8();
                         p.flipped = stream.getBool();
+                        p.health = stream.getUint8();
 
                         break;
                     }
+
+                    case ServerBoundPacket.DAMAGE_OTHER_PLAYER: {
+                        const targetPlayer = stream.getUint8();
+                        const dmg = stream.getUint8();
+
+                        const p = this.players.get(targetPlayer);
+
+                        if(p !== undefined){
+                            p.playerEntity.health -= dmg;
+
+                            p.personalPackets.enqueue({
+                                write(stream){
+                                    stream.setUint8(GamePacket.DAMAGE_PLAYER);
+                                    stream.setUint8(dmg);
+                                }
+                            })
+                        }
+                        
+                        break;
+                    }
+
                     case ServerBoundPacket.TERRAIN_CARVE_CIRCLE: {
                         const x = stream.getFloat64();
                         const y = stream.getFloat64();
@@ -202,7 +236,7 @@ export class ServerBearEngine extends AbstractBearEngine {
                         this.globalPacketsToSerialize.push({
                             write(stream){
                                 stream.setUint8(GamePacket.PASSTHROUGH_TERRAIN_CARVE_CIRCLE);
-                                stream.setUint8(client);
+                                stream.setUint8(clientID);
                                 stream.setFloat64(x);
                                 stream.setFloat64(y);
                                 stream.setInt32(r);
@@ -247,11 +281,13 @@ export class ServerBearEngine extends AbstractBearEngine {
                 const player = this.players.get(connection).playerEntity;
 
                 stream.setUint8(GamePacket.PLAYER_POSITION);
+                stream.setUint8(connection);
                 StreamWriteEntityID(stream, player.entityID);
                 stream.setFloat32(player.position.x);
                 stream.setFloat32(player.position.y);
                 stream.setUint8(player.state);
                 stream.setBool(player.flipped);
+                stream.setUint8(player.health);
             }
 
             for(const packet of this.globalPacketsToSerialize){
@@ -278,9 +314,7 @@ export class ServerBearEngine extends AbstractBearEngine {
     }
 
 
-    private _boundLoop = this.loop.bind(this);
-
-    private tickTimer = new TickTimer(30);
+   
 
 
     
@@ -311,6 +345,8 @@ export class ServerBearEngine extends AbstractBearEngine {
     }
 
 
+    private _boundLoop = this.loop.bind(this);
+
 
     loop(){
         const now = Date.now();
@@ -319,10 +355,6 @@ export class ServerBearEngine extends AbstractBearEngine {
         if (this.previousTickTime + (1000 / this.TICK_RATE) <= now) {
             const dt = 1000 / this.TICK_RATE;
 
-            if(this.tickTimer.tick()){ 
-                
-              
-            }
 
             this.tick += 1;
             // Think about whether the time should be at beginning or end of tick
@@ -331,6 +363,22 @@ export class ServerBearEngine extends AbstractBearEngine {
 
             this.readNetwork();
 
+            // Check for dead players
+            for(const player of this.clients){
+                const p = this.players.get(player);
+                if(p.playerEntity.health <= 0 && p.playerEntity.dead === false){
+                    p.playerEntity.dead = true;
+
+                    console.log("Death!")
+                    this.globalPacketsToSerialize.push({
+                        write(stream){
+                            stream.setUint8(GamePacket.PLAYER_DESTROY);
+                            stream.setUint8(player);
+                            StreamWriteEntityID(stream, p.playerEntity.entityID);
+                        }
+                    })
+                }
+            }
 
 
             this.entityManager.update(dt);

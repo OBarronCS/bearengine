@@ -16,7 +16,9 @@ export abstract class ServerEntity extends AbstractEntity {
 }
 
 export class PlayerEntity extends ServerEntity {
-    state: number;
+    dead = false
+    health: number = 100;
+    state: number = 0;
     flipped = false;
     update(dt: number): void {}
 }

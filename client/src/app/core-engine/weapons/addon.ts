@@ -1,5 +1,6 @@
 import { ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { Vec2 } from "shared/shapes/vec2";
+import { RemotePlayer } from "../../gamelogic/player";
 import { BaseBullet } from "./weapon";
 import { ShotInfo } from "./weaponinterfaces";
 
@@ -40,7 +41,6 @@ export class Clip implements GunAddon {
 }
 
 
-
 export class TerrainHitAddon implements GunAddon {
     addontype: AddOnType = AddOnType.SPECIAL;
 
@@ -49,10 +49,11 @@ export class TerrainHitAddon implements GunAddon {
             const testTerrain = this.engine.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)))
 
             const RADIUS = 40;
+            const DMG_RADIUS = 40;
 
             if(testTerrain){
                 this.engine.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
-                // Janky wow
+
                 const network = this.engine.networksystem;
                 network.queuePacket({
                     write(stream){
@@ -62,6 +63,23 @@ export class TerrainHitAddon implements GunAddon {
                         stream.setInt32(RADIUS);
                     }
                 })
+                const otherPlayer = this.engine.collisionManager.circleQuery(this.x, this.y, DMG_RADIUS);
+
+                for(const player of otherPlayer as Iterable<RemotePlayer>){
+                    // Need to check that the other entity is player
+                    if(player.IS_REMOTE_PLAYER !== undefined){
+                        console.log("HIT");
+                        network.queuePacket({
+                            write(stream){
+                                stream.setUint8(ServerBoundPacket.DAMAGE_OTHER_PLAYER);
+                                stream.setUint8(player.id)
+                                stream.setUint8(17)
+                            }
+                        })
+                    }
+                }
+            
+               
                 this.destroySelf();
             }
         })

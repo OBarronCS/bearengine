@@ -287,7 +287,17 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                         }
                         case GamePacket.PLAYER_DESTROY:{
                              // Find correct entity
+                            const pId = stream.getUint8();
                             const id = StreamReadEntityID(stream);
+
+                            if(pId === this.PLAYER_ID){
+                                // Destroy my own
+
+                                const p = this.scene.getEntityByTag<Player>("Player");
+                                p.dead = true;
+
+                                continue;
+                            }
 
                             let e = this.entities.get(id);
                             if(e !== undefined){
@@ -297,28 +307,62 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             }
                             break;
                         }
+                        case GamePacket.PLAYER_CREATE : {
+                            // [playerID: uint8, entityID, x: float32, y: float32]
+
+                            const pID = stream.getUint8();
+                            const eId = StreamReadEntityID(stream);
+                            const x = stream.getFloat32();
+                            const y = stream.getFloat32();
+
+                            if(pID === this.PLAYER_ID){
+                                console.log("Don't create self")
+                                continue;
+                            }
+                            let checkIfExists = this.entities.get(eId);
+                            if(checkIfExists !== undefined){
+                                console.log("Trying to create player entity that already exists")
+                                continue;
+                            }
+
+                            const entity = new RemotePlayer(pID);
+                            this.entities.set(eId, entity);
+                            this.scene.addEntity(entity);
+                            
+                            break;
+                        }
+                        case GamePacket.DAMAGE_PLAYER : {
+                            const dmg = stream.getUint8();
+
+
+                            this.scene.getEntityByTag<Player>("Player").health -= dmg;
+                            break;
+                        }
                         case GamePacket.PLAYER_POSITION:{
                             
                             // Find correct entity
-                            const id = StreamReadEntityID(stream);;
-                            //  console.log("ID: " + id)
-                            let e = this.entities.get(id);
-                            if(e === undefined){
-                                console.log("creating new server player entity");
-                                // e should be an instance of this
-                                e = new RemotePlayer();
-                                this.entities.set(id, e);
-                                this.scene.addEntity(e);
-                            }
-
+                            const playerID = stream.getUint8();
+                            const id = StreamReadEntityID(stream);
+                    
                             const x = stream.getFloat32();
                             const y = stream.getFloat32();
                             const state = stream.getUint8();
                             const flipped = stream.getBool();
+                            const health = stream.getUint8();
 
-                            (e as RemotePlayer).locations.addPosition(frame, x,y);
-                            (e as RemotePlayer).setState(state,flipped);
+                            if(playerID === this.PLAYER_ID){
+                                continue;
+                            }
 
+                            let e = this.entities.get(id) as RemotePlayer;
+                            if(e === undefined){
+                                console.log("Unknown player data");
+                                continue;
+                            }
+                            
+                            e.locations.addPosition(frame, x,y);
+                            e.setState(state,flipped);
+                            e.health = health;
                             
                             break;
                         }
@@ -395,6 +439,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
             stream.setFloat32(player.y);
             stream.setUint8(player.state);
             stream.setBool(player.xspd < 0);
+            stream.setUint8(player.health < 0 ? 0 : player.health);
 
 
             for(const packet of this.packetsToSerialize){

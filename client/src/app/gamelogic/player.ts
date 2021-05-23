@@ -1,13 +1,13 @@
-import { AnimatedSprite, Container, Graphics, Sprite, Texture } from "pixi.js";
+import { AnimatedSprite, Container, Graphics, Runner, Sprite, Texture } from "pixi.js";
 
 import { Vec2, rotatePoint, angleBetween, Coordinate } from "shared/shapes/vec2";
 import { random_range } from "shared/randomhelpers";
 import { dimensions } from "shared/shapes/rectangle";
-import { drawPoint } from "shared/shapes/shapedrawing";
+import { drawHealthBar, drawPoint } from "shared/shapes/shapedrawing";
 import { clamp, E, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/mathutils";
 import { ColliderPart, TagPart } from "shared/core/abstractpart";
 
-import { SpritePart } from "../core-engine/parts";
+import { GraphicsPart, SpritePart } from "../core-engine/parts";
 import { AddOnType, TerrainHitAddon } from "../core-engine/weapons/addon";
 import { BaseBulletGun } from "../core-engine/weapons/weapon";
 import { DrawableEntity } from "../core-engine/entity";
@@ -177,7 +177,9 @@ export class Player extends DrawableEntity {
     private readonly idleAnimation = new PlayerAnimationState(this.engine.getResource("player/idle.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
     private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
 
+    dead = false;
 
+    public health = 100;
 
     last_ground_xspd = 0;
     last_ground_yspd = 0;
@@ -313,7 +315,7 @@ export class Player extends DrawableEntity {
     }
 
     onAdd(){
-        // this.scene.addEntity(this.gun)
+        this.scene.addEntity(this.gun)
         this.runAnimation.setScale(2);
         this.wallslideAnimation.setScale(2);
         this.idleAnimation.setScale(2);
@@ -328,7 +330,7 @@ export class Player extends DrawableEntity {
     }
 
     onDestroy(){
-        // this.scene.destroyEntity(this.gun)
+        this.scene.destroyEntity(this.gun)
         this.engine.renderer.removeSprite(this.runAnimation.container);
         this.engine.renderer.removeSprite(this.wallslideAnimation.container);
         this.engine.renderer.removeSprite(this.idleAnimation.container);
@@ -553,11 +555,13 @@ export class Player extends DrawableEntity {
 
 
     update(dt: number): void {
+        if(this.dead) return;
+        
         if(this.y > this.engine.levelbbox.height + 800) this.y = 0;
 
 
         // Weapon logic
-        this.gun.position.set({x: this.x, y: this.y - 20});
+        this.gun.position.set({x: this.x, y: this.y});
         rotatePoint(this.gun.position,this.position,this.slope_normal);
 
         this.gun.dir.set(new Vec2(0,0).set(this.mouse.position).sub(this.gun.position));
@@ -572,17 +576,20 @@ export class Player extends DrawableEntity {
             this.gun.image.angle = angleToMouse + PI;
         }
 
-        const kb = difference.negate().extend(15);
-        if(this.mouse.wasPressed("left")){
+        const kb = difference.negate().extend(2.5);
+
+        if(this.gun.operate(this.mouse.isDown("left"))){
+            if(this.state === PlayerState.GROUND) this.state = PlayerState.AIR;
+
             if(this.state === PlayerState.AIR) this.knockback(kb);
-            else if (this.state === PlayerState.GROUND) {
-                this.gspd += -kb.x * this.slope_normal.y
-                this.gspd += kb.y * this.slope_normal.x
-            }
+            // else if (this.state === PlayerState.GROUND) {
+            //     this.gspd += -kb.x * this.slope_normal.y
+            //     this.gspd += kb.y * this.slope_normal.x
+            // }
         }
             
 
-        // this.gun.operate(this.mouse.isDown("left"));
+        
 
         // Adjust drawing angle 
         const angle = Math.atan2(this.slope_normal.y, this.slope_normal.x) * RAD_TO_DEG;
@@ -882,6 +889,9 @@ export class Player extends DrawableEntity {
     }
      
     private Air_State(){
+        this.idleAnimation.setPosition(this.position);
+
+        if(this.xspd !== 0) this.setSprite("run")
         this.runAnimation.setPosition(this.position);
         this.runAnimation.tick();
         this.runAnimation.xFlip(this.xspd)
@@ -1101,8 +1111,6 @@ export class Player extends DrawableEntity {
     draw(g: Graphics) {
         drawPoint(g,this.position);
 
-        g.alpha = .04;
-
         g.beginFill(0xFF00FF,.4)
         g.drawRect(this.x - this.player_width / 2, this.y - this.player_height / 2, this.player_width, this.player_height)
         g.endFill();
@@ -1119,6 +1127,8 @@ export class Player extends DrawableEntity {
 
         this.leftClimbRay.draw(g,0x00000)
         this.rightClimbRay.draw(g, 0xFFFFFF)
+        
+        drawHealthBar(g, this.x - 20, this.y - 40, 40, 7, this.health / 100, 1);
     }
 }
 
@@ -1126,6 +1136,19 @@ export class Player extends DrawableEntity {
 
 
 export class RemotePlayer extends RemoteEntity {
+
+    colliderPart = this.addPart(new ColliderPart(dimensions(48,30),{x:24, y:15}));
+    
+    public IS_REMOTE_PLAYER = true;
+    readonly id: number;
+    public health = 100;
+
+    graphics = this.addPart(new GraphicsPart());
+
+    constructor(id: number){
+        super();
+        this.id = id;
+    }
 
     public locations = this.addPart(new RemoteLocations());
     
@@ -1206,6 +1229,9 @@ export class RemotePlayer extends RemoteEntity {
         this.wallslideAnimation.tick();
         this.idleAnimation.tick();
         this.climbAnimation.tick();
+
+        this.graphics.graphics.clear();
+        drawHealthBar(this.graphics.graphics, this.x - 20, this.y - 40, 40, 7, this.health / 100);
     }
     
 }

@@ -1,6 +1,14 @@
 import type { Graphics } from "pixi.js";
 import { Coordinate } from "./vec2";
 
+export function drawHealthBar(g: Graphics, x1: number, y1: number, width: number, height: number, percent: number, alpha = 1){
+    g.beginFill(0x000000, alpha);
+    g.drawRect(x1, y1, width, height);
+    g.beginFill(0xFF0000, alpha);
+    g.drawRect(x1, y1, width * percent, height);
+    g.endFill();
+}
+
 // draws the vector as an arrow taking into account magnitude and direction, at a certain location
 export function drawVecAsArrow(graphics: Graphics, vec: Coordinate, _x: number, _y: number, lengthMultiplier: number){
 	const width = 2;

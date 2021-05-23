@@ -126,7 +126,7 @@ export class BufferStreamWriter {
     size() { return this.maxOffset; }
     getBuffer() { return this.dataview.buffer; }
 
-    /** Returns a copy of the underlying ArrayBuffer, cutting of at the max offset written to */
+    /** Returns a copy of the underlying ArrayBuffer, cutting off at the max offset written to */
     cutoff(): ArrayBuffer {
         return this.dataview.buffer.slice(0,this.maxOffset);
     }

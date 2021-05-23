@@ -52,7 +52,7 @@ export class BaseBulletGun extends SpriteEntity {
     });
 
 
-    operate(holding: boolean): void {
+    operate(holding: boolean): boolean {
         if(this.gunInfo.trigger.holdTrigger(holding)){
             const bulletAmount = this.gunInfo.clip.getBullets();
             if(bulletAmount > 0){
@@ -68,7 +68,10 @@ export class BaseBulletGun extends SpriteEntity {
             
                 this.scene.addEntity(shotEffect);
             }
+            return true;
         }
+
+        return false;
     }
 }
 
