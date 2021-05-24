@@ -15,6 +15,7 @@ import { LinkedQueue } from "shared/datastructures/queue";
 import { BearEngine } from "../bearengine";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
+import { ItemEnum } from "server/source/app/weapons/weaponinterfaces";
 
 interface BufferedPacket {
     buffer: BufferStreamReader;
@@ -234,9 +235,12 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             break;
                         }
                         case GamePacket.REMOTE_ENTITY_CREATE: {
+                            console.log("CREATING REMOTE ENTITY");
 
                             const sharedClassID = stream.getUint8();
                             const entityID = StreamReadEntityID(stream);
+
+                            console.log("CREATE, ", sharedClassID, " ", entityID);
                             
                             this.createAutoRemoteEntity(sharedClassID,entityID);
                            
@@ -247,6 +251,8 @@ export class NetworkSystem extends Subsystem<BearEngine> {
 
                             const SHARED_ID = stream.getUint8();
                             const entityID = StreamReadEntityID(stream);
+
+                            // console.log("UPDATE, ", SHARED_ID, " ", entityID);
 
                             let entity = this.remoteEntities.get(entityID);
 
@@ -382,13 +388,33 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                         }
                         case GamePacket.PASSTHROUGH_TERRAIN_CARVE_CIRCLE: {
                             const terrain = this.engine.terrain;
-                            const pId = stream.getUint8();
                             const x = stream.getFloat64();
                             const y = stream.getFloat64();
                             const r = stream.getInt32();
                             
-                            if(pId !== this.PLAYER_ID)
-                                terrain.carveCircle(x, y, r);
+                            terrain.carveCircle(x, y, r);
+                            
+                            break;
+                        }
+
+                        case GamePacket.SET_ITEM: {
+                            const item: ItemEnum = stream.getUint8();
+
+                            switch(item){
+                                case ItemEnum.EMPTY: {
+                                    this.engine.player.itemInHand.clear();
+                                    break;
+                                }
+                                case ItemEnum.TERRAIN_CARVER: {
+                                    this.engine.player.itemInHand.setSprite("weapon1.png");
+                                    break;
+                                }
+
+                                
+
+                                default: AssertUnreachable(item);
+                            }
+
                             
                             break;
                         }
@@ -453,9 +479,13 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                 stream.setUint8(ServerBoundPacket.PLAYER_POSITION);
                 stream.setFloat32(player.x);
                 stream.setFloat32(player.y);
+                stream.setFloat32(this.engine.mouse.x);
+                stream.setFloat32(this.engine.mouse.y);
                 stream.setUint8(player.state);
                 stream.setBool(player.xspd < 0);
                 stream.setBool(this.engine.mouse.isDown("left"));
+                stream.setBool(this.engine.keyboard.wasPressed("KeyF"));
+                stream.setBool(this.engine.keyboard.wasPressed("KeyQ"));
             }
 
             for(const packet of this.packetsToSerialize){

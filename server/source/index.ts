@@ -60,6 +60,11 @@ rl.on('line', (input: string) => {
             break;
         }
 
+        case "weapon": {
+            engine.testweapon();
+            break;
+        }
+
         case "end": {
             engine.endStage()
             break;
@@ -74,12 +79,6 @@ rl.on('line', (input: string) => {
             const variable = allWords[1];
 
             console.log(engine[variable])
-            break;
-        }
-        
-        case "entity": {
-
-            engine.createRemoteEntityTest()
             break;
         }
         

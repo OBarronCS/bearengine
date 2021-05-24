@@ -24,20 +24,15 @@ implementations would then have to use this "shared name" to linked variables.
         = IDEA: It could enforce making the entity property the same name as well. 
 */
 
+/** Linking networked entity classes */
+export interface NetworkedEntityNames {
+    "bullet": false
+
+}
+
 export interface PacketWriter {
     write(stream: BufferStreamWriter): void,
 }
-
-/** Linking networked entity classes */
-export interface NetworkedEntityNames {
-    "flying_tree": false,
-    "auto": false,
-
-
-    "sharedEntityForVideo": false,
-
-}
-
 
 //#region Remote function linking
 /* 

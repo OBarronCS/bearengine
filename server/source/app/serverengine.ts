@@ -8,7 +8,7 @@ import { GamePacket, ServerBoundPacket, ServerPacketSubType } from "shared/core/
 import { Subsystem } from "shared/core/subsystem";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
-import { AutomaticallyUpdatingEntity, PlayerEntity, ServerEntity } from "./serverentity";
+import { PlayerEntity, ServerEntity } from "./serverentity";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
 import { PacketWriter, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
@@ -18,6 +18,12 @@ import { readFileSync } from "fs";
 import path from "path";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { Vec2 } from "shared/shapes/vec2";
+import { Rect } from "shared/shapes/rectangle";
+import { ItemEnum } from "server/source/app/weapons/weaponinterfaces";
+import { BaseBulletGun } from "./weapons/weapon";
+import { AddOnType, TerrainHitAddon } from "./weapons/addon";
+import { AbstractEntity } from "shared/core/abstractentity";
+import { random_range } from "shared/randomhelpers";
 
 
 
@@ -60,6 +66,7 @@ export class ServerBearEngine extends AbstractBearEngine {
     public isStageActive: boolean = false;
 
     // Subsystems
+    public levelbbox: Rect;
     public terrain: TerrainManager;
 
     private entityManager: Scene<ServerEntity>;
@@ -69,16 +76,23 @@ export class ServerBearEngine extends AbstractBearEngine {
 
     private currentTickPacketsForEveryone: PacketWriter[] = [];
 
+    queuePacket(packet: PacketWriter){
+        this.currentTickPacketsForEveryone.push(packet);
+    }
+
     private lifetimeImportantPackets: Queue<PacketWriter> = new LinkedQueue<PacketWriter>();
 
 
-    private players = new Map<ConnectionID,PlayerInformation>();
-    private clients: ConnectionID[] = [];
+    public players = new Map<ConnectionID,PlayerInformation>();
+    public clients: ConnectionID[] = [];
 
 
     constructor(tick_rate: number){
         super();
         this.TICK_RATE = tick_rate;
+
+        //@ts-expect-error
+        AbstractEntity.ENGINE_OBJECT = this;
 
         this.entityManager = this.registerSystem(new Scene<ServerEntity>(this));
         this.terrain = this.registerSystem(new TerrainManager(this));
@@ -114,6 +128,8 @@ export class ServerBearEngine extends AbstractBearEngine {
             const worldInfo = levelData.world;
             const width = worldInfo.width;
             const height = worldInfo.height;
+
+            this.levelbbox = new Rect(0,0, width, height);
 
             // this.levelbbox = new Rect(0,0,width,height);
             
@@ -262,41 +278,18 @@ export class ServerBearEngine extends AbstractBearEngine {
                         const p = this.players.get(clientID).playerEntity;
                         p.position.x = stream.getFloat32();
                         p.position.y = stream.getFloat32();
+
+                        p.mouse.x = stream.getFloat32();
+                        p.mouse.y = stream.getFloat32();
+
+
                         p.state = stream.getUint8();
                         p.flipped = stream.getBool();
 
-                        const isMouseDown = stream.getBool()
+                        p.mousedown = stream.getBool()
+                        const isFDown = stream.getBool()
+                        const isQDown = stream.getBool()
 
-                        break;
-                    }
-
-                    case ServerBoundPacket.TERRAIN_CARVE_CIRCLE: {
-                        const x = stream.getFloat64();
-                        const y = stream.getFloat64();
-                        const r = stream.getInt32();
-
-                        this.currentTickPacketsForEveryone.push({
-                            write(stream){
-                                stream.setUint8(GamePacket.PASSTHROUGH_TERRAIN_CARVE_CIRCLE);
-                                stream.setUint8(clientID);
-                                stream.setFloat64(x);
-                                stream.setFloat64(y);
-                                stream.setInt32(r);
-                            }
-                        });
-
-                        const point = new Vec2(x,y);
-
-                        // Check in radius to see if any players are hurt
-                        for(const client of this.clients){
-                            if(client === clientID) continue;
-                            const p = this.players.get(client);
-
-                            if(Vec2.distanceSquared(p.playerEntity.position,point) < r * r){
-                                p.playerEntity.health -= 16;
-                            }
-                        } 
-                        
                         break;
                     }
 
@@ -308,7 +301,6 @@ export class ServerBearEngine extends AbstractBearEngine {
 
     private writeToNetwork(){
 
-        
         // Get entities marked dirty
         const entitiesToSerialize: ServerEntity[] = []
 
@@ -331,6 +323,10 @@ export class ServerBearEngine extends AbstractBearEngine {
 
             connection.serializePersonalPackets(stream);
 
+            for(const packet of this.currentTickPacketsForEveryone){
+                packet.write(stream);
+            }
+
             // Don't update players or entities when stage inactive
             if(this.isStageActive){
                 // Write all player positions to packet
@@ -351,12 +347,6 @@ export class ServerBearEngine extends AbstractBearEngine {
                     SharedEntityServerTable.serialize(stream, entity);
                 }
             }
-
-            for(const packet of this.currentTickPacketsForEveryone){
-                packet.write(stream);
-            }
-
-            
                     
             this.network.send(client, stream.cutoff());
  
@@ -384,10 +374,50 @@ export class ServerBearEngine extends AbstractBearEngine {
 
     }
 
-    createRemoteEntityTest(){
+    testweapon(){
 
-        const e = new AutomaticallyUpdatingEntity();
+        for(const client of this.clients){
+            const p = this.players.get(client);
 
+            const gun = new BaseBulletGun(
+            [
+                new TerrainHitAddon(),
+                {
+                    addontype: AddOnType.SPECIAL,
+                    modifyShot(effect){
+                        effect.onInterval(2, function(times){
+                            this.bullet.velocity.drotate(random_range(-6,6))
+                        })
+                    }
+                },
+                {
+                    addontype: AddOnType.SPECIAL,
+                    gravity: new Vec2(0,.35),
+                    modifyShot(effect){
+            
+                        const self = this;
+            
+                        effect.onUpdate(function(){
+                            this.bullet.velocity.add(self.gravity);
+                        })
+                    }
+                },
+            ]
+            );
+            this.entityManager.addEntity(gun);
+            p.playerEntity.item = gun;
+        }
+
+        this.queuePacket({
+            write(stream){
+                stream.setUint8(GamePacket.SET_ITEM);
+                stream.setUint8(ItemEnum.TERRAIN_CARVER);
+            }
+        });
+    }
+    //#endregion
+    
+    createRemoteEntity(e: ServerEntity){
         this.entityManager.addEntity(e);
         
         this.currentTickPacketsForEveryone.push({
@@ -398,7 +428,6 @@ export class ServerBearEngine extends AbstractBearEngine {
             }
         });
     }
-    //#endregion
 
     private _boundLoop = this.loop.bind(this);
 
@@ -435,7 +464,9 @@ export class ServerBearEngine extends AbstractBearEngine {
                 }
             }
 
-            this.entityManager.update(dt);
+            for(let i = 0; i < 60/this.TICK_RATE; i++){
+                this.entityManager.update(dt);
+            }
 
 
 
