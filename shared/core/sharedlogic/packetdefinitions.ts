@@ -14,8 +14,10 @@ export enum GamePacket {
     INIT, // [ hash: uint64, tick_rate: uint8, reference time: biguint64, tick: uint16, uint8: your_player_id] 
     SERVER_IS_TICKING, // [tick: uint16];
 
-    REMOTE_ENTITY_CREATE, // [ SHARED_ID: uint8, instance_id: uint16]
-    REMOTE_ENTITY_VARIABLE_CHANGE, // [ SHARED_ID: uint8, instance id: uint16, ...data]
+    REMOTE_ENTITY_CREATE, // [ SHARED_ID: uint8, entityID]
+    REMOTE_ENTITY_VARIABLE_CHANGE, // [ SHARED_ID: uint8, entityID, ...data]
+    REMOTE_ENTITY_DELETE, // [SHARED_ID: uint8, entityID]
+
 
     REMOTE_FUNCTION_CALL, // [shared function id: uint8, ...function argument data]
 

@@ -44,8 +44,8 @@ export class TerrainHitAddon implements GunAddon {
 
     modifyShot(effect: BulletEffect){
         effect.onUpdate(function(){
-            const testTerrain = this.engine.terrain.lineCollision(this.bullet.position,Vec2.add(this.bullet.position, this.bullet.velocity.clone().extend(100)))
-
+            const testTerrain = this.engine.terrain.lineCollision(this.bullet.position,Vec2.add(this.bullet.position, this.bullet.velocity.clone().extend(100)));
+            
             const RADIUS = 40;
             const DMG_RADIUS = 50;
 
@@ -73,7 +73,7 @@ export class TerrainHitAddon implements GunAddon {
                 } 
             
                
-                this.destroySelf();
+                this.destroy();
             }
         })
         

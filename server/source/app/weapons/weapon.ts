@@ -50,7 +50,6 @@ export class BaseBulletGun extends ServerEntity {
         }
     });
 
-
     operate(holding: boolean): boolean {
         if(this.gunInfo.trigger.holdTrigger(holding)){
             const bulletAmount = this.gunInfo.clip.getBullets();
@@ -73,7 +72,6 @@ export class BaseBulletGun extends ServerEntity {
             
                 this.scene.addEntity(bEffect);
                 this.engine.createRemoteEntity(bullet);
-                // this.scene.addEntity(shotEffect);
             }
             return true;
         }
@@ -84,6 +82,21 @@ export class BaseBulletGun extends ServerEntity {
 
 export class BulletEffect extends Effect<ServerBearEngine> {
     bullet: ServerBullet;
+
+    constructor(){
+        super();
+    
+        this.onUpdate(function(dt: number){
+            if(!this.engine.levelbbox.contains(this.bullet.position)){
+                this.destroy();
+            }
+        });
+    }
+
+    destroy(){
+        this.destroySelf();
+        this.engine.remoteRemoteEntity(this.bullet);
+    }
 } 
 
 
@@ -100,10 +113,6 @@ export class ServerBullet extends ServerEntity {
 
     update(dt: number): void {
         this.position.add(this.velocity);
-
-        if(!this.engine.levelbbox.contains(this.position)){
-            this.destroySelf();
-        }
         
         this._x = this.x;
         this._y = this.y;     

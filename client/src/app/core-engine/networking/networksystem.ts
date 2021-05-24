@@ -267,6 +267,19 @@ export class NetworkSystem extends Subsystem<BearEngine> {
 
                             break;
                         }       
+                        case GamePacket.REMOTE_ENTITY_DELETE: {
+                            const SHARED_ID = stream.getUint8();
+                            const entityID = StreamReadEntityID(stream);
+
+                            const entity = this.remoteEntities.get(entityID);
+
+                            if(entity !== undefined){
+                                this.remoteEntities.delete(entityID);
+                                this.scene.destroyEntity(entity);
+                            }
+                            
+                            break;
+                        }
                         case GamePacket.REMOTE_FUNCTION_CALL:{
                             const functionID = stream.getUint8();
                             const functionName = RemoteFunctionLinker.getStringFromID(functionID)

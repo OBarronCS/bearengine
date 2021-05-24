@@ -375,7 +375,6 @@ export class ServerBearEngine extends AbstractBearEngine {
     }
 
     testweapon(){
-
         for(const client of this.clients){
             const p = this.players.get(client);
 
@@ -423,6 +422,19 @@ export class ServerBearEngine extends AbstractBearEngine {
         this.currentTickPacketsForEveryone.push({
             write(stream){
                 stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
+                stream.setUint8(e.constructor["SHARED_ID"]);
+                StreamWriteEntityID(stream, e.entityID);
+            }
+        });
+    }
+
+    
+    remoteRemoteEntity(e: ServerEntity){
+        this.entityManager.destroyEntity(e);
+
+        this.currentTickPacketsForEveryone.push({
+            write(stream){
+                stream.setUint8(GamePacket.REMOTE_ENTITY_DELETE);
                 stream.setUint8(e.constructor["SHARED_ID"]);
                 StreamWriteEntityID(stream, e.entityID);
             }
