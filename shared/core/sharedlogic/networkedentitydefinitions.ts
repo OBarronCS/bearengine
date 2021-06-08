@@ -8,7 +8,7 @@ import { GamePacket } from "./packetdefinitions";
 The following would allow entities to be checked BEFORE connecting to server.
 But, still need to validate stuff with live server on connect.
 
-NetworkEntityDefinitions = {
+const NetworkEntityDefinitions = {
     // Could define client constructor stuff using this method
     "shared_class_name": {
         create: () => void 0,
@@ -20,6 +20,8 @@ NetworkEntityDefinitions = {
     "other_class": {}
 } as const;
 
+export typeof NetworkedEntityDefinitions;
+
 implementations would then have to use this "shared name" to linked variables. 
         = IDEA: It could enforce making the entity property the same name as well. 
 */
@@ -29,6 +31,9 @@ export interface NetworkedEntityNames {
     "bullet": false
 
 }
+
+
+
 
 export interface PacketWriter {
     write(stream: BufferStreamWriter): void,
@@ -155,6 +160,47 @@ export interface NetworkedVariableTypes {
     "float": number,
     "double": number,
 }
+
+
+// Serialization of structs
+interface StructTemplate {
+    [key: string]: keyof NetworkedVariableTypes
+}
+
+type DecodedStruct<T> =  { 
+    [K in keyof T]: T[K] extends keyof NetworkedVariableTypes ? NetworkedVariableTypes[T[K]] : never 
+};
+
+//Uses iteration order of the StructType object to encode/decode;
+export function StreamEncodeStruct<T extends StructTemplate>(stream: BufferStreamWriter, template: T, structToEncode: DecodedStruct<T>): void {
+    for(const key in template){
+        SerializeTypedVariable(stream, structToEncode[key], template[key]);
+    }
+}
+
+export function StreamDecodeStruct<T extends StructTemplate>(stream: BufferStreamReader, template: T): DecodedStruct<T> {
+    const obj = {} as DecodedStruct<T>;
+
+    for(const key in template){
+        // @ts-expect-error  this function returns a number, technically it could be something else
+        obj[key] = DeserializeTypedVariable(stream, template[key]);
+    }
+
+    return obj;
+}
+
+//*********************** PUT ALL TEMPLATES HERE *********************// 
+// Do not do name: StructTemplate, breaks typing.
+const Position = {
+    x: "float",
+    y: "double",
+} as const;
+
+
+
+
+
+
 
 
 
