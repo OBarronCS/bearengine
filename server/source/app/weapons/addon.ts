@@ -47,7 +47,7 @@ export class TerrainHitAddon implements GunAddon {
             const testTerrain = this.engine.terrain.lineCollision(this.bullet.position,Vec2.add(this.bullet.position, this.bullet.velocity.clone().extend(100)));
             
             const RADIUS = 40;
-            const DMG_RADIUS = 50;
+            const DMG_RADIUS = 80;
 
             if(testTerrain){
                 this.engine.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
