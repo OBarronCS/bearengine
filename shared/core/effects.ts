@@ -60,7 +60,8 @@ export class Effect<T extends AbstractBearEngine = AbstractBearEngine> extends A
 		}
 	}
 
-	update(dt: number){
+	// To avoid override
+	readonly update = (dt: number): void => {
 		this.time_alive += 1;
 	
 		// functions that run after a delay!

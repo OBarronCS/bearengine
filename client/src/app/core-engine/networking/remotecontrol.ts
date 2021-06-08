@@ -28,49 +28,71 @@ export class RemoteLocations extends Part {
     }
 }
 
-@networkedclass_client("auto")
-export class RemoteAuto extends Entity {
+@networkedclass_client("bullet")
+export class ClientBullet extends DrawableEntity {
 
-    public sprite = this.addPart(new SpritePart("tree.gif"));
-
-    @remotevariable("int32")
-    public health = 1;
-
-    @remotevariable("double")
-    public xpos = 1;
-
-    update(dt: number): void {
-        console.log(this.health);
-        this.x = this.xpos
-    }
-
-}
-
-
-@networkedclass_client("sharedEntityForVideo")
-export class ClientHealthEntity extends DrawableEntity {
-
-    public sprite = this.addPart(new SpritePart("tree.gif"));
-
+    public sprite = this.addPart(new SpritePart("test2.png"));
 
     @remotevariable("float")
-    public health = 100;
+    _x = 0;
 
-    draw(g: PIXI.Graphics): void {
-        g.beginFill(0x000000)
-        g.drawRect(this.x-100, this.y-100, 60, 60);
-        g.beginFill(0x00FF00);
-        g.drawRect(this.x-100, this.y-100, (this.health / 100) * 60, 60);
-        g.endFill();
-    }
+    @remotevariable("float")
+    _y = 0;
+
+    draw(g: PIXI.Graphics): void {}
+    
     update(dt: number): void {
+        this.position.x = this._x;
+        this.position.y = this._y;
 
-        this.position.x += randomInt(-10,10);
-        this.position.x += randomInt(-10,10);
-
-        this.redraw();
+        // this.redraw();
     }
 }
+
+
+// @networkedclass_client("auto")
+// export class RemoteAuto extends Entity {
+
+//     public sprite = this.addPart(new SpritePart("tree.gif"));
+
+//     @remotevariable("int32")
+//     public health = 1;
+
+//     @remotevariable("double")
+//     public xpos = 1;
+
+//     update(dt: number): void {
+//         console.log(this.health);
+//         this.x = this.xpos
+//     }
+
+// }
+
+
+// @networkedclass_client("sharedEntityForVideo")
+// export class ClientHealthEntity extends DrawableEntity {
+
+//     public sprite = this.addPart(new SpritePart("tree.gif"));
+
+
+//     @remotevariable("float")
+//     public health = 100;
+
+//     draw(g: PIXI.Graphics): void {
+//         g.beginFill(0x000000)
+//         g.drawRect(this.x-100, this.y-100, 60, 60);
+//         g.beginFill(0x00FF00);
+//         g.drawRect(this.x-100, this.y-100, (this.health / 100) * 60, 60);
+//         g.endFill();
+//     }
+//     update(dt: number): void {
+
+//         this.position.x += randomInt(-10,10);
+//         this.position.x += randomInt(-10,10);
+
+//         this.redraw();
+//     }
+// }
 
 
 

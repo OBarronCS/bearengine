@@ -1,21 +1,20 @@
-import { AnimatedSprite, Container, Graphics, Runner, Sprite, Texture } from "pixi.js";
-
-import { Vec2, rotatePoint, angleBetween, Coordinate } from "shared/shapes/vec2";
-import { random_range } from "shared/randomhelpers";
+import { AnimatedSprite, Container, Graphics, Sprite, Texture } from "pixi.js";
+import { AssertUnreachable } from "shared/assertstatements";
+import { ColliderPart } from "shared/core/abstractpart";
+import { clamp, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/mathutils";
+import { Line } from "shared/shapes/line";
 import { dimensions } from "shared/shapes/rectangle";
 import { drawHealthBar, drawPoint } from "shared/shapes/shapedrawing";
-import { clamp, E, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/mathutils";
-import { ColliderPart, TagPart } from "shared/core/abstractpart";
-
-import { GraphicsPart, SpritePart } from "../core-engine/parts";
-import { AddOnType, TerrainHitAddon } from "../core-engine/weapons/addon";
-import { BaseBulletGun } from "../core-engine/weapons/weapon";
-import { DrawableEntity } from "../core-engine/entity";
-import { Line } from "shared/shapes/line";
-import { AssertUnreachable } from "shared/assertstatements";
-import { SavePlayerAnimation } from "./testlevelentities";
+import { angleBetween, Coordinate, rotatePoint, Vec2 } from "shared/shapes/vec2";
 import { TickTimer } from "shared/ticktimer";
+
+
+import { DrawableEntity, Entity } from "../core-engine/entity";
 import { RemoteEntity, RemoteLocations } from "../core-engine/networking/remotecontrol";
+import { GraphicsPart, SpritePart } from "../core-engine/parts";
+import { SavePlayerAnimation } from "./testlevelentities";
+
+
 
 
 enum PlayerState {
@@ -170,6 +169,33 @@ class PlayerAnimationState {
     }
 }
 
+class Item extends Entity {
+
+    image = this.addPart(new SpritePart(new Sprite()));
+
+    constructor(){
+        super();
+        this.image.sprite.visible = false;
+    }
+
+    setSprite(path: string){
+        this.image.sprite.visible = true;
+        this.image.sprite.texture = this.engine.getResource(path).texture;
+    }
+
+    clear(){
+        this.image.sprite.visible = false;
+    }
+
+    update(dt: number): void {
+    }
+
+    draw(g: Graphics): void {
+
+    }
+}
+
+
 export class Player extends DrawableEntity {
     
     private readonly runAnimation = new PlayerAnimationState(this.engine.getResource("player/run.json").data as SavePlayerAnimation, 4, new Vec2(40,16));
@@ -258,10 +284,9 @@ export class Player extends DrawableEntity {
     private readonly timeSincePressedAllowed = 10;
 
     private colliderPart: ColliderPart;
-    private tag = this.addPart(new TagPart("Player"))
 
-    private gun: BaseBulletGun;
 
+    itemInHand: Item = new Item();
 
     constructor(){
         super();
@@ -288,34 +313,10 @@ export class Player extends DrawableEntity {
 
         this.rightWallRay = new Line(new Vec2(x, y), new Vec2(3 + x + this.player_width / 2,y));
         this.leftWallRay = new Line(new Vec2(x, y), new Vec2(-3 + x - this.player_width / 2, y));
-
-        this.gun = new BaseBulletGun([
-            new TerrainHitAddon(),
-            {
-                addontype: AddOnType.SPECIAL,
-                modifyShot(shotInfo, effect){
-                    effect.onInterval(2, function(times){
-                        this.velocity.drotate(random_range(-6,6))
-                    })
-                }
-            },
-            {
-                addontype: AddOnType.SPECIAL,
-                gravity: new Vec2(0,.35),
-                modifyShot(shotInfo, effect){
-
-                    const self = this;
-
-                    effect.onUpdate(function(){
-                        this.velocity.add(self.gravity);
-                    })
-                }
-            },
-        ]);
     }
 
     onAdd(){
-        this.scene.addEntity(this.gun)
+        this.scene.addEntity(this.itemInHand)
         this.runAnimation.setScale(2);
         this.wallslideAnimation.setScale(2);
         this.idleAnimation.setScale(2);
@@ -330,7 +331,7 @@ export class Player extends DrawableEntity {
     }
 
     onDestroy(){
-        this.scene.destroyEntity(this.gun)
+        this.scene.destroyEntity(this.itemInHand)
         this.engine.renderer.removeSprite(this.runAnimation.container);
         this.engine.renderer.removeSprite(this.wallslideAnimation.container);
         this.engine.renderer.removeSprite(this.idleAnimation.container);
@@ -561,35 +562,30 @@ export class Player extends DrawableEntity {
 
 
         // Weapon logic
-        this.gun.position.set({x: this.x, y: this.y});
-        rotatePoint(this.gun.position,this.position,this.slope_normal);
+        this.itemInHand.position.set({x: this.x, y: this.y});
+        rotatePoint(this.itemInHand.position,this.position,this.slope_normal);
 
-        this.gun.dir.set(new Vec2(0,0).set(this.mouse.position).sub(this.gun.position));
-
-        const angleToMouse = angleBetween(this.gun.position, this.mouse.position)
-        const difference = Vec2.subtract(this.mouse.position, this.gun.position);
+        const angleToMouse = angleBetween(this.itemInHand.position, this.mouse.position)
+        const difference = Vec2.subtract(this.mouse.position, this.itemInHand.position);
         if(difference.x > 0){
-            this.gun.image.sprite.scale.x = 1;
-            this.gun.image.angle = angleToMouse;
+            this.itemInHand.image.sprite.scale.x = 1;
+            this.itemInHand.image.angle = angleToMouse;
         } else {
-            this.gun.image.sprite.scale.x = -1;
-            this.gun.image.angle = angleToMouse + PI;
+            this.itemInHand.image.sprite.scale.x = -1;
+            this.itemInHand.image.angle = angleToMouse + PI;
         }
 
         const kb = difference.negate().extend(2.5);
 
-        if(this.gun.operate(this.mouse.isDown("left"))){
-            if(this.state === PlayerState.GROUND) this.state = PlayerState.AIR;
+        // if(this.itemInHand.operate(this.mouse.isDown("left"))){
+        //     if(this.state === PlayerState.GROUND) this.state = PlayerState.AIR;
 
-            if(this.state === PlayerState.AIR) this.knockback(kb);
-            // else if (this.state === PlayerState.GROUND) {
-            //     this.gspd += -kb.x * this.slope_normal.y
-            //     this.gspd += kb.y * this.slope_normal.x
-            // }
-        }
-            
-
-        
+        //     if(this.state === PlayerState.AIR) this.knockback(kb);
+        //     // else if (this.state === PlayerState.GROUND) {
+        //     //     this.gspd += -kb.x * this.slope_normal.y
+        //     //     this.gspd += kb.y * this.slope_normal.x
+        //     // }
+        // }
 
         // Adjust drawing angle 
         const angle = Math.atan2(this.slope_normal.y, this.slope_normal.x) * RAD_TO_DEG;

@@ -1,7 +1,13 @@
 
 // General interfaces
-import { SemiAutoController, AutoController, PulseController, GunshootController } from "./triggers";
 import { Clip } from "./addon";
+import { SemiAutoController, AutoController, PulseController, GunshootController } from "./triggers";
+
+export enum ItemEnum {
+    EMPTY,
+    TERRAIN_CARVER,
+}
+
 
 // Definitions for creating the objects
 type AutoDefinition = {

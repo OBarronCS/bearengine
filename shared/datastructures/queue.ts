@@ -6,6 +6,7 @@ export interface Queue<T> extends Iterable<T> {
     dequeue(): T;
     size(): number;
     isEmpty(): boolean;
+    clear(): void;
 
     addAllQueue(queue: Queue<T>): void;
 }
@@ -48,6 +49,12 @@ export class LinkedQueue<T> implements Queue<T> {
         return item;
     }
 
+    clear(){
+        this.internalSize = 0;
+        this.first = null;
+        this.last = null;
+    }
+
     isEmpty(): boolean {
         return this.size() === 0;
     }
@@ -85,6 +92,7 @@ export class LinkedQueue<T> implements Queue<T> {
 export class ArrayQueue<T> implements Queue<T> {
     
 
+    
 
     private innerArray: T[] = [];
     private startPointer = 0;
@@ -112,6 +120,11 @@ export class ArrayQueue<T> implements Queue<T> {
 
     isEmpty(): boolean {
         return this.size() === 0;
+    }
+
+    clear(){
+        this.innerArray = []
+        this.startPointer = 0;
     }
 
     addAllQueue(queue: Queue<T>){

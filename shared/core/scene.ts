@@ -46,16 +46,21 @@ function entityToString(id: EntityID){
 
 // Sends entityIndex as 16 bit unsigned integer. Server should never have over 2 ^ 16 entities alive at same time. I 
 export function StreamWriteEntityID(stream: BufferStreamWriter, entityID: EntityID): void {
-    const indexNumber = getEntityIndex(entityID);
+    // const indexNumber = getEntityIndex(entityID);
+
+    // // Ensure that it fits in 16 bits
+    // assert(indexNumber <= ( (1 << 16) - 1), "Entity index to large to send over network!");
     
-    // Ensure that it fits in 16 bits
-    assert(indexNumber <= ( (1 << 16) - 1), "Entity index to large to send over network!");
-    
-    stream.setUint16(indexNumber);
+    // stream.setUint16(indexNumber);
+
+    // Make sure it fits in 32 bits
+    // assert(entityID <= (2**32) - 1);
+    stream.setUint32(entityID);
 }
 
 export function StreamReadEntityID(stream: BufferStreamReader): number {
-    return stream.getUint16();
+    // return stream.getUint16();
+    return stream.getUint32();
 }
 
 export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends Subsystem {
@@ -272,16 +277,6 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
                 handler.addListener(e, methodName, item.extradata)
             }
         }
-    }
-
-    getEntityByTag<T extends EntityType>(tag: TagType): T {
-        for(const tagPart of this.tags){
-            if(tagPart.name === tag){
-                return <T>tagPart.owner;
-            }
-        }
-        console.log("COULD NOT FIND ENTITY BY TAG: " + tag)
-        return null;
     }
 }
 

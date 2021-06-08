@@ -1,10 +1,9 @@
 import { AbstractEntity} from "shared/core/abstractentity"
-import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
-import { networkedclass_server, networkedvariable } from "./networking/serverentitydecorators";
-import { TickTimer } from "shared/ticktimer";
-import { random } from "shared/randomhelpers";
+import { BaseBulletGun } from "./weapons/weapon";
+import { ServerBearEngine } from "./serverengine";
+import { Vec2 } from "shared/shapes/vec2";
 
-export abstract class ServerEntity extends AbstractEntity {
+export abstract class ServerEntity extends AbstractEntity<ServerBearEngine> {
 
     // This shouldn't be touched on entities that are not networked
     // Maybe in future make two seperate lists of entities, one for networked and one for not
@@ -20,45 +19,57 @@ export class PlayerEntity extends ServerEntity {
     health: number = 100;
     state: number = 0;
     flipped = false;
-    update(dt: number): void {}
-}
 
-
-@networkedclass_server("auto")
-export class FirstAutoEntity extends ServerEntity {
+    mouse: Vec2 = new Vec2(0,0);
+    mousedown = false;
     
-    private tick = new TickTimer(10,true);
-
-    @networkedvariable("int32")
-    public health = 1;
-
-    @networkedvariable("double", true)
-    public xpos = 1;
+    item: BaseBulletGun = null;
 
     update(dt: number): void {
-        if(this.tick.tick()) {
-            this.xpos += random(40)
+        if(this.item !== null){
+            this.item.dir.set(Vec2.subtract(this.mouse, this.item.position));
+            this.item.position.set(this.position);
+            this.item.operate(this.mousedown);
         }
     }
 }
 
 
+// @networkedclass_server("auto")
+// export class FirstAutoEntity extends ServerEntity {
+    
+//     private tick = new TickTimer(10,true);
 
-@networkedclass_server("sharedEntityForVideo")
-export class AutomaticallyUpdatingEntity extends ServerEntity {
+//     @networkedvariable("int32")
+//     public health = 1;
+
+//     @networkedvariable("double", true)
+//     public xpos = 1;
+
+//     update(dt: number): void {
+//         if(this.tick.tick()) {
+//             this.xpos += random(40)
+//         }
+//     }
+// }
+
+
+
+// @networkedclass_server("sharedEntityForVideo")
+// export class AutomaticallyUpdatingEntity extends ServerEntity {
     
 
-    @networkedvariable("float", true)
-    public health = 100;
+//     @networkedvariable("float", true)
+//     public health = 100;
 
     
-    update(dt: number): void {
+//     update(dt: number): void {
         
-        if(random() < .1){
-            this.health -= 5;
-        }
-    }
-}
+//         if(random() < .1){
+//             this.health -= 5;
+//         }
+//     }
+// }
 
 
 
@@ -70,11 +81,11 @@ export class AutomaticallyUpdatingEntity extends ServerEntity {
 
 
 
-// Another possible ways to do entities: completely manually
-export abstract class TestTestTestNetworkedEntity extends ServerEntity {
-    abstract serialize(stream: BufferStreamWriter): void;
-    abstract deserialize(stream: BufferStreamReader): void;
-}
+// // Another possible ways to do entities: completely manually
+// export abstract class TestTestTestNetworkedEntity extends ServerEntity {
+//     abstract serialize(stream: BufferStreamWriter): void;
+//     abstract deserialize(stream: BufferStreamReader): void;
+// }
 
 
 
