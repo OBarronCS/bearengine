@@ -8,6 +8,15 @@ import { GamePacket } from "./packetdefinitions";
 The following would allow entities to be checked BEFORE connecting to server.
 But, still need to validate stuff with live server on connect.
 
+
+implementations would then have to use this "shared name" to linked variables. 
+    would include all the 
+        = IDEA: It could enforce making the entity property the same name as well. 
+
+Auto correct won't work as each remotevariable doesn't know what shared_name to check for variables.
+    Will be checked at runtime.
+
+
 const NetworkEntityDefinitions = {
     // Could define client constructor stuff using this method
     "shared_class_name": {
@@ -17,13 +26,15 @@ const NetworkEntityDefinitions = {
             variable_name2: ect...
         }
     },
-    "other_class": {}
+    "other_class": {
+        create: () => void 0.
+        variables: {
+
+        }
+    }
 } as const;
 
 export typeof NetworkedEntityDefinitions;
-
-implementations would then have to use this "shared name" to linked variables. 
-        = IDEA: It could enforce making the entity property the same name as well. 
 */
 
 /** Linking networked entity classes */
@@ -190,9 +201,9 @@ export function StreamDecodeStruct<T extends StructTemplate>(stream: BufferStrea
 }
 
 //*********************** PUT ALL TEMPLATES HERE *********************// 
-// Do not do name: StructTemplate, breaks typing.
-const Position = {
-    x: "float",
+// Do not do -->    name: StructTemplate     , it breaks typing.
+const VecStruct = {
+    x: "double",
     y: "double",
 } as const;
 
