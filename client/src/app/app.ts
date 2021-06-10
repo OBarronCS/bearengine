@@ -3,19 +3,27 @@ import { DropTarget } from "./apiwrappers/draganddrop";
 import { Texture, BaseTexture, Sprite, Point, resources } from "pixi.js";
 import { LockKeys } from "./apiwrappers/keyboardapiwrapper";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
-import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
+import { CreateLevel } from "./core-engine/gamelevel";
+import { Player } from "./gamelogic/player";
 
 const game = new BearEngine();
-
-const n = NETWORK_VERSION_HASH;
 
 game.init();
 game.loadAssets().then(RESOURCES => {
     dragAndDropTest(game.renderer.renderer.view);
     
     console.log("ALL ASSETS DOWNLOADED")
-    
-    game.loadLevel(ParseTiledMapData(RESOURCES["assets/firsttest.json"].data as TiledMap));
+
+    const levelone = CreateLevel("assets/firsttest.json", { 
+        start(engine){
+            engine.entityManager.addEntity(new Player())
+        }, 
+        end(engine){
+            
+        }  
+    });
+
+    game.loadLevel(levelone);
     
     // game.loadFrameEditor();
     game.start();
@@ -47,7 +55,9 @@ function dragAndDropTest(element: HTMLCanvasElement){
                     file.text().then(string => {
                         // string is the raw level data from the file
                         game.endCurrentLevel();
-                        game.loadLevel(ParseTiledMapData(JSON.parse(string) as TiledMap));
+
+                        const p = CreateLevel(JSON.parse(string) as TiledMap, { start(engine){}, end(engine){} });
+                        game.loadLevel(p);
                     });
                 } else if(file.type.startsWith("image")){
                     const img = new Image();

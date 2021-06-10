@@ -16,6 +16,7 @@ import { BearEngine } from "../bearengine";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { ItemEnum } from "server/source/app/weapons/weaponinterfaces";
+import { CreateLevel } from "../gamelevel";
 
 interface BufferedPacket {
     buffer: BufferStreamReader;
@@ -296,7 +297,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             const level = RemoteResourceLinker.getResourceFromID(stream.getUint8());
 
                             this.engine.endCurrentLevel();
-                            this.engine.loadLevel(ParseTiledMapData(this.engine.getResource(level).data as TiledMap));
+                            this.engine.loadLevel(CreateLevel(level, {end(engine){}, start(engine){} }));
 
                             const p = this.engine.player = new Player();
 
