@@ -23,12 +23,10 @@ export class CollisionManager extends Subsystem {
     init(): void {}
 
     // With lots of entities, this will probably become a bottleneck, because it rebuilds the grid every step, but it works fine for now
-    private colliders: ColliderPart[] = [];
     private grid: SpatialGrid<ColliderPart> = new SpatialGrid(1,1,1,1,(collider) => collider.rect);
 
-    public collider_query = this.addQuery(ColliderPart,
-        e => this.add(e), 
-        e => this.remove(e)
+    public colliders = this.addQuery(ColliderPart,
+        e => this.grid.insert(e),
     );
 
     setupGrid(worldWidth: number, worldHeight: number){
@@ -36,36 +34,18 @@ export class CollisionManager extends Subsystem {
     }
 
     update(dt: number): void {
-        for(const collider of this.colliders){
-            collider.setPosition(collider.owner.position);
-        }
-
+        
         this.grid.clear();
-        for (let i = 0; i < this.colliders.length; i++) {
-            this.grid.insert(this.colliders[i]);
+
+        // Re-insert, re-position
+        for(const collider of this.colliders){
+            this.grid.insert(collider);
+            collider.setPosition(collider.owner.position);
         }
     }
 
     clear(){
         this.grid.clear();
-        this.colliders = [];
-    }
-
-    add(c: ColliderPart){
-        this.colliders.push(c);
-        this.grid.insert(c);
-    }
-
-    remove(c: ColliderPart){
-        const i = this.colliders.indexOf(c);
-        if(i !== -1){
-            this.colliders[i] = this.colliders[this.colliders.length - 1];
-            this.colliders.pop();
-
-            // Dont bother removing it from the grid yet.
-            // It just won't be added back when I rebuild next step
-            // This will have no bugs when I implement the deferal of entity deletion
-        }
     }
 
     // return the first thing that it finds that this collides with
@@ -80,7 +60,6 @@ export class CollisionManager extends Subsystem {
         return null;
     }
 
-    // ----    QUERIES
     circleQuery(x: number, y: number, r: number): AbstractEntity[] {
         const entities: AbstractEntity[] = [];
         const possible = this.grid.region(new Rect(x - r, y - r, r * 2, r * 2));
