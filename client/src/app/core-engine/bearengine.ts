@@ -24,13 +24,14 @@ import { DrawableEntity, Entity } from "./entity";
 import { SpritePart } from "./parts";
 import { Coordinate, mix, Vec2 } from "shared/shapes/vec2";
 import { Player } from "../gamelogic/player";
+import { GameLevel } from "./gamelevel";
 
 
 
 const SHARED_RESOURCES = Loader.shared.resources;
 const SHARED_LOADER = Loader.shared;
 
-const ASSET_FOLDER_NAME = "assets/";
+export const ASSET_FOLDER_NAME = "assets/";
 
 // Returns names of files!
 // r is the require function
@@ -70,9 +71,9 @@ export class BearEngine extends AbstractBearEngine {
     private mouseEventDispatcher: TestMouseDownEventDispatcher;
 
 
-    public currentLevelData: CustomMapFormat;
-    public levelbbox: Rect;
+    public activeLevel: GameLevel;
     public levelLoaded = false;
+
 
     public player: Player = null;
 
@@ -120,56 +121,24 @@ export class BearEngine extends AbstractBearEngine {
         frameEditor(this)
     }
 
-    loadLevel(levelData: CustomMapFormat){
+    loadLevel(level: GameLevel){
         console.log("Starting scene");
         if(this.levelLoaded) throw new Error("TRYING TO LOAD A LEVEL WHEN ONE IS ALREADY LOADED");
 
         AbstractEntity["ENGINE_OBJECT"] = this;
-        
-        this.currentLevelData = levelData;
 
         this.entityManager.registerSceneSystems(this.systems);
-
         
-
-        {
-            // Create terrain and world size
-            const worldInfo = levelData.world;
-            const width = worldInfo.width;
-            const height = worldInfo.height;
-
-            this.levelbbox = new Rect(0,0,width,height);
-            
-            const bodies = levelData.bodies;
-            this.terrain.setupGrid(width, height);
-            bodies.forEach( (body) => {
-                this.terrain.addTerrain(body.points, body.normals)
-            });
-
-            this.collisionManager.setupGrid(width, height);
-
-            this.renderer.renderer.backgroundColor = string2hex(levelData.world.backgroundcolor);
-            // Load sprites from map 
-            levelData.sprites.forEach(s => {
-                const sprite = new Sprite(this.renderer.getTexture(ASSET_FOLDER_NAME + s.file_path));
-                sprite.x = s.x;
-                sprite.y = s.y;
-                sprite.width = s.width;
-                sprite.height = s.height;
-                this.renderer.addSprite(sprite)
-            });
-        }
-        
-        this.terrain.graphics = new Graphics();
-        this.renderer.addSprite(this.terrain.graphics);
-        this.terrain.queueRedraw();
-
+        this.activeLevel = level;
+        level.start(this);
 
         this.levelLoaded = true;
     }
 
     endCurrentLevel(){
         console.log("Ending level")
+
+        this.activeLevel.end(this);
 
         this.entityManager.clear();
         this.terrain.clear();
@@ -186,7 +155,7 @@ export class BearEngine extends AbstractBearEngine {
 
     restartCurrentLevel(){
         this.endCurrentLevel();
-        this.loadLevel(this.currentLevelData);
+        this.loadLevel(this.activeLevel);
     }
 
     // Loads all assets from server

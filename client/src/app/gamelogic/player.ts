@@ -558,7 +558,7 @@ export class Player extends DrawableEntity {
     update(dt: number): void {
         if(this.dead) return;
         
-        if(this.y > this.engine.levelbbox.height + 800) this.y = 0;
+        if(this.y > this.level.bbox.height + 800) this.y = 0;
 
 
         // Weapon logic

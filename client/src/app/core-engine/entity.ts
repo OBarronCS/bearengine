@@ -11,6 +11,7 @@ import { MouseInput } from "../input/mouse";
 import { EngineKeyboard } from "../input/keyboard";
 import { ColliderPart } from "shared/core/abstractpart";
 import { TerrainManager } from "shared/core/terrainmanager";
+import { GameLevel } from "./gamelevel";
 
 
 // Client specific entity
@@ -20,7 +21,7 @@ export abstract class Entity extends AbstractEntity<BearEngine> {
     get terrain(): TerrainManager { return this.engine.terrain; }
     get mouse(): MouseInput { return this.engine.mouse; }
     get keyboard(): EngineKeyboard { return this.engine.keyboard; }
-    
+    get level(): GameLevel { return this.engine.activeLevel; } 
 
     // Used for quick movement implementation
     simpleMovement(speed: number): Coordinate {
