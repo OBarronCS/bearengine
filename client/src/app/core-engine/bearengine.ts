@@ -165,6 +165,7 @@ export class BearEngine extends AbstractBearEngine {
             SHARED_LOADER.add(ALL_TEXTURES);
     
             SHARED_LOADER.load(() => {
+                console.log("ALL ASSETS DOWNLOADED");
                 console.log('PIXI.Loader.shared.resources :>> ', SHARED_RESOURCES);
                 resolve(SHARED_RESOURCES);
             });

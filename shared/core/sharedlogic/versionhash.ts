@@ -4,9 +4,6 @@ import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket
 /*
 need to add:
     resource folder structure and names
-
-    enums that connect to strings for resources
-
 */
 
 

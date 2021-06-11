@@ -12,8 +12,6 @@ game.init();
 game.loadAssets().then(RESOURCES => {
     dragAndDropTest(game.renderer.renderer.view);
     
-    console.log("ALL ASSETS DOWNLOADED")
-
     const levelone = CreateLevel("assets/firsttest.json", { 
         start(engine){
             engine.entityManager.addEntity(new Player())
