@@ -5,6 +5,12 @@ import { LockKeys } from "./apiwrappers/keyboardapiwrapper";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { CreateLevel } from "./core-engine/gamelevel";
 import { Player } from "./gamelogic/player";
+import { Entity } from "./core-engine/entity";
+import { SpritePart } from "./core-engine/parts";
+import { ColliderPart } from "shared/core/abstractpart";
+import { dimensions } from "shared/shapes/rectangle";
+import { bearevent } from "shared/core/bearevents";
+import { Vec2 } from "shared/shapes/vec2";
 
 const game = new BearEngine();
 
@@ -14,7 +20,43 @@ game.loadAssets().then(RESOURCES => {
     
     const levelone = CreateLevel("assets/firsttest.json", { 
         start(engine){
-            engine.entityManager.addEntity(new Player())
+            engine.entityManager.addEntity(new Player());
+
+            class TestEntityForVideo extends Entity {
+        
+                private sprite = this.addPart(new SpritePart("tree.gif"));
+                private collider = this.addPart(new ColliderPart(dimensions(200,200), Vec2.ZERO));
+        
+                update(dt: number): void {
+                    
+                }
+        
+                // @bearevent("mousehover", {})
+                daisvfdakusvdjasd(point: Vec2){
+                    console.log("Hello, i was hovered", point.toString());
+                }
+        
+                //@bearevent("tap", {})
+                ontapcallback(num: Vec2){
+                    console.log("I was clicked")
+                }
+        
+                @bearevent("mousedown", { button: "left"})
+                asdasdasdasd(point: Vec2){
+                    console.log("HEOLLO")
+                }
+        
+                @bearevent("scroll", {})
+                asdasd(scroll: number, point: Vec2){
+                    console.log(scroll)
+                }
+        
+            }
+
+            const test = new TestEntityForVideo();
+            
+            engine.entityManager.addEntity(test);
+
         }, 
         end(engine){
             
@@ -27,6 +69,18 @@ game.loadAssets().then(RESOURCES => {
     game.start();
 })
 
+
+function JSMapToString(map: Map<any, any>): string {
+
+    let str = "";
+
+    for(const [key, value] of map){
+        str += `[${key}:${value}],`
+    }
+
+
+    return str;
+}
 
 LockKeys([
     "KeyW", 

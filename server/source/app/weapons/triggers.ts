@@ -14,11 +14,14 @@ const percentToQueueShot = .4;
 
 export class SemiAutoController implements GunshootController {
 
-	constructor(
-		public time_between_shots: number
-	){}
 
-    public time_since_last_shot = this.time_between_shots + 1;
+	constructor(time_between_shots: number){
+		this.time_between_shots = time_between_shots;
+		this.time_since_last_shot = time_between_shots + 1;
+	}
+
+	public time_between_shots: number;
+    public time_since_last_shot: number;
     
 	public last_down = false;
 	public queueShot = false;

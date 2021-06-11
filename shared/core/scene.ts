@@ -115,8 +115,10 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         e.scene = this;
 
         e.onAdd();
-        this.registerEvents(e);
 
+        this.registerEvents(e, sparseIndex);
+
+        // Register parts
         for(const part of e.parts){
             
             let uniquePartID = part.constructor["partID"];
@@ -145,6 +147,37 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         }
 
         return e;
+    }
+
+    private registerEvents<T extends EntityType>(e: T, sparseIndex: number): void {
+        if(e.constructor["EVENT_REGISTRY"]){
+            const list = e.constructor["EVENT_REGISTRY"] as EntityEventListType<T>;
+
+            for(const item of list){
+                const handler = this.allEntityEventHandlers.get(item.eventname);
+                if(!handler) {
+                    console.log(`Handler for ${item.eventname} could not be found!`)
+                }
+
+                const methodName = item.methodname;
+                handler.addListener(e, methodName, item.extradata, sparseIndex);
+            }
+        }
+    }
+
+    private deleteEvents<T extends EntityType>(e: T, sparseIndex: number){
+        if(e.constructor["EVENT_REGISTRY"]){
+            const list = e.constructor["EVENT_REGISTRY"] as EntityEventListType<T>;
+
+            for(const item of list){
+                const handler = this.allEntityEventHandlers.get(item.eventname);
+                if(!handler) {
+                    console.log(`Handler for ${item.eventname} could not be found!`)
+                }
+
+                handler.removeListener(sparseIndex);
+            }
+        }
     }
 
     /** Null if entity has already been deleted */
@@ -207,6 +240,8 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
             const container = this.partContainers[part.constructor["partID"]]
             container.removePart(sparseIndex);
         }
+
+        this.deleteEvents(entity,sparseIndex);
         
         entity.onDestroy();
     }
@@ -260,23 +295,6 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
 
         this.partQueries = [];
         this.allEntityEventHandlers = new Map();
-    }
-
-
-    private registerEvents<T extends EntityType>(e: T): void {
-        if(e.constructor["EVENT_REGISTRY"]){
-            const list = e.constructor["EVENT_REGISTRY"] as EntityEventListType<T>;
-
-            for(const item of list){
-                const handler = this.allEntityEventHandlers.get(item.eventname);
-                if(!handler) {
-                    console.log(`Handler for ${item.eventname} could not be found!`)
-                }
-
-                const methodName = item.methodname;
-                handler.addListener(e, methodName, item.extradata)
-            }
-        }
     }
 }
 
