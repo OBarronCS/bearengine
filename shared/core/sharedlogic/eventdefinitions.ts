@@ -33,6 +33,11 @@ interface BearEvents {
         register_args: { };
         callback: (dt: number) => void;
     }
+
+    "preupdate": {
+        register_args: { };
+        callback: (dt: number) => void;
+    }
 }
 
 type BearEventNames = keyof BearEvents;

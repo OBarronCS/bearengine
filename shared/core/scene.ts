@@ -75,6 +75,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
     // It finds this when iterating all the other systems.
     private tags: PartQuery<TagPart> = this.addQuery(TagPart);
 
+    private preupdate = this.addEventDispatcher("preupdate");
     private postupdate = this.addEventDispatcher("postupdate");
 
 
@@ -154,7 +155,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
 
     private registerEvents<T extends EntityType>(e: T, sparseIndex: number): void {
 
-        console.log(e, e.constructor["EVENT_REGISTRY"]);
+        // console.log(e, e.constructor["EVENT_REGISTRY"]);
 
         if(e.constructor["EVENT_REGISTRY"]){
             const list = e.constructor["EVENT_REGISTRY"] as EntityEventListType<T>;
@@ -268,11 +269,18 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
 
     update(delta: number): void {
 
+        // Pre-update
+        for(const entity of this.preupdate){
+            this.postupdate.dispatch(entity, delta);
+        }
+
+        // Update
         for (let i = 0; i < this.entities.length; i++) {
             const entity = this.entities[i];
             entity.update(delta);
         }
 
+        // Post-update
         for(const entity of this.postupdate){
             this.postupdate.dispatch(entity, delta);
         }
