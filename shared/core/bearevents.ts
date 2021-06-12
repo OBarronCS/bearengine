@@ -88,7 +88,7 @@ export function bearevent<T extends keyof BearEvents>(eventname: T, extradata: B
             extradata: extradata
         });
 
-        console.log(`Added event, ${eventname}, to ${target.constructor.name}, linked to method with name ${propertyKey}`)
+        // console.log(`Added event, ${eventname}, to ${target.constructor.name}, linked to method with name ${propertyKey}`)
         //console.log(target.constructor)
     }
 }

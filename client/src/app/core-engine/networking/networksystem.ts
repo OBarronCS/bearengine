@@ -552,7 +552,7 @@ function remotefunction<T extends keyof RemoteFunction>(functionName: T) {
             methodName: propertyKey,
         });
 
-        console.log(`Added remote function callback, ${functionName}, linked to method with name ${propertyKey}`)
+        // console.log(`Added remote function callback, ${functionName}, linked to method with name ${propertyKey}`)
         //console.log(target.constructor)
     }
 }

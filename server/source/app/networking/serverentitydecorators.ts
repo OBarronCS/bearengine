@@ -54,17 +54,26 @@ export function networkedvariable<K extends AllNetworkedVariables>(sharedVariabl
         // This makes it so the entity is marked dirty automatically when a variable changes
         if(createSetterAndGetter){
 
-
+            // *******************************************************************
+            // *******************************************************************
+            // *******************************************************************
+            // WARNING: THIS IS BROKEN IN TYPESCRIPT 4.3. I ASSUME ITS A BUG IN TYPESCRIPT BECAUSE THE DOCS SAY NOTHING
+            // In 4.3, the getter/setter does NOT override the instance property
+            // 
+            // The docs on decorators are not up to date, and perhaps returning a value here will have an effect despite the docs saying otherwise
+            // ************************************************************************
+            // *******************************************************************
+            // *******************************************************************
             Object.defineProperty(target, propertyKey, {
                 get: function(this: ServerEntity) {
                     // console.log('get', this['__'+propertyKey]);
-                    console.log("get");
+                    // console.log("get");
                     return this['__'+propertyKey];
                 },
                 set: function (this: ServerEntity, value) {
                     this['__'+propertyKey] = value;
                     
-                    console.log(`set ${propertyKey} to`, value);
+                    //  console.log(`set ${propertyKey} to`, value);
                     
                     this.markDirty();
                 },
@@ -72,7 +81,7 @@ export function networkedvariable<K extends AllNetworkedVariables>(sharedVariabl
                 // configurable: true
             }); 
 
-            console.log(target)
+            // console.log(target)
         }
 
     }

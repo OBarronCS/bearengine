@@ -102,11 +102,17 @@ export const SharedEntityLinker = {
     // Makes sure all the variables are present
     validateVariables(name: keyof SharedNetworkedEntity, variables: AllNetworkedVariables[] | undefined){
         
+        // TODO: Check for duplicates
+
+        
+
+
+        // Makes sure it has all the required variables
         const requiredVariables = orderedSharedEntityVariables[sharedNameToIDLookup.get(name)];
 
         if(variables === undefined) {
             if(requiredVariables.length !== 0) {
-                throw new Error(`Shared entity ${name} is missing variables, ${requiredVariables.toString()}`);
+                throw new Error(`Shared entity ${name} is missing variables, ${requiredVariables.map(e => e.variableName).toString()}`);
             }
             return;
         }
@@ -115,6 +121,13 @@ export const SharedEntityLinker = {
         for(const varDefinition of requiredVariables){
             if(!variables.includes(varDefinition.variableName)){
                 throw new Error(`Shared entity ${name} does not include required variable: ${varDefinition.variableName}`);
+            }
+        }
+        
+        //Checks for extra uneeded variables
+        for(const eVar of variables){
+            if(!requiredVariables.some(e => e.variableName === eVar)){
+                throw new Error(`Shared entity ${name} has an uneeded variable: ${eVar}`);
             }
         }
     },

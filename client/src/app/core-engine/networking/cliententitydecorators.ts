@@ -25,7 +25,7 @@ export function networkedclass_client<T extends keyof SharedNetworkedEntity>(cla
         // Validates that it has all the correct variables
         const variableslist = targetConstructor["NETWORKED_VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType;
 
-        const myVariables = variableslist.map(e => e.variablename);
+        const myVariables = variableslist === undefined ? undefined : variableslist.map(e => e.variablename);
 
         SharedEntityLinker.validateVariables(classname, myVariables)
 
