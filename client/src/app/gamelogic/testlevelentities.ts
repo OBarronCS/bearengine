@@ -1417,7 +1417,7 @@ export function loadTestLevel(engine: BearEngine): void {
 
     class FirstSprite extends GMEntity {
         constructor(spot: Coordinate){
-            super(spot,"tree.gif");
+            super(spot,"tree.gif", dimensions(50,50));
             this.image.originPercent = ({x:.5, y:.5})
         }
 

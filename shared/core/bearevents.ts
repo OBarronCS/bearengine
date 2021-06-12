@@ -60,11 +60,28 @@ export function bearevent<T extends keyof BearEvents>(eventname: T, extradata: B
         // Now I can use this propertyKey to attach the event handler
 
         const constructorClass = target.constructor;
-        
-        if(constructorClass["EVENT_REGISTRY"] === undefined){
-            constructorClass["EVENT_REGISTRY"] = [];
+
+        // console.log(constructorClass);
+    
+        // Deals with inheriting super class events
+        if(!constructorClass.hasOwnProperty("EVENT_REGISTRY")){
+
+            let parentEvents = [];
+            if(constructorClass["EVENT_REGISTRY"] !== undefined){
+                parentEvents.push(...constructorClass["EVENT_REGISTRY"]);
+            }
+
+            constructorClass["EVENT_REGISTRY"] = [...parentEvents];
         }
+        
+
         const eventlist = constructorClass["EVENT_REGISTRY"] as EntityEventListType<ClassType>;
+
+        //Make sure only one of this event type has been added to this entity
+        if(eventlist.some((a) =>a.eventname === eventname)){
+            throw new Error("Cannot have multiple methods assoicated with the same event: " + eventname);
+        }
+
         eventlist.push({
             eventname: eventname,
             methodname: propertyKey,

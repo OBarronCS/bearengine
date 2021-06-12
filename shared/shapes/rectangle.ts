@@ -48,6 +48,11 @@ export class Rect implements Shape<Rect> {
         this.y2 = y + height;
     }
 
+    setDimensions(width: number, height: number){
+        this.x2 += this.x + width;
+        this.y2 += this.y + height;
+    }
+
     copyFrom(rect: Rect): this {
         this.x = rect.x;
         this.y = rect.y;
@@ -88,7 +93,7 @@ export class Rect implements Shape<Rect> {
         } 
 
         return true;
-    } 
+    }
 
     /** Contains but for rectangles --> I wishes TypeScript had method overloading */
     encloses(rect: Rect): boolean {

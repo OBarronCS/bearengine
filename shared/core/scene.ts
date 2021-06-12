@@ -75,6 +75,9 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
     // It finds this when iterating all the other systems.
     private tags: PartQuery<TagPart> = this.addQuery(TagPart);
 
+    private postupdate = this.addEventDispatcher("postupdate");
+
+
     // Set of entities
     private freeID = NULL_ENTITY_INDEX; 
     private sparse: number[] = [];
@@ -150,13 +153,16 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
     }
 
     private registerEvents<T extends EntityType>(e: T, sparseIndex: number): void {
+
+        console.log(e, e.constructor["EVENT_REGISTRY"]);
+
         if(e.constructor["EVENT_REGISTRY"]){
             const list = e.constructor["EVENT_REGISTRY"] as EntityEventListType<T>;
 
             for(const item of list){
                 const handler = this.allEntityEventHandlers.get(item.eventname);
                 if(!handler) {
-                    console.log(`Handler for ${item.eventname} could not be found!`)
+                    console.error(`Handler for ${item.eventname} could not be found!`)
                 }
 
                 const methodName = item.methodname;
@@ -265,7 +271,10 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         for (let i = 0; i < this.entities.length; i++) {
             const entity = this.entities[i];
             entity.update(delta);
-            entity.postUpdate(); // Maybe get rid of this, swap it with systems that I call after step
+        }
+
+        for(const entity of this.postupdate){
+            this.postupdate.dispatch(entity, delta);
         }
 
         for(const id of this.deleteEntityQueue){

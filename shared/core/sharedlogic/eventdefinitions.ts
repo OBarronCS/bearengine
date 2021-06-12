@@ -28,6 +28,11 @@ interface BearEvents {
         register_args: { };
         callback: (scroll: number, mousePoint: Vec2) => void;
     }
+
+    "postupdate":{
+        register_args: { };
+        callback: (dt: number) => void;
+    }
 }
 
 type BearEventNames = keyof BearEvents;

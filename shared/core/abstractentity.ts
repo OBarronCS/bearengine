@@ -31,9 +31,6 @@ export abstract class AbstractEntity<Engine extends AbstractBearEngine = Abstrac
     onAdd(): void {};
     onDestroy(): void {};
 
-    // Intended for us by abstract classes for behind the scenes work
-    postUpdate(): void {}
-
     addPart<T extends Part>(part: T): T {
         this.parts.push(part);
         part.owner = this;
