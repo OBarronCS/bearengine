@@ -33,10 +33,10 @@ export class ClientBullet extends DrawableEntity {
 
     public sprite = this.addPart(new SpritePart("test2.png"));
 
-    @remotevariable("float")
+    @remotevariable("_x")
     _x = 0;
 
-    @remotevariable("float")
+    @remotevariable("_y")
     _y = 0;
 
     draw(g: PIXI.Graphics): void {}
