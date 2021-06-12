@@ -1,4 +1,4 @@
-import { DeserializeTypedVariable, NetworkedEntityNames, NetworkedVariableTypes } from "shared/core/sharedlogic/networkedentitydefinitions";
+import { DeserializeTypedVariable, SharedNetworkedEntity, NetworkedVariableTypes } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { BufferStreamReader } from "shared/datastructures/bufferstream";
 import { Entity } from "../entity";
 
@@ -11,36 +11,13 @@ import { Entity } from "../entity";
     Right now, I need to explicitly put the types. In future, maybe just make it part of an interface in shared, and then we put a shared "variable name" in the decorator? 
 */
 
+
 type EntityNetworkedVariablesListType<T extends Entity> = {
     variablename: keyof T,
     type: keyof NetworkedVariableTypes
 }[]
 
-/** Means a variable is being controlled by the server. Should be readonly on clientside */
-export function remotevariable<K extends keyof NetworkedVariableTypes>(variableType: K) {
-
-    // Property decorator
-    return function<T extends Entity>(target: T, propertyKey: keyof T){
-        // Use this propertyKey to attach the event handler
-
-       const constructorOfClass = target.constructor;
-        
-        if(constructorOfClass["VARIABLE_REGISTRY"] === undefined){
-            constructorOfClass["VARIABLE_REGISTRY"] = [];
-        }
-
-        const variableslist = constructorOfClass["VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType<T>;
-        variableslist.push({
-            variablename: propertyKey,
-            type: variableType,
-        });
-
-        console.log(`Added networked variable, ${propertyKey}, of type ${variableType}`)
-    }
-}
-
-
-export function networkedclass_client<T extends keyof NetworkedEntityNames>(classname: T) {
+export function networkedclass_client<T extends keyof SharedNetworkedEntity>(classname: T) {
 
     return function<U extends typeof Entity>(targetConstructor: U){
 
@@ -66,8 +43,33 @@ export function networkedclass_client<T extends keyof NetworkedEntityNames>(clas
     }
 }
 
+/** Means a variable is being controlled by the server. Should be readonly on clientside */
+export function remotevariable<K extends keyof NetworkedVariableTypes>(variableType: K) {
+
+    // Property decorator
+    return function<T extends Entity>(target: T, propertyKey: keyof T){
+        // Use this propertyKey to attach the event handler
+
+       const constructorOfClass = target.constructor;
+        
+        if(constructorOfClass["VARIABLE_REGISTRY"] === undefined){
+            constructorOfClass["VARIABLE_REGISTRY"] = [];
+        }
+
+        const variableslist = constructorOfClass["VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType<T>;
+        variableslist.push({
+            variablename: propertyKey,
+            type: variableType,
+        });
+
+        console.log(`Added networked variable, ${propertyKey}, of type ${variableType}`)
+    }
+}
 
 type EntityConstructor = abstract new(...args:any[]) => Entity;
+
+
+
 
 export class SharedEntityClientTable {
     private constructor(){}
@@ -75,7 +77,7 @@ export class SharedEntityClientTable {
     // This is a list of all the registered classes, registered using the '@networkedclass_client' decorator
     static readonly REGISTERED_NETWORKED_ENTITIES: {
         create: EntityConstructor, 
-        name: keyof NetworkedEntityNames,
+        name: keyof SharedNetworkedEntity,
         variablelist: EntityNetworkedVariablesListType<any> // added through the "@remotevariable" decorator
     }[] = [];
     

@@ -16,32 +16,33 @@ implementations would then have to use this "shared name" to linked variables.
 Auto correct won't work as each remotevariable doesn't know what shared_name to check for variables.
     Will be checked at runtime.
 
-
-const NetworkEntityDefinitions = {
-    // Could define client constructor stuff using this method
-    "shared_class_name": {
-        create: () => void 0,
-        variables: {
-            variable_name: type of variable,
-            variable_name2: ect...
-        }
-    },
-    "other_class": {
-        create: () => void 0.
-        variables: {
-
-        }
-    }
-} as const;
-
-export typeof NetworkedEntityDefinitions;
 */
 
 /** Linking networked entity classes */
-export interface NetworkedEntityNames {
-    "bullet": false
+const NetworkedEntityDefinitions = {
+    // Could define client constructor stuff using this method
+    "bullet": {
+        create: () => void 0,
+        variables: {
+            _x: "float",
+            _y: "float"
+        },
+        events: {}
+    },
+} as const;
 
-}
+export type SharedNetworkedEntity = typeof NetworkedEntityDefinitions;
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -114,7 +115,7 @@ export const RemoteFunctionLinker = {
         return IDToStringLookup[id];
     },
 
-    callRemoteFunction(name: keyof RemoteFunction, stream: BufferStreamReader, entity: Object, methodName: string){
+    callRemoteFunction(name: keyof RemoteFunction, stream: BufferStreamReader, entity: object, methodName: string){
         //he type is all messed up because I override it with function definition
         
         const args = []

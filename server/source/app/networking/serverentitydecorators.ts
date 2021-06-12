@@ -1,5 +1,5 @@
 import { StreamWriteEntityID } from "shared/core/scene";
-import { NetworkedVariableTypes, NetworkedEntityNames, SerializeTypedVariable } from "shared/core/sharedlogic/networkedentitydefinitions";
+import { NetworkedVariableTypes, SharedNetworkedEntity, SerializeTypedVariable } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ServerEntity } from "../serverentity";
 
@@ -10,6 +10,36 @@ type EntityNetworkedVariablesListType<T extends ServerEntity> = {
     variablename: keyof T,
     type: keyof NetworkedVariableTypes
 }[]
+
+
+// Class decorator, makes it's variables updated over the network. Need client side implementation, networkedclass_client
+export function networkedclass_server<T extends keyof NetworkedEntityNames>(classname: T) {
+
+    return function<U extends typeof ServerEntity>(targetConstructor: U){
+
+
+        const variableslist = targetConstructor["VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType<ServerEntity>;
+        if(variableslist === undefined) throw new Error("No variables added to networked entity");
+        
+        // Alphabetically sorts them keys, will serialize in this order.
+        variableslist.sort((a,b) => a.variablename.toLowerCase().localeCompare(b.variablename.toLowerCase()));
+
+        {
+            let allVariables = "";
+            for(const name of variableslist) allVariables += name.variablename + ",";
+            console.log(`Confirmed class, ${targetConstructor.name}, as networked entity. Contains the following variables: ${allVariables}`);
+        }
+
+        targetConstructor["SHARED_ID"] = -1;        
+        
+        SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES.push({
+            variableslist: variableslist,
+            name: classname,
+            create: targetConstructor,
+        })
+
+    }
+}
 
 /**  Place this decorator before variables to sync them automatically to client side */
 export function networkedvariable<K extends keyof NetworkedVariableTypes>(variableType: K, createSetterAndGetter = false) {
@@ -54,34 +84,6 @@ export function networkedvariable<K extends keyof NetworkedVariableTypes>(variab
 }
 
 
-// Class decorator, makes it's variables updated over the network. Need client side implementation, networkedclass_client
-export function networkedclass_server<T extends keyof NetworkedEntityNames>(classname: T) {
-
-    return function<U extends typeof ServerEntity>(targetConstructor: U){
-
-
-        const variableslist = targetConstructor["VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType<ServerEntity>;
-        if(variableslist === undefined) throw new Error("No variables added to networked entity");
-        
-        // Alphabetically sorts them keys, will serialize in this order.
-        variableslist.sort((a,b) => a.variablename.toLowerCase().localeCompare(b.variablename.toLowerCase()));
-
-        {
-            let allVariables = "";
-            for(const name of variableslist) allVariables += name.variablename + ",";
-            console.log(`Confirmed class, ${targetConstructor.name}, as networked entity. Contains the following variables: ${allVariables}`);
-        }
-
-        targetConstructor["SHARED_ID"] = -1;        
-        
-        SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES.push({
-            variableslist: variableslist,
-            name: classname,
-            create: targetConstructor,
-        })
-
-    }
-}
 
 
 type EntityConstructor = abstract new(...args:any[]) => ServerEntity;
