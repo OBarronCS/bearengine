@@ -2,7 +2,7 @@ import { Graphics } from "pixi.js";
 import { Coordinate, Vec2 } from "shared/shapes/vec2";
 import { min } from "shared/mathutils"
 import { random } from "shared/randomhelpers";
-import { dimensions } from "shared/shapes/rectangle";
+import { Dimension, dimensions } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 
 import { GraphicsPart, SpritePart } from "./parts";
@@ -12,6 +12,7 @@ import { EngineKeyboard } from "../input/keyboard";
 import { ColliderPart } from "shared/core/abstractpart";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { GameLevel } from "./gamelevel";
+import { bearevent } from "shared/core/bearevents";
 
 
 // Client specific entity
@@ -70,8 +71,7 @@ export abstract class SpriteEntity extends Entity {
 
         this.position.set(spot);
 
-        this.image = new SpritePart(spr_source);
-        this.addPart(this.image);
+        this.image = this.addPart(new SpritePart(spr_source));
 
         this.collider = new ColliderPart(dimensions(this.image.width, this.image.height), this.image.origin);
         this.collider.setPosition(spot)
@@ -86,14 +86,16 @@ export abstract class GMEntity extends SpriteEntity {
     public readonly startPosition: Vec2 = new Vec2(0,0);
     public readonly gravity: Vec2 = new Vec2(0,0);
 
-    constructor(spot: Coordinate,spr_source: string){
+    constructor(spot: Coordinate,spr_source: string, widthheight: Dimension){
         super(spot, spr_source);
         this.startPosition.set(spot);
+        this.collider.rect.setDimensions(widthheight.width, widthheight.height);
     }
 
-    postUpdate(){
+    @bearevent("postupdate", {})
+    __postUpdate(){
         this.position.add(this.velocity);
-        this.position.add(this.gravity);
+        this.velocity.add(this.gravity);
     }
 
     /** Teleports to a random position aligned to dx and dy intervals, within width and height */

@@ -5,7 +5,7 @@
         "moduleResolution": "node",
         "esModuleInterop": true,
 
-        "target": "ESNext",
+        "target": "ES2020",
         "lib": ["DOM","ESNext"],
         
         // Look into setting sourceMap = true for better debugging
