@@ -105,15 +105,16 @@ export class ServerBullet extends ServerEntity {
 
     public velocity: Vec2;
     
-    @networkedvariable("float",true)
+    @networkedvariable("_x",true)
     _x = 0;
 
-    @networkedvariable("float",true)
+    @networkedvariable("_y",true)
     _y = 0;
 
     update(dt: number): void {
         this.position.add(this.velocity);
         
+
         this._x = this.x;
         this._y = this.y;     
     }

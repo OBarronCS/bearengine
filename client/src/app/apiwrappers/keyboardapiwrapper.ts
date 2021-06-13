@@ -16,7 +16,7 @@
 export async function LockKeys(codes: KECode[]){
     // @ts-expect-error
     const lock = await navigator.keyboard.lock(codes);
-    console.log("LOCKED")
+    console.log("Keyboard keys locked: " + codes.toString())
 }
 
 // navigator.keyboard.unlock(); to undo all

@@ -19,7 +19,7 @@ Auto correct won't work as each remotevariable doesn't know what shared_name to 
 */
 
 /** Linking networked entity classes */
-const NetworkedEntityDefinitions = {
+export const SharedNetworkedEntityDefinitions = {
     // Could define client constructor stuff using this method
     "bullet": {
         create: () => void 0,
@@ -27,24 +27,120 @@ const NetworkedEntityDefinitions = {
             _x: "float",
             _y: "float"
         },
-        events: {}
+
+    },
+    "ogre": {
+        create: () => void 0,
+        variables: {
+            test: "float",
+            asdasd: "float"
+        },
     },
 } as const;
 
-export type SharedNetworkedEntity = typeof NetworkedEntityDefinitions;
+export type SharedNetworkedEntity = typeof SharedNetworkedEntityDefinitions;
+
+//#region Networked Variable Typing
+// All of these types come together to extra all the variable keys
+type OnlyNetworkedVariables = {
+    [Key in keyof SharedNetworkedEntity]: SharedNetworkedEntity[Key]["variables"]
+};
+
+type AllSubVariables = OnlyNetworkedVariables[keyof OnlyNetworkedVariables]
+
+// https://stackoverflow.com/questions/58434389/typescript-deep-keyof-of-a-nested-object
+type Prev = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+    11, 12, 13, 14, 15, 16, 17, 18, 19, 20, ...0[]]
+
+type Join<K, P> = K extends string | number ?
+    P extends string | number ?
+    `${K}${"" extends P ? "" : "."}${P}`
+    : never : never;
+
+type Leaves<T, D extends number = 10> = [D] extends [never] ? never : T extends object ?
+    { [K in keyof T]-?: Join<K, Leaves<T[K], Prev[D]>> }[keyof T] : "";
+
+export type AllNetworkedVariables = Leaves<AllSubVariables>
+//#endregion 
+
+const orderedSharedEntities: (keyof typeof SharedNetworkedEntityDefinitions)[] = Object.keys(SharedNetworkedEntityDefinitions).sort() as any;
+
+const sharedNameToIDLookup = new Map<keyof typeof SharedNetworkedEntityDefinitions, number>();
+for(let i = 0; i < orderedSharedEntities.length; i++){
+    sharedNameToIDLookup.set(orderedSharedEntities[i],i);
+}
+
+const sharedIDToNameLookup: (keyof typeof SharedNetworkedEntityDefinitions)[] = [];
+for(let i = 0; i < orderedSharedEntities.length; i++){
+    sharedIDToNameLookup[i] = orderedSharedEntities[i];
+}
+
+// Index is shared index
+const orderedSharedEntityVariables: {variableName: AllNetworkedVariables, type: keyof NetworkedVariableTypes}[][] = [];
+for(let i = 0; i < orderedSharedEntities.length; i++){
+
+    const sharedName = sharedIDToNameLookup[i];
+    const variableStruct = SharedNetworkedEntityDefinitions[sharedName]["variables"]
+    
+    const orderedVariables: (AllNetworkedVariables)[] = Object.keys(variableStruct).sort() as any;
+
+    const arr: {variableName: AllNetworkedVariables, type: keyof NetworkedVariableTypes}[] = [];
+
+    for(const variable of orderedVariables){
+        arr.push({
+            type: SharedNetworkedEntityDefinitions[sharedName]["variables"][variable],
+            variableName: variable,
+        });
+    }
+
+    orderedSharedEntityVariables[i] = arr;
+}
 
 
+export const SharedEntityLinker = {
+
+    // Makes sure all the variables are present
+    validateVariables(name: keyof SharedNetworkedEntity, variables: AllNetworkedVariables[] | undefined){
+        
+        // TODO: Check for duplicates
+
+        
 
 
+        // Makes sure it has all the required variables
+        const requiredVariables = orderedSharedEntityVariables[sharedNameToIDLookup.get(name)];
+
+        if(variables === undefined) {
+            if(requiredVariables.length !== 0) {
+                throw new Error(`Shared entity ${name} is missing variables, ${requiredVariables.map(e => e.variableName).toString()}`);
+            }
+            return;
+        }
 
 
+        for(const varDefinition of requiredVariables){
+            if(!variables.includes(varDefinition.variableName)){
+                throw new Error(`Shared entity ${name} does not include required variable: ${varDefinition.variableName}`);
+            }
+        }
+        
+        //Checks for extra uneeded variables
+        for(const eVar of variables){
+            if(!requiredVariables.some(e => e.variableName === eVar)){
+                throw new Error(`Shared entity ${name} has an uneeded variable: ${eVar}`);
+            }
+        }
+    },
+    nameToSharedID(name: keyof SharedNetworkedEntity): number {
+        return sharedNameToIDLookup.get(name);
+    },
+
+    sharedIDToVariables(id: number){
+        return orderedSharedEntityVariables[id];
+    }
 
 
-
-
-
-
-
+}
 
 
 export interface PacketWriter {

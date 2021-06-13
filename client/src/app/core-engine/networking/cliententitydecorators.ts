@@ -1,4 +1,4 @@
-import { DeserializeTypedVariable, SharedNetworkedEntity, NetworkedVariableTypes } from "shared/core/sharedlogic/networkedentitydefinitions";
+import { DeserializeTypedVariable, SharedNetworkedEntity, NetworkedVariableTypes, AllNetworkedVariables, SharedEntityLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { BufferStreamReader } from "shared/datastructures/bufferstream";
 import { Entity } from "../entity";
 
@@ -12,63 +12,51 @@ import { Entity } from "../entity";
 */
 
 
-type EntityNetworkedVariablesListType<T extends Entity> = {
-    variablename: keyof T,
-    type: keyof NetworkedVariableTypes
+type EntityNetworkedVariablesListType = {
+    variablename: AllNetworkedVariables,
 }[]
 
 export function networkedclass_client<T extends keyof SharedNetworkedEntity>(classname: T) {
 
     return function<U extends typeof Entity>(targetConstructor: U){
 
-        const variableslist = targetConstructor["VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType<Entity>;
-        if(variableslist === undefined) throw new Error("No variables added to networked entity");
-        
-        // Alphabetically sorts them keys, will deserialize in this order.
-        variableslist.sort((a,b) => a.variablename.toLowerCase().localeCompare(b.variablename.toLowerCase()));
-
-        {   // Debug info
-            let allVariables = "";
-            for(const name of variableslist) allVariables += name.variablename + ",";
-            console.log(`Confirmed class, ${targetConstructor.name}, as client entity. Contains the following variables: ${allVariables}`);
-        }
-
         targetConstructor["SHARED_ID"] = -1;
+
+        // Validates that it has all the correct variables
+        const variableslist = targetConstructor["NETWORKED_VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType;
+
+        const myVariables = variableslist === undefined ? undefined : variableslist.map(e => e.variablename);
+
+        SharedEntityLinker.validateVariables(classname, myVariables)
 
         SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES.push({
             create: targetConstructor,
             name: classname,
-            variablelist: variableslist
         })
     }
 }
 
 /** Means a variable is being controlled by the server. Should be readonly on clientside */
-export function remotevariable<K extends keyof NetworkedVariableTypes>(variableType: K) {
+export function remotevariable<K extends AllNetworkedVariables>(varName: K) {
 
     // Property decorator
-    return function<T extends Entity>(target: T, propertyKey: keyof T){
+    return function<T extends Entity>(target: T, propertyKey: K){
         // Use this propertyKey to attach the event handler
 
        const constructorOfClass = target.constructor;
         
-        if(constructorOfClass["VARIABLE_REGISTRY"] === undefined){
-            constructorOfClass["VARIABLE_REGISTRY"] = [];
+        if(constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] === undefined){
+            constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] = [];
         }
 
-        const variableslist = constructorOfClass["VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType<T>;
+        const variableslist = constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType;
         variableslist.push({
             variablename: propertyKey,
-            type: variableType,
         });
-
-        console.log(`Added networked variable, ${propertyKey}, of type ${variableType}`)
     }
 }
 
 type EntityConstructor = abstract new(...args:any[]) => Entity;
-
-
 
 
 export class SharedEntityClientTable {
@@ -78,35 +66,35 @@ export class SharedEntityClientTable {
     static readonly REGISTERED_NETWORKED_ENTITIES: {
         create: EntityConstructor, 
         name: keyof SharedNetworkedEntity,
-        variablelist: EntityNetworkedVariablesListType<any> // added through the "@remotevariable" decorator
     }[] = [];
     
-    // Map of    sharedID --> client class constructor
+    // Map of sharedID --> client class constructor
     private static readonly networkedEntityIndexMap = new Map<number,EntityConstructor>();
 
     static init(){
-        // Sort shared entities by shared name, alphabetically so they match up on server side.
-        // Index in array is the id
-        SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES.sort( (a,b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) );
-        for(let i = 0; i < SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES.length; i++){
-            const registry = SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES[i];
-            SharedEntityClientTable.networkedEntityIndexMap.set(i,registry.create);
-            registry.create["SHARED_ID"] = i;
+
+        // this list is in registration order, not related to shared ID order
+        for(let i = 0; i < this.REGISTERED_NETWORKED_ENTITIES.length; i++){
+            const registry = this.REGISTERED_NETWORKED_ENTITIES[i];
+
+            const SHARED_ID = SharedEntityLinker.nameToSharedID(registry.name);
+
+            registry.create["SHARED_ID"] = SHARED_ID;
+            this.networkedEntityIndexMap.set(SHARED_ID,registry.create);
         }
     }
 
     static getEntityClass(sharedID: number): EntityConstructor {
-        return SharedEntityClientTable.networkedEntityIndexMap.get(sharedID);
+        return this.networkedEntityIndexMap.get(sharedID);
     }
 
 
     static deserialize(stream: BufferStreamReader, sharedID: number, entity: Entity){
         
-        const classInfo = SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES[sharedID];
-        const variableslist = classInfo.variablelist;
+        const variableslist = SharedEntityLinker.sharedIDToVariables(sharedID);
 
         for(const variableinfo of variableslist){
-            entity[variableinfo.variablename] = DeserializeTypedVariable(stream, variableinfo.type);
+            entity[variableinfo.variableName] = DeserializeTypedVariable(stream, variableinfo.type);
         }
 
     }
