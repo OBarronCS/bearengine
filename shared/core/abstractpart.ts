@@ -27,6 +27,20 @@ export class PartContainer<T extends Part> {
         }
     }
 
+    contains(e: EntityID): boolean {
+        const sparseIndex = getEntityIndex(e);
+
+        if(this.sparse.length <= sparseIndex) return false;
+
+        const value = this.sparse[sparseIndex];
+
+        if(value === -1 || value === undefined){
+            return false;
+        }
+
+        return true;
+    }
+
     /** Remove entity at this sparse index. */
     removePart(sparseIndex: number){
         const denseIndex = this.sparse[sparseIndex];

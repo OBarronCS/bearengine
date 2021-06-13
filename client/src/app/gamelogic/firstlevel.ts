@@ -1,4 +1,5 @@
 import { Graphics } from "pixi.js";
+import { ColliderPart } from "shared/core/abstractpart";
 import { bearevent } from "shared/core/bearevents";
 import { Scene } from "shared/core/scene";
 import { TiledMap } from "shared/core/tiledmapeditor";
@@ -7,6 +8,7 @@ import { Vec2 } from "shared/shapes/vec2";
 import { BearEngine } from "../core-engine/bearengine";
 import { DrawableEntity, Entity, GMEntity } from "../core-engine/entity";
 import { GameLevel } from "../core-engine/gamelevel";
+import { SpritePart } from "../core-engine/parts";
 import { Player } from "./player";
 
 
@@ -17,7 +19,12 @@ export class FirstLevel extends GameLevel {
 
     start(engine: BearEngine, scene: Scene): void {
 
-        scene.addEntity(new Player());
+
+
+        const p = scene.addEntity(new Player());
+
+        console.log(scene.hasPart(p.entityID, ColliderPart));
+        console.log(scene.hasPart(p.entityID, SpritePart));
 
         // class TestEntityForVideo extends Entity {
 

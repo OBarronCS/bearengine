@@ -14,8 +14,8 @@ export abstract class GameLevel {
 
     /** Put null for path if want no data */
     abstract path: string | TiledMap
-    abstract start(engine: BearEngine, scene: Scene): void;
-    abstract end(engine: BearEngine): void;
+    protected abstract start(engine: BearEngine, scene: Scene): void;
+    protected abstract end(engine: BearEngine): void;
     abstract update(dt: number): void;
 
     internalStart(engine: BearEngine, scene: Scene){

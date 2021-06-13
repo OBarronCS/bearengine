@@ -103,6 +103,16 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         }
     }
 
+    hasPart<K extends new(...args: any[]) => Part>(e: EntityID, partConstructor: K): boolean {
+        //@ts-expect-error
+        const partID = partConstructor.partID;
+
+        if(partID === -1) return false;
+        
+        const container = this.partContainers[partID];
+        return container.contains(e);
+    }
+
     addEntity<T extends EntityType>(e: T): T {
 
         const entityID: EntityID = this.getNextEntityID();
