@@ -101,7 +101,7 @@ export class CollisionManager extends Subsystem {
         for(const collider of this.colliders){
             const collision = this.collisionList(collider);
             for(const c of collision){
-                c.rect.intersection(collider.rect).draw(g,0xFF0000);
+                c.rect.intersection(collider.rect).draw(g,0x0000FF);
             }
         }
     }

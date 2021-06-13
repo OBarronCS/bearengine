@@ -18,7 +18,7 @@ import { Vec2, Coordinate, angleBetween, mix } from "shared/shapes/vec2";
 import { atan2, cos, floor, PI, second, sin } from "shared/mathutils";
 import { ColorTween } from "shared/core/tween"
 import { TickTimer } from "shared/ticktimer"
-import { ColliderPart, TagPart } from "shared/core/abstractpart";
+import { ColliderPart } from "shared/core/abstractpart";
 import { bearevent } from "shared/core/bearevents";
 
 import { DrawableEntity, Entity, GMEntity, SpriteEntity } from "../core-engine/entity";
