@@ -19,12 +19,20 @@ export class FirstLevel extends GameLevel {
 
     start(engine: BearEngine, scene: Scene): void {
 
-
-
         const p = scene.addEntity(new Player());
 
-        console.log(scene.hasPart(p.entityID, ColliderPart));
-        console.log(scene.hasPart(p.entityID, SpritePart));
+        class Test7 extends Entity {
+
+            private a = this.addPart(new ColliderPart(dimensions(10,10), Vec2.ZERO));
+            // private dd = this.addPart(new ColliderPart(dimensions(10,10), Vec2.ZERO));
+
+            update(dt: number): void {
+
+            }
+
+        }
+
+        scene.addEntity(new Test7())
 
         // class TestEntityForVideo extends Entity {
 

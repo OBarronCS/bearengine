@@ -132,6 +132,8 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
 
         // Register parts
         for(const part of e.parts){
+            //@ts-expect-error
+            if(this.hasPart(entityID, part.constructor)) throw Error("Entity already has this part: " + part.constructor.name + " --> " + e.constructor.name);
             
             let uniquePartID = part.constructor["partID"];
 
