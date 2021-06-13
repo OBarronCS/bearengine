@@ -1,5 +1,5 @@
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
-import { Part, PartContainer, TagPart, TagType } from "shared/core/abstractpart";
+import { Part, PartContainer } from "shared/core/abstractpart";
 import { PartQuery } from "shared/core/abstractpart";
 import { Subsystem } from "shared/core/subsystem";
 import { EntityEventListType, EventRegistry } from "shared/core/bearevents";
@@ -72,9 +72,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
     private nextPartID = 0;
     private partContainers: PartContainer<Part>[] = []
 
-    // It finds this when iterating all the other systems.
-    private tags: PartQuery<TagPart> = this.addQuery(TagPart);
-
+    // It finds these when iterating all the other systems.
     private preupdate = this.addEventDispatcher("preupdate");
     private postupdate = this.addEventDispatcher("postupdate");
 

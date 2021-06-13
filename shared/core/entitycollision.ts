@@ -39,8 +39,8 @@ export class CollisionManager extends Subsystem {
 
         // Re-insert, re-position
         for(const collider of this.colliders){
-            this.grid.insert(collider);
             collider.setPosition(collider.owner.position);
+            this.grid.insert(collider);
         }
     }
 
@@ -48,8 +48,8 @@ export class CollisionManager extends Subsystem {
         this.grid.clear();
     }
 
-    // return the first thing that it finds that this collides with
-    collision(c: ColliderPart): ColliderPart {
+    // return the first collider that it finds that is collides with 
+    collision(c: ColliderPart): ColliderPart | null {
         const possible = this.grid.region(c.rect);
         for(const p of possible){
             if(c.rect.intersects(p.rect)){
@@ -58,6 +58,20 @@ export class CollisionManager extends Subsystem {
             }
         }
         return null;
+    }
+
+    collisionList(c: ColliderPart): ColliderPart[] {   
+        const all: ColliderPart[] = []
+        
+        const possible = this.grid.region(c.rect);
+        for(const p of possible){
+            if(c.rect.intersects(p.rect)){
+                if(c !== p)
+                    all.push(p);
+            }
+        }
+
+        return all;
     }
 
     circleQuery(x: number, y: number, r: number): AbstractEntity[] {
@@ -81,12 +95,13 @@ export class CollisionManager extends Subsystem {
     // Draws collision boxes, red if colliding
     draw(g: Graphics){
         this.grid.draw(g);
+
         // only for debugging. This is n squared.
         // draw collisions
         for(const collider of this.colliders){
-            const collision = this.collision(collider);
-            if(collision !== null){
-                collision.rect.intersection(collider.rect).draw(g,0xFF0000);
+            const collision = this.collisionList(collider);
+            for(const c of collision){
+                c.rect.intersection(collider.rect).draw(g,0xFF0000);
             }
         }
     }
