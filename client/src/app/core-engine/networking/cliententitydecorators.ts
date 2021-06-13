@@ -72,19 +72,20 @@ export class SharedEntityClientTable {
     private static readonly networkedEntityIndexMap = new Map<number,EntityConstructor>();
 
     static init(){
-        // Sort shared entities by shared name, alphabetically so they match up on server side.
-        // Index in array is the id
-        for(let i = 0; i < SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES.length; i++){
-            const registry = SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES[i];
 
-            registry.create["SHARED_ID"] = SharedEntityLinker.nameToSharedID(registry.name);
+        // this list is in registration order, not related to shared ID order
+        for(let i = 0; i < this.REGISTERED_NETWORKED_ENTITIES.length; i++){
+            const registry = this.REGISTERED_NETWORKED_ENTITIES[i];
 
-            SharedEntityClientTable.networkedEntityIndexMap.set(i,registry.create);
+            const SHARED_ID = SharedEntityLinker.nameToSharedID(registry.name);
+
+            registry.create["SHARED_ID"] = SHARED_ID;
+            this.networkedEntityIndexMap.set(SHARED_ID,registry.create);
         }
     }
 
     static getEntityClass(sharedID: number): EntityConstructor {
-        return SharedEntityClientTable.networkedEntityIndexMap.get(sharedID);
+        return this.networkedEntityIndexMap.get(sharedID);
     }
 
 

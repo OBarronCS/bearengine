@@ -105,14 +105,14 @@ export class SharedEntityServerTable {
     private static readonly networkedEntityIndexMap = new Map<number,EntityConstructor>();
 
     static init(){
-        // Index is SHARED_ID
 
-        for(let i = 0; i < SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES.length; i++){
-            const registry = SharedEntityServerTable.REGISTERED_NETWORKED_ENTITIES[i];
+        for(let i = 0; i < this.REGISTERED_NETWORKED_ENTITIES.length; i++){
+            const registry = this.REGISTERED_NETWORKED_ENTITIES[i];
 
-            SharedEntityServerTable.networkedEntityIndexMap.set(i,registry.create);
+            const SHARED_ID = SharedEntityLinker.nameToSharedID(registry.name);
 
-            registry.create["SHARED_ID"] = SharedEntityLinker.nameToSharedID(registry.name);
+            registry.create["SHARED_ID"] = SHARED_ID;
+            this.networkedEntityIndexMap.set(SHARED_ID,registry.create);
         }
     }
 
