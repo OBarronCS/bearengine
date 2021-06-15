@@ -6,7 +6,7 @@ import { ServerEntity } from "../serverentity";
 
 // On entity serialization, it writes marked variables to buffer in agreed upon order
 
-type EntityNetworkedVariablesListType = {
+type RegisterVariablesList = {
     variablename: AllNetworkedVariables
 }[]
 
@@ -19,7 +19,7 @@ export function networkedclass_server<T extends keyof SharedNetworkedEntity>(cla
         targetConstructor["SHARED_ID"] = -1; 
 
         // Validates that it has all the correct variables
-        const variableslist = targetConstructor["NETWORKED_VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType;
+        const variableslist = targetConstructor["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList || [];
 
         const myVariables = variableslist.map(e => e.variablename);
 
@@ -46,7 +46,7 @@ export function networkedvariable<K extends AllNetworkedVariables>(sharedVariabl
             constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] = [];
         }
 
-        const variableslist = constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] as EntityNetworkedVariablesListType;
+        const variableslist = constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList;
         variableslist.push({
             variablename: propertyKey,
         });
