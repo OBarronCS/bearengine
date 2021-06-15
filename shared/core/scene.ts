@@ -4,7 +4,7 @@ import { PartQuery } from "shared/core/abstractpart";
 import { Subsystem } from "shared/core/subsystem";
 import { EntityEventListType, EventRegistry } from "shared/core/bearevents";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
-import { assert } from "shared/assertstatements";
+import { assert } from "shared/misc/assertstatements";
 import { BearEvents } from "./sharedlogic/eventdefinitions";
 
 
@@ -329,7 +329,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
     }
 
     
-
+    // Part containers are kept as they are. Can be re-used.
     clear(){
         const entityCopy = this.entities.slice(0);
 

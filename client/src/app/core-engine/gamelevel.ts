@@ -2,7 +2,7 @@ import { Graphics, Sprite } from "pixi.js";
 import { Scene } from "shared/core/scene";
 
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
-import { string2hex } from "shared/mathutils";
+import { string2hex } from "shared/misc/mathutils";
 import { Rect } from "shared/shapes/rectangle";
 import { ASSET_FOLDER_NAME, BearEngine } from "./bearengine"
 import { Entity } from "./entity";

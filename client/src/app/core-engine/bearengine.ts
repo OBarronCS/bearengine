@@ -9,7 +9,7 @@ import { Subsystem } from "shared/core/subsystem";
 import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { CollisionManager } from "shared/core/entitycollision";
-import { string2hex } from "shared/mathutils";
+import { string2hex } from "shared/misc/mathutils";
 
 import { frameEditor, loadTestLevel } from "../gamelogic/testlevelentities";
 import { EngineKeyboard } from "../input/keyboard";

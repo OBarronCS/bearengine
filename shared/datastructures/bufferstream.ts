@@ -1,6 +1,6 @@
 
 
-import { assert } from "shared/assertstatements";
+import { assert } from "shared/misc/assertstatements";
 import { Vec2 } from "shared/shapes/vec2";
 
 export class BufferStreamReader  {

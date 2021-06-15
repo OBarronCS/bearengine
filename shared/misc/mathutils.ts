@@ -1,4 +1,4 @@
-import { randomInt } from "./randomhelpers";
+import { randomInt } from "./random";
 
 export function clamp(value: number, min: number, max: number){
     return Math.min(Math.max(value, min), max);

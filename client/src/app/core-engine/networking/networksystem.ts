@@ -1,4 +1,4 @@
-import { AssertUnreachable } from "shared/assertstatements";
+import { AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { Scene, StreamReadEntityID } from "shared/core/scene";
 import { PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
@@ -10,7 +10,7 @@ import { CallbackNetwork, NetworkSettings } from "./clientsocket";
 import { Entity } from "../entity";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { Player, RemotePlayer } from "../../gamelogic/player";
-import { abs, ceil } from "shared/mathutils";
+import { abs, ceil } from "shared/misc/mathutils";
 import { LinkedQueue } from "shared/datastructures/queue";
 import { BearEngine } from "../bearengine";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";

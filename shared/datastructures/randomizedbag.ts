@@ -1,6 +1,6 @@
 
 
-import { randomInt } from "shared/randomhelpers";
+import { randomInt } from "shared/misc/random";
 import { shuffle } from "./arrayutils";
 
 
