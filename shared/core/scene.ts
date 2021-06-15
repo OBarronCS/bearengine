@@ -126,7 +126,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
     }
 
     getPart<T extends Part, K extends new(...args: any[]) => T>(e: EntityID, partConstructor: K): T | null {
-        
+
         if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
         
         //@ts-expect-error
@@ -307,7 +307,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
 
         // Pre-update
         for(const entity of this.preupdate){
-            this.postupdate.dispatch(entity, delta);
+            this.preupdate.dispatch(entity, delta);
         }
 
         // Update
