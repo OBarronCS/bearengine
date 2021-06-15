@@ -103,7 +103,19 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         }
     }
 
+    private isValidEntity(id: EntityID): boolean {
+        const sparseIndex = getEntityIndex(id);
+
+        if(this.sparse.length <= sparseIndex) return false;
+
+        return getEntityVersion(this.sparse[sparseIndex]) === getEntityVersion(id);
+
+    }
+
     hasPart<K extends new(...args: any[]) => Part>(e: EntityID, partConstructor: K): boolean {
+
+        if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
+
         //@ts-expect-error
         const partID = partConstructor.partID;
 
@@ -111,6 +123,20 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         
         const container = this.partContainers[partID];
         return container.contains(e);
+    }
+
+    getPart<T extends Part, K extends new(...args: any[]) => T>(e: EntityID, partConstructor: K): T | null {
+        
+        if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
+        
+        //@ts-expect-error
+        const partID = partConstructor.partID;
+
+        if(partID === -1) return null;
+        
+        //@ts-expect-error
+        const container: PartContainer<T> = this.partContainers[partID];
+        return container.getEntityPart(e);
     }
 
     addEntity<T extends EntityType>(e: T): T {

@@ -242,9 +242,11 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             const entityID = StreamReadEntityID(stream);
 
                             console.log("CREATE, ", sharedClassID, " ", entityID);
-                            
+
+                            const check = this.remoteEntities.get(entityID);
+                            if(check !== undefined) throw new Error("Entity already exists");
+
                             this.createAutoRemoteEntity(sharedClassID,entityID);
-                           
 
                             break;
                         }
