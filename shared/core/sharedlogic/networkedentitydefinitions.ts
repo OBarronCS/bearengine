@@ -1,6 +1,4 @@
-
-
-import { AssertUnreachable } from "shared/assertstatements";
+import { AssertUnreachable } from "shared/misc/assertstatements";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { GamePacket } from "./packetdefinitions";
 
@@ -32,7 +30,7 @@ export const SharedNetworkedEntityDefinitions = {
     "ogre": {
         create: () => void 0,
         variables: {
-            test: "float",
+            _x: "float",
             asdasd: "float"
         },
     },
@@ -60,7 +58,25 @@ type Join<K, P> = K extends string | number ?
 type Leaves<T, D extends number = 10> = [D] extends [never] ? never : T extends object ?
     { [K in keyof T]-?: Join<K, Leaves<T[K], Prev[D]>> }[keyof T] : "";
 
+// All networked variable keys
 export type AllNetworkedVariables = Leaves<AllSubVariables>
+
+// Help with types https://stackoverflow.com/questions/63542526/merge-discriminated-union-of-object-types-in-typescript
+type UnionToIntersection<U> =
+  (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never
+
+
+// This Types break if a key of two different objects that are equal have different values, because its impossible for the same key to have differnet 
+type A = UnionToIntersection<SharedNetworkedEntity[keyof SharedNetworkedEntity]["variables"]>
+
+
+export type AllNetworkedVariablesWithTypes = {
+    [K in AllNetworkedVariables] : A[K]
+}
+
+
+
+
 //#endregion 
 
 const orderedSharedEntities: (keyof typeof SharedNetworkedEntityDefinitions)[] = Object.keys(SharedNetworkedEntityDefinitions).sort() as any;
@@ -96,27 +112,14 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
     orderedSharedEntityVariables[i] = arr;
 }
 
-
 export const SharedEntityLinker = {
 
+
     // Makes sure all the variables are present
-    validateVariables(name: keyof SharedNetworkedEntity, variables: AllNetworkedVariables[] | undefined){
-        
-        // TODO: Check for duplicates
-
-        
-
+    validateVariables(name: keyof SharedNetworkedEntity, variables: AllNetworkedVariables[]){
 
         // Makes sure it has all the required variables
         const requiredVariables = orderedSharedEntityVariables[sharedNameToIDLookup.get(name)];
-
-        if(variables === undefined) {
-            if(requiredVariables.length !== 0) {
-                throw new Error(`Shared entity ${name} is missing variables, ${requiredVariables.map(e => e.variableName).toString()}`);
-            }
-            return;
-        }
-
 
         for(const varDefinition of requiredVariables){
             if(!variables.includes(varDefinition.variableName)){
@@ -127,9 +130,14 @@ export const SharedEntityLinker = {
         //Checks for extra uneeded variables
         for(const eVar of variables){
             if(!requiredVariables.some(e => e.variableName === eVar)){
-                throw new Error(`Shared entity ${name} has an uneeded variable: ${eVar}`);
+                throw new Error(`Shared entity ${name} has an unneeded variable: ${eVar}`);
             }
         }
+
+        if(requiredVariables.length !== variables.length){
+            throw new Error(`Shared entity ${name} has an incorrect number of variable: ${variables.length - requiredVariables.length} too many`);
+        }
+        
     },
     nameToSharedID(name: keyof SharedNetworkedEntity): number {
         return sharedNameToIDLookup.get(name);

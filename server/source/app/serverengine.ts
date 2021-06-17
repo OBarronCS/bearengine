@@ -1,7 +1,7 @@
 
 
 import type { Server } from "ws";
-import { AssertUnreachable } from "shared/assertstatements";
+import { AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractBearEngine } from "shared/core/abstractengine";
 import { Scene, StreamWriteEntityID } from "shared/core/scene";
 import { GamePacket, ServerBoundPacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
@@ -23,7 +23,7 @@ import { ItemEnum } from "server/source/app/weapons/weaponinterfaces";
 import { BaseBulletGun } from "./weapons/weapon";
 import { AddOnType, TerrainHitAddon } from "./weapons/addon";
 import { AbstractEntity } from "shared/core/abstractentity";
-import { random_range } from "shared/randomhelpers";
+import { random_range } from "shared/misc/random";
 
 
 

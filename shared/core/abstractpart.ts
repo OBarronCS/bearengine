@@ -27,6 +27,34 @@ export class PartContainer<T extends Part> {
         }
     }
 
+    getEntityPart(e: EntityID): T | null {
+        const sparseIndex = getEntityIndex(e);
+
+        if(this.sparse.length <= sparseIndex) return null;
+
+        const value = this.sparse[sparseIndex];
+
+        if(value === -1 || value === undefined){
+            return null;
+        }
+
+        return this.dense[getEntityIndex(sparseIndex)];
+    }
+
+    contains(e: EntityID): boolean {
+        const sparseIndex = getEntityIndex(e);
+
+        if(this.sparse.length <= sparseIndex) return false;
+
+        const value = this.sparse[sparseIndex];
+
+        if(value === -1 || value === undefined){
+            return false;
+        }
+
+        return true;
+    }
+
     /** Remove entity at this sparse index. */
     removePart(sparseIndex: number){
         const denseIndex = this.sparse[sparseIndex];
@@ -77,38 +105,32 @@ export class PartQuery<T extends Part>{
 }
 
 
-
-
 // Add tag here to maintain type safety.
-// These are expected to be UNIQUE to one entity
-// So not a great long term solution
-const tags = [
+const collidernames = [
+    "Unnamed",
     "Player",
 ] as const
 
-export type TagType = typeof tags[number]
+export type ColliderName = typeof collidernames[number]
 
-export class TagPart extends Part {
-    public name: TagType;
-    constructor(name: TagType){
-        super();
-        this.name = name;
-    }
-}
 
 export class ColliderPart extends Part {
 
+    public name: ColliderName;
+
     public rect: Rect;
-    //* Where on the rectangle is the position */
+
+    /* Where on the rectangle is the position */
     public offset: Vec2;
 
-    constructor(dimensions: Dimension,offset: Coordinate){
+    constructor(dimensions: Dimension, offset: Coordinate, name: ColliderName = "Unnamed"){
         super();
         this.rect = new Rect(0,0,dimensions.width, dimensions.height);
         this.offset = new Vec2(-offset.x,-offset.y);
+        this.name = name;
     }
 
-    public setPosition(spot: Coordinate){
+    setPosition(spot: Coordinate){
         this.rect.moveTo(spot);
         this.rect.translate(this.offset);
     }

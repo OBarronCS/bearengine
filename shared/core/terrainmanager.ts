@@ -1,7 +1,7 @@
 import type { Graphics } from "pixi.js";
 
 import { SpatialGrid } from "shared/datastructures/spatialgrid";
-import { atan2, ceil, cos, floor, sin, TWO_PI } from "shared/mathutils";
+import { atan2, ceil, cos, floor, sin, TWO_PI } from "shared/misc/mathutils";
 import { Ellipse } from "shared/shapes/ellipse";
 import { Line } from "shared/shapes/line";
 import { Polygon } from "shared/shapes/polygon";

@@ -8,17 +8,17 @@ import { GraphNode, LiveGridGraph } from "shared/datastructures/graphs";
 import { SparseGrid } from "shared/datastructures/hashtable";
 import { HermiteCurve } from "shared/datastructures/paths";
 import { GridQuadNode, GridQuadTree, LiveGridQuadTree, QuadTree } from "shared/datastructures/quadtree";
-import { chance, fillFunction, random, randomInt, randomRangeSet, random_range } from "shared/randomhelpers";
+import { chance, fillFunction, random, randomInt, randomRangeSet, random_range } from "shared/misc/random";
 import { Ellipse } from "shared/shapes/ellipse";
 import { Line } from "shared/shapes/line";
 import { Polygon } from "shared/shapes/polygon";
 import { Rect, dimensions } from "shared/shapes/rectangle";
 import { drawCircle, drawLineArray, drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "shared/shapes/shapedrawing";
 import { Vec2, Coordinate, angleBetween, mix } from "shared/shapes/vec2";
-import { atan2, cos, floor, PI, second, sin } from "shared/mathutils";
+import { atan2, cos, floor, PI, second, sin } from "shared/misc/mathutils";
 import { ColorTween } from "shared/core/tween"
-import { TickTimer } from "shared/ticktimer"
-import { ColliderPart, TagPart } from "shared/core/abstractpart";
+import { TickTimer } from "shared/datastructures/ticktimer"
+import { ColliderPart } from "shared/core/abstractpart";
 import { bearevent } from "shared/core/bearevents";
 
 import { DrawableEntity, Entity, GMEntity, SpriteEntity } from "../core-engine/entity";

@@ -1,4 +1,4 @@
-import { AssertUnreachable } from "shared/assertstatements";
+import { AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { Scene, StreamReadEntityID } from "shared/core/scene";
 import { PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
@@ -10,13 +10,13 @@ import { CallbackNetwork, NetworkSettings } from "./clientsocket";
 import { Entity } from "../entity";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { Player, RemotePlayer } from "../../gamelogic/player";
-import { abs, ceil } from "shared/mathutils";
+import { abs, ceil } from "shared/misc/mathutils";
 import { LinkedQueue } from "shared/datastructures/queue";
 import { BearEngine } from "../bearengine";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { ItemEnum } from "server/source/app/weapons/weaponinterfaces";
-import { CreateLevel } from "../gamelevel";
+import { DummyLevel } from "../gamelevel";
 
 interface BufferedPacket {
     buffer: BufferStreamReader;
@@ -242,9 +242,11 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             const entityID = StreamReadEntityID(stream);
 
                             console.log("CREATE, ", sharedClassID, " ", entityID);
-                            
+
+                            const check = this.remoteEntities.get(entityID);
+                            if(check !== undefined) throw new Error("Entity already exists");
+
                             this.createAutoRemoteEntity(sharedClassID,entityID);
-                           
 
                             break;
                         }
@@ -297,7 +299,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             const level = RemoteResourceLinker.getResourceFromID(stream.getUint8());
 
                             this.engine.endCurrentLevel();
-                            this.engine.loadLevel(CreateLevel(level, {end(engine){}, start(engine){} }));
+                            this.engine.loadLevel(new DummyLevel(level));
 
                             const p = this.engine.player = new Player();
 

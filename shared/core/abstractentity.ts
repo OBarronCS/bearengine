@@ -37,6 +37,10 @@ export abstract class AbstractEntity<Engine extends AbstractBearEngine = Abstrac
         return part;
     }
 
+    hasPart<K extends new(...args: any[]) => Part>(part: K){
+        return this.scene.hasPart(this.entityID, part);
+    }
+
     destroySelf(){
         this.scene.destroyEntity(this);
     }

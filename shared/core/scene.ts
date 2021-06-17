@@ -1,10 +1,10 @@
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
-import { Part, PartContainer, TagPart, TagType } from "shared/core/abstractpart";
+import { Part, PartContainer } from "shared/core/abstractpart";
 import { PartQuery } from "shared/core/abstractpart";
 import { Subsystem } from "shared/core/subsystem";
 import { EntityEventListType, EventRegistry } from "shared/core/bearevents";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
-import { assert } from "shared/assertstatements";
+import { assert } from "shared/misc/assertstatements";
 import { BearEvents } from "./sharedlogic/eventdefinitions";
 
 
@@ -72,9 +72,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
     private nextPartID = 0;
     private partContainers: PartContainer<Part>[] = []
 
-    // It finds this when iterating all the other systems.
-    private tags: PartQuery<TagPart> = this.addQuery(TagPart);
-
+    // It finds these when iterating all the other systems.
     private preupdate = this.addEventDispatcher("preupdate");
     private postupdate = this.addEventDispatcher("postupdate");
 
@@ -105,6 +103,42 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         }
     }
 
+    private isValidEntity(id: EntityID): boolean {
+        const sparseIndex = getEntityIndex(id);
+
+        if(this.sparse.length <= sparseIndex) return false;
+
+        return getEntityVersion(this.sparse[sparseIndex]) === getEntityVersion(id);
+
+    }
+
+    hasPart<K extends new(...args: any[]) => Part>(e: EntityID, partConstructor: K): boolean {
+
+        if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
+
+        //@ts-expect-error
+        const partID = partConstructor.partID;
+
+        if(partID === -1) return false;
+        
+        const container = this.partContainers[partID];
+        return container.contains(e);
+    }
+
+    getPart<T extends Part, K extends new(...args: any[]) => T>(e: EntityID, partConstructor: K): T | null {
+
+        if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
+        
+        //@ts-expect-error
+        const partID = partConstructor.partID;
+
+        if(partID === -1) return null;
+        
+        //@ts-expect-error
+        const container: PartContainer<T> = this.partContainers[partID];
+        return container.getEntityPart(e);
+    }
+
     addEntity<T extends EntityType>(e: T): T {
 
         const entityID: EntityID = this.getNextEntityID();
@@ -124,6 +158,8 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
 
         // Register parts
         for(const part of e.parts){
+            //@ts-expect-error
+            if(this.hasPart(entityID, part.constructor)) throw Error("Entity already has this part: " + part.constructor.name + " --> " + e.constructor.name);
             
             let uniquePartID = part.constructor["partID"];
 
@@ -271,7 +307,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
 
         // Pre-update
         for(const entity of this.preupdate){
-            this.postupdate.dispatch(entity, delta);
+            this.preupdate.dispatch(entity, delta);
         }
 
         // Update
@@ -293,7 +329,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
     }
 
     
-
+    // Part containers are kept as they are. Can be re-used.
     clear(){
         const entityCopy = this.entities.slice(0);
 

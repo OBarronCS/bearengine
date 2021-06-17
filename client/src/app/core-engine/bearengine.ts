@@ -9,7 +9,7 @@ import { Subsystem } from "shared/core/subsystem";
 import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { CollisionManager } from "shared/core/entitycollision";
-import { string2hex } from "shared/mathutils";
+import { string2hex } from "shared/misc/mathutils";
 
 import { frameEditor, loadTestLevel } from "../gamelogic/testlevelentities";
 import { EngineKeyboard } from "../input/keyboard";
@@ -128,9 +128,9 @@ export class BearEngine extends AbstractBearEngine {
         AbstractEntity["ENGINE_OBJECT"] = this;
 
         this.entityManager.registerSceneSystems(this.systems);
-        
+
         this.activeLevel = level;
-        level.start(this);
+        level.internalStart(this, this.entityManager);
 
         this.levelLoaded = true;
     }
@@ -138,7 +138,7 @@ export class BearEngine extends AbstractBearEngine {
     endCurrentLevel(){
         console.log("Ending level")
 
-        this.activeLevel.end(this);
+        this.activeLevel.internalEnd(this);
 
         this.entityManager.clear();
         this.terrain.clear();
@@ -155,7 +155,8 @@ export class BearEngine extends AbstractBearEngine {
 
     restartCurrentLevel(){
         this.endCurrentLevel();
-        this.loadLevel(this.activeLevel);
+        //@ts-expect-error
+        this.loadLevel(this.activeLevel.constructor);
     }
 
     // Loads all assets from server
@@ -221,6 +222,10 @@ export class BearEngine extends AbstractBearEngine {
                 this.collisionManager.update(dt);
 
                 this.mouseEventDispatcher.update(dt)
+
+                if(this.levelLoaded){
+                    this.activeLevel.update(dt);
+                }
 
                 this.entityManager.update(dt);
 

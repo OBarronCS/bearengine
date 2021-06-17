@@ -1,5 +1,5 @@
 
-import { DEG_TO_RAD, RAD_TO_DEG, dcos, dsin, floor, min, max } from "shared/mathutils";
+import { DEG_TO_RAD, RAD_TO_DEG, dcos, dsin, floor, min, max } from "shared/misc/mathutils";
 import { Rect } from "./rectangle";
 
 export interface Coordinate {

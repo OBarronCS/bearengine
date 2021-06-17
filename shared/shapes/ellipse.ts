@@ -2,7 +2,7 @@ import { Shape } from "./shapesinterfaces";
 import { Coordinate, Vec2, mix } from "./vec2";
 import { Rect } from "./rectangle";
 import { Polygon } from "./polygon";
-import { dcos, dsin, PI, sin, cos } from "../mathutils";
+import { dcos, dsin, PI, sin, cos } from "../misc/mathutils";
 import type { Graphics } from "pixi.js";
 
 

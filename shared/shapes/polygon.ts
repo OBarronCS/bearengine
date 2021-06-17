@@ -1,7 +1,7 @@
 import { Shape } from "./shapesinterfaces";
 import { Coordinate, Vec2, mix, flattenVecArray, distanceSquared } from "./vec2";
 import { Rect } from "./rectangle";
-import { abs, atan2, cos, max, min, niceColor, PI, sin, TWO_PI } from "../mathutils";
+import { abs, atan2, cos, max, min, niceColor, PI, sin, TWO_PI } from "../misc/mathutils";
 
 import type { Graphics, Point } from "pixi.js";
 
@@ -9,7 +9,7 @@ import { default as earcut } from "earcut";
 
 import { drawPoint, drawVecAsArrow } from "./shapedrawing";
 import { Line } from "./line";
-import { random } from "shared/randomhelpers";
+import { random } from "shared/misc/random";
 import { swap } from "shared/datastructures/arrayutils";
 
 

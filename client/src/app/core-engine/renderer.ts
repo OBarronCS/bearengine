@@ -1,5 +1,5 @@
 import { autoDetectRenderer, Renderer, Container, DisplayObject, utils, InteractionManager } from "pixi.js";
-import { clamp } from "shared/mathutils";
+import { clamp } from "shared/misc/mathutils";
 import { BearEngine } from "./bearengine";
 import { GraphicsPart, SpritePart } from "./parts";
 import { Subsystem } from "shared/core/subsystem";

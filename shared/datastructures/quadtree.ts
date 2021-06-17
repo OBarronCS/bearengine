@@ -3,7 +3,7 @@
 
 import type { Graphics } from "pixi.js";
 import { rgb } from "./color";
-import { clamp, isPow2, string2hex } from "shared/mathutils";
+import { clamp, isPow2, string2hex } from "shared/misc/mathutils";
 import { ModifiablePQ } from "./priorityqueue";
 import { Rect } from "../shapes/rectangle";
 import { drawLineBetweenPoints } from "shared/shapes/shapedrawing";

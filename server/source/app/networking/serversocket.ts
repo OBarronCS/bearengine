@@ -4,7 +4,7 @@ import WS from "ws"
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream"
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { LinkedQueue } from "shared/datastructures/queue";
-import { AssertUnreachable } from "shared/assertstatements";
+import { AssertUnreachable } from "shared/misc/assertstatements";
 
 export type ConnectionID = number;
 

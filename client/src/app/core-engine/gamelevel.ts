@@ -1,30 +1,24 @@
 import { Graphics, Sprite } from "pixi.js";
+import { Scene } from "shared/core/scene";
 
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
-import { string2hex } from "shared/mathutils";
+import { string2hex } from "shared/misc/mathutils";
 import { Rect } from "shared/shapes/rectangle";
 import { ASSET_FOLDER_NAME, BearEngine } from "./bearengine"
+import { Entity } from "./entity";
 
-interface StartEnd {
-    start(engine: BearEngine): void,
-    end(engine: BearEngine): void
-}
 
-export function CreateLevel(path: string | TiledMap, startend: StartEnd): GameLevel {
-    return new GameLevel(path, startend);
-}
-
-export class GameLevel {
+export abstract class GameLevel {
 
     public bbox: Rect;
 
     /** Put null for path if want no data */
-    constructor(
-        public path: string | TiledMap,
-        public startend: StartEnd
-    ){}
+    abstract path: string | TiledMap
+    protected abstract start(engine: BearEngine, scene: Scene): void;
+    protected abstract end(engine: BearEngine): void;
+    abstract update(dt: number): void;
 
-    start(engine: BearEngine){
+    internalStart(engine: BearEngine, scene: Scene){
 
         const tiled = typeof this.path === "string" ? 
             engine.getResource(this.path).data as TiledMap :
@@ -66,13 +60,33 @@ export class GameLevel {
         engine.renderer.addSprite(engine.terrain.graphics);
         engine.terrain.queueRedraw();
 
-        this.startend.start(engine);
+        this.start(engine, scene);
     }
 
-    end(engine: BearEngine){
+    internalEnd(engine: BearEngine){
 
-
-
-        this.startend.end(engine);
+        this.end(engine);
     }
+}
+
+export class DummyLevel extends GameLevel {
+
+    path: string | TiledMap;
+
+    constructor(path: string | TiledMap){
+        super();
+        this.path = path;
+    }
+
+    start(engine: BearEngine, scene: Scene<Entity>): void {
+        
+    }
+    end(engine: BearEngine): void {
+
+    }
+    update(dt: number): void {
+
+    }
+
+
 }

@@ -1,12 +1,12 @@
 import { AnimatedSprite, Container, Graphics, Sprite, Texture } from "pixi.js";
-import { AssertUnreachable } from "shared/assertstatements";
+import { AssertUnreachable } from "shared/misc/assertstatements";
 import { ColliderPart } from "shared/core/abstractpart";
-import { clamp, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/mathutils";
+import { clamp, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/misc/mathutils";
 import { Line } from "shared/shapes/line";
 import { dimensions } from "shared/shapes/rectangle";
 import { drawHealthBar, drawPoint } from "shared/shapes/shapedrawing";
 import { angleBetween, Coordinate, rotatePoint, Vec2 } from "shared/shapes/vec2";
-import { TickTimer } from "shared/ticktimer";
+import { TickTimer } from "shared/datastructures/ticktimer";
 
 
 import { DrawableEntity, Entity } from "../core-engine/entity";

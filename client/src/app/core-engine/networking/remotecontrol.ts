@@ -1,7 +1,7 @@
 
 import { Part } from "shared/core/abstractpart";
-import { ceil, floor } from "shared/mathutils";
-import { randomInt } from "shared/randomhelpers";
+import { ceil, floor } from "shared/misc/mathutils";
+import { randomInt } from "shared/misc/random";
 import { mix, Vec2 } from "shared/shapes/vec2";
 import { DrawableEntity, Entity } from "../entity";
 import { SpritePart } from "../parts";
