@@ -99,11 +99,12 @@ export class CallbackNetwork extends Network {
         this.onmessagecallback = onmessagecallback;
     }
 
+    onopen(): void {
+        console.log("Connected to server");
+    }
+
     onclose(): void {
         console.log("Connection closed")
-    }
-    onopen(): void {
-        console.log("Buffered network connected");
     }
 
     onmessage(ev: MessageEvent<any>): void {

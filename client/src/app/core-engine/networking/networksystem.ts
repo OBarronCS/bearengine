@@ -34,8 +34,12 @@ export class NetworkSystem extends Subsystem<BearEngine> {
     public remotelocations = this.addQuery(RemoteLocations);
 
 
+
+
     private remoteEntities: Map<number, RemoteEntity> = new Map();
     private remotePlayers: Map<number, RemotePlayer> = new Map(); 
+
+
 
     private packetsToSerialize: PacketWriter[] = [];
 
@@ -266,7 +270,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                                 return;
                             }
 
-                            SharedEntityClientTable.deserialize(stream, SHARED_ID, entity);
+                            SharedEntityClientTable.deserialize(stream, frame, SHARED_ID, entity);
 
                             break;
                         }       
@@ -333,7 +337,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             break;
                         }
                         case GamePacket.PLAYER_CREATE : {
-                            // [playerID: uint8, entityID, x: float32, y: float32]
+                            // [playerID: uint8, x: float32, y: float32]
 
                             const pID = stream.getUint8();
                             const x = stream.getFloat32();
@@ -445,6 +449,15 @@ export class NetworkSystem extends Subsystem<BearEngine> {
 
             for(const obj of this.remotelocations){
                 obj.setPosition(frameToSimulate)
+            }
+
+            for(const obj of this.remoteEntities.values()){
+                const list = obj.constructor["INTERP_LIST"];
+                for(const value of list){
+                    const interpVar = obj[value];
+                    const interpValue = interpVar.data.getValue(frameToSimulate);
+                    interpVar.value = interpValue;
+                }
             }
         }
     }

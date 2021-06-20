@@ -5,10 +5,12 @@ import { randomInt } from "shared/misc/random";
 import { mix, Vec2 } from "shared/shapes/vec2";
 import { DrawableEntity, Entity } from "../entity";
 import { SpritePart } from "../parts";
-import { networkedclass_client, remotevariable } from "./cliententitydecorators";
+import { InterpolatedVar, interpolatedvariable, networkedclass_client, remotevariable } from "./cliententitydecorators";
 
 
-export abstract class RemoteEntity extends Entity {} 
+export abstract class RemoteEntity extends Entity {
+
+}
 
 export class RemoteLocations extends Part {
 
@@ -28,27 +30,28 @@ export class RemoteLocations extends Part {
     }
 }
 
+
+
 @networkedclass_client("bullet")
-export class ClientBullet extends DrawableEntity {
+export class ClientBullet extends RemoteEntity {
 
     public sprite = this.addPart(new SpritePart("test2.png"));
 
-    @remotevariable("_x")
-    _x = 0;
 
-    @remotevariable("_y")
-    _y = 0;
 
-    draw(g: PIXI.Graphics): void {}
-    
+    @interpolatedvariable("_x")
+    _x = InterpolatedVar(0);
+
+    @interpolatedvariable("_y")
+    _y = InterpolatedVar(0);
+
     update(dt: number): void {
-        this.position.x = this._x;
-        this.position.y = this._y;
+        this.position.x = this._x.value;
+        this.position.y = this._y.value;
 
         // this.redraw();
     }
 }
-
 
 // @networkedclass_client("auto")
 // export class RemoteAuto extends Entity {

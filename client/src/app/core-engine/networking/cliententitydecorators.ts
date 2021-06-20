@@ -1,26 +1,69 @@
 import { DeserializeTypedVariable, SharedNetworkedEntity, NetworkedVariableTypes, AllNetworkedVariables, SharedEntityLinker, SharedNetworkedEntityDefinitions, AllNetworkedVariablesWithTypes } from "shared/core/sharedlogic/networkedentitydefinitions";
 import { BufferStreamReader } from "shared/datastructures/bufferstream";
-import { Entity } from "../entity";
+import { floor, ceil, lerp } from "shared/misc/mathutils";
+import { RemoteEntity } from "./remotecontrol";
 
 
 type RegisterVariablesList = {
     variablename: AllNetworkedVariables,
     recieveFuncName: null | string;
+
+    interpolated: boolean
 }[];
 
 type NetworkedVariablesList = {
     variablename: AllNetworkedVariables,
-    variabletype: keyof NetworkedVariableTypes,
     recieveFuncName: null | string;
+
+    interpolated: boolean,
+
+    variabletype: keyof NetworkedVariableTypes,
 }[];
 
 
-/** Means a variable is being controlled by the server. Should be readonly on clientside */
-// Typescript type inference is unable to detect the T at this point unfortunately, but works in inner function
-export function remotevariable<T extends Entity, K extends AllNetworkedVariables>(varName: K, receiveFunc: (this: T, value: AllNetworkedVariablesWithTypes[K]) => void = undefined): (target: T, propertyKey: K) => void {
+type EntityType = RemoteEntity;
+type EntityClassType = typeof RemoteEntity;
 
+interface InterpolatedVarType<T> {
+    value: T,
+    data: InterpVariableData<number>
+}
+
+export function InterpolatedVar<T>(value: T): InterpolatedVarType<T> {
+    return {
+        value: value,
+        data: new InterpVariableData<number>()
+    }
+}
+
+class InterpVariableData<T extends number = number> {
+
+    private values = new Map<number, T>();
+
+    addValue(frame: number, value: T){
+        this.values.set(frame, value);
+    }
+
+    getValue(frame: number){
+        const first = this.values.get(floor(frame));
+        const second = this.values.get(ceil(frame));
+
+        if(first === undefined || second === undefined) {
+            console.log("Cannot lerp");
+            return 0;
+        }
+
+        return lerp(first, second, frame % 1)
+    }
+}
+
+
+// Variable decorator
+export function interpolatedvariable<T extends EntityType, K extends AllNetworkedVariables>(varName: K, receiveFunc: (this: T, value: AllNetworkedVariablesWithTypes[K]) => void = undefined){
+    
     // Property decorator
-    return function<T extends Entity>(target: T, propertyKey: K){        
+
+    return function<T extends EntityType & Record<K, InterpolatedVarType<number>>>(target: T, propertyKey: K){        
 
         const constructorOfClass = target.constructor;
         
@@ -44,13 +87,48 @@ export function remotevariable<T extends Entity, K extends AllNetworkedVariables
         variableslist.push({
             variablename: propertyKey,
             recieveFuncName: realReceiveFunc,
+            interpolated: true,
+        });
+    }
+}
+
+/** Means a variable is being controlled by the server. Should be readonly on clientside */
+// Typescript type inference is unable to detect the T at this point unfortunately, but works in inner function
+export function remotevariable<T extends EntityType, K extends AllNetworkedVariables>(varName: K, receiveFunc: (this: T, value: AllNetworkedVariablesWithTypes[K]) => void = undefined){
+
+    // Property decorator
+    return function<T extends EntityType & Record<K, number>>(target: T, propertyKey: K){        
+
+        const constructorOfClass = target.constructor;
+        
+        if(constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] === undefined){
+            constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] = [];
+        }
+
+        let realReceiveFunc: string = null;
+
+        if(receiveFunc !== undefined){
+            
+            //Add the onReceive function to the prototype
+            const recName = "__onReceive_" + varName;
+            target[recName] = receiveFunc;
+
+            realReceiveFunc = recName;
+        }
+
+
+        const variableslist = constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList;
+        variableslist.push({
+            variablename: propertyKey,
+            recieveFuncName: realReceiveFunc,
+            interpolated: false,
         });
     }
 }
 
 export function networkedclass_client<T extends keyof SharedNetworkedEntity>(classname: T) {
 
-    return function<U extends typeof Entity>(targetConstructor: U){
+    return function<U extends EntityClassType>(targetConstructor: U){
 
         targetConstructor["SHARED_ID"] = -1;
 
@@ -67,6 +145,16 @@ export function networkedclass_client<T extends keyof SharedNetworkedEntity>(cla
 
         SharedEntityLinker.validateVariables(classname, orderedVariables.map(a => a.variablename));
 
+        //Interpolation
+        targetConstructor["INTERP_LIST"] = [];
+        for(const v of orderedVariables){
+            if(v.interpolated === true){
+                targetConstructor["INTERP_LIST"].push(v.variablename);
+            }
+        }
+
+
+
         SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES.push({
             create: targetConstructor,
             name: classname,
@@ -78,7 +166,7 @@ export function networkedclass_client<T extends keyof SharedNetworkedEntity>(cla
 
 
 
-type EntityConstructor = abstract new(...args:any[]) => Entity;
+type EntityConstructor = abstract new(...args:any[]) => EntityType;
 
 export const SharedEntityClientTable = {
 
@@ -115,13 +203,20 @@ export const SharedEntityClientTable = {
     },
 
 
-    deserialize(stream: BufferStreamReader, sharedID: number, entity: Entity){
+    deserialize(stream: BufferStreamReader, frame: number, sharedID: number, entity: EntityType){
         
         const variableslist = this.REGISTERED_NETWORKED_ENTITIES[sharedID].varDefinition
 
         for(const variableinfo of variableslist){
             const value = DeserializeTypedVariable(stream, variableinfo.variabletype);
-            entity[variableinfo.variablename] = value
+
+            if(variableinfo.interpolated){
+                entity[variableinfo.variablename].data.addValue(frame, value); 
+            } else {
+                entity[variableinfo.variablename] = value
+            }
+
+
             if(variableinfo.recieveFuncName !== null){
                 entity[variableinfo.recieveFuncName](value);
             }
