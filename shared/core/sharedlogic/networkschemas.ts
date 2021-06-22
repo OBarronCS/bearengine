@@ -1,24 +1,17 @@
-import { AssertUnreachable } from "shared/misc/assertstatements";
+import { assert, AssertUnreachable } from "shared/misc/assertstatements";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { GamePacket } from "./packetdefinitions";
-
-/*
-The following would allow entities to be checked BEFORE connecting to server.
-But, still need to validate stuff with live server on connect.
+import { Vec2 } from "shared/shapes/vec2";
 
 
-implementations would then have to use this "shared name" to linked variables. 
-    would include all the 
-        = IDEA: It could enforce making the entity property the same name as well. 
+export interface PacketWriter {
+    write(stream: BufferStreamWriter): void,
+}
 
-Auto correct won't work as each remotevariable doesn't know what shared_name to check for variables.
-    Will be checked at runtime.
-
-*/
-
+//The following would allow entities to be checked BEFORE connecting to server.
+//But, still need to validate stuff with live server on connect.
 /** Linking networked entity classes */
 export const SharedNetworkedEntityDefinitions = {
-    // Could define client constructor stuff using this method
     "bullet": {
         create: () => void 0,
         variables: {
@@ -39,7 +32,7 @@ export const SharedNetworkedEntityDefinitions = {
 export type SharedNetworkedEntity = typeof SharedNetworkedEntityDefinitions;
 
 //#region Networked Variable Typing
-// All of these types come together to extra all the variable keys
+// All of these types come together to extract all the variable keys
 type OnlyNetworkedVariables = {
     [Key in keyof SharedNetworkedEntity]: SharedNetworkedEntity[Key]["variables"]
 };
@@ -73,9 +66,6 @@ type A = UnionToIntersection<SharedNetworkedEntity[keyof SharedNetworkedEntity][
 export type AllNetworkedVariablesWithTypes = {
     [K in AllNetworkedVariables] : A[K]
 }
-
-
-
 
 //#endregion 
 
@@ -114,7 +104,6 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
 
 export const SharedEntityLinker = {
 
-
     // Makes sure all the variables are present
     validateVariables(name: keyof SharedNetworkedEntity, variables: AllNetworkedVariables[]){
 
@@ -142,18 +131,13 @@ export const SharedEntityLinker = {
     nameToSharedID(name: keyof SharedNetworkedEntity): number {
         return sharedNameToIDLookup.get(name);
     },
-
     sharedIDToVariables(id: number){
         return orderedSharedEntityVariables[id];
     }
-
-
 }
 
 
-export interface PacketWriter {
-    write(stream: BufferStreamWriter): void,
-}
+
 
 //#region Remote function linking
 /* 
@@ -220,7 +204,6 @@ export const RemoteFunctionLinker = {
     },
 
     callRemoteFunction(name: keyof RemoteFunction, stream: BufferStreamReader, entity: object, methodName: string){
-        //he type is all messed up because I override it with function definition
         
         const args = []
         
@@ -313,10 +296,62 @@ const VecStruct = {
 } as const;
 
 
+/*
+Goal:
+    Make schema which defines how to deserialize a TYPE in a stream.
+*/
 
+type NetVarType = "number" | "string" | "array" | "vec2"
 
+type NetTypeDefinition = {
+    type: NetVarType,
+    subtype: any;
+    def: any
+} 
 
+type PrimitiveType = {
+    type: "number",
+    subtype: keyof NetworkedVariableTypes
+    def: NetworkedVariableTypes[keyof NetworkedVariableTypes]
+}
 
+// Array allow recursive definition
+type ArrayType = {
+    type: "array",
+    subtype: NetTypeDefinition
+    def: any[];
+}
+
+type Vec2Type = {
+    type: "vec2",
+    subtype: keyof NetworkedVariableTypes;
+    def: Vec2
+}
+
+export function DeserializeComplexVar(){
+
+}
+
+export function SerializeTypedArray(stream: BufferStreamWriter, type: keyof NetworkedVariableTypes, arr: number[]): void {
+    const length = arr.length;
+    assert(length <= ((1 << 16) - 1), "Array must be less than 65536 characters --> " + arr);
+
+    stream.setUint16(length);
+
+    for (let i = 0; i < arr.length; i++) {
+        SerializeTypedVariable(stream, arr[i], type)        
+    }
+}
+
+export function DeserializeTypedArray(stream: BufferStreamReader, type: keyof NetworkedVariableTypes, target: number[] = []): number[] {
+    const length = stream.getUint16();
+
+    for(let i = 0; i < length; i++){
+        target[i] = DeserializeTypedVariable(stream, type);
+    }
+    
+    return target;
+}
 
 
 
@@ -351,3 +386,4 @@ export function DeserializeTypedVariable(stream: BufferStreamReader, type: keyof
         default: AssertUnreachable(type);
     }
 }
+

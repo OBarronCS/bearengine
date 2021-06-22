@@ -1,4 +1,4 @@
-import { DeserializeTypedVariable, SharedNetworkedEntity, NetworkedVariableTypes, AllNetworkedVariables, SharedEntityLinker, SharedNetworkedEntityDefinitions, AllNetworkedVariablesWithTypes } from "shared/core/sharedlogic/networkedentitydefinitions";
+import { DeserializeTypedNumber, SharedNetworkedEntity, NetworkedNumberTypes, AllNetworkedVariables, SharedEntityLinker, SharedNetworkedEntityDefinitions, AllNetworkedVariablesWithTypes } from "shared/core/sharedlogic/networkschemas";
 import { BufferStreamReader } from "shared/datastructures/bufferstream";
 import { floor, ceil, lerp } from "shared/misc/mathutils";
 import { RemoteEntity } from "./remotecontrol";
@@ -17,7 +17,7 @@ type NetworkedVariablesList = {
 
     interpolated: boolean,
 
-    variabletype: keyof NetworkedVariableTypes,
+    variabletype: keyof NetworkedNumberTypes,
 }[];
 
 
@@ -140,7 +140,7 @@ export function networkedclass_client<T extends keyof SharedNetworkedEntity>(cla
         const orderedVariables =  registeredVariables.sort( (a,b) => a.variablename.localeCompare(b.variablename) );
 
         const orderedVariablesWithType: NetworkedVariablesList = orderedVariables.map( (a) => ({...a,
-            variabletype : SharedNetworkedEntityDefinitions[classname]["variables"][a.variablename] as keyof NetworkedVariableTypes,
+            variabletype : SharedNetworkedEntityDefinitions[classname]["variables"][a.variablename] as keyof NetworkedNumberTypes,
         }));
 
         SharedEntityLinker.validateVariables(classname, orderedVariables.map(a => a.variablename));
@@ -208,7 +208,7 @@ export const SharedEntityClientTable = {
         const variableslist = this.REGISTERED_NETWORKED_ENTITIES[sharedID].varDefinition
 
         for(const variableinfo of variableslist){
-            const value = DeserializeTypedVariable(stream, variableinfo.variabletype);
+            const value = DeserializeTypedNumber(stream, variableinfo.variabletype);
 
             if(variableinfo.interpolated){
                 entity[variableinfo.variablename].data.addValue(frame, value); 
