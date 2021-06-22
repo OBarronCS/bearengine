@@ -337,7 +337,7 @@ export function SerializeTypedVar<T extends AllNetTypeDefinitions>(stream: Buffe
         case "string": SerializeString(stream, value); break;
 
         //@ts-expect-error
-        case "vec2": SerializeVec2(stream, value); break;
+        case "vec2": SerializeVec2(stream, def.subtype, value); break;
 
         default: AssertUnreachable(def);
     }
@@ -357,7 +357,7 @@ export function DeserializeTypedVar<T extends AllNetTypeDefinitions>(stream: Buf
         case "string": return DeserializeString(stream);
 
         //@ts-expect-error
-        case "vec2": return DeserializeVec2(stream);
+        case "vec2": return DeserializeVec2(stream, def.subtype);
 
         default: AssertUnreachable(def);
     }
@@ -368,7 +368,7 @@ export function DeserializeTypedVar<T extends AllNetTypeDefinitions>(stream: Buf
 
 export function SerializeTypedArray<T extends AllNetTypeDefinitions>(stream: BufferStreamWriter, def: T, arr: TypescriptTypeOfNetVar<T>[]): void {
     const length = arr.length;
-    assert(length <= ((1 << 16) - 1), "Array must be less than 65536 characters --> " + arr);
+    assert(length <= ((1 << 16) - 1), "Array must be less than 65536 values long --> " + arr);
 
     stream.setUint16(length);
 
