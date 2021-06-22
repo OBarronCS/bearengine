@@ -10,7 +10,7 @@ import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
 import { PlayerEntity, ServerEntity } from "./serverentity";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
-import { PacketWriter, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources } from "shared/core/sharedlogic/networkedentitydefinitions";
+import { PacketWriter, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources } from "shared/core/sharedlogic/networkschemas";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { TerrainManager } from "shared/core/terrainmanager";
@@ -367,7 +367,7 @@ export class ServerBearEngine extends AbstractBearEngine {
         this.currentTickPacketsForEveryone.push({
 
             write(stream){
-                RemoteFunctionLinker.serializeRemoteFunction("testFunction", stream,Date.now());
+                RemoteFunctionLinker.serializeRemoteFunction("testVecFunction", stream,new Vec2(100.31,200.41));
             }
 
         });

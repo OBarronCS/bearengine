@@ -24,7 +24,7 @@ const BITS_FOR_VERSION = 8;
 const MAX_VERSION_NUMBER = (1 << BITS_FOR_VERSION) - 1;
 
 /** const onlyVBits = EntityID & MASK_TO_GET_VERSION_BITS --> Only version bits left in 32 bit integer */
-const MASK_TO_GET_VERSION_BITS = ((1 << BITS_FOR_VERSION) - 1) << BITS_FOR_INDEX;  
+export const MASK_TO_GET_VERSION_BITS = ((1 << BITS_FOR_VERSION) - 1) << BITS_FOR_INDEX;  
 
 export function getEntityVersion(id: EntityID): number { 
     // Because bitwise operations in JavaScript turn numbers into SIGNED 32 bits integers, need triple > to stop the sign bit from propagating

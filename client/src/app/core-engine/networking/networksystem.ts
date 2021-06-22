@@ -1,7 +1,7 @@
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { Scene, StreamReadEntityID } from "shared/core/scene";
-import { PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
+import { PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker } from "shared/core/sharedlogic/networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { SharedEntityClientTable } from "./cliententitydecorators";
@@ -17,6 +17,7 @@ import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { ItemEnum } from "server/source/app/weapons/weaponinterfaces";
 import { DummyLevel } from "../gamelevel";
+import { Vec2 } from "shared/shapes/vec2";
 
 interface BufferedPacket {
     buffer: BufferStreamReader;
@@ -34,8 +35,12 @@ export class NetworkSystem extends Subsystem<BearEngine> {
     public remotelocations = this.addQuery(RemoteLocations);
 
 
+
+
     private remoteEntities: Map<number, RemoteEntity> = new Map();
     private remotePlayers: Map<number, RemotePlayer> = new Map(); 
+
+
 
     private packetsToSerialize: PacketWriter[] = [];
 
@@ -266,7 +271,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                                 return;
                             }
 
-                            SharedEntityClientTable.deserialize(stream, SHARED_ID, entity);
+                            SharedEntityClientTable.deserialize(stream, frame, SHARED_ID, entity);
 
                             break;
                         }       
@@ -333,7 +338,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             break;
                         }
                         case GamePacket.PLAYER_CREATE : {
-                            // [playerID: uint8, entityID, x: float32, y: float32]
+                            // [playerID: uint8, x: float32, y: float32]
 
                             const pID = stream.getUint8();
                             const x = stream.getFloat32();
@@ -446,6 +451,15 @@ export class NetworkSystem extends Subsystem<BearEngine> {
             for(const obj of this.remotelocations){
                 obj.setPosition(frameToSimulate)
             }
+
+            for(const obj of this.remoteEntities.values()){
+                const list = obj.constructor["INTERP_LIST"];
+                for(const value of list){
+                    const interpVar = obj[value];
+                    const interpValue = interpVar.data.getValue(frameToSimulate);
+                    interpVar.value = interpValue;
+                }
+            }
         }
     }
 
@@ -522,9 +536,9 @@ export class NetworkSystem extends Subsystem<BearEngine> {
     }
 
 
-    @remotefunction("testFunction")
-    asgdfygafsdjyafsdyasd(value: number){
-        console.log(value);
+    @remotefunction("testVecFunction")
+    asgdfygafsdjyafsdyasd(value: Vec2){
+        console.log(value.toString());
     }
 }
 

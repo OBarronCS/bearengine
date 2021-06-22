@@ -1,5 +1,5 @@
 import { StreamWriteEntityID } from "shared/core/scene";
-import { NetworkedVariableTypes, SharedNetworkedEntity, SerializeTypedVariable, AllNetworkedVariables, SharedNetworkedEntityDefinitions, SharedEntityLinker } from "shared/core/sharedlogic/networkedentitydefinitions";
+import { SharedNetworkedEntity, SharedEntityLinker, AllNetworkedVariablesWithTypes, SerializeTypedVar } from "shared/core/sharedlogic/networkschemas";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ServerEntity } from "../serverentity";
 
@@ -7,7 +7,7 @@ import { ServerEntity } from "../serverentity";
 // On entity serialization, it writes marked variables to buffer in agreed upon order
 
 type RegisterVariablesList = {
-    variablename: AllNetworkedVariables
+    variablename: keyof AllNetworkedVariablesWithTypes
 }[]
 
 
@@ -35,7 +35,7 @@ export function networkedclass_server<T extends keyof SharedNetworkedEntity>(cla
 
 
 /**  Place this decorator before variables to sync them automatically to client side */
-export function networkedvariable<K extends AllNetworkedVariables>(sharedVariableName: K, createSetterAndGetter = false) {
+export function networkedvariable<K extends keyof AllNetworkedVariablesWithTypes>(sharedVariableName: K, createSetterAndGetter = false) {
 
     // Property decorator
     return function<T extends ServerEntity>(target: T, propertyKey: K){
@@ -128,7 +128,9 @@ export class SharedEntityServerTable {
         StreamWriteEntityID(stream, entity.entityID);
 
         for(const variable of variableslist){
-            SerializeTypedVariable(stream, entity[variable.variableName], variable.type);
+
+            //@ts-expect-error
+            SerializeTypedVar(stream, variable.type, entity[variable.variableName]);
         }
     }
 }

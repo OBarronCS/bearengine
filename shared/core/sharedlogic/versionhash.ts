@@ -1,4 +1,4 @@
-import { RemoteFunctionStruct, RemoteResources } from "./networkedentitydefinitions";
+import { RemoteFunctionStruct, RemoteResources, SharedNetworkedEntityDefinitions } from "./networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "./packetdefinitions";
 
 /*
@@ -71,15 +71,18 @@ function ArrayHash(array: any[]): bigint {
     return totalHash;
 }
 
-// Right now ignores order of keys. Maybe take that into account
+
 function ObjectHash(hashable: object): bigint {
     if(Array.isArray(hashable)){
         return ArrayHash(hashable);
     }
 
     let totalHash = 0n;
+
+    let i = 1n;
     for(const key in hashable){
-        totalHash += ValueHash(hashable[key]);
+        totalHash += (StringHash(key) * i++) + ValueHash(hashable[key]);
+        
     }
     return totalHash;
 }
@@ -101,9 +104,10 @@ function CreateHash(manual: number): bigint {
 
     hash += ObjectHash(RemoteResources);
     hash += ObjectHash(RemoteFunctionStruct);
+    hash += ObjectHash(SharedNetworkedEntityDefinitions)
 
     // Approximate number of bits needed to represent it: 
-    // console.log(Math.log2(Number(hash)))
+    console.log("Number of bits in hash:", Math.log2(Number(hash)))
 
     return (manualMask) | (hash & HASH_MASK);
 }
