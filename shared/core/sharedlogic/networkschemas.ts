@@ -82,7 +82,7 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
 }
 
 // Index is shared index
-const orderedSharedEntityVariables: {variableName: AllNetworkedVariables, type: keyof NetworkedVariableTypes}[][] = [];
+const orderedSharedEntityVariables: {variableName: AllNetworkedVariables, type: NetworkedNumberTypes}[][] = [];
 for(let i = 0; i < orderedSharedEntities.length; i++){
 
     const sharedName = sharedIDToNameLookup[i];
@@ -90,7 +90,7 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
     
     const orderedVariables: (AllNetworkedVariables)[] = Object.keys(variableStruct).sort() as any;
 
-    const arr: {variableName: AllNetworkedVariables, type: keyof NetworkedVariableTypes}[] = [];
+    const arr: {variableName: AllNetworkedVariables, type: NetworkedNumberTypes}[] = [];
 
     for(const variable of orderedVariables){
         arr.push({
@@ -194,7 +194,7 @@ export const RemoteFunctionLinker = {
         stream.setUint8(this.getIDFromString(name));
 
         for (let i = 0; i < RemoteFunctionStruct[name]["argTypes"].length; i++) {
-            SerializeTypedVariable(stream,args[i], variableTypes[i])
+            SerializeTypedNumber(stream,variableTypes[i], args[i])
         }
     },
 
@@ -208,7 +208,7 @@ export const RemoteFunctionLinker = {
         const args = []
         
         for(const functionArgumentType of RemoteFunctionStruct[name]["argTypes"]){
-            const variable = DeserializeTypedVariable(stream, functionArgumentType)
+            const variable = DeserializeTypedNumber(stream, functionArgumentType)
             args.push(variable);
         }
 
@@ -249,31 +249,22 @@ export const RemoteResourceLinker = {
 //#endregion
 
 
-export interface NetworkedVariableTypes {
-    "int8": number,
-    "uint8": number,
-    "int16": number,
-    "uint16": number,
-    "int32": number,
-    "uint32": number,
-    "float": number,
-    "double": number,
-}
+
 
 
 // Serialization of structs
 interface StructTemplate {
-    [key: string]: keyof NetworkedVariableTypes
+    [key: string]: NetworkedNumberTypes
 }
 
 type DecodedStruct<T> =  { 
-    [K in keyof T]: T[K] extends keyof NetworkedVariableTypes ? NetworkedVariableTypes[T[K]] : never 
+    [K in keyof T]: T[K] extends NetworkedNumberTypes ? number : never 
 };
 
 //Uses iteration order of the StructType object to encode/decode;
 export function StreamEncodeStruct<T extends StructTemplate>(stream: BufferStreamWriter, template: T, structToEncode: DecodedStruct<T>): void {
     for(const key in template){
-        SerializeTypedVariable(stream, structToEncode[key], template[key]);
+        SerializeTypedNumber(stream, template[key], structToEncode[key]);
     }
 }
 
@@ -282,7 +273,7 @@ export function StreamDecodeStruct<T extends StructTemplate>(stream: BufferStrea
 
     for(const key in template){
         // @ts-expect-error  this function returns a number, technically it could be something else
-        obj[key] = DeserializeTypedVariable(stream, template[key]);
+        obj[key] = DeserializeTypedNumber(stream, template[key]);
     }
 
     return obj;
@@ -301,53 +292,96 @@ Goal:
     Make schema which defines how to deserialize a TYPE in a stream.
 */
 
-type NetVarType = "number" | "string" | "array" | "vec2"
+export type NetworkedNumberTypes = "int8" | "uint8" | "int16" | "uint16" | "int32" | "uint32"| "float" | "double";
 
-type NetTypeDefinition = {
-    type: NetVarType,
-    subtype: any;
-    def: any
+type NumberType = {
+    type: "number",
+    subtype: NetworkedNumberTypes
 } 
 
-type PrimitiveType = {
-    type: "number",
-    subtype: keyof NetworkedVariableTypes
-    def: NetworkedVariableTypes[keyof NetworkedVariableTypes]
+type StringType = {
+    type: "string",
 }
 
-// Array allow recursive definition
 type ArrayType = {
     type: "array",
-    subtype: NetTypeDefinition
-    def: any[];
+    subtype: AllNetTypeDefinitions
 }
 
 type Vec2Type = {
     type: "vec2",
-    subtype: keyof NetworkedVariableTypes;
-    def: Vec2
+    subtype: NetworkedNumberTypes;
 }
 
-export function DeserializeComplexVar(){
+type AllNetTypeDefinitions = NumberType |  StringType | ArrayType | Vec2Type;
 
+type TypescriptTypeOfNetVar<T extends AllNetTypeDefinitions> = 
+    T["type"] extends "number" ? number : 
+        T["type"] extends "string" ? string :
+            T["type"] extends "vec2" ? Vec2 :
+                //@ts-expect-error --> It yells, but it still works!
+                T["type"] extends "array" ? TypescriptTypeOfNetVar<T["subtype"]>[] : never;
+
+
+// Bunch of types are yelling "ERROR" here but they still work when calling the function. So just internal.
+export function SerializeTypedVar<T extends AllNetTypeDefinitions>(stream: BufferStreamWriter, def: T, value: TypescriptTypeOfNetVar<T>): void {
+
+    switch(def.type){
+        //@ts-expect-error
+        case "number": SerializeTypedNumber(stream, def.subtype, value); break;
+ 
+        //@ts-expect-error
+        case "array": SerializeTypedArray(stream, def.subtype, value); break;
+            
+        //@ts-expect-error
+        case "string": SerializeString(stream, value); break;
+
+        //@ts-expect-error
+        case "vec2": SerializeVec2(stream, value); break;
+
+        default: AssertUnreachable(def);
+    }
 }
 
-export function SerializeTypedArray(stream: BufferStreamWriter, type: keyof NetworkedVariableTypes, arr: number[]): void {
+
+export function DeserializeTypedVar<T extends AllNetTypeDefinitions>(stream: BufferStreamReader, def: T): TypescriptTypeOfNetVar<T> {
+
+    switch(def.type){
+        //@ts-expect-error
+        case "number": return DeserializeTypedNumber(stream, def.subtype);
+
+        //@ts-expect-error
+        case "array": return DeserializeTypedArray(stream, def.subtype); 
+            
+        //@ts-expect-error  
+        case "string": return DeserializeString(stream);
+
+        //@ts-expect-error
+        case "vec2": return DeserializeVec2(stream);
+
+        default: AssertUnreachable(def);
+    }
+}
+
+
+
+
+export function SerializeTypedArray<T extends AllNetTypeDefinitions>(stream: BufferStreamWriter, def: T, arr: TypescriptTypeOfNetVar<T>[]): void {
     const length = arr.length;
     assert(length <= ((1 << 16) - 1), "Array must be less than 65536 characters --> " + arr);
 
     stream.setUint16(length);
 
     for (let i = 0; i < arr.length; i++) {
-        SerializeTypedVariable(stream, arr[i], type)        
+        SerializeTypedVar(stream, def, arr[i])        
     }
 }
 
-export function DeserializeTypedArray(stream: BufferStreamReader, type: keyof NetworkedVariableTypes, target: number[] = []): number[] {
+export function DeserializeTypedArray<T extends AllNetTypeDefinitions>(stream: BufferStreamReader, type: T, target: TypescriptTypeOfNetVar<T>[] = []): TypescriptTypeOfNetVar<T>[] {
     const length = stream.getUint16();
 
     for(let i = 0; i < length; i++){
-        target[i] = DeserializeTypedVariable(stream, type);
+        target[i] = DeserializeTypedVar(stream, type);
     }
     
     return target;
@@ -355,7 +389,22 @@ export function DeserializeTypedArray(stream: BufferStreamReader, type: keyof Ne
 
 
 
-export function SerializeTypedVariable(stream: BufferStreamWriter, value: any, type: keyof NetworkedVariableTypes): void {
+
+export function SerializeVec2(stream: BufferStreamWriter, type: NetworkedNumberTypes, vec: Vec2): void {
+    SerializeTypedNumber(stream, type, vec.x);
+    SerializeTypedNumber(stream, type, vec.y);
+}
+
+export function DeserializeVec2(stream: BufferStreamReader, type: NetworkedNumberTypes, target: Vec2 = new Vec2(0,0)): Vec2 {
+    target.x = DeserializeTypedNumber(stream, type);
+    target.y = DeserializeTypedNumber(stream, type);
+    return target;
+}
+
+
+
+
+export function SerializeTypedNumber(stream: BufferStreamWriter, type: NetworkedNumberTypes, value: number): void {
 
     switch(type){
         case "int8": stream.setInt8(value); break;
@@ -371,7 +420,7 @@ export function SerializeTypedVariable(stream: BufferStreamWriter, value: any, t
     }
 }
 
-export function DeserializeTypedVariable(stream: BufferStreamReader, type: keyof NetworkedVariableTypes): number {
+export function DeserializeTypedNumber(stream: BufferStreamReader, type: NetworkedNumberTypes): number {
 
     switch(type){
         case "int8": return stream.getInt8(); 
@@ -387,3 +436,37 @@ export function DeserializeTypedVariable(stream: BufferStreamReader, type: keyof
     }
 }
 
+// String serialization
+// TextEncoder and TextDecoder cannot really write in pre-existing buffers. Not very useful
+// Will do it manually, char by char,
+// All ascii characters
+// Fit in 1 byte
+
+const ASCII_REGEX = /^[\x00-\x7F]*$/;
+
+export function SerializeString(stream: BufferStreamWriter, str: string): void {
+    
+    const length = str.length;
+
+    assert(length <= ((1 << 16) - 1), "String must be less than 65536 characters --> " + str);
+    assert(ASCII_REGEX.test(str), "Character must be ascii encodable --> " + str);
+    
+
+    stream.setUint16(length);
+
+    for(const char of str){
+        stream.setUint8(char.charCodeAt(0));
+    }
+}
+
+export function DeserializeString(stream: BufferStreamReader): string {
+    let str = "";
+
+    const length = stream.getUint16();
+
+    for(let i = 0; i < length; i++){
+        str += String.fromCharCode(stream.getUint8());
+    }
+    
+    return str;
+}

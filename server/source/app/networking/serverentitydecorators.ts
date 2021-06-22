@@ -1,5 +1,5 @@
 import { StreamWriteEntityID } from "shared/core/scene";
-import { NetworkedNumberTypes, SharedNetworkedEntity, SerializeTypedNumber, AllNetworkedVariables, SharedNetworkedEntityDefinitions, SharedEntityLinker } from "shared/core/sharedlogic/networkschemas";
+import { SharedNetworkedEntity, SerializeTypedNumber, AllNetworkedVariables, SharedNetworkedEntityDefinitions, SharedEntityLinker } from "shared/core/sharedlogic/networkschemas";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ServerEntity } from "../serverentity";
 
@@ -128,7 +128,7 @@ export class SharedEntityServerTable {
         StreamWriteEntityID(stream, entity.entityID);
 
         for(const variable of variableslist){
-            SerializeTypedNumber(stream, entity[variable.variableName], variable.type);
+            SerializeTypedNumber(stream, variable.type, entity[variable.variableName]);
         }
     }
 }

@@ -1,7 +1,4 @@
-
-
 import { assert } from "shared/misc/assertstatements";
-import { Vec2 } from "shared/shapes/vec2";
 
 export class BufferStreamReader  {
     
@@ -210,52 +207,7 @@ export class BufferStreamWriter {
         this.dataview.setUint32(this.byteOffset,value, this.littleEndian);
         this.seekRelative(4);
     }
-
-    
-    // setVec2(vec: Vec2): void {
-
-    // }
-
-    // set/write Array
 }
 
-
-
-// TextEncoder and TextDecoder cannot really write in pre-existing buffers. Not very useful
-// Will do it manually, char by char,
-// All ascii characters
-// Fit in 1 byte
-
-//s.test(string): true if is ok
-
-
-const ASCII_REGEX = /^[\x00-\x7F]*$/;
-
-export function StreamWriteString(stream: BufferStreamWriter, str: string): void {
-    
-    const length = str.length;
-
-    assert(length <= ((1 << 16) - 1), "String must be less than 65536 characters --> " + str);
-    assert(ASCII_REGEX.test(str), "Character must be ascii encodable --> " + str);
-    
-
-    stream.setUint16(length);
-
-    for(const char of str){
-        stream.setUint8(char.charCodeAt(0));
-    }
-}
-
-export function StreamReadString(stream: BufferStreamReader): string {
-    let str = "";
-
-    const length = stream.getUint16();
-
-    for(let i = 0; i < length; i++){
-        str += String.fromCharCode(stream.getUint8());
-    }
-    
-    return str;
-}
 
 

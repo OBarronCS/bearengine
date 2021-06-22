@@ -17,7 +17,7 @@ type NetworkedVariablesList = {
 
     interpolated: boolean,
 
-    variabletype: keyof NetworkedNumberTypes,
+    variabletype: NetworkedNumberTypes,
 }[];
 
 
@@ -140,7 +140,7 @@ export function networkedclass_client<T extends keyof SharedNetworkedEntity>(cla
         const orderedVariables =  registeredVariables.sort( (a,b) => a.variablename.localeCompare(b.variablename) );
 
         const orderedVariablesWithType: NetworkedVariablesList = orderedVariables.map( (a) => ({...a,
-            variabletype : SharedNetworkedEntityDefinitions[classname]["variables"][a.variablename] as keyof NetworkedNumberTypes,
+            variabletype : SharedNetworkedEntityDefinitions[classname]["variables"][a.variablename] as NetworkedNumberTypes,
         }));
 
         SharedEntityLinker.validateVariables(classname, orderedVariables.map(a => a.variablename));
