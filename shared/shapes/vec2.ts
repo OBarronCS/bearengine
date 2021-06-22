@@ -206,6 +206,10 @@ export class Vec2 {
         return this;
     }
 
+    // isZero(): boolean {
+    //     return this.x === 0 && this.y === 0; 
+    // }
+
     clone(){
         return new Vec2(this.x, this.y);
     }

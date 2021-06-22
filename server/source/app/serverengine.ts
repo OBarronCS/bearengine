@@ -367,7 +367,7 @@ export class ServerBearEngine extends AbstractBearEngine {
         this.currentTickPacketsForEveryone.push({
 
             write(stream){
-                RemoteFunctionLinker.serializeRemoteFunction("testFunction", stream,Date.now());
+                RemoteFunctionLinker.serializeRemoteFunction("testVecFunction", stream,new Vec2(100.31,200.41));
             }
 
         });

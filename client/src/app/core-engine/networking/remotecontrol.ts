@@ -37,17 +37,19 @@ export class ClientBullet extends RemoteEntity {
 
     public sprite = this.addPart(new SpritePart("test2.png"));
 
+    @interpolatedvariable("_pos")
+    _pos = InterpolatedVar(new Vec2(0,0));
 
+    // @interpolatedvariable("_x")
+    // _x = InterpolatedVar(0);
 
-    @interpolatedvariable("_x")
-    _x = InterpolatedVar(0);
-
-    @interpolatedvariable("_y")
-    _y = InterpolatedVar(0);
+    // @interpolatedvariable("_y")
+    // _y = InterpolatedVar(0);
 
     update(dt: number): void {
-        this.position.x = this._x.value;
-        this.position.y = this._y.value;
+        this.position.set(this._pos.value);
+        // this.position.x = this._x.value;
+        // this.position.y = this._y.value;
 
         // this.redraw();
     }

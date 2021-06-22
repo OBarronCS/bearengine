@@ -15,16 +15,16 @@ export const SharedNetworkedEntityDefinitions = {
     "bullet": {
         create: () => void 0,
         variables: {
-            _x: "float",
-            _y: "float"
+            _pos: {type:"vec2", subtype: "float"},
+            //_y: {type:"number", subtype: "float"},
         },
 
     },
     "ogre": {
         create: () => void 0,
         variables: {
-            _x: "float",
-            asdasd: "float"
+            _x: {type:"number", subtype: "float"},
+            asdasd: {type:"number", subtype: "float"},
         },
     },
 } as const;
@@ -39,20 +39,17 @@ type OnlyNetworkedVariables = {
 
 type AllSubVariables = OnlyNetworkedVariables[keyof OnlyNetworkedVariables]
 
-// https://stackoverflow.com/questions/58434389/typescript-deep-keyof-of-a-nested-object
-type Prev = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-    11, 12, 13, 14, 15, 16, 17, 18, 19, 20, ...0[]]
+// // https://stackoverflow.com/questions/58434389/typescript-deep-keyof-of-a-nested-object
+// type Prev = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+//     11, 12, 13, 14, 15, 16, 17, 18, 19, 20, ...0[]]
 
-type Join<K, P> = K extends string | number ?
-    P extends string | number ?
-    `${K}${"" extends P ? "" : "."}${P}`
-    : never : never;
+// type Join<K, P> = K extends string | number ?
+//     P extends string | number ?
+//     `${K}${"" extends P ? "" : "."}${P}`
+//     : never : never;
 
-type Leaves<T, D extends number = 10> = [D] extends [never] ? never : T extends object ?
-    { [K in keyof T]-?: Join<K, Leaves<T[K], Prev[D]>> }[keyof T] : "";
-
-// All networked variable keys
-export type AllNetworkedVariables = Leaves<AllSubVariables>
+// type Leaves<T, D extends number = 2> = [D] extends [never] ? never : T extends object ?
+//     { [K in keyof T]-?: Join<K, Leaves<T[K], Prev[D]>> }[keyof T] : "";
 
 // Help with types https://stackoverflow.com/questions/63542526/merge-discriminated-union-of-object-types-in-typescript
 type UnionToIntersection<U> =
@@ -62,9 +59,8 @@ type UnionToIntersection<U> =
 // This Types break if a key of two different objects that are equal have different values, because its impossible for the same key to have differnet 
 type A = UnionToIntersection<SharedNetworkedEntity[keyof SharedNetworkedEntity]["variables"]>
 
-
 export type AllNetworkedVariablesWithTypes = {
-    [K in AllNetworkedVariables] : A[K]
+    [K in keyof A] : TypescriptTypeOfNetVar<A[K]>
 }
 
 //#endregion 
@@ -82,15 +78,15 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
 }
 
 // Index is shared index
-const orderedSharedEntityVariables: {variableName: AllNetworkedVariables, type: NetworkedNumberTypes}[][] = [];
+const orderedSharedEntityVariables: {variableName: keyof AllNetworkedVariablesWithTypes, type: NetworkVariableTypes}[][] = [];
 for(let i = 0; i < orderedSharedEntities.length; i++){
 
     const sharedName = sharedIDToNameLookup[i];
     const variableStruct = SharedNetworkedEntityDefinitions[sharedName]["variables"]
     
-    const orderedVariables: (AllNetworkedVariables)[] = Object.keys(variableStruct).sort() as any;
+    const orderedVariables: (keyof AllNetworkedVariablesWithTypes)[] = Object.keys(variableStruct).sort() as any;
 
-    const arr: {variableName: AllNetworkedVariables, type: NetworkedNumberTypes}[] = [];
+    const arr: {variableName: keyof AllNetworkedVariablesWithTypes, type: NetworkVariableTypes}[] = [];
 
     for(const variable of orderedVariables){
         arr.push({
@@ -105,7 +101,7 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
 export const SharedEntityLinker = {
 
     // Makes sure all the variables are present
-    validateVariables(name: keyof SharedNetworkedEntity, variables: AllNetworkedVariables[]){
+    validateVariables(name: keyof SharedNetworkedEntity, variables: (keyof AllNetworkedVariablesWithTypes)[]){
 
         // Makes sure it has all the required variables
         const requiredVariables = orderedSharedEntityVariables[sharedNameToIDLookup.get(name)];
@@ -149,14 +145,14 @@ export const SharedEntityLinker = {
 // Exported for versionhash
 export const RemoteFunctionStruct = {
     "test1": { 
-        argTypes: ["int32", "float"],
+        argTypes: [{type: "number", subtype: "int32"},{type: "number", subtype: "float"}],
         callback: (name: number, food: number) => void 0
     },
 
 
-    "testFunction": {
-        argTypes: ["double"],
-        callback: (testNumber: number) => void 0
+    "testVecFunction": {
+        argTypes: [{type: "vec2", subtype: "double"}],
+        callback: (testNumber: Vec2) => void 0
     }
 
 } as const;
@@ -194,7 +190,8 @@ export const RemoteFunctionLinker = {
         stream.setUint8(this.getIDFromString(name));
 
         for (let i = 0; i < RemoteFunctionStruct[name]["argTypes"].length; i++) {
-            SerializeTypedNumber(stream,variableTypes[i], args[i])
+            //@ts-expect-error
+            SerializeTypedVar(stream,variableTypes[i], args[i])
         }
     },
 
@@ -208,7 +205,7 @@ export const RemoteFunctionLinker = {
         const args = []
         
         for(const functionArgumentType of RemoteFunctionStruct[name]["argTypes"]){
-            const variable = DeserializeTypedNumber(stream, functionArgumentType)
+            const variable = DeserializeTypedVar(stream, functionArgumentType)
             args.push(variable);
         }
 
@@ -292,7 +289,7 @@ Goal:
     Make schema which defines how to deserialize a TYPE in a stream.
 */
 
-export type NetworkedNumberTypes = "int8" | "uint8" | "int16" | "uint16" | "int32" | "uint32"| "float" | "double";
+type NetworkedNumberTypes = "int8" | "uint8" | "int16" | "uint16" | "int32" | "uint32"| "float" | "double";
 
 type NumberType = {
     type: "number",
@@ -305,7 +302,7 @@ type StringType = {
 
 type ArrayType = {
     type: "array",
-    subtype: AllNetTypeDefinitions
+    subtype: NetworkVariableTypes
 }
 
 type Vec2Type = {
@@ -313,9 +310,9 @@ type Vec2Type = {
     subtype: NetworkedNumberTypes;
 }
 
-type AllNetTypeDefinitions = NumberType |  StringType | ArrayType | Vec2Type;
+export type NetworkVariableTypes = NumberType |  StringType | ArrayType | Vec2Type;
 
-type TypescriptTypeOfNetVar<T extends AllNetTypeDefinitions> = 
+type TypescriptTypeOfNetVar<T extends NetworkVariableTypes> = 
     T["type"] extends "number" ? number : 
         T["type"] extends "string" ? string :
             T["type"] extends "vec2" ? Vec2 :
@@ -324,9 +321,11 @@ type TypescriptTypeOfNetVar<T extends AllNetTypeDefinitions> =
 
 
 // Bunch of types are yelling "ERROR" here but they still work when calling the function. So just internal.
-export function SerializeTypedVar<T extends AllNetTypeDefinitions>(stream: BufferStreamWriter, def: T, value: TypescriptTypeOfNetVar<T>): void {
+export function SerializeTypedVar<T extends NetworkVariableTypes>(stream: BufferStreamWriter, def: T, value: TypescriptTypeOfNetVar<T>): void {
 
-    switch(def.type){
+    const type = def.type;
+
+    switch(type){
         //@ts-expect-error
         case "number": SerializeTypedNumber(stream, def.subtype, value); break;
  
@@ -339,14 +338,16 @@ export function SerializeTypedVar<T extends AllNetTypeDefinitions>(stream: Buffe
         //@ts-expect-error
         case "vec2": SerializeVec2(stream, def.subtype, value); break;
 
-        default: AssertUnreachable(def);
+        default: AssertUnreachable(type);
     }
 }
 
 
-export function DeserializeTypedVar<T extends AllNetTypeDefinitions>(stream: BufferStreamReader, def: T): TypescriptTypeOfNetVar<T> {
+export function DeserializeTypedVar<T extends NetworkVariableTypes>(stream: BufferStreamReader, def: T): TypescriptTypeOfNetVar<T> {
 
-    switch(def.type){
+    const type = def.type;
+
+    switch(type){
         //@ts-expect-error
         case "number": return DeserializeTypedNumber(stream, def.subtype);
 
@@ -359,14 +360,14 @@ export function DeserializeTypedVar<T extends AllNetTypeDefinitions>(stream: Buf
         //@ts-expect-error
         case "vec2": return DeserializeVec2(stream, def.subtype);
 
-        default: AssertUnreachable(def);
+        default: AssertUnreachable(type);
     }
 }
 
 
 
 
-export function SerializeTypedArray<T extends AllNetTypeDefinitions>(stream: BufferStreamWriter, def: T, arr: TypescriptTypeOfNetVar<T>[]): void {
+export function SerializeTypedArray<T extends NetworkVariableTypes>(stream: BufferStreamWriter, def: T, arr: TypescriptTypeOfNetVar<T>[]): void {
     const length = arr.length;
     assert(length <= ((1 << 16) - 1), "Array must be less than 65536 values long --> " + arr);
 
@@ -377,7 +378,7 @@ export function SerializeTypedArray<T extends AllNetTypeDefinitions>(stream: Buf
     }
 }
 
-export function DeserializeTypedArray<T extends AllNetTypeDefinitions>(stream: BufferStreamReader, type: T, target: TypescriptTypeOfNetVar<T>[] = []): TypescriptTypeOfNetVar<T>[] {
+export function DeserializeTypedArray<T extends NetworkVariableTypes>(stream: BufferStreamReader, type: T, target: TypescriptTypeOfNetVar<T>[] = []): TypescriptTypeOfNetVar<T>[] {
     const length = stream.getUint16();
 
     for(let i = 0; i < length; i++){

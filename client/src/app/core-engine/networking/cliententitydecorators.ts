@@ -1,23 +1,24 @@
-import { DeserializeTypedNumber, SharedNetworkedEntity, NetworkedNumberTypes, AllNetworkedVariables, SharedEntityLinker, SharedNetworkedEntityDefinitions, AllNetworkedVariablesWithTypes } from "shared/core/sharedlogic/networkschemas";
+import { SharedNetworkedEntity, SharedEntityLinker, SharedNetworkedEntityDefinitions, AllNetworkedVariablesWithTypes, NetworkVariableTypes, DeserializeTypedVar } from "shared/core/sharedlogic/networkschemas";
 import { BufferStreamReader } from "shared/datastructures/bufferstream";
 import { floor, ceil, lerp } from "shared/misc/mathutils";
+import { mix, Vec2 } from "shared/shapes/vec2";
 import { RemoteEntity } from "./remotecontrol";
 
 
 type RegisterVariablesList = {
-    variablename: AllNetworkedVariables,
+    variablename: keyof AllNetworkedVariablesWithTypes,
     recieveFuncName: null | string;
 
     interpolated: boolean
 }[];
 
 type NetworkedVariablesList = {
-    variablename: AllNetworkedVariables,
+    variablename: keyof AllNetworkedVariablesWithTypes,
     recieveFuncName: null | string;
 
     interpolated: boolean,
 
-    variabletype: NetworkedNumberTypes,
+    variabletype: NetworkVariableTypes,
 }[];
 
 
@@ -26,21 +27,26 @@ type EntityClassType = typeof RemoteEntity;
 
 interface InterpolatedVarType<T> {
     value: T,
-    data: InterpVariableData<number>
+    data: InterpVariableData<any>
+}
+
+interface InterpVariableData<T> {
+    addValue(frame: number, value: T): void,
+    getValue(frame: number): T
 }
 
 export function InterpolatedVar<T>(value: T): InterpolatedVarType<T> {
     return {
         value: value,
-        data: new InterpVariableData<number>()
+        data: (typeof value === "number" ? new InterpNumberVariable() : new InterpVecVariable())
     }
 }
 
-class InterpVariableData<T extends number = number> {
+class InterpNumberVariable implements InterpVariableData<number> {
 
-    private values = new Map<number, T>();
+    private values = new Map<number, number>();
 
-    addValue(frame: number, value: T){
+    addValue(frame: number, value: number){
         this.values.set(frame, value);
     }
 
@@ -57,13 +63,34 @@ class InterpVariableData<T extends number = number> {
     }
 }
 
+class InterpVecVariable implements InterpVariableData<Vec2> {
+
+    private values = new Map<number, Vec2>();
+
+    addValue(frame: number, value: Vec2){
+        this.values.set(frame, value);
+    }
+
+    getValue(frame: number){
+        const first = this.values.get(floor(frame));
+        const second = this.values.get(ceil(frame));
+
+        if(first === undefined || second === undefined) {
+            console.log("Cannot lerp");
+            return new Vec2(0,0);
+        }
+
+        return mix(first, second, frame % 1)
+    }
+}
+
 
 // Variable decorator
-export function interpolatedvariable<T extends EntityType, K extends AllNetworkedVariables>(varName: K, receiveFunc: (this: T, value: AllNetworkedVariablesWithTypes[K]) => void = undefined){
+export function interpolatedvariable<T extends EntityType, K extends keyof AllNetworkedVariablesWithTypes>(varName: K, receiveFunc: (this: T, value: AllNetworkedVariablesWithTypes[K]) => void = undefined){
     
     // Property decorator
 
-    return function<T extends EntityType & Record<K, InterpolatedVarType<number>>>(target: T, propertyKey: K){        
+    return function<T extends EntityType & Record<K, InterpolatedVarType<AllNetworkedVariablesWithTypes[K]>>>(target: T, propertyKey: K){        
 
         const constructorOfClass = target.constructor;
         
@@ -94,10 +121,10 @@ export function interpolatedvariable<T extends EntityType, K extends AllNetworke
 
 /** Means a variable is being controlled by the server. Should be readonly on clientside */
 // Typescript type inference is unable to detect the T at this point unfortunately, but works in inner function
-export function remotevariable<T extends EntityType, K extends AllNetworkedVariables>(varName: K, receiveFunc: (this: T, value: AllNetworkedVariablesWithTypes[K]) => void = undefined){
+export function remotevariable<T extends EntityType, K extends keyof AllNetworkedVariablesWithTypes>(varName: K, receiveFunc: (this: T, value: AllNetworkedVariablesWithTypes[K]) => void = undefined){
 
     // Property decorator
-    return function<T extends EntityType & Record<K, number>>(target: T, propertyKey: K){        
+    return function<T extends EntityType & Record<K, AllNetworkedVariablesWithTypes[K]>>(target: T, propertyKey: K){        
 
         const constructorOfClass = target.constructor;
         
@@ -140,7 +167,7 @@ export function networkedclass_client<T extends keyof SharedNetworkedEntity>(cla
         const orderedVariables =  registeredVariables.sort( (a,b) => a.variablename.localeCompare(b.variablename) );
 
         const orderedVariablesWithType: NetworkedVariablesList = orderedVariables.map( (a) => ({...a,
-            variabletype : SharedNetworkedEntityDefinitions[classname]["variables"][a.variablename] as NetworkedNumberTypes,
+            variabletype : SharedNetworkedEntityDefinitions[classname]["variables"][a.variablename] as NetworkVariableTypes,
         }));
 
         SharedEntityLinker.validateVariables(classname, orderedVariables.map(a => a.variablename));
@@ -208,7 +235,7 @@ export const SharedEntityClientTable = {
         const variableslist = this.REGISTERED_NETWORKED_ENTITIES[sharedID].varDefinition
 
         for(const variableinfo of variableslist){
-            const value = DeserializeTypedNumber(stream, variableinfo.variabletype);
+            const value = DeserializeTypedVar(stream, variableinfo.variabletype);
 
             if(variableinfo.interpolated){
                 entity[variableinfo.variablename].data.addValue(frame, value); 

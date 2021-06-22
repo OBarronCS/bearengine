@@ -105,18 +105,23 @@ export class ServerBullet extends ServerEntity {
 
     public velocity: Vec2;
     
-    @networkedvariable("_x",true)
-    _x = 0;
+    @networkedvariable("_pos")
+    _pos = new Vec2(0,0);
 
-    @networkedvariable("_y",true)
-    _y = 0;
+    // @networkedvariable("_x",true)
+    // _x = 0;
+
+    // @networkedvariable("_y",true)
+    // _y = 0;
 
     update(dt: number): void {
         this.position.add(this.velocity);
         
-
-        this._x = this.x;
-        this._y = this.y;     
+        this._pos.set(this.position);
+        this.markDirty();
+        
+        // this._x = this.x;
+        // this._y = this.y;     
     }
 }
 

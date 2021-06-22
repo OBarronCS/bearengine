@@ -17,6 +17,7 @@ import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { ItemEnum } from "server/source/app/weapons/weaponinterfaces";
 import { DummyLevel } from "../gamelevel";
+import { Vec2 } from "shared/shapes/vec2";
 
 interface BufferedPacket {
     buffer: BufferStreamReader;
@@ -535,9 +536,9 @@ export class NetworkSystem extends Subsystem<BearEngine> {
     }
 
 
-    @remotefunction("testFunction")
-    asgdfygafsdjyafsdyasd(value: number){
-        console.log(value);
+    @remotefunction("testVecFunction")
+    asgdfygafsdjyafsdyasd(value: Vec2){
+        console.log(value.toString());
     }
 }
 
