@@ -130,8 +130,6 @@ export class ServerBearEngine extends AbstractBearEngine {
             const height = worldInfo.height;
 
             this.levelbbox = new Rect(0,0, width, height);
-
-            // this.levelbbox = new Rect(0,0,width,height);
             
             const bodies = levelData.bodies;
             this.terrain.setupGrid(width, height);
@@ -191,11 +189,6 @@ export class ServerBearEngine extends AbstractBearEngine {
                 stream.setUint8(GamePacket.END_ROUND);
             }
         });
-    }
-
-    registerSystem<T extends Subsystem>(system: T): T {
-        this.systems.push(system);
-        return system;
     }
     
     // Reads from queue of data since last tick

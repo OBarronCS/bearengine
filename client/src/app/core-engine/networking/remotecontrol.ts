@@ -1,4 +1,3 @@
-
 import { Part } from "shared/core/abstractpart";
 import { ceil, floor } from "shared/misc/mathutils";
 import { randomInt } from "shared/misc/random";
@@ -39,6 +38,9 @@ export class ClientBullet extends RemoteEntity {
 
     @interpolatedvariable("_pos")
     _pos = InterpolatedVar(new Vec2(0,0));
+
+    @remotevariable("test")
+    test = 1;
 
     // @interpolatedvariable("_x")
     // _x = InterpolatedVar(0);

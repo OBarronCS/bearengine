@@ -88,14 +88,12 @@ export class BulletEffect extends Effect<ServerBearEngine> {
     
         this.onUpdate(function(dt: number){
             if(!this.engine.levelbbox.contains(this.bullet.position)){
+                
                 this.destroy();
+                this.engine.remoteRemoteEntity(this.bullet);
+
             }
         });
-    }
-
-    destroy(){
-        this.destroySelf();
-        this.engine.remoteRemoteEntity(this.bullet);
     }
 } 
 
@@ -108,6 +106,9 @@ export class ServerBullet extends ServerEntity {
     @networkedvariable("_pos")
     _pos = new Vec2(0,0);
 
+    @networkedvariable("test", true)
+    test = 1;
+
     // @networkedvariable("_x",true)
     // _x = 0;
 
@@ -119,6 +120,8 @@ export class ServerBullet extends ServerEntity {
         
         this._pos.set(this.position);
         this.markDirty();
+
+        this.test += 1;
         
         // this._x = this.x;
         // this._y = this.y;     

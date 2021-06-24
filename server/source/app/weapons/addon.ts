@@ -74,6 +74,7 @@ export class TerrainHitAddon implements GunAddon {
             
                
                 this.destroy();
+                this.engine.remoteRemoteEntity(this.bullet);
             }
         })
         

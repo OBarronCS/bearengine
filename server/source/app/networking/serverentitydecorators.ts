@@ -67,13 +67,15 @@ export function networkedvariable<K extends keyof AllNetworkedVariablesWithTypes
             Object.defineProperty(target, propertyKey, {
                 get: function(this: ServerEntity) {
                     // console.log('get', this['__'+propertyKey]);
-                    // console.log("get");
+                    
+                    console.log("get");
+
                     return this['__'+propertyKey];
                 },
                 set: function (this: ServerEntity, value) {
                     this['__'+propertyKey] = value;
                     
-                    //  console.log(`set ${propertyKey} to`, value);
+                    console.log(`set ${propertyKey} to`, value);
                     
                     this.markDirty();
                 },

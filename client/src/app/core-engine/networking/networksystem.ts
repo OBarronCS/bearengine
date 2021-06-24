@@ -70,11 +70,12 @@ export class NetworkSystem extends Subsystem<BearEngine> {
     private ping: number = 100;
 
     /** MILLISECONDS,
-     * Used to adjust the currentTick we should simulate, used for interpolation. In effect, hold onto info for this long before simulating them 
+     * Used to adjust the currentTick we should simulate, used for interpolation. 
+     * In effect, hold onto info for this long before simulating them 
      * In practice, it combats jitter in packet receiving times (even though server sends at perfect interval, we don't receive them in that same perfect interval)
      * Experiment with making this lower, maybe even 50
     */
-    private dejitterTime = 100;
+    private dejitterTime = 50;
     
     constructor(engine: BearEngine, settings: NetworkSettings){
         super(engine);
@@ -321,11 +322,11 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             console.log("Round ended")
 
                             for(const e of this.remotePlayers.values()){
-                                e.destroySelf();
+                                e.destroy();
                             }
 
                             for(const e of this.remoteEntities.values()){
-                                e.destroySelf();
+                                e.destroy();
                             }
 
                             this.remotePlayers.clear();

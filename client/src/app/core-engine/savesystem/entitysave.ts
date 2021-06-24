@@ -34,6 +34,13 @@ its important that it is name, because else it will be different order when add 
 
     @serializable("Ogre")
     class TestOgre extends Entity {}
+
+Maybe --> Pass in serialize, deserialize functions;
+    @serializable("Ogre", settings, serialize(){}, deserialize(){});
+
+
+Think about how to save parts: 
+    Do same thing as this? Serializable() but before them? Or something different, like all parts are automatically serializable
 */
 
 

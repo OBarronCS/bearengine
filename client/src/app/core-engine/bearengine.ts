@@ -25,6 +25,7 @@ import { SpritePart } from "./parts";
 import { Coordinate, mix, Vec2 } from "shared/shapes/vec2";
 import { Player } from "../gamelogic/player";
 import { GameLevel } from "./gamelevel";
+import { ColliderPart } from "shared/core/abstractpart";
 
 
 
@@ -226,6 +227,7 @@ export class BearEngine extends AbstractBearEngine {
                 if(this.levelLoaded){
                     this.activeLevel.update(dt);
                 }
+
 
                 this.entityManager.update(dt);
 

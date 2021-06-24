@@ -112,6 +112,17 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
 
     }
 
+    view<K extends new(...args: any[]) => Part>(partConstructor: K): readonly InstanceType<K>[] {
+        //@ts-expect-error
+        const partID = partConstructor.partID;
+
+        if(partID === -1) return null;
+        
+        //@ts-expect-error
+        const container: PartContainer<T> = this.partContainers[partID];
+        return container.dense;
+    }
+
     hasPart<K extends new(...args: any[]) => Part>(e: EntityID, partConstructor: K): boolean {
 
         if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
@@ -240,12 +251,12 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
     }
 
     /** Queues the destroyal of an entity, end of scene system tick */
-    public destroyEntity<T extends EntityType>(e: T): void {
+    destroyEntity<T extends EntityType>(e: T): void {
         this.destroyEntityID(e.entityID);
     }
 
     /** Queues the destroyal of an entity, end of scene system tick */
-    public destroyEntityID(id: EntityID): void {
+    destroyEntityID(id: EntityID): void {
         this.deleteEntityQueue.push(id);
     }
 

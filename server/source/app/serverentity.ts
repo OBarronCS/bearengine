@@ -76,11 +76,6 @@ export class PlayerEntity extends ServerEntity {
 
 
 
-
-
-
-
-
 // // Another possible ways to do entities: completely manually
 // export abstract class TestTestTestNetworkedEntity extends ServerEntity {
 //     abstract serialize(stream: BufferStreamWriter): void;

@@ -44,17 +44,17 @@ export class Effect<T extends AbstractBearEngine = AbstractBearEngine> extends A
 	}
 
 	destroyAfter(time: number){
-		this.onDelay(time, () => this.destroySelf());
+		this.onDelay(time, () => this.destroy());
 	}
 
-	onAdd(){
+	override onAdd(){
 		for (let i = 0; i < this.startFunctions.length; ++i) {
 			this.startFunctions[i]();
 		}
-		if(this.hasOnlyStart()) this.destroySelf();
+		if(this.hasOnlyStart()) this.destroy();
 	}
 
-	onDestroy(){
+	override onDestroy(){
 		for (let i = 0; i < this.finishFunctions.length; ++i) {
 		    this.finishFunctions[i]();
 		}

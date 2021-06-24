@@ -16,6 +16,7 @@ export const SharedNetworkedEntityDefinitions = {
         create: () => void 0,
         variables: {
             _pos: {type:"vec2", subtype: "float"},
+            test: { type: "number", subtype: "float"}
             //_y: {type:"number", subtype: "float"},
         },
 
@@ -31,30 +32,9 @@ export const SharedNetworkedEntityDefinitions = {
 
 export type SharedNetworkedEntity = typeof SharedNetworkedEntityDefinitions;
 
-//#region Networked Variable Typing
-// All of these types come together to extract all the variable keys
-type OnlyNetworkedVariables = {
-    [Key in keyof SharedNetworkedEntity]: SharedNetworkedEntity[Key]["variables"]
-};
-
-type AllSubVariables = OnlyNetworkedVariables[keyof OnlyNetworkedVariables]
-
-// // https://stackoverflow.com/questions/58434389/typescript-deep-keyof-of-a-nested-object
-// type Prev = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-//     11, 12, 13, 14, 15, 16, 17, 18, 19, 20, ...0[]]
-
-// type Join<K, P> = K extends string | number ?
-//     P extends string | number ?
-//     `${K}${"" extends P ? "" : "."}${P}`
-//     : never : never;
-
-// type Leaves<T, D extends number = 2> = [D] extends [never] ? never : T extends object ?
-//     { [K in keyof T]-?: Join<K, Leaves<T[K], Prev[D]>> }[keyof T] : "";
-
 // Help with types https://stackoverflow.com/questions/63542526/merge-discriminated-union-of-object-types-in-typescript
 type UnionToIntersection<U> =
   (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never
-
 
 // This Types break if a key of two different objects that are equal have different values, because its impossible for the same key to have differnet 
 type A = UnionToIntersection<SharedNetworkedEntity[keyof SharedNetworkedEntity]["variables"]>
@@ -63,7 +43,6 @@ export type AllNetworkedVariablesWithTypes = {
     [K in keyof A] : TypescriptTypeOfNetVar<A[K]>
 }
 
-//#endregion 
 
 const orderedSharedEntities: (keyof typeof SharedNetworkedEntityDefinitions)[] = Object.keys(SharedNetworkedEntityDefinitions).sort() as any;
 
@@ -276,7 +255,7 @@ export function StreamDecodeStruct<T extends StructTemplate>(stream: BufferStrea
     return obj;
 }
 
-//*********************** PUT ALL TEMPLATES HERE *********************// 
+//*********************** PUT TEMPLATES HERE *********************// 
 // Do not do -->    name: StructTemplate     , it breaks typing.
 const VecStruct = {
     x: "double",
@@ -284,12 +263,11 @@ const VecStruct = {
 } as const;
 
 
-/*
-Goal:
-    Make schema which defines how to deserialize a TYPE in a stream.
-*/
 
-type NetworkedNumberTypes = "int8" | "uint8" | "int16" | "uint16" | "int32" | "uint32"| "float" | "double";
+
+
+
+type NetworkedNumberTypes = "int8" | "uint8" | "int16" | "uint16" | "int32" | "uint32" | "float" | "double";
 
 type NumberType = {
     type: "number",
