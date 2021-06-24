@@ -47,7 +47,7 @@ export class SpatialGrid<T> {
     public clear(){
         for (let i = 0; i < this.gridWidth; i++) {
             for(let j = 0; j < this.gridHeight; j++){
-                this.grid[i][j] = []
+                if(this.grid[i][j].length > 0) this.grid[i][j] = [];
             }
         }
     }

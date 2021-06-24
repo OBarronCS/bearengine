@@ -8,11 +8,14 @@
         "experimentalDecorators":true,
         
         //"noImplicitAny" : true,
+        "alwaysStrict":true,
         "noImplicitThis":true,
         "noImplicitReturns": true,
         "noImplicitOverride": true,
         "noFallthroughCasesInSwitch": true,
         "strictBindCallApply":true,
+
+        // forceConsistentCasingInFileNames: true,
         
     },
     "exclude": [
