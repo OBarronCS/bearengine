@@ -156,7 +156,7 @@ export class BezierCurve extends PointList implements Path {
         return new PointList(points);
     }
 
-    draw(g: Graphics, color = 0xFF0F000){
+    override draw(g: Graphics, color = 0xFF0F000){
         this.bakePoints().draw(g, color);
     }
 }
@@ -216,7 +216,7 @@ export class HermiteCurve extends PointList implements Path {
         return new PointList(points);
     }
 
-    draw(g: Graphics, color = 0xFF0F000){
+    override draw(g: Graphics, color = 0xFF0F000){
         this.bakePoints().draw(g, color);
     }
 }

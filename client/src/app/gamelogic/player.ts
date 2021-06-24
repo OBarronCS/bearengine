@@ -315,7 +315,7 @@ export class Player extends DrawableEntity {
         this.leftWallRay = new Line(new Vec2(x, y), new Vec2(-3 + x - this.player_width / 2, y));
     }
 
-    onAdd(){
+    override onAdd(){
         this.scene.addEntity(this.itemInHand)
         this.runAnimation.setScale(2);
         this.wallslideAnimation.setScale(2);
@@ -330,7 +330,7 @@ export class Player extends DrawableEntity {
         this.setSprite("run");
     }
 
-    onDestroy(){
+    override onDestroy(){
         this.scene.destroyEntity(this.itemInHand)
         this.engine.renderer.removeSprite(this.runAnimation.container);
         this.engine.renderer.removeSprite(this.wallslideAnimation.container);
@@ -1153,7 +1153,7 @@ export class RemotePlayer extends RemoteEntity {
     private readonly idleAnimation = new PlayerAnimationState(this.engine.getResource("player/idle.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
     private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
 
-    onAdd(){
+    override onAdd(){
         // this.scene.addEntity(this.gun)
         this.runAnimation.setScale(2);
         this.wallslideAnimation.setScale(2);
@@ -1166,7 +1166,7 @@ export class RemotePlayer extends RemoteEntity {
         this.engine.renderer.addSprite(this.climbAnimation.container);
     }
 
-    onDestroy(){
+    override onDestroy(){
         // this.scene.destroyEntity(this.gun)
         this.engine.renderer.removeSprite(this.runAnimation.container);
         this.engine.renderer.removeSprite(this.wallslideAnimation.container);

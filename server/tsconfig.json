@@ -1,26 +1,12 @@
 {
+    "extends": "../tsconfig.json",
     "compilerOptions": {
 
-        "baseUrl":"../",
         "outDir": "/build",
         
         "module": "CommonJS",
         "moduleResolution": "node",
         "esModuleInterop": true,
         //"allowSyntheticDefaultImports": true
-
-        "target": "ES2020",
-        "lib": ["DOM","ESNext"],
-        
-        //"noImplicitAny" : true,
-        "noImplicitThis":true,
-        "noImplicitReturns": true,
-        "noImplicitOverride": true,
-        "noFallthroughCasesInSwitch": true,
-        "experimentalDecorators": true,
     },
-    "exclude": [
-        "node_modules",
-        "**/node_modules/",
-    ]
 }

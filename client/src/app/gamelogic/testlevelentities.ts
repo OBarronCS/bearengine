@@ -364,7 +364,7 @@ export function frameEditor(engine: BearEngine): void {
             this.editPart("rightFoot")          
         }
 
-        onAdd(){
+        override onAdd(){
             this.engine.renderer.addSprite(this.lines);
 
             this.preview.y = -this.canvas.height;
@@ -382,7 +382,7 @@ export function frameEditor(engine: BearEngine): void {
             this.engine.renderer.addSprite(this.bodyPartGraphics);
             this.engine.renderer.addSprite(this.highlightSelectedPart);
         }
-        onDestroy(){
+        override onDestroy(){
             this.engine.renderer.removeSprite(this.lines);
             this.engine.renderer.removeSprite(this.preview);
             this.engine.renderer.removeSprite(this.workingFrameGraphics);
