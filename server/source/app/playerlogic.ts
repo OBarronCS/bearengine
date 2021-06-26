@@ -1,10 +1,9 @@
-import { AbstractEntity} from "shared/core/abstractentity"
-import { BaseBulletGun, ServerBullet, TerrainHitAddon } from "./weapons/weapon";
-import { ServerBearEngine, ServerEntity } from "./serverengine";
+import { BulletGun, ModularGun, TerrainHitAddon } from "./weapons/remoteweapon";
 import { Vec2 } from "shared/shapes/vec2";
-import { AddOnType, BulletEffect, ItemEnum } from "./weapons/weaponinterfaces";
+import { Clip, CreateShootController, ItemEnum } from "./weapons/weapondefinitions";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { random_range } from "shared/misc/random";
+import { ServerEntity } from "./entity";
 
 
 
@@ -17,13 +16,15 @@ export class PlayerEntity extends ServerEntity {
     mouse: Vec2 = new Vec2(0,0);
     mousedown = false;
     
-    item: BaseBulletGun = null;
+    item: BulletGun = null;
 
     update(dt: number): void {
         if(this.item !== null){
-            this.item.dir.set(Vec2.subtract(this.mouse, this.item.position));
+            this.item.direction.set(Vec2.subtract(this.mouse, this.item.position));
             this.item.position.set(this.position);
-            this.item.operate(this.mousedown);
+            if(this.mousedown){
+                this.item.holdTrigger();
+            }
         }
     }
 
@@ -39,33 +40,33 @@ export class PlayerEntity extends ServerEntity {
             }
 
             case ItemEnum.TERRAIN_CARVER: {
-                const gun = new BaseBulletGun(
+                const gun = new ModularGun(
+                    CreateShootController({type:"auto", time_between_shots: 10}),
+                    new Clip(100,100,100),
                     [
                     new TerrainHitAddon(),
                     {
-                        addontype: AddOnType.SPECIAL,
-                        modifyShot(effect: BulletEffect<ServerBullet>){
-                            effect.onInterval(2, function(times){
-                                this.bullet.velocity.drotate(random_range(-6,6))
+                        modifyShot(bullet){
+                            bullet.onInterval(2, function(times){
+                                this.velocity.drotate(random_range(-6,6))
                             })
                         }
                     },
                     {
-                        addontype: AddOnType.SPECIAL,
                         gravity: new Vec2(0,.35),
-                        modifyShot(effect: BulletEffect<ServerBullet>){
+                        modifyShot(effect){
                 
                             const self = this;
                 
                             effect.onUpdate(function(){
-                                this.bullet.velocity.add(self.gravity);
+                                this.velocity.add(self.gravity);
                             })
                         }
                     },
                     ]
                 );
-                this.scene.addEntity(gun);
                 this.item = gun;
+                this.scene.addEntity(gun);
                 break;
             }
 

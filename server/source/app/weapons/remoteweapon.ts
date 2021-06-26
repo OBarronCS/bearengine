@@ -1,0 +1,169 @@
+import { Vec2 } from "shared/shapes/vec2";
+import { Clip, GunshootController } from "server/source/app/weapons/weapondefinitions";
+
+import { ServerEntity } from "../entity";
+import { networkedclass_server, networkedvariable } from "../networking/serverentitydecorators";
+import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
+import { Effect } from "shared/core/effects";
+import { ServerBearEngine } from "../serverengine";
+
+export abstract class BulletGun extends ServerEntity {
+
+    readonly shootController: GunshootController;
+    readonly clip: Clip
+
+    direction = new Vec2(0,0);
+
+    reloading = false;
+
+    triggerHeldThisTick = false;
+
+    constructor(shootController: GunshootController, clip: Clip){
+        super();
+        this.shootController = shootController;
+        this.clip = clip;
+    }
+
+    holdTrigger(){
+        this.triggerHeldThisTick = true;
+    }
+
+    reload(){
+
+    }
+
+    update(dt: number): void {
+        if(this.shootController.holdTrigger(this.triggerHeldThisTick)){
+            if(this.clip.ammo > 0){
+                this.clip.ammo -= 1;
+
+                this.shoot();
+            }
+        }
+
+        this.triggerHeldThisTick = false;
+    }
+
+    abstract shoot(): void;
+}
+
+
+
+
+export class ModularGun extends BulletGun {
+
+    addons: GunAddon[] = [];
+
+    constructor(shootController: GunshootController, clip: Clip, addons: GunAddon[]){
+        super(shootController, clip);
+        this.addons.push(...addons);
+    }
+
+    shoot(){
+        const bullet = new ServerBullet();
+            
+        bullet.position.set(this.position);
+
+        bullet.velocity = this.direction.clone().extend(10);
+
+
+        for(const addon of this.addons){
+            addon.modifyShot(bullet);
+        }
+    
+        this.engine.createRemoteEntity(bullet);
+    }
+}
+
+interface GunAddon {
+    modifyShot: (bullet: ProjectileBullet) => void,
+    [key: string]: any; // allow for random data
+}
+
+export class ProjectileBullet extends Effect<ServerBearEngine> {
+    
+    stateHasBeenChanged = false;
+    markDirty(): void {
+        this.stateHasBeenChanged = true;
+    }
+
+    
+    velocity = new Vec2(0,0);
+
+    constructor(){
+        super();
+    
+        this.onUpdate(function(dt: number){
+            if(!this.engine.levelbbox.contains(this.position)){
+                this.destroy();
+            }
+        });
+    }
+
+    override destroy(){
+        this.engine.remoteRemoteEntity(this);
+    }
+} 
+
+
+export class TerrainHitAddon implements GunAddon {
+
+    modifyShot(bullet: ProjectileBullet){
+        bullet.onUpdate(function(){
+            const testTerrain = this.engine.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)));
+            
+            const RADIUS = 40;
+            const DMG_RADIUS = 80;
+
+            if(testTerrain){
+                this.engine.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
+
+                this.engine.queuePacket({
+                    write(stream){
+                        stream.setUint8(GamePacket.PASSTHROUGH_TERRAIN_CARVE_CIRCLE);
+                        stream.setFloat64(testTerrain.point.x);
+                        stream.setFloat64(testTerrain.point.y);
+                        stream.setInt32(RADIUS);
+                    }
+                })
+
+                const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
+
+                // Check in radius to see if any players are hurt
+                for(const client of this.engine.clients){
+                    const p = this.engine.players.get(client);
+
+                    if(Vec2.distanceSquared(p.playerEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
+                        p.playerEntity.health -= 16;
+                    }
+                } 
+                 
+                this.destroy();
+            }
+        })
+    }
+}
+
+@networkedclass_server("bullet")
+export class ServerBullet extends ProjectileBullet {
+    
+    @networkedvariable("_pos")
+    _pos = new Vec2(0,0);
+
+    @networkedvariable("test", true)
+    test = 1;
+
+    override update(dt: number): void {
+        super.update(dt);
+
+        this.position.add(this.velocity);
+        
+        this._pos.set(this.position);
+
+        this.markDirty();
+
+        // this.test += 1;
+    }
+}
+
+

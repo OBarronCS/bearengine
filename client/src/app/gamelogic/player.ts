@@ -15,7 +15,7 @@ import { GraphicsPart, SpritePart } from "../core-engine/parts";
 import { SavePlayerAnimation } from "./testlevelentities";
 
 
-import { ItemEnum } from "server/source/app/weapons/weaponinterfaces";
+import { ItemEnum } from "server/source/app/weapons/weapondefinitions";
 
 
 

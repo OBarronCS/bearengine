@@ -15,7 +15,7 @@ import { LinkedQueue } from "shared/datastructures/queue";
 import { BearEngine } from "../bearengine";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
-import { ItemEnum } from "server/source/app/weapons/weaponinterfaces";
+import { ItemEnum } from "server/source/app/weapons/weapondefinitions";
 import { DummyLevel } from "../gamelevel";
 import { Vec2 } from "shared/shapes/vec2";
 

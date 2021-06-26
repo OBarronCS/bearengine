@@ -1,13 +1,14 @@
 
 
 import type { Server } from "ws";
+import { ServerEntity } from "./entity";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractBearEngine } from "shared/core/abstractengine";
 import { Scene, StreamWriteEntityID } from "shared/core/scene";
 import { GamePacket, ServerBoundPacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
-import { PlayerEntity } from "./serverentity";
+import { PlayerEntity } from "./playerlogic";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
 import { PacketWriter, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources } from "shared/core/sharedlogic/networkschemas";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
@@ -18,7 +19,7 @@ import path from "path";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
-import { ItemEnum } from "server/source/app/weapons/weaponinterfaces";
+import { ItemEnum } from "server/source/app/weapons/weapondefinitions";
 import { AbstractEntity } from "shared/core/abstractentity";
 
 
@@ -397,7 +398,7 @@ export class ServerBearEngine extends AbstractBearEngine {
     
     remoteRemoteEntity(e: ServerEntity){
         this.entityManager.destroyEntity(e);
-
+        
         this.currentTickPacketsForEveryone.push({
             write(stream){
                 stream.setUint8(GamePacket.REMOTE_ENTITY_DELETE);
@@ -462,17 +463,6 @@ export class ServerBearEngine extends AbstractBearEngine {
         } else {
             setImmediate(this._boundLoop) // ultra accurate, sub millisecond
         }
-    }
-}
-
-export abstract class ServerEntity extends AbstractEntity<ServerBearEngine> {
-
-    // This shouldn't be touched on entities that are not networked
-    // Maybe in future make two seperate lists of entities, one for networked and one for not
-    stateHasBeenChanged = false;
-
-    markDirty(): void {
-        this.stateHasBeenChanged = true;
     }
 }
 
