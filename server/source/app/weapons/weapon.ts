@@ -1,13 +1,52 @@
 import type { Graphics } from "pixi.js";
-import { Effect } from "shared/core/effects";
 import { angleBetween, Vec2 } from "shared/shapes/vec2";
-import { CreateGunInfoStruct } from "server/source/app/weapons/weaponinterfaces";
-import { AddOnType, GunAddon } from "server/source/app/weapons/addon";
+import { AddOnType, BulletEffect, CreateGunInfoStruct, GunAddon } from "server/source/app/weapons/weaponinterfaces";
 
-import { ServerBearEngine } from "../serverengine";
-import { ServerEntity } from "../serverentity";
+import { ServerEntity } from "../serverengine"
 import { networkedclass_server, networkedvariable } from "../networking/serverentitydecorators";
+import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 
+export class TerrainHitAddon implements GunAddon {
+    addontype: AddOnType = AddOnType.SPECIAL;
+
+    modifyShot(effect: BulletEffect<ServerBullet>){
+        effect.onUpdate(function(){
+            const testTerrain = this.engine.terrain.lineCollision(this.bullet.position,Vec2.add(this.bullet.position, this.bullet.velocity.clone().extend(100)));
+            
+            const RADIUS = 40;
+            const DMG_RADIUS = 80;
+
+            if(testTerrain){
+                this.engine.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
+
+                this.engine.queuePacket({
+                    write(stream){
+                        stream.setUint8(GamePacket.PASSTHROUGH_TERRAIN_CARVE_CIRCLE);
+                        stream.setFloat64(testTerrain.point.x);
+                        stream.setFloat64(testTerrain.point.y);
+                        stream.setInt32(RADIUS);
+                    }
+                })
+
+                const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
+
+                // Check in radius to see if any players are hurt
+                for(const client of this.engine.clients){
+                    const p = this.engine.players.get(client);
+
+                    if(Vec2.distanceSquared(p.playerEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
+                        p.playerEntity.health -= 16;
+                    }
+                } 
+            
+               
+                this.destroy();
+                this.engine.remoteRemoteEntity(this.bullet);
+            }
+        })
+        
+    }
+}
 
 export class BaseBulletGun extends ServerEntity {
     draw(g: Graphics): void {}
@@ -79,23 +118,6 @@ export class BaseBulletGun extends ServerEntity {
         return false;
     }
 }
-
-export class BulletEffect extends Effect<ServerBearEngine> {
-    bullet: ServerBullet;
-
-    constructor(){
-        super();
-    
-        this.onUpdate(function(dt: number){
-            if(!this.engine.levelbbox.contains(this.bullet.position)){
-                
-                this.destroy();
-                this.engine.remoteRemoteEntity(this.bullet);
-
-            }
-        });
-    }
-} 
 
 
 @networkedclass_server("bullet")

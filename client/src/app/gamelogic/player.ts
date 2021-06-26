@@ -15,6 +15,9 @@ import { GraphicsPart, SpritePart } from "../core-engine/parts";
 import { SavePlayerAnimation } from "./testlevelentities";
 
 
+import { ItemEnum } from "server/source/app/weapons/weaponinterfaces";
+
+
 
 
 enum PlayerState {
@@ -178,7 +181,26 @@ class Item extends Entity {
         this.image.sprite.visible = false;
     }
 
-    setSprite(path: string){
+    setItem(item: ItemEnum){
+        switch(item){
+            case ItemEnum.EMPTY: {
+                this.clear();
+                break;
+            }
+            case ItemEnum.HIT_SCAN: {
+                this.setSprite("weapon1.png")
+                break;
+            }
+            case ItemEnum.TERRAIN_CARVER: {
+                this.setSprite("weapon1.png")
+                break;
+            }
+            default: AssertUnreachable(item);
+
+        }
+    }
+
+    private setSprite(path: string){
         this.image.sprite.visible = true;
         this.image.sprite.texture = this.engine.getResource(path).texture;
     }

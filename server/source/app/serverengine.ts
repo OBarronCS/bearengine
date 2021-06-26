@@ -5,10 +5,9 @@ import { AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractBearEngine } from "shared/core/abstractengine";
 import { Scene, StreamWriteEntityID } from "shared/core/scene";
 import { GamePacket, ServerBoundPacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
-import { Subsystem } from "shared/core/subsystem";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
-import { PlayerEntity, ServerEntity } from "./serverentity";
+import { PlayerEntity } from "./serverentity";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
 import { PacketWriter, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources } from "shared/core/sharedlogic/networkschemas";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
@@ -20,10 +19,7 @@ import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
 import { ItemEnum } from "server/source/app/weapons/weaponinterfaces";
-import { BaseBulletGun } from "./weapons/weapon";
-import { AddOnType, TerrainHitAddon } from "./weapons/addon";
 import { AbstractEntity } from "shared/core/abstractentity";
-import { random_range } from "shared/misc/random";
 
 
 
@@ -368,42 +364,19 @@ export class ServerBearEngine extends AbstractBearEngine {
     }
 
     testweapon(){
+
+        const weapon = ItemEnum.TERRAIN_CARVER;
+
         for(const client of this.clients){
             const p = this.players.get(client);
 
-            const gun = new BaseBulletGun(
-            [
-                new TerrainHitAddon(),
-                {
-                    addontype: AddOnType.SPECIAL,
-                    modifyShot(effect){
-                        effect.onInterval(2, function(times){
-                            this.bullet.velocity.drotate(random_range(-6,6))
-                        })
-                    }
-                },
-                {
-                    addontype: AddOnType.SPECIAL,
-                    gravity: new Vec2(0,.35),
-                    modifyShot(effect){
-            
-                        const self = this;
-            
-                        effect.onUpdate(function(){
-                            this.bullet.velocity.add(self.gravity);
-                        })
-                    }
-                },
-            ]
-            );
-            this.entityManager.addEntity(gun);
-            p.playerEntity.item = gun;
+            p.playerEntity.setItem(weapon)
         }
 
         this.queuePacket({
             write(stream){
                 stream.setUint8(GamePacket.SET_ITEM);
-                stream.setUint8(ItemEnum.TERRAIN_CARVER);
+                stream.setUint8(weapon);
             }
         });
     }
@@ -492,4 +465,14 @@ export class ServerBearEngine extends AbstractBearEngine {
     }
 }
 
+export abstract class ServerEntity extends AbstractEntity<ServerBearEngine> {
+
+    // This shouldn't be touched on entities that are not networked
+    // Maybe in future make two seperate lists of entities, one for networked and one for not
+    stateHasBeenChanged = false;
+
+    markDirty(): void {
+        this.stateHasBeenChanged = true;
+    }
+}
 

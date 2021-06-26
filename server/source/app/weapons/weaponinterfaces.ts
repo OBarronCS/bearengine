@@ -1,11 +1,67 @@
 
-// General interfaces
-import { Clip } from "./addon";
+
+import { Effect } from "shared/core/effects";
+import { ServerBearEngine, ServerEntity } from "../serverengine";
 import { SemiAutoController, AutoController, PulseController, GunshootController } from "./triggers";
+
 
 export enum ItemEnum {
     EMPTY,
+    HIT_SCAN,
     TERRAIN_CARVER,
+}
+
+
+export class BulletEffect<BulletType extends ServerEntity> extends Effect<ServerBearEngine> {
+    bullet: BulletType;
+
+    constructor(){
+        super();
+    
+        this.onUpdate(function(dt: number){
+            if(!this.engine.levelbbox.contains(this.bullet.position)){
+                
+                this.destroy();
+                this.engine.remoteRemoteEntity(this.bullet);
+
+            }
+        });
+    }
+} 
+
+export interface GunAddon {
+    modifyShot: (effect: BulletEffect<ServerEntity>) => void,
+    addontype: AddOnType;
+    [key: string]: any; // allow for random data
+}
+
+export class Clip implements GunAddon {
+    public addontype = AddOnType.CLIP
+
+    constructor(
+        public ammo: number,
+        public capacity: number,
+        public reload_time: number,
+        public reload_sound: number
+    ){}
+    
+    modifyShot(effect: BulletEffect<ServerEntity>){
+    
+    }
+
+    // Returns amount of bullets we can shoot
+    // if return zero, we have no ammo and need to RELOAD
+    getBullets(){
+        return 1;
+    }
+    
+    reload(){}
+}
+export enum AddOnType {
+    SCOPE,
+    CLIP, // effects reload speed and size --> maybe some hold specific types of bullets that have extra info
+    SPECIAL, // Everythihng else --> Like flash light, laser, wind fire ice 
+    TEMP
 }
 
 

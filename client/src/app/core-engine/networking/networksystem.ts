@@ -422,21 +422,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                         case GamePacket.SET_ITEM: {
                             const item: ItemEnum = stream.getUint8();
 
-                            switch(item){
-                                case ItemEnum.EMPTY: {
-                                    this.engine.player.itemInHand.clear();
-                                    break;
-                                }
-                                case ItemEnum.TERRAIN_CARVER: {
-                                    this.engine.player.itemInHand.setSprite("weapon1.png");
-                                    break;
-                                }
-
-                                
-
-                                default: AssertUnreachable(item);
-                            }
-
+                            this.engine.player.itemInHand.setItem(item);
                             
                             break;
                         }

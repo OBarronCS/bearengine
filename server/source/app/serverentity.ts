@@ -1,18 +1,12 @@
 import { AbstractEntity} from "shared/core/abstractentity"
-import { BaseBulletGun } from "./weapons/weapon";
-import { ServerBearEngine } from "./serverengine";
+import { BaseBulletGun, ServerBullet, TerrainHitAddon } from "./weapons/weapon";
+import { ServerBearEngine, ServerEntity } from "./serverengine";
 import { Vec2 } from "shared/shapes/vec2";
+import { AddOnType, BulletEffect, ItemEnum } from "./weapons/weaponinterfaces";
+import { AssertUnreachable } from "shared/misc/assertstatements";
+import { random_range } from "shared/misc/random";
 
-export abstract class ServerEntity extends AbstractEntity<ServerBearEngine> {
 
-    // This shouldn't be touched on entities that are not networked
-    // Maybe in future make two seperate lists of entities, one for networked and one for not
-    stateHasBeenChanged = false;
-
-    markDirty(): void {
-        this.stateHasBeenChanged = true;
-    }
-}
 
 export class PlayerEntity extends ServerEntity {
     dead = false
@@ -30,6 +24,52 @@ export class PlayerEntity extends ServerEntity {
             this.item.dir.set(Vec2.subtract(this.mouse, this.item.position));
             this.item.position.set(this.position);
             this.item.operate(this.mousedown);
+        }
+    }
+
+    setItem(item: ItemEnum){
+        switch(item){
+            case ItemEnum.EMPTY: {
+                this.item = null;
+                break;
+            }
+            case ItemEnum.HIT_SCAN: {
+                this.item = null;
+                break;
+            }
+
+            case ItemEnum.TERRAIN_CARVER: {
+                const gun = new BaseBulletGun(
+                    [
+                    new TerrainHitAddon(),
+                    {
+                        addontype: AddOnType.SPECIAL,
+                        modifyShot(effect: BulletEffect<ServerBullet>){
+                            effect.onInterval(2, function(times){
+                                this.bullet.velocity.drotate(random_range(-6,6))
+                            })
+                        }
+                    },
+                    {
+                        addontype: AddOnType.SPECIAL,
+                        gravity: new Vec2(0,.35),
+                        modifyShot(effect: BulletEffect<ServerBullet>){
+                
+                            const self = this;
+                
+                            effect.onUpdate(function(){
+                                this.bullet.velocity.add(self.gravity);
+                            })
+                        }
+                    },
+                    ]
+                );
+                this.scene.addEntity(gun);
+                this.item = gun;
+                break;
+            }
+
+            default: AssertUnreachable(item);
         }
     }
 }

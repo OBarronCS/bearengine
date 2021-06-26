@@ -1,7 +1,7 @@
 import { StreamWriteEntityID } from "shared/core/scene";
 import { SharedNetworkedEntity, SharedEntityLinker, AllNetworkedVariablesWithTypes, SerializeTypedVar } from "shared/core/sharedlogic/networkschemas";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
-import { ServerEntity } from "../serverentity";
+import { ServerEntity } from "../serverengine";
 
 
 // On entity serialization, it writes marked variables to buffer in agreed upon order
