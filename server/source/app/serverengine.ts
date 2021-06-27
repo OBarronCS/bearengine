@@ -10,7 +10,7 @@ import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
 import { PlayerEntity } from "./playerlogic";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
-import { PacketWriter, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources } from "shared/core/sharedlogic/networkschemas";
+import { PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources } from "shared/core/sharedlogic/networkschemas";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { TerrainManager } from "shared/core/terrainmanager";
@@ -352,17 +352,28 @@ export class ServerBearEngine extends AbstractBearEngine {
         // console.log(this.tick,Date.now()  - this.previousTick);
     }
 
-    //#region testing
-    queueRemoteFunction(){
-        this.currentTickPacketsForEveryone.push({
 
+    broadcastRemoteFunction<T extends keyof RemoteFunction>(name: T, ...args: Parameters<RemoteFunction[T]["callback"]>){
+        
+        this.queuePacket({
             write(stream){
-                RemoteFunctionLinker.serializeRemoteFunction("testVecFunction", stream,new Vec2(100.31,200.41));
+                RemoteFunctionLinker.serializeRemoteFunction(name, stream, ...args);
             }
-
         });
-
     }
+
+    callRemoteFunction<T extends keyof RemoteFunction>(target: ConnectionID, name: T, ...args: Parameters<RemoteFunction[T]["callback"]>){
+
+        const connection = this.players.get(target);
+
+        connection.personalPackets.enqueue({
+            write(stream){
+                RemoteFunctionLinker.serializeRemoteFunction(name, stream, ...args);
+            }   
+        });
+    }
+
+
 
     testweapon(){
 
@@ -381,31 +392,37 @@ export class ServerBearEngine extends AbstractBearEngine {
             }
         });
     }
-    //#endregion
+
+
+
     
     createRemoteEntity(e: ServerEntity){
         this.entityManager.addEntity(e);
+        
+        const id = e.entityID;
         
         this.currentTickPacketsForEveryone.push({
             write(stream){
                 stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
                 stream.setUint8(e.constructor["SHARED_ID"]);
-                StreamWriteEntityID(stream, e.entityID);
+                StreamWriteEntityID(stream, id);
             }
         });
     }
 
     
-    remoteRemoteEntity(e: ServerEntity){
-        this.entityManager.destroyEntity(e);
-        
+    destroyRemoteEntity(e: ServerEntity){
+
+        const id = e.entityID;
         this.currentTickPacketsForEveryone.push({
             write(stream){
                 stream.setUint8(GamePacket.REMOTE_ENTITY_DELETE);
                 stream.setUint8(e.constructor["SHARED_ID"]);
-                StreamWriteEntityID(stream, e.entityID);
+                StreamWriteEntityID(stream, id);
             }
         });
+
+        this.entityManager.destroyEntity(e);
     }
 
     private _boundLoop = this.loop.bind(this);

@@ -130,6 +130,12 @@ export class Line {
     }
 
 
+    pointDistance(p: Coordinate){
+        const point = this.pointClosestTo(p);
+        return point.distance(p);
+
+    }
+
     pointClosestTo(p: Coordinate): Vec2 {
         return Line.PointClosestToLine(this.A, this.B, p)
     }

@@ -65,7 +65,7 @@ export class TerrainManager extends Subsystem {
             t.draw(g);
         });
         
-        this.grid.draw(g); // Draws it with grid lines included, and with the aabbs of the lines
+        // this.grid.draw(g); // Draws it with grid lines included, and with the aabbs of the lines
     }
     
     /// Adds all terrain info --> adds to grid buckets

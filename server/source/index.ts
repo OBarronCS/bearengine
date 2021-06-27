@@ -82,12 +82,6 @@ rl.on('line', (input: string) => {
             break;
         }
         
-        case "function": {
-
-            engine.queueRemoteFunction();
-            break;
-        }
-        
         default: {
             console.log(" You made a typo ")
         }

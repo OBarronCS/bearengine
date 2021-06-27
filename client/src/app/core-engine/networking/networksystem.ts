@@ -242,8 +242,6 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             break;
                         }
                         case GamePacket.REMOTE_ENTITY_CREATE: {
-                            console.log("CREATING REMOTE ENTITY");
-
                             const sharedClassID = stream.getUint8();
                             const entityID = StreamReadEntityID(stream);
 
@@ -332,7 +330,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             this.remotePlayers.clear();
                             this.remoteEntities.clear();
 
-                            this.engine.player = null;
+                            // this.engine.player = null;
 
                             this.LEVEL_ACTIVE = false;
 
@@ -376,6 +374,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                            if(e !== undefined){
                                console.log("Destroying player: " + pId);
 
+                               this.remotePlayers.delete(pId);
                                this.scene.destroyEntity(e);
                            }
                            break;
@@ -408,13 +407,96 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             
                             break;
                         }
-                        case GamePacket.PASSTHROUGH_TERRAIN_CARVE_CIRCLE: {
+                        case GamePacket.TERRAIN_CARVE_CIRCLE: {
                             const terrain = this.engine.terrain;
                             const x = stream.getFloat64();
                             const y = stream.getFloat64();
                             const r = stream.getInt32();
                             
                             terrain.carveCircle(x, y, r);
+
+                            this.engine.renderer.addEmitter("assets/flower.png", {
+                                alpha: {
+                                    list: [
+                                        {
+                                            value: 0.8,
+                                            time: 0
+                                        },
+                                        {
+                                            value: 0.1,
+                                            time: 1
+                                        }
+                                    ],
+                                    isStepped: false
+                                },
+                                scale: {
+                                    list: [
+                                        {
+                                            value: 1,
+                                            time: 0
+                                        },
+                                        {
+                                            value: 0.3,
+                                            time: 1
+                                        }
+                                    ],
+                                    isStepped: false
+                                },
+                                color: {
+                                    list: [
+                                        {
+                                            value: "fb1010",
+                                            time: 0
+                                        },
+                                        {
+                                            value: "f5b830",
+                                            time: 1
+                                        }
+                                    ],
+                                    isStepped: false
+                                },
+                                speed: {
+                                    list: [
+                                        {
+                                            value: 200,
+                                            time: 0
+                                        },
+                                        {
+                                            value: 100,
+                                            time: 1
+                                        }
+                                    ],
+                                    isStepped: false
+                                },
+                                startRotation: {
+                                    min: 0,
+                                    max: 360
+                                },
+                                rotationSpeed: {
+                                    min: 0,
+                                    max: 0
+                                },
+                                lifetime: {
+                                    min: 0.5,
+                                    max: 0.5
+                                },
+                                frequency: 0.008,
+                                spawnChance: 1,
+                                particlesPerWave: 1,
+                                emitterLifetime: 0.31,
+                                maxParticles: 1000,
+                                pos: {
+                                    x: 0,
+                                    y: 0
+                                },
+                                addAtBack: false,
+                                spawnType: "circle",
+                                spawnCircle: {
+                                    x: 0,
+                                    y: 0,
+                                    r: 10
+                                }
+                            }, x, y);
                             
                             break;
                         }

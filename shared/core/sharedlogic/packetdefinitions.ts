@@ -43,7 +43,7 @@ export enum GamePacket {
 
     // TODO: EXPLOSION: [fromPlayer: uint8, x: float32, y: float32, strength: uint8] // handle knockback on clients
 
-    PASSTHROUGH_TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
+    TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
 }
 
 

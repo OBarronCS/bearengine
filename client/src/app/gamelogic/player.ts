@@ -14,6 +14,7 @@ import { RemoteEntity, RemoteLocations } from "../core-engine/networking/remotec
 import { GraphicsPart, SpritePart } from "../core-engine/parts";
 import { SavePlayerAnimation } from "./testlevelentities";
 
+import { Emitter } from "pixi-particles";
 
 import { ItemEnum } from "server/source/app/weapons/weapondefinitions";
 
@@ -1127,24 +1128,24 @@ export class Player extends DrawableEntity {
     }
 
     draw(g: Graphics) {
-        drawPoint(g,this.position);
+        // drawPoint(g,this.position);
 
-        g.beginFill(0xFF00FF,.4)
-        g.drawRect(this.x - this.player_width / 2, this.y - this.player_height / 2, this.player_width, this.player_height)
-        g.endFill();
+        // g.beginFill(0xFF00FF,.4)
+        // g.drawRect(this.x - this.player_width / 2, this.y - this.player_height / 2, this.player_width, this.player_height)
+        // g.endFill();
 
-        this.rightWallRay.draw(g, 0x00FF00);
-        this.leftWallRay.draw(g);
+        // this.rightWallRay.draw(g, 0x00FF00);
+        // this.leftWallRay.draw(g);
 
-        this.leftDownRay.draw(g,0xFF0000);
-        this.rightDownRay.draw(g, 0xFF00FF);
-        this.midDownRay.draw(g, 0x0FF00F)
+        // this.leftDownRay.draw(g,0xFF0000);
+        // this.rightDownRay.draw(g, 0xFF00FF);
+        // this.midDownRay.draw(g, 0x0FF00F)
 
-        this.leftHeadRay.draw(g, 0x00FFFF);
-        this.rightHeadRay.draw(g, 0xFFFF00);
+        // this.leftHeadRay.draw(g, 0x00FFFF);
+        // this.rightHeadRay.draw(g, 0xFFFF00);
 
-        this.leftClimbRay.draw(g,0x00000)
-        this.rightClimbRay.draw(g, 0xFFFFFF)
+        // this.leftClimbRay.draw(g,0x00000)
+        // this.rightClimbRay.draw(g, 0xFFFFFF)
         
         drawHealthBar(g, this.x - 20, this.y - 40, 40, 7, this.health / 100, 1);
     }

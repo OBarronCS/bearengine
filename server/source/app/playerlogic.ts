@@ -1,4 +1,4 @@
-import { BulletGun, ModularGun, TerrainHitAddon } from "./weapons/remoteweapon";
+import { Gun, Hitscan, ModularGun, TerrainHitAddon } from "./weapons/remoteweapon";
 import { Vec2 } from "shared/shapes/vec2";
 import { Clip, CreateShootController, ItemEnum } from "./weapons/weapondefinitions";
 import { AssertUnreachable } from "shared/misc/assertstatements";
@@ -16,7 +16,7 @@ export class PlayerEntity extends ServerEntity {
     mouse: Vec2 = new Vec2(0,0);
     mousedown = false;
     
-    item: BulletGun = null;
+    item: Gun = null;
 
     update(dt: number): void {
         if(this.item !== null){
@@ -29,13 +29,16 @@ export class PlayerEntity extends ServerEntity {
     }
 
     setItem(item: ItemEnum){
+        if(this.item !== null) this.scene.destroyEntity(this.item);
+
         switch(item){
             case ItemEnum.EMPTY: {
                 this.item = null;
                 break;
             }
             case ItemEnum.HIT_SCAN: {
-                this.item = null;
+                this.item = new Hitscan();
+                this.scene.addEntity(this.item);
                 break;
             }
 

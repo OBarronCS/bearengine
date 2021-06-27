@@ -1,16 +1,19 @@
 import { Vec2 } from "shared/shapes/vec2";
-import { Clip, GunshootController } from "server/source/app/weapons/weapondefinitions";
+import { Clip, CreateShootController, GunshootController } from "server/source/app/weapons/weapondefinitions";
 
 import { ServerEntity } from "../entity";
 import { networkedclass_server, networkedvariable } from "../networking/serverentitydecorators";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { Effect } from "shared/core/effects";
 import { ServerBearEngine } from "../serverengine";
+import { Line } from "shared/shapes/line";
 
-export abstract class BulletGun extends ServerEntity {
+export abstract class Gun extends ServerEntity {
 
     readonly shootController: GunshootController;
     readonly clip: Clip
+
+    // owner: ServerEntity;
 
     direction = new Vec2(0,0);
 
@@ -47,10 +50,31 @@ export abstract class BulletGun extends ServerEntity {
     abstract shoot(): void;
 }
 
+export class Hitscan extends Gun {
+
+    constructor(){
+        super(CreateShootController({type:"semiauto", time_between_shots: 10}), new Clip(999,999,999));
+    }
+
+    shoot(): void {
+        const ray = new Line(this.position, Vec2.add(this.position, this.direction.extend(1000)));
 
 
+        // Check in radius to see if any players are hurt
+        for(const client of this.engine.clients){
 
-export class ModularGun extends BulletGun {
+            const p = this.engine.players.get(client);
+
+            if(ray.pointDistance(p.playerEntity.position) < 30){
+                p.playerEntity.health -= 16;
+            }
+        } 
+    }
+
+}
+
+
+export class ModularGun extends Gun {
 
     addons: GunAddon[] = [];
 
@@ -64,7 +88,7 @@ export class ModularGun extends BulletGun {
             
         bullet.position.set(this.position);
 
-        bullet.velocity = this.direction.clone().extend(10);
+        bullet.velocity = this.direction.clone().extend(25);
 
 
         for(const addon of this.addons){
@@ -87,7 +111,7 @@ export class ProjectileBullet extends Effect<ServerBearEngine> {
         this.stateHasBeenChanged = true;
     }
 
-    
+
     velocity = new Vec2(0,0);
 
     constructor(){
@@ -101,7 +125,7 @@ export class ProjectileBullet extends Effect<ServerBearEngine> {
     }
 
     override destroy(){
-        this.engine.remoteRemoteEntity(this);
+        this.engine.destroyRemoteEntity(this);
     }
 } 
 
@@ -120,7 +144,7 @@ export class TerrainHitAddon implements GunAddon {
 
                 this.engine.queuePacket({
                     write(stream){
-                        stream.setUint8(GamePacket.PASSTHROUGH_TERRAIN_CARVE_CIRCLE);
+                        stream.setUint8(GamePacket.TERRAIN_CARVE_CIRCLE);
                         stream.setFloat64(testTerrain.point.x);
                         stream.setFloat64(testTerrain.point.y);
                         stream.setInt32(RADIUS);
@@ -165,5 +189,4 @@ export class ServerBullet extends ProjectileBullet {
         // this.test += 1;
     }
 }
-
 

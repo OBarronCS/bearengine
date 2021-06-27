@@ -5,6 +5,8 @@ import { GraphicsPart, SpritePart } from "./parts";
 import { Subsystem } from "shared/core/subsystem";
 import { Color } from "shared/datastructures/color";
 
+import { Emitter, EmitterConfig } from "pixi-particles"
+
 
 // arbitrary, but make it high enough so it looks good --> this is the base render texture height!
 // so things are actually rendered to THIS resolution, and then the entire canvas is scaled
@@ -26,6 +28,20 @@ export class RendererSystem extends Subsystem<BearEngine> {
     public targetWindow: Window;
     public targetDiv: HTMLElement;
 
+
+    private emitters: Emitter[] = [];
+
+    // addEmitter(emitter: Emitter){
+    //     this.emitters.push(emitter);
+    // }
+
+    addEmitter(path: string, settings: EmitterConfig, x: number, y: number): Emitter {
+        const e = new Emitter(this.mainContainer, path, settings);
+        e.updateSpawnPos(x, y);
+        this.emitters.push(e);
+        return e;
+    }
+
     private graphics_query = this.addQuery(GraphicsPart,
             g => {
                 g.graphics.zIndex = 1;
@@ -33,6 +49,9 @@ export class RendererSystem extends Subsystem<BearEngine> {
                 },
             g => this.removeSprite(g.graphics)
         );
+
+
+
 
     private sprite_query = this.addQuery(SpritePart,
             s => {
@@ -104,10 +123,19 @@ export class RendererSystem extends Subsystem<BearEngine> {
 
     init(){}
 
+    updateParticles(dt: number){
+        for(const emitter of this.emitters){
+            emitter.update(dt);
+        }
+    }
+
     update(){
+
         for(const sprite of this.sprite_query){
             sprite.sprite.position.copyFrom(sprite.owner.position);
         }
+
+      
 
         this.renderer.render(this.stage);
     }
