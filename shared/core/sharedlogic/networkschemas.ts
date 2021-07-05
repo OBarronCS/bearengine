@@ -43,17 +43,17 @@ export const SharedNetworkedEntityDefinitions = CreateDefinition<SharedNetworkEn
         variables: {
             _pos: { type:"vec2", subtype: "float" },
             test: { type: "number", subtype: "float"},
-            _dx: {type:"string"},
+            //_dx: {type:"string"},
         },
         events: {
             testEvent7: {
                 argTypes: [{ type: "vec2", subtype: "float"}, {type:"number", subtype:"uint8"}],
                 callback: (point: Vec2, testNumber: number) => void 0,
             },
-            asd: {
-                argTypes: [{ type: "vec2", subtype: "float"}, {type:"number", subtype:"uint8"}],
-                callback: (point: Vec2, testNumber: number) => void 0,
-            },
+            // asd: {
+            //     argTypes: [{ type: "vec2", subtype: "float"}, {type:"number", subtype:"uint8"}],
+            //     callback: (point: Vec2, testNumber: number) => void 0,
+            // },
         }
 
     },

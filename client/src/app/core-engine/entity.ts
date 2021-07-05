@@ -93,7 +93,7 @@ export abstract class GMEntity extends SpriteEntity {
     }
 
     @bearevent("postupdate", {})
-    __postUpdate(){
+    __postUpdate(dt: number){
         this.position.add(this.velocity);
         this.velocity.add(this.gravity);
     }
