@@ -4,7 +4,7 @@ import { Clip, CreateShootController, ItemEnum } from "./weapons/weapondefinitio
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { random_range } from "shared/misc/random";
 import { ServerEntity } from "./entity";
-
+import "./networking/networkedentities";
 
 
 export class PlayerEntity extends ServerEntity {

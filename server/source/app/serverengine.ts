@@ -377,7 +377,7 @@ export class ServerBearEngine extends AbstractBearEngine {
     }
 
     //@ts-expect-error
-    callEntityEvent<T extends keyof SharedNetworkedEntities, X extends keyof SharedNetworkedEntities[T]["events"]>(entity: ServerEntity, sharedName: T, event: X & string, ...args: Parameters<EventCallback<X, SharedNetworkedEntities[T]["events"]>>){
+    callEntityEvent<SharedName extends keyof SharedNetworkedEntities, EventName extends keyof SharedNetworkedEntities[SharedName]["events"]>(entity: ServerEntity, sharedName: SharedName, event: EventName & string, ...args: Parameters<EventCallback<EventName, SharedNetworkedEntities[SharedName]["events"]>>){
        
         const id = entity.entityID;
         assert(id !== NULL_ENTITY_INDEX);

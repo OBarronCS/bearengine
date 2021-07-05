@@ -1,8 +1,9 @@
 import { SharedNetworkedEntities, SharedEntityLinker, SharedNetworkedEntityDefinitions, NetworkVariableTypes, DeserializeTypedVar, TypescriptTypeOfNetVar } from "shared/core/sharedlogic/networkschemas";
+import { areEqualSorted } from "shared/datastructures/arrayutils";
 import { BufferStreamReader } from "shared/datastructures/bufferstream";
-import { floor, ceil, lerp } from "shared/misc/mathutils";
+import { floor, ceil, lerp, E } from "shared/misc/mathutils";
 import { mix, Vec2 } from "shared/shapes/vec2";
-import { DrawableEntity, Entity } from "../entity";
+import { Entity } from "../entity";
 
 
 
@@ -281,6 +282,10 @@ export const SharedEntityClientTable = {
         // Order the list, index is SHARED_ID'
 
         this.REGISTERED_NETWORKED_ENTITIES.sort( (a,b) => a.name.localeCompare(b.name) );
+
+
+        SharedEntityLinker.validateNames(this.REGISTERED_NETWORKED_ENTITIES.map(e => e.name));
+
 
         for(let i = 0; i < this.REGISTERED_NETWORKED_ENTITIES.length; i++){
             const registry = this.REGISTERED_NETWORKED_ENTITIES[i];

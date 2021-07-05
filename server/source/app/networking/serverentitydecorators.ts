@@ -109,6 +109,8 @@ export class SharedEntityServerTable {
             registry.create["SHARED_ID"] = SHARED_ID;
             this.networkedEntityIndexMap.set(SHARED_ID,registry.create);
         }
+
+        SharedEntityLinker.validateNames(this.REGISTERED_NETWORKED_ENTITIES.sort((a,b) => a.name.localeCompare(b.name)).map(e => e.name));
     }
 
     static serialize(stream: BufferStreamWriter, entity: ServerEntity){

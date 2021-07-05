@@ -2,6 +2,7 @@ import { assert, AssertUnreachable } from "shared/misc/assertstatements";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { GamePacket } from "./packetdefinitions";
 import { Vec2 } from "shared/shapes/vec2";
+import { areEqualSorted, containsDuplicates } from "shared/datastructures/arrayutils";
 
 
 export interface PacketWriter {
@@ -17,10 +18,13 @@ export const SharedNetworkedEntityDefinitions = {
         variables: {
             _pos: { type:"vec2", subtype: "float" },
             test: { type: "number", subtype: "float"}
-            //_y: {type:"number", subtype: "float"},
         },
         events: {
             testEvent7: {
+                argTypes: [{ type: "vec2", subtype: "float"}, {type:"number", subtype:"uint8"}],
+                callback: (point: Vec2, testNumber: number) => void 0,
+            },
+            asd: {
                 argTypes: [{ type: "vec2", subtype: "float"}, {type:"number", subtype:"uint8"}],
                 callback: (point: Vec2, testNumber: number) => void 0,
             },
@@ -132,6 +136,14 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
 
 
 export const SharedEntityLinker = {
+
+    validateNames(names: (keyof SharedNetworkedEntities)[]){
+        assert(!containsDuplicates(names), "Duplicate entity definitions!");
+
+        console.log(names);
+        console.log(orderedSharedEntities);
+        assert(areEqualSorted(orderedSharedEntities, names), "Entity amount mismatch");
+    },
 
     // Makes sure all the variables are present
     validateVariables(name: keyof SharedNetworkedEntities, variables: (keyof AllNetworkedVariablesWithTypes)[]){

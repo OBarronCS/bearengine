@@ -8,8 +8,7 @@ import { Effect } from "shared/core/effects";
 import { ServerBearEngine } from "../serverengine";
 import { Line } from "shared/shapes/line";
 import { TickTimer } from "shared/datastructures/ticktimer";
-import { StreamWriteEntityID } from "shared/core/scene";
-import { SharedEntityLinker } from "shared/core/sharedlogic/networkschemas";
+
 
 export abstract class Gun extends ServerEntity {
 
