@@ -4,20 +4,46 @@ import { GamePacket } from "./packetdefinitions";
 import { Vec2 } from "shared/shapes/vec2";
 import { areEqualSorted, containsDuplicates } from "shared/datastructures/arrayutils";
 
-
 export interface PacketWriter {
     write(stream: BufferStreamWriter): void,
 }
 
-//The following would allow entities to be checked BEFORE connecting to server.
-//But, still need to validate stuff with live server on connect.
+
+function CreateDefinition<Format>(){
+    return function<T extends Format>(value: T){
+        return value;
+    }
+}
+
+// The format to define networked entities
+interface SharedNetworkEntityFormat {
+    [key: string] : {
+        // create: (...args: any[]) => void;
+        events: {
+            [key: string] : {
+                argTypes: readonly [...NetworkVariableTypes[]],
+                callback: (...args: any[]) => void;
+            }
+        }
+        variables: {
+            [key: string]: NetworkVariableTypes
+        }
+    }
+}
+
+
+// function CreateDefinition<T extends SharedNetworkEntityFormat>(value: T){
+//     return value;
+// }
+
 /** Linking networked entity classes */
-export const SharedNetworkedEntityDefinitions = {
+export const SharedNetworkedEntityDefinitions = CreateDefinition<SharedNetworkEntityFormat>()({    
     "bullet": {
         create: () => void 0,
         variables: {
             _pos: { type:"vec2", subtype: "float" },
-            test: { type: "number", subtype: "float"}
+            test: { type: "number", subtype: "float"},
+            _dx: {type:"string"},
         },
         events: {
             testEvent7: {
@@ -39,20 +65,16 @@ export const SharedNetworkedEntityDefinitions = {
         },
 
         events: {
-            // asdad: {
-            //     argTypes: [],
-            //     callback: (mousePoint: Vec2) => void 0,
-            // },
+
         }
     },
-} as const;
+} as const);
 
 export type SharedNetworkedEntities = typeof SharedNetworkedEntityDefinitions;
 
 // Help with types https://stackoverflow.com/questions/63542526/merge-discriminated-union-of-object-types-in-typescript
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never
 
-// This Types break if a key of two different objects that are equal have different values, because its impossible for the same key to have differnet 
 type A = UnionToIntersection<SharedNetworkedEntities[keyof SharedNetworkedEntities]["variables"]>
 
 type AllNetworkedVariablesWithTypes = {
@@ -128,7 +150,6 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
         
         map.set(event,i);
     }
-
 
     sharedEntityEventToEventID[i] = map;
 }
@@ -217,20 +238,26 @@ export const SharedEntityLinker = {
         ID of a function name is its index in the array
 */
 
+// The format to define networked entities
+interface RemoteFunctionFormat {
+    [key: string] : {
+        argTypes: readonly [...NetworkVariableTypes[]],
+        callback: (...args: any[]) => void;
+    }
+}
+
 // Exported for versionhash
-export const RemoteFunctionStruct = {
+export const RemoteFunctionStruct = CreateDefinition<RemoteFunctionFormat>()({
     "test1": { 
         argTypes: [{type: "number", subtype: "int32"},{type: "number", subtype: "float"}],
         callback: (name: number, food: number) => void 0
     },
-
-
     "testVecFunction": {
         argTypes: [{type: "vec2", subtype: "double"}],
         callback: (testNumber: Vec2) => void 0
     }
 
-} as const;
+} as const);
 
 export type RemoteFunction = typeof RemoteFunctionStruct;
 
