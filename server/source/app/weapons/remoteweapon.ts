@@ -192,7 +192,7 @@ export class ServerBullet extends ProjectileBullet {
 
 
         if(this.t.tick()){
-           this.engine.callEntityEvent(this, "bullet", "testEvent7", new Vec2(0,0), 123);
+           this.engine.callEntityEvent(this, "bullet", "testEvent7", {arr: ["asd", "adddsd"], otherValue: new Vec2(23,31), x : 1}, 123);
         }
 
         // this.test += 1;

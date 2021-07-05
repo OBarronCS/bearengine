@@ -1,4 +1,5 @@
 import { Part } from "shared/core/abstractpart";
+import { GetTemplateType, SharedTemplates } from "shared/core/sharedlogic/networkschemas";
 import { ceil, floor } from "shared/misc/mathutils";
 import { randomInt } from "shared/misc/random";
 import { mix, Vec2 } from "shared/shapes/vec2";
@@ -40,8 +41,8 @@ export class ClientBullet extends Entity {
     _pos = InterpolatedVar(new Vec2(0,0));
 
     @net("bullet").event("testEvent7")
-    callback(mousePoint: Vec2, num: number){
-        console.log(mousePoint, num);
+    callback(data: GetTemplateType<typeof SharedTemplates.ONE>, testNumber: number){
+        console.log(JSON.stringify(data), testNumber);
     }
 
     // InterpolatedVar(

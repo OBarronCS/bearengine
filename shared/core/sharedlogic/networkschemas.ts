@@ -15,6 +15,90 @@ function CreateDefinition<Format>(){
     }
 }
 
+
+
+// Serialization of structs
+interface TemplateFormat {
+    [key: string]: NetworkVariableTypes
+}
+
+export type DecodedTemplateType<T extends TemplateFormat> =  { 
+    [K in keyof T]: TypescriptTypeOfNetVar<T[K]>; 
+};
+
+export type GetTemplateGeneric<D> = D extends TemplateDecoder<infer R> ? R : never
+
+class TemplateDecoder<T extends TemplateFormat> {
+    
+    format: T;
+
+    orderedNameAndTypes: ({ key: keyof T, type: NetworkVariableTypes })[] = [];
+
+    constructor(format: T){
+        this.format = format;
+
+        const orderedKeys: (keyof T)[] = Object.keys(format).sort();
+
+        for(const key of orderedKeys){
+            this.orderedNameAndTypes.push({
+                key: key,
+                type: format[key]
+            })
+        }
+    }
+
+    // Iterate alphabetical order, write using type
+    serialize(stream: BufferStreamWriter, struct: DecodedTemplateType<T>){
+
+        for(const varInfo of this.orderedNameAndTypes){
+            // @ts-expect-error
+            SerializeTypedVar(stream, varInfo.type, struct[varInfo.key]);
+        }
+    }
+
+    deserialize(stream: BufferStreamReader): DecodedTemplateType<T> {
+        const obj = {} as DecodedTemplateType<T>;
+
+        for(const value of this.orderedNameAndTypes){
+            obj[value.key] = DeserializeTypedVar(stream, value.type);
+        }
+
+        return obj;
+    }
+}
+
+// Name too vague
+export function Template<T extends TemplateFormat>(format: Readonly<T>){
+    return new TemplateDecoder(format);
+}
+
+export function SerializeTemplate<D extends TemplateDecoder<TemplateFormat>>(stream: BufferStreamWriter, template: D, structToEncode: DecodedTemplateType<GetTemplateGeneric<D>>): void {
+    template.serialize(stream, structToEncode);
+}
+
+export function DeserializeTemplate<D extends TemplateDecoder<TemplateFormat>>(stream: BufferStreamReader, template: D): DecodedTemplateType<GetTemplateGeneric<D>> {
+    //@ts-expect-error
+    return template.deserialize(stream);
+}
+
+
+
+
+//*********************** PUT SHARED TEMPLATES HERE *********************// 
+export const SharedTemplates = CreateDefinition<{ [key:string]: TemplateDecoder<any>}>()({
+    
+    ONE: Template({
+        x:{type:"number", subtype:"float"},
+        otherValue: {type:"vec2", subtype:"uint8"},
+        arr: {type:"array", subtype : {type : "string"}}
+    }),
+
+
+} as const);
+
+
+export type GetTemplateType<T extends TemplateDecoder<any>> = DecodedTemplateType<GetTemplateGeneric<T>>;
+
 // The format to define networked entities
 interface SharedNetworkEntityFormat {
     [key: string] : {
@@ -32,9 +116,6 @@ interface SharedNetworkEntityFormat {
 }
 
 
-// function CreateDefinition<T extends SharedNetworkEntityFormat>(value: T){
-//     return value;
-// }
 
 /** Linking networked entity classes */
 export const SharedNetworkedEntityDefinitions = CreateDefinition<SharedNetworkEntityFormat>()({    
@@ -47,8 +128,8 @@ export const SharedNetworkedEntityDefinitions = CreateDefinition<SharedNetworkEn
         },
         events: {
             testEvent7: {
-                argTypes: [{ type: "vec2", subtype: "float"}, {type:"number", subtype:"uint8"}],
-                callback: (point: Vec2, testNumber: number) => void 0,
+                argTypes: [{ type: "template", subtype: SharedTemplates.ONE}, {type:"number", subtype:"uint8"}],
+                callback: (point: DecodedTemplateType<GetTemplateGeneric<typeof SharedTemplates.ONE>>, testNumber: number) => void 0,
             },
             // asd: {
             //     argTypes: [{ type: "vec2", subtype: "float"}, {type:"number", subtype:"uint8"}],
@@ -349,108 +430,6 @@ export const RemoteResourceLinker = {
 
 
 
-/*
-
-Templates should NOT be inline --> If they were, would not to put them in alphabetical order every single time you call the serialize function.
-
-2 types possible:
-    Get it using an index to some storage object that contains a bunch of them,
-    Or do it manually
-
-Need way to "store" the type
-    so can do 
-        Deserialize()
-
-    Option 1:
-        1) Make is string in an index of shared templates
-        2) Instantiate it every single time: DO THIS WAY
-
-            Two ways:
-            -> {type:"template", subtype: Template(????) }
-            -> {type:"template", subtype: SharedTemplates.JUMP_INFO }
-*/
-
-
-// Serialization of structs
-interface TemplateFormat {
-    [key: string]: NetworkVariableTypes
-}
-
-type DecodedTemplateType<T extends TemplateFormat> =  { 
-    [K in keyof T]: TypescriptTypeOfNetVar<T[K]>; 
-};
-
-type GetGeneric<D> = D extends TemplateDecoder<infer R> ? R : never
-
-class TemplateDecoder<T extends TemplateFormat> {
-    
-    format: T;
-
-    orderedNameAndTypes: ({ key: keyof T, type: NetworkVariableTypes })[];
-
-    constructor(format: T){
-        this.format = format;
-
-        const orderedKeys: (keyof T)[] = Object.keys(format).sort();
-
-        for(const key of orderedKeys){
-            this.orderedNameAndTypes.push({
-                key: key,
-                type: format[key]
-            })
-        }
-    }
-
-    // Iterate alphabetical order, write using type
-    serialize(stream: BufferStreamWriter, struct: DecodedTemplateType<T>){
-
-        for(const varInfo of this.orderedNameAndTypes){
-            // @ts-expect-error
-            SerializeTypedVar(stream, varInfo.type, struct[varInfo.key]);
-        }
-    }
-
-    deserialize(stream: BufferStreamReader): DecodedTemplateType<T> {
-        const obj = {} as DecodedTemplateType<T>;
-
-        for(const value of this.orderedNameAndTypes){
-            obj[value.key] = DeserializeTypedVar(stream, value.type);
-        }
-
-        return obj;
-    }
-}
-
-// Name too vague
-export function Template<T extends TemplateFormat>(format: Readonly<T>){
-    return new TemplateDecoder(format);
-}
-
-export function SerializeTemplate<D extends TemplateDecoder<TemplateFormat>>(stream: BufferStreamWriter, template: D, structToEncode: DecodedTemplateType<GetGeneric<D>>): void {
-    template.serialize(stream, structToEncode);
-}
-
-export function DeserializeTemplate<D extends TemplateDecoder<TemplateFormat>>(stream: BufferStreamReader, template: D): DecodedTemplateType<GetGeneric<D>> {
-    //@ts-expect-error
-    return template.deserialize(stream);
-}
-
-
-
-
-//*********************** PUT SHARED TEMPLATES HERE *********************// 
-export const SharedTemplates = CreateDefinition<{ [key:string]: TemplateDecoder<any>}>()({
-    
-    ONE: Template({
-        x:{type:"number", subtype:"float"}
-    }),
-
-
-
-
-} as const);
-
-
 
 
 
@@ -458,6 +437,17 @@ export const SharedTemplates = CreateDefinition<{ [key:string]: TemplateDecoder<
 
 
 type NetworkedNumberTypes = "int8" | "uint8" | "int16" | "uint16" | "int32" | "uint32" | "float" | "double";
+
+
+// Two ways:
+// -> {type:"template", subtype: Template(????) }
+// -> {type:"template", subtype: SharedTemplates.JUMP_INFO }
+
+type TemplateType<T extends TemplateFormat> = {
+    type: "template",
+    subtype: TemplateDecoder<T>;
+}
+
 
 type NumberType = {
     type: "number",
@@ -478,14 +468,16 @@ type Vec2Type = {
     subtype: NetworkedNumberTypes;
 }
 
-export type NetworkVariableTypes = NumberType |  StringType | ArrayType | Vec2Type;
+export type NetworkVariableTypes = NumberType |  StringType | ArrayType | Vec2Type | TemplateType<any>;
 
 export type TypescriptTypeOfNetVar<T extends NetworkVariableTypes> = 
     T["type"] extends "number" ? number : 
         T["type"] extends "string" ? string :
             T["type"] extends "vec2" ? Vec2 :
-                //@ts-expect-error --> It yells, but it still works!
-                T["type"] extends "array" ? TypescriptTypeOfNetVar<T["subtype"]>[] : never;
+            //@ts-expect-error --> It yells, but it still works!
+                T["type"] extends "template" ? DecodedTemplateType<GetTemplateGeneric<T["subtype"]>> :
+                    //@ts-expect-error --> It yells, but it still works!
+                    T["type"] extends "array" ? TypescriptTypeOfNetVar<T["subtype"]>[] : never;
 
 
 // Bunch of types are yelling "ERROR" here but they still work when calling the function. So just internal.
@@ -506,9 +498,13 @@ export function SerializeTypedVar<T extends NetworkVariableTypes>(stream: Buffer
         //@ts-expect-error
         case "vec2": SerializeVec2(stream, def.subtype, value); break;
 
+        //@ts-expect-error
+        case "template": SerializeTemplate(stream, def.subtype, value); break;
+
         default: AssertUnreachable(type);
     }
 }
+
 
 
 export function DeserializeTypedVar<T extends NetworkVariableTypes>(stream: BufferStreamReader, def: T): TypescriptTypeOfNetVar<T> {
@@ -527,6 +523,9 @@ export function DeserializeTypedVar<T extends NetworkVariableTypes>(stream: Buff
 
         //@ts-expect-error
         case "vec2": return DeserializeVec2(stream, def.subtype);
+
+        //@ts-expect-error
+        case "template": return DeserializeTemplate(stream, def.subtype)
 
         default: AssertUnreachable(type);
     }
@@ -618,7 +617,7 @@ export function SerializeString(stream: BufferStreamWriter, str: string): void {
     const length = str.length;
 
     assert(length <= ((1 << 16) - 1), "String must be less than 65536 characters --> " + str);
-    assert(ASCII_REGEX.test(str), "Character must be ascii encodable --> " + str);
+    assert(ASCII_REGEX.test(str), "String must be ascii encodable --> " + str);
     
 
     stream.setUint16(length);
