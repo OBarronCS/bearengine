@@ -349,41 +349,111 @@ export const RemoteResourceLinker = {
 
 
 
+/*
+
+Templates should NOT be inline --> If they were, would not to put them in alphabetical order every single time you call the serialize function.
+
+2 types possible:
+    Get it using an index to some storage object that contains a bunch of them,
+    Or do it manually
+
+Need way to "store" the type
+    so can do 
+        Deserialize()
+
+    Option 1:
+        1) Make is string in an index of shared templates
+        2) Instantiate it every single time: DO THIS WAY
+
+            Two ways:
+            -> {type:"template", subtype: Template(????) }
+            -> {type:"template", subtype: SharedTemplates.JUMP_INFO }
+*/
 
 
 // Serialization of structs
-interface StructTemplate {
-    [key: string]: NetworkedNumberTypes
+interface TemplateFormat {
+    [key: string]: NetworkVariableTypes
 }
 
-type DecodedStruct<T> =  { 
-    [K in keyof T]: T[K] extends NetworkedNumberTypes ? number : never 
+type DecodedTemplateType<T extends TemplateFormat> =  { 
+    [K in keyof T]: TypescriptTypeOfNetVar<T[K]>; 
 };
 
-//Uses iteration order of the StructType object to encode/decode;
-export function StreamEncodeStruct<T extends StructTemplate>(stream: BufferStreamWriter, template: T, structToEncode: DecodedStruct<T>): void {
-    for(const key in template){
-        SerializeTypedNumber(stream, template[key], structToEncode[key]);
+type GetGeneric<D> = D extends TemplateDecoder<infer R> ? R : never
+
+class TemplateDecoder<T extends TemplateFormat> {
+    
+    format: T;
+
+    orderedNameAndTypes: ({ key: keyof T, type: NetworkVariableTypes })[];
+
+    constructor(format: T){
+        this.format = format;
+
+        const orderedKeys: (keyof T)[] = Object.keys(format).sort();
+
+        for(const key of orderedKeys){
+            this.orderedNameAndTypes.push({
+                key: key,
+                type: format[key]
+            })
+        }
+    }
+
+    // Iterate alphabetical order, write using type
+    serialize(stream: BufferStreamWriter, struct: DecodedTemplateType<T>){
+
+        for(const varInfo of this.orderedNameAndTypes){
+            // @ts-expect-error
+            SerializeTypedVar(stream, varInfo.type, struct[varInfo.key]);
+        }
+    }
+
+    deserialize(stream: BufferStreamReader): DecodedTemplateType<T> {
+        const obj = {} as DecodedTemplateType<T>;
+
+        for(const value of this.orderedNameAndTypes){
+            obj[value.key] = DeserializeTypedVar(stream, value.type);
+        }
+
+        return obj;
     }
 }
 
-export function StreamDecodeStruct<T extends StructTemplate>(stream: BufferStreamReader, template: T): DecodedStruct<T> {
-    const obj = {} as DecodedStruct<T>;
-
-    for(const key in template){
-        // @ts-expect-error  this function returns a number, technically it could be something else
-        obj[key] = DeserializeTypedNumber(stream, template[key]);
-    }
-
-    return obj;
+// Name too vague
+export function Template<T extends TemplateFormat>(format: Readonly<T>){
+    return new TemplateDecoder(format);
 }
 
-//*********************** PUT TEMPLATES HERE *********************// 
-// Do not do -->    name: StructTemplate     , it breaks typing.
-const VecStruct = {
-    x: "double",
-    y: "double",
-} as const;
+export function SerializeTemplate<D extends TemplateDecoder<TemplateFormat>>(stream: BufferStreamWriter, template: D, structToEncode: DecodedTemplateType<GetGeneric<D>>): void {
+    template.serialize(stream, structToEncode);
+}
+
+export function DeserializeTemplate<D extends TemplateDecoder<TemplateFormat>>(stream: BufferStreamReader, template: D): DecodedTemplateType<GetGeneric<D>> {
+    //@ts-expect-error
+    return template.deserialize(stream);
+}
+
+
+
+
+//*********************** PUT SHARED TEMPLATES HERE *********************// 
+export const SharedTemplates = CreateDefinition<{ [key:string]: TemplateDecoder<any>}>()({
+    
+    ONE: Template({
+        x:{type:"number", subtype:"float"}
+    }),
+
+
+
+
+} as const);
+
+
+
+
+
 
 
 
