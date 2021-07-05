@@ -197,7 +197,7 @@ export const RemoteFunctionLinker = {
 export const RemoteResources = {
     LEVEL_ONE: "firsttest.json",
     LEVEL_TWO: "secondlevel.json",
-}
+} as const;
 
 const orderedResources: (keyof typeof RemoteResources)[] = Object.keys(RemoteResources).sort() as any;
 
@@ -261,9 +261,6 @@ const VecStruct = {
     x: "double",
     y: "double",
 } as const;
-
-
-
 
 
 

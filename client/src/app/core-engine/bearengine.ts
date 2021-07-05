@@ -234,7 +234,7 @@ export class BearEngine extends AbstractBearEngine {
 
                 this.networksystem.writePackets();
 
-
+                this.renderer.updateParticles(dt);
 
                 this.tick++;
                 this.totalTime += dt;

@@ -72,6 +72,42 @@ export function dangleDifference(from: number, to: number){
     return angleDifference(from * DEG_TO_RAD, to * DEG_TO_RAD);
 }
 
+export function sum(values: readonly number[]): number {
+    let sum = 0; 
+    for (let i = 0; i < values.length; i++) {
+        sum += values[i];
+    }
+    return sum;
+}
+
+/** Assumes non-empty array */
+export function mean(values: readonly number[]): number {
+    return (sum(values) / values.length);
+}
+
+/** Assumes non-empty array */
+export function median(values: readonly number[]): number {
+    const orderedValues = [...values].sort((a,b) => a - b);
+
+    // If even amount
+    if(values.length % 2 === 0){
+        const half = values.length / 2;
+        return (orderedValues[half - 1] + orderedValues[half]) / 2;
+    } else {
+        return orderedValues[((values.length - 1) / 2)];
+    }
+    
+}
+
+/** Assumes non-empty array */
+export function standardDeviation(values: readonly number[]): number {
+    const average = mean(values);
+
+    const diffArray = values.map(num => (num - average)**2);
+
+    return sqrt(mean(diffArray));
+}
+
 //#region Date stuff
 //returns the number of milliseconds elapsed since January 1, 1970.
 export function time(){

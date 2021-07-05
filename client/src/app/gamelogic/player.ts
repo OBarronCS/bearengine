@@ -14,8 +14,9 @@ import { RemoteEntity, RemoteLocations } from "../core-engine/networking/remotec
 import { GraphicsPart, SpritePart } from "../core-engine/parts";
 import { SavePlayerAnimation } from "./testlevelentities";
 
+import { Emitter } from "pixi-particles";
 
-import { ItemEnum } from "server/source/app/weapons/weaponinterfaces";
+import { ItemEnum } from "server/source/app/weapons/weapondefinitions";
 
 
 
@@ -337,6 +338,8 @@ export class Player extends DrawableEntity {
         this.leftWallRay = new Line(new Vec2(x, y), new Vec2(-3 + x - this.player_width / 2, y));
     }
 
+    private emitter: Emitter;
+
     override onAdd(){
         this.scene.addEntity(this.itemInHand)
         this.runAnimation.setScale(2);
@@ -350,6 +353,89 @@ export class Player extends DrawableEntity {
         this.engine.renderer.addSprite(this.climbAnimation.container)
 
         this.setSprite("run");
+
+        this.emitter = this.engine.renderer.addEmitter("assets/particle.png", {
+            "alpha": {
+                list: [
+                    {
+                        value: 1,
+                        time: 0,
+                    },
+                    {
+                        value:.82,
+                        time: 1,
+                    }
+                ]
+            },
+            "scale": {
+                list: [
+                    {
+                        value: .2,
+                        time: 0,
+                    },
+                    {
+                        value:.01,
+                        time: 1,
+                    }
+                ],
+            },
+            "color": {
+                list: [
+                    {
+                        value: "#aecfd9",
+                        time: 0,
+                    },
+                    {
+                        value:"#000000",
+                        time: 1,
+                    }
+                ],
+            },
+            "speed": {
+
+                list: [
+                    {
+                        value: 50,
+                        time: 0,
+                    },
+                    {
+                        value:50,
+                        time: 1,
+                    }
+                ],
+            },
+            "acceleration": {
+                "x": 0,
+                "y": 0
+            },
+            "maxSpeed": 0,
+            "startRotation": {
+                "min": 180,
+                "max": 360
+            },
+            "noRotation": false,
+            "rotationSpeed": {
+                "min": 8,
+                "max": 0
+            },
+            "lifetime": {
+                "min": 0.2,
+                "max": 0.8
+            },
+            "blendMode": "normal",
+            "frequency": 0.001,
+            "emitterLifetime": -1,
+            "maxParticles": 499,
+            "pos": {
+                "x": 0,
+                "y": 0
+            },
+            "addAtBack": false,
+            "spawnType": "burst",
+            "particlesPerWave": 2,
+            "particleSpacing": 0,
+            "angleStart": 0
+        }, this.x, this.y)
     }
 
     override onDestroy(){
@@ -580,6 +666,7 @@ export class Player extends DrawableEntity {
     update(dt: number): void {
         if(this.dead) return;
         
+        this.emitter.updateSpawnPos(this.mouse.x, this.mouse.y)
         if(this.y > this.level.bbox.height + 800) this.y = 0;
 
 
@@ -1127,24 +1214,24 @@ export class Player extends DrawableEntity {
     }
 
     draw(g: Graphics) {
-        drawPoint(g,this.position);
+        // drawPoint(g,this.position);
 
-        g.beginFill(0xFF00FF,.4)
-        g.drawRect(this.x - this.player_width / 2, this.y - this.player_height / 2, this.player_width, this.player_height)
-        g.endFill();
+        // g.beginFill(0xFF00FF,.4)
+        // g.drawRect(this.x - this.player_width / 2, this.y - this.player_height / 2, this.player_width, this.player_height)
+        // g.endFill();
 
-        this.rightWallRay.draw(g, 0x00FF00);
-        this.leftWallRay.draw(g);
+        // this.rightWallRay.draw(g, 0x00FF00);
+        // this.leftWallRay.draw(g);
 
-        this.leftDownRay.draw(g,0xFF0000);
-        this.rightDownRay.draw(g, 0xFF00FF);
-        this.midDownRay.draw(g, 0x0FF00F)
+        // this.leftDownRay.draw(g,0xFF0000);
+        // this.rightDownRay.draw(g, 0xFF00FF);
+        // this.midDownRay.draw(g, 0x0FF00F)
 
-        this.leftHeadRay.draw(g, 0x00FFFF);
-        this.rightHeadRay.draw(g, 0xFFFF00);
+        // this.leftHeadRay.draw(g, 0x00FFFF);
+        // this.rightHeadRay.draw(g, 0xFFFF00);
 
-        this.leftClimbRay.draw(g,0x00000)
-        this.rightClimbRay.draw(g, 0xFFFFFF)
+        // this.leftClimbRay.draw(g,0x00000)
+        // this.rightClimbRay.draw(g, 0xFFFFFF)
         
         drawHealthBar(g, this.x - 20, this.y - 40, 40, 7, this.health / 100, 1);
     }

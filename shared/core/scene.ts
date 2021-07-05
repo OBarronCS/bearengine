@@ -152,6 +152,11 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
 
     addEntity<T extends EntityType>(e: T): T {
 
+        if(e.entityID !== NULL_ENTITY_INDEX) {
+            console.log("trying to add the same entity twice;")
+            return e;
+        }
+
         const entityID: EntityID = this.getNextEntityID();
         //@ts-expect-error --> This is the only time we should be changing it
         e.entityID = entityID;
@@ -298,6 +303,9 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         this.deleteEvents(entity,sparseIndex);
         
         entity.onDestroy();
+
+        //@ts-expect-error
+        entity.entityID = NULL_ENTITY_INDEX;
     }
 
     registerSceneSystems(systems: Subsystem[]){

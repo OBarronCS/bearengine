@@ -1,15 +1,16 @@
 
 
 import type { Server } from "ws";
+import { ServerEntity } from "./entity";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractBearEngine } from "shared/core/abstractengine";
 import { Scene, StreamWriteEntityID } from "shared/core/scene";
 import { GamePacket, ServerBoundPacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
-import { PlayerEntity } from "./serverentity";
+import { PlayerEntity } from "./playerlogic";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
-import { PacketWriter, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources } from "shared/core/sharedlogic/networkschemas";
+import { PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources } from "shared/core/sharedlogic/networkschemas";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { TerrainManager } from "shared/core/terrainmanager";
@@ -18,7 +19,7 @@ import path from "path";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
-import { ItemEnum } from "server/source/app/weapons/weaponinterfaces";
+import { ItemEnum } from "server/source/app/weapons/weapondefinitions";
 import { AbstractEntity } from "shared/core/abstractentity";
 
 
@@ -351,17 +352,28 @@ export class ServerBearEngine extends AbstractBearEngine {
         // console.log(this.tick,Date.now()  - this.previousTick);
     }
 
-    //#region testing
-    queueRemoteFunction(){
-        this.currentTickPacketsForEveryone.push({
 
+    broadcastRemoteFunction<T extends keyof RemoteFunction>(name: T, ...args: Parameters<RemoteFunction[T]["callback"]>){
+        
+        this.queuePacket({
             write(stream){
-                RemoteFunctionLinker.serializeRemoteFunction("testVecFunction", stream,new Vec2(100.31,200.41));
+                RemoteFunctionLinker.serializeRemoteFunction(name, stream, ...args);
             }
-
         });
-
     }
+
+    callRemoteFunction<T extends keyof RemoteFunction>(target: ConnectionID, name: T, ...args: Parameters<RemoteFunction[T]["callback"]>){
+
+        const connection = this.players.get(target);
+
+        connection.personalPackets.enqueue({
+            write(stream){
+                RemoteFunctionLinker.serializeRemoteFunction(name, stream, ...args);
+            }   
+        });
+    }
+
+
 
     testweapon(){
 
@@ -380,31 +392,37 @@ export class ServerBearEngine extends AbstractBearEngine {
             }
         });
     }
-    //#endregion
+
+
+
     
     createRemoteEntity(e: ServerEntity){
         this.entityManager.addEntity(e);
+        
+        const id = e.entityID;
         
         this.currentTickPacketsForEveryone.push({
             write(stream){
                 stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
                 stream.setUint8(e.constructor["SHARED_ID"]);
-                StreamWriteEntityID(stream, e.entityID);
+                StreamWriteEntityID(stream, id);
             }
         });
     }
 
     
-    remoteRemoteEntity(e: ServerEntity){
-        this.entityManager.destroyEntity(e);
+    destroyRemoteEntity(e: ServerEntity){
 
+        const id = e.entityID;
         this.currentTickPacketsForEveryone.push({
             write(stream){
                 stream.setUint8(GamePacket.REMOTE_ENTITY_DELETE);
                 stream.setUint8(e.constructor["SHARED_ID"]);
-                StreamWriteEntityID(stream, e.entityID);
+                StreamWriteEntityID(stream, id);
             }
         });
+
+        this.entityManager.destroyEntity(e);
     }
 
     private _boundLoop = this.loop.bind(this);
@@ -462,17 +480,6 @@ export class ServerBearEngine extends AbstractBearEngine {
         } else {
             setImmediate(this._boundLoop) // ultra accurate, sub millisecond
         }
-    }
-}
-
-export abstract class ServerEntity extends AbstractEntity<ServerBearEngine> {
-
-    // This shouldn't be touched on entities that are not networked
-    // Maybe in future make two seperate lists of entities, one for networked and one for not
-    stateHasBeenChanged = false;
-
-    markDirty(): void {
-        this.stateHasBeenChanged = true;
     }
 }
 
