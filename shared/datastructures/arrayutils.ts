@@ -37,21 +37,20 @@ export function swap(arr: any[], i: number, j: number): void {
     arr[j] = val1;
 }
 
-export function choose<T>(elements: T[]): T{
+export function choose<T>(elements: readonly T[]): T{
     const index = randomInt(0,elements.length);
     return elements[index];
 }
 
-export function isSorted(arr: number[]): boolean {
+export function isSorted(arr: readonly number[]): boolean {
     for(let i = 1; i < arr.length; i++){
         if(arr[i - 1] > arr[i]) return false;
-
     }
 
     return true;
 }
 
-export function arrayMin(array: number[]){
+export function arrayMin(array: readonly number[]){
     let min = array[0];
     for(let i = 1; i < array.length; i++){
         if(array[i] < min){
@@ -61,7 +60,7 @@ export function arrayMin(array: number[]){
     return min;
 }
 
-export function arrayMax(array: number[]){
+export function arrayMax(array: readonly number[]){
     let max = array[0];
     for(let i = 1; i < array.length; i++){
         if(array[i] > max){
@@ -76,7 +75,7 @@ export function arrayMax(array: number[]){
  * Returns index of key in sorted array, else returns the negative nth index of where it should go
  * ex: returns -1, it goes into the 1st index, which is 0.
  */
-export function binarySearch(arr: number[], key: number): number {
+export function binarySearch(arr: readonly number[], key: number): number {
     let lo = 0;
     let hi = arr.length - 1;
 
