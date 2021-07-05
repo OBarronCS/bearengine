@@ -125,7 +125,7 @@ export class RendererSystem extends Subsystem<BearEngine> {
 
     updateParticles(dt: number){
         for(const emitter of this.emitters){
-            emitter.update(dt);
+            // emitter.update(dt);
         }
     }
 

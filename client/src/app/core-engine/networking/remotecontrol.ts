@@ -4,12 +4,14 @@ import { randomInt } from "shared/misc/random";
 import { mix, Vec2 } from "shared/shapes/vec2";
 import { DrawableEntity, Entity } from "../entity";
 import { SpritePart } from "../parts";
-import { InterpolatedVar, interpolatedvariable, networkedclass_client, remotevariable } from "./cliententitydecorators";
+import { InterpolatedVar, net, networkedclass_client } from "./cliententitydecorators";
 
 
-export abstract class RemoteEntity extends Entity {
 
-}
+
+// export abstract class RemoteEntity extends Entity {
+
+// }
 
 export class RemoteLocations extends Part {
 
@@ -32,15 +34,17 @@ export class RemoteLocations extends Part {
 
 
 @networkedclass_client("bullet")
-export class ClientBullet extends RemoteEntity {
+export class ClientBullet extends Entity {
 
     public sprite = this.addPart(new SpritePart("test2.png"));
 
-    @interpolatedvariable("_pos")
-    _pos = InterpolatedVar(new Vec2(0,0));
 
-    @remotevariable("test")
-    test = 1;
+    @net("bullet").interpolatedvariable("test")
+    test = InterpolatedVar(1);
+
+    @net("bullet").interpolatedvariable("_pos")
+    _pos = InterpolatedVar(new Vec2(0,0));
+    // InterpolatedVar(
 
     // @interpolatedvariable("_x")
     // _x = InterpolatedVar(0);

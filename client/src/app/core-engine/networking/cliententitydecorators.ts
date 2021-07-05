@@ -1,19 +1,22 @@
-import { SharedNetworkedEntity, SharedEntityLinker, SharedNetworkedEntityDefinitions, AllNetworkedVariablesWithTypes, NetworkVariableTypes, DeserializeTypedVar } from "shared/core/sharedlogic/networkschemas";
+import { SharedNetworkedEntities, SharedEntityLinker, SharedNetworkedEntityDefinitions, NetworkVariableTypes, DeserializeTypedVar, TypescriptTypeOfNetVar } from "shared/core/sharedlogic/networkschemas";
 import { BufferStreamReader } from "shared/datastructures/bufferstream";
 import { floor, ceil, lerp } from "shared/misc/mathutils";
 import { mix, Vec2 } from "shared/shapes/vec2";
-import { RemoteEntity } from "./remotecontrol";
+import { DrawableEntity, Entity } from "../entity";
+
+
+
 
 
 type RegisterVariablesList = {
-    variablename: keyof AllNetworkedVariablesWithTypes,
+    variablename: string,
     recieveFuncName: null | string;
 
     interpolated: boolean
 }[];
 
 type NetworkedVariablesList = {
-    variablename: keyof AllNetworkedVariablesWithTypes,
+    variablename: string,
     recieveFuncName: null | string;
 
     interpolated: boolean,
@@ -21,13 +24,9 @@ type NetworkedVariablesList = {
     variabletype: NetworkVariableTypes,
 }[];
 
-
-type EntityType = RemoteEntity;
-type EntityClassType = typeof RemoteEntity;
-
 interface InterpolatedVarType<T> {
     value: T,
-    data: InterpVariableData<any>
+    buffer: InterpVariableData<any>
 }
 
 interface InterpVariableData<T> {
@@ -38,7 +37,7 @@ interface InterpVariableData<T> {
 export function InterpolatedVar<T>(value: T): InterpolatedVarType<T> {
     return {
         value: value,
-        data: (typeof value === "number" ? new InterpNumberVariable() : new InterpVecVariable())
+        buffer: (typeof value === "number" ? new InterpNumberVariable() : new InterpVecVariable())
     }
 }
 
@@ -85,75 +84,136 @@ class InterpVecVariable implements InterpVariableData<Vec2> {
 }
 
 
-// Variable decorator
-export function interpolatedvariable<T extends EntityType, K extends keyof AllNetworkedVariablesWithTypes>(varName: K, receiveFunc: (this: T, value: AllNetworkedVariablesWithTypes[K]) => void = undefined){
+type BaseEntityType = Entity;
+type EntityClassType = typeof Entity;
+
+// This helper types makes an error go away
+type GetTypeScriptType<Var> = Var extends NetworkVariableTypes ? TypescriptTypeOfNetVar<Var> : never;
+
+//decorator factory factory
+export function net<SharedName extends keyof SharedNetworkedEntities>(name: SharedName){
+
+    return {
+        event<EventName extends keyof SharedNetworkedEntities[SharedName]["events"]>(eventName: EventName){
+            return function<R extends BaseEntityType>(a: R, b: string, c: TypedPropertyDescriptor<SharedNetworkedEntities[SharedName]["events"][EventName]>){
+                console.log("EVENT DEC");
+
+
+
+            }
+        },
+        variable<VarName extends keyof SharedNetworkedEntities[SharedName]["variables"], OuterEntityType extends BaseEntityType>(varName: VarName, receiveFunc: (this: OuterEntityType, value: GetTypeScriptType<SharedNetworkedEntities[SharedName]["variables"][VarName]>) => void = undefined){
+            return function<R extends BaseEntityType & Record<VarName,GetTypeScriptType<SharedNetworkedEntities[SharedName]["variables"][VarName]>>>(target: R, key: VarName & string){
+                
+                        // Target is prototype of class
+                const constructorOfClass = target.constructor;
+
+                if(constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] === undefined){
+                    constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] = [];
+                }
+
+                let realReceiveFunc: string = null;
+
+                if(receiveFunc !== undefined){
+                    
+                    //Add the onReceive function to the prototype
+                    const recName = "__onReceive_" + varName;
+                    target[recName] = receiveFunc;
+
+                    realReceiveFunc = recName;
+                }
+
+
+                const variableslist = constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList;
+                variableslist.push({
+                    variablename: key,
+                    recieveFuncName: realReceiveFunc,
+                    interpolated: false,
+                });
+            }
+        },
+        interpolatedvariable<VarName extends keyof SharedNetworkedEntities[SharedName]["variables"], OuterEntityType extends BaseEntityType>(varName: VarName, receiveFunc: (this: OuterEntityType, value: GetTypeScriptType<SharedNetworkedEntities[SharedName]["variables"][VarName]>) => void = undefined){
+            return function<T extends BaseEntityType & Record<VarName,InterpolatedVarType<GetTypeScriptType<SharedNetworkedEntities[SharedName]["variables"][VarName]>>>>(target: T, propertyKey: VarName & string){        
+
+                const constructorOfClass = target.constructor;
+                
+                if(constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] === undefined){
+                    constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] = [];
+                }
+        
+                let realReceiveFunc: string = null;
+        
+                if(receiveFunc !== undefined){
+                    
+                    //Add the onReceive function to the prototype
+                    const recName = "__onReceive_" + varName;
+                    target[recName] = receiveFunc;
+        
+                    realReceiveFunc = recName;
+                }
+        
+        
+                const variableslist = constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList;
+                variableslist.push({
+                    variablename: propertyKey,
+                    recieveFuncName: realReceiveFunc,
+                    interpolated: true,
+                });
+            }
+        }
+    }
+}
+
+// function addRemoteVariableToClientEntity<
+//     T extends BaseEntityType & Record<VarName,SharedNetworkedEntities[SharedName]["variables"][VarName]>, 
+//         SharedName extends keyof SharedNetworkedEntities, 
+//             VarName extends keyof SharedNetworkedEntities[SharedName]["variables"]>
+//                 (target: T, key: VarName, sharedName: SharedName,varName: VarName, receiveFunc: (this: T, value: SharedNetworkedEntities[SharedName]["variables"][VarName]) => void = undefined){
+// }
+
+// export function remotevariable<T extends EntityType, K extends keyof AllNetworkedVariablesWithTypes>(varName: K, receiveFunc: (this: T, value: AllNetworkedVariablesWithTypes[K]) => void = undefined){
+//     // Property decorator
+//     return function<T extends EntityType & Record<K, AllNetworkedVariablesWithTypes[K]>>(target: T, propertyKey: K){        
+//     }
+// }
+
+// // // Variable decorator
+// export function interpolatedvariable<T extends EntityType, K extends keyof AllNetworkedVariablesWithTypes>(varName: K, receiveFunc: (this: T, value: AllNetworkedVariablesWithTypes[K]) => void = undefined){
     
-    // Property decorator
+//     // Property decorator
 
-    return function<T extends EntityType & Record<K, InterpolatedVarType<AllNetworkedVariablesWithTypes[K]>>>(target: T, propertyKey: K){        
+//     return function<T extends EntityType & Record<K, InterpolatedVarType<AllNetworkedVariablesWithTypes[K]>>>(target: T, propertyKey: K){        
 
-        const constructorOfClass = target.constructor;
+//         const constructorOfClass = target.constructor;
         
-        if(constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] === undefined){
-            constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] = [];
-        }
+//         if(constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] === undefined){
+//             constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] = [];
+//         }
 
-        let realReceiveFunc: string = null;
+//         let realReceiveFunc: string = null;
 
-        if(receiveFunc !== undefined){
+//         if(receiveFunc !== undefined){
             
-            //Add the onReceive function to the prototype
-            const recName = "__onReceive_" + varName;
-            target[recName] = receiveFunc;
+//             //Add the onReceive function to the prototype
+//             const recName = "__onReceive_" + varName;
+//             target[recName] = receiveFunc;
 
-            realReceiveFunc = recName;
-        }
-
-
-        const variableslist = constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList;
-        variableslist.push({
-            variablename: propertyKey,
-            recieveFuncName: realReceiveFunc,
-            interpolated: true,
-        });
-    }
-}
-
-/** Means a variable is being controlled by the server. Should be readonly on clientside */
-// Typescript type inference is unable to detect the T at this point unfortunately, but works in inner function
-export function remotevariable<T extends EntityType, K extends keyof AllNetworkedVariablesWithTypes>(varName: K, receiveFunc: (this: T, value: AllNetworkedVariablesWithTypes[K]) => void = undefined){
-
-    // Property decorator
-    return function<T extends EntityType & Record<K, AllNetworkedVariablesWithTypes[K]>>(target: T, propertyKey: K){        
-
-        const constructorOfClass = target.constructor;
-        
-        if(constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] === undefined){
-            constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] = [];
-        }
-
-        let realReceiveFunc: string = null;
-
-        if(receiveFunc !== undefined){
-            
-            //Add the onReceive function to the prototype
-            const recName = "__onReceive_" + varName;
-            target[recName] = receiveFunc;
-
-            realReceiveFunc = recName;
-        }
+//             realReceiveFunc = recName;
+//         }
 
 
-        const variableslist = constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList;
-        variableslist.push({
-            variablename: propertyKey,
-            recieveFuncName: realReceiveFunc,
-            interpolated: false,
-        });
-    }
-}
+//         const variableslist = constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList;
+//         variableslist.push({
+//             variablename: propertyKey,
+//             recieveFuncName: realReceiveFunc,
+//             interpolated: true,
+//         });
+//     }
+// }
 
-export function networkedclass_client<T extends keyof SharedNetworkedEntity>(classname: T) {
+
+
+export function networkedclass_client<T extends keyof SharedNetworkedEntities>(classname: T) {
 
     return function<U extends EntityClassType>(targetConstructor: U){
 
@@ -170,7 +230,7 @@ export function networkedclass_client<T extends keyof SharedNetworkedEntity>(cla
             variabletype : SharedNetworkedEntityDefinitions[classname]["variables"][a.variablename] as NetworkVariableTypes,
         }));
 
-        SharedEntityLinker.validateVariables(classname, orderedVariables.map(a => a.variablename));
+        SharedEntityLinker.validateVariables(classname, orderedVariables.map(a => a.variablename) as any);
 
         //Interpolation
         targetConstructor["INTERP_LIST"] = [];
@@ -193,14 +253,14 @@ export function networkedclass_client<T extends keyof SharedNetworkedEntity>(cla
 
 
 
-type EntityConstructor = abstract new(...args:any[]) => EntityType;
+type EntityConstructor = abstract new(...args:any[]) => BaseEntityType;
 
 export const SharedEntityClientTable = {
 
     // This is a list of all the registered classes, registered using the '@networkedclass_client' decorator
     REGISTERED_NETWORKED_ENTITIES: [] as {
         create: EntityConstructor, 
-        name: keyof SharedNetworkedEntity,
+        name: keyof SharedNetworkedEntities,
         varDefinition: NetworkedVariablesList
     }[],
 
@@ -230,7 +290,7 @@ export const SharedEntityClientTable = {
     },
 
 
-    deserialize(stream: BufferStreamReader, frame: number, sharedID: number, entity: EntityType){
+    deserialize(stream: BufferStreamReader, frame: number, sharedID: number, entity: BaseEntityType){
         
         const variableslist = this.REGISTERED_NETWORKED_ENTITIES[sharedID].varDefinition
 
@@ -238,7 +298,7 @@ export const SharedEntityClientTable = {
             const value = DeserializeTypedVar(stream, variableinfo.variabletype);
 
             if(variableinfo.interpolated){
-                entity[variableinfo.variablename].data.addValue(frame, value); 
+                (entity[variableinfo.variablename] as InterpolatedVarType<any>).buffer.addValue(frame, value); 
             } else {
                 entity[variableinfo.variablename] = value
             }

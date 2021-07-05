@@ -10,7 +10,7 @@ import { TickTimer } from "shared/datastructures/ticktimer";
 
 
 import { DrawableEntity, Entity } from "../core-engine/entity";
-import { RemoteEntity, RemoteLocations } from "../core-engine/networking/remotecontrol";
+import { RemoteLocations } from "../core-engine/networking/remotecontrol";
 import { GraphicsPart, SpritePart } from "../core-engine/parts";
 import { SavePlayerAnimation } from "./testlevelentities";
 
@@ -1240,7 +1240,7 @@ export class Player extends DrawableEntity {
 
 
 
-export class RemotePlayer extends RemoteEntity {
+export class RemotePlayer extends Entity {
 
     colliderPart = this.addPart(new ColliderPart(dimensions(48,30),{x:24, y:15}));
     

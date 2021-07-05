@@ -15,10 +15,16 @@ export const SharedNetworkedEntityDefinitions = {
     "bullet": {
         create: () => void 0,
         variables: {
-            _pos: {type:"vec2", subtype: "float"},
+            _pos: { type:"vec2", subtype: "float" },
             test: { type: "number", subtype: "float"}
             //_y: {type:"number", subtype: "float"},
         },
+        events: {
+            mousehover: {
+                register_args: {},
+                callback: (mousePoint: Vec2) => void 0,
+            },
+        }
 
     },
     "ogre": {
@@ -27,17 +33,24 @@ export const SharedNetworkedEntityDefinitions = {
             _x: {type:"number", subtype: "float"},
             asdasd: {type:"number", subtype: "float"},
         },
+
+        events: {
+            mousehover: {
+                register_args: {},
+                callback: (mousePoint: Vec2) => void 0,
+            },
+        }
     },
 } as const;
 
-export type SharedNetworkedEntity = typeof SharedNetworkedEntityDefinitions;
+export type SharedNetworkedEntities = typeof SharedNetworkedEntityDefinitions;
 
 // Help with types https://stackoverflow.com/questions/63542526/merge-discriminated-union-of-object-types-in-typescript
 type UnionToIntersection<U> =
   (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never
 
 // This Types break if a key of two different objects that are equal have different values, because its impossible for the same key to have differnet 
-type A = UnionToIntersection<SharedNetworkedEntity[keyof SharedNetworkedEntity]["variables"]>
+type A = UnionToIntersection<SharedNetworkedEntities[keyof SharedNetworkedEntities]["variables"]>
 
 export type AllNetworkedVariablesWithTypes = {
     [K in keyof A] : TypescriptTypeOfNetVar<A[K]>
@@ -80,7 +93,7 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
 export const SharedEntityLinker = {
 
     // Makes sure all the variables are present
-    validateVariables(name: keyof SharedNetworkedEntity, variables: (keyof AllNetworkedVariablesWithTypes)[]){
+    validateVariables(name: keyof SharedNetworkedEntities, variables: (keyof AllNetworkedVariablesWithTypes)[]){
 
         // Makes sure it has all the required variables
         const requiredVariables = orderedSharedEntityVariables[sharedNameToIDLookup.get(name)];
@@ -103,7 +116,7 @@ export const SharedEntityLinker = {
         }
         
     },
-    nameToSharedID(name: keyof SharedNetworkedEntity): number {
+    nameToSharedID(name: keyof SharedNetworkedEntities): number {
         return sharedNameToIDLookup.get(name);
     },
     sharedIDToVariables(id: number){
@@ -287,7 +300,7 @@ type Vec2Type = {
 
 export type NetworkVariableTypes = NumberType |  StringType | ArrayType | Vec2Type;
 
-type TypescriptTypeOfNetVar<T extends NetworkVariableTypes> = 
+export type TypescriptTypeOfNetVar<T extends NetworkVariableTypes> = 
     T["type"] extends "number" ? number : 
         T["type"] extends "string" ? string :
             T["type"] extends "vec2" ? Vec2 :

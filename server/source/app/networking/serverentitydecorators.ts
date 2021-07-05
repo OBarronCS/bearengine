@@ -1,5 +1,5 @@
 import { StreamWriteEntityID } from "shared/core/scene";
-import { SharedNetworkedEntity, SharedEntityLinker, AllNetworkedVariablesWithTypes, SerializeTypedVar } from "shared/core/sharedlogic/networkschemas";
+import { SharedNetworkedEntities, SharedEntityLinker, AllNetworkedVariablesWithTypes, SerializeTypedVar } from "shared/core/sharedlogic/networkschemas";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ServerEntity } from "../entity";
 
@@ -12,7 +12,7 @@ type RegisterVariablesList = {
 
 
 // Class decorator, makes it's variables updated over the network. Need client side implementation, networkedclass_client
-export function networkedclass_server<T extends keyof SharedNetworkedEntity>(classname: T) {
+export function networkedclass_server<T extends keyof SharedNetworkedEntities>(classname: T) {
 
     return function<U extends typeof ServerEntity>(targetConstructor: U){
 
@@ -89,7 +89,7 @@ export class SharedEntityServerTable {
 
     static readonly REGISTERED_NETWORKED_ENTITIES: {
         create: EntityConstructor, 
-        name: keyof SharedNetworkedEntity
+        name: keyof SharedNetworkedEntities
     }[] = [];
 
     // Not in use on server side as of now 

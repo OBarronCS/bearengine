@@ -5,7 +5,7 @@ import { PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinke
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { SharedEntityClientTable } from "./cliententitydecorators";
-import { RemoteEntity, RemoteLocations } from "./remotecontrol";
+import { RemoteLocations } from "./remotecontrol";
 import { CallbackNetwork, NetworkSettings } from "./clientsocket";
 import { Entity } from "../entity";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
@@ -37,7 +37,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
 
 
 
-    private remoteEntities: Map<number, RemoteEntity> = new Map();
+    private remoteEntities: Map<number, Entity> = new Map();
     private remotePlayers: Map<number, RemotePlayer> = new Map(); 
 
 
@@ -525,7 +525,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                 const list = obj.constructor["INTERP_LIST"];
                 for(const value of list){
                     const interpVar = obj[value];
-                    const interpValue = interpVar.data.getValue(frameToSimulate);
+                    const interpValue = interpVar.buffer.getValue(frameToSimulate);
                     interpVar.value = interpValue;
                 }
             }
