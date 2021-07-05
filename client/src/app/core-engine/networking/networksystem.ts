@@ -274,6 +274,27 @@ export class NetworkSystem extends Subsystem<BearEngine> {
 
                             break;
                         }       
+
+                        case GamePacket.REMOTE_ENTITY_EVENT: {
+                            
+                            const SHARED_ID = stream.getUint8();
+                            const entityID = StreamReadEntityID(stream);
+                            const eventID = stream.getUint8();
+
+                            let entity = this.remoteEntities.get(entityID);
+
+                            if(entity === undefined){
+                                // Will try to create the entity for now, but we missed the REMOTE_ENTITY_CREATE packet clearly
+                                return;
+                                console.log(`Cannot find entity ${entityID}, will create`);
+                                entity = this.createAutoRemoteEntity(SHARED_ID,entityID)
+                                
+                            }
+
+                            SharedEntityClientTable.callRemoteEvent(stream, SHARED_ID, eventID, entity);
+                            
+                            break;
+                        }
                         case GamePacket.REMOTE_ENTITY_DELETE: {
                             const SHARED_ID = stream.getUint8();
                             const entityID = StreamReadEntityID(stream);

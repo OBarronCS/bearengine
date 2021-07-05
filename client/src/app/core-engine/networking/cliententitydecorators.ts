@@ -7,13 +7,19 @@ import { DrawableEntity, Entity } from "../entity";
 
 
 
-
 type RegisterVariablesList = {
     variablename: string,
     recieveFuncName: null | string;
 
     interpolated: boolean
 }[];
+
+type RegisterEventList = {
+    eventname: string,
+    methodname: string,
+}[]
+
+
 
 type NetworkedVariablesList = {
     variablename: string,
@@ -24,12 +30,22 @@ type NetworkedVariablesList = {
     variabletype: NetworkVariableTypes,
 }[];
 
+type NetworkedEventList = {
+    eventname: string,
+    methodname: string;
+
+    argumenttypes: NetworkVariableTypes[],
+}[];
+
+
+
+
 interface InterpolatedVarType<T> {
     value: T,
-    buffer: InterpVariableData<any>
+    buffer: InterpVariableBuffer<any>
 }
 
-interface InterpVariableData<T> {
+interface InterpVariableBuffer<T> {
     addValue(frame: number, value: T): void,
     getValue(frame: number): T
 }
@@ -41,7 +57,7 @@ export function InterpolatedVar<T>(value: T): InterpolatedVarType<T> {
     }
 }
 
-class InterpNumberVariable implements InterpVariableData<number> {
+class InterpNumberVariable implements InterpVariableBuffer<number> {
 
     private values = new Map<number, number>();
 
@@ -62,7 +78,7 @@ class InterpNumberVariable implements InterpVariableData<number> {
     }
 }
 
-class InterpVecVariable implements InterpVariableData<Vec2> {
+class InterpVecVariable implements InterpVariableBuffer<Vec2> {
 
     private values = new Map<number, Vec2>();
 
@@ -90,16 +106,40 @@ type EntityClassType = typeof Entity;
 // This helper types makes an error go away
 type GetTypeScriptType<Var> = Var extends NetworkVariableTypes ? TypescriptTypeOfNetVar<Var> : never;
 
+type EventCallback<EventName extends keyof Def, Def> = "callback" extends keyof Def[EventName] ? Def[EventName]["callback"] : never
+
 //decorator factory factory
 export function net<SharedName extends keyof SharedNetworkedEntities>(name: SharedName){
 
     return {
         event<EventName extends keyof SharedNetworkedEntities[SharedName]["events"]>(eventName: EventName){
-            return function<R extends BaseEntityType>(a: R, b: string, c: TypedPropertyDescriptor<SharedNetworkedEntities[SharedName]["events"][EventName]>){
-                console.log("EVENT DEC");
+            return function<R extends BaseEntityType>(target: R, key: string, desc: TypedPropertyDescriptor<EventCallback<EventName, SharedNetworkedEntities[SharedName]["events"]>>){
+                
+                const constructorClass = target.constructor;
 
+                // Deals with inheriting super class events
+                if(!constructorClass.hasOwnProperty("NETWORKED_EVENT_REGISTRY")){
 
+                    let parentEvents = [];
+                    if(constructorClass["NETWORKED_EVENT_REGISTRY"] !== undefined){
+                        parentEvents.push(...constructorClass["NETWORKED_EVENT_REGISTRY"]);
+                    }
 
+                    constructorClass["NETWORKED_EVENT_REGISTRY"] = [...parentEvents];
+                }
+                
+
+                const eventlist = constructorClass["NETWORKED_EVENT_REGISTRY"] as RegisterEventList;
+
+                //Make sure only one of this event type has been added to this entity
+                if(eventlist.some((a) =>a.eventname === eventName)){
+                    throw new Error("Cannot have multiple methods assoicated with the same event: " + eventName);
+                }
+
+                eventlist.push({
+                    eventname: eventName as string,
+                    methodname: key,
+                });
             }
         },
         variable<VarName extends keyof SharedNetworkedEntities[SharedName]["variables"], OuterEntityType extends BaseEntityType>(varName: VarName, receiveFunc: (this: OuterEntityType, value: GetTypeScriptType<SharedNetworkedEntities[SharedName]["variables"][VarName]>) => void = undefined){
@@ -171,60 +211,16 @@ export function net<SharedName extends keyof SharedNetworkedEntities>(name: Shar
 //                 (target: T, key: VarName, sharedName: SharedName,varName: VarName, receiveFunc: (this: T, value: SharedNetworkedEntities[SharedName]["variables"][VarName]) => void = undefined){
 // }
 
-// export function remotevariable<T extends EntityType, K extends keyof AllNetworkedVariablesWithTypes>(varName: K, receiveFunc: (this: T, value: AllNetworkedVariablesWithTypes[K]) => void = undefined){
-//     // Property decorator
-//     return function<T extends EntityType & Record<K, AllNetworkedVariablesWithTypes[K]>>(target: T, propertyKey: K){        
-//     }
-// }
-
-// // // Variable decorator
-// export function interpolatedvariable<T extends EntityType, K extends keyof AllNetworkedVariablesWithTypes>(varName: K, receiveFunc: (this: T, value: AllNetworkedVariablesWithTypes[K]) => void = undefined){
-    
-//     // Property decorator
-
-//     return function<T extends EntityType & Record<K, InterpolatedVarType<AllNetworkedVariablesWithTypes[K]>>>(target: T, propertyKey: K){        
-
-//         const constructorOfClass = target.constructor;
-        
-//         if(constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] === undefined){
-//             constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] = [];
-//         }
-
-//         let realReceiveFunc: string = null;
-
-//         if(receiveFunc !== undefined){
-            
-//             //Add the onReceive function to the prototype
-//             const recName = "__onReceive_" + varName;
-//             target[recName] = receiveFunc;
-
-//             realReceiveFunc = recName;
-//         }
-
-
-//         const variableslist = constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList;
-//         variableslist.push({
-//             variablename: propertyKey,
-//             recieveFuncName: realReceiveFunc,
-//             interpolated: true,
-//         });
-//     }
-// }
-
-
-
 export function networkedclass_client<T extends keyof SharedNetworkedEntities>(classname: T) {
 
     return function<U extends EntityClassType>(targetConstructor: U){
 
         targetConstructor["SHARED_ID"] = -1;
 
-        // Validates that it has all the correct variables
-
-        // || returns the right side if left side is null or undefined
+        // Validates variables
         const registeredVariables = targetConstructor["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList || [];
         
-        const orderedVariables =  registeredVariables.sort( (a,b) => a.variablename.localeCompare(b.variablename) );
+        const orderedVariables = registeredVariables.sort( (a,b) => a.variablename.localeCompare(b.variablename) );
 
         const orderedVariablesWithType: NetworkedVariablesList = orderedVariables.map( (a) => ({...a,
             variabletype : SharedNetworkedEntityDefinitions[classname]["variables"][a.variablename] as NetworkVariableTypes,
@@ -241,11 +237,25 @@ export function networkedclass_client<T extends keyof SharedNetworkedEntities>(c
         }
 
 
+        // Validate events
+        const registeredEvents = targetConstructor["NETWORKED_EVENT_REGISTRY"] as RegisterEventList || [];
+        
+        const orderedEvents = registeredEvents.sort( (a,b) => a.eventname.localeCompare(b.eventname) );
+
+        const orderedEventsWithType: NetworkedEventList = orderedEvents.map( (a) => ({...a,
+            argumenttypes : SharedNetworkedEntityDefinitions[classname]["events"][a.eventname]["argTypes"] as NetworkVariableTypes[],
+        }));
+
+        SharedEntityLinker.validateEvents(classname, orderedEvents.map(a => a.eventname) as any);
+
+
+
 
         SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES.push({
             create: targetConstructor,
             name: classname,
-            varDefinition: orderedVariablesWithType
+            varDefinition: orderedVariablesWithType,
+            eventDefinition: orderedEventsWithType,
         })
     }
 }
@@ -257,11 +267,12 @@ type EntityConstructor = abstract new(...args:any[]) => BaseEntityType;
 
 export const SharedEntityClientTable = {
 
-    // This is a list of all the registered classes, registered using the '@networkedclass_client' decorator
+    // List of all the classes registered using the decorator
     REGISTERED_NETWORKED_ENTITIES: [] as {
         create: EntityConstructor, 
         name: keyof SharedNetworkedEntities,
         varDefinition: NetworkedVariablesList
+        eventDefinition: NetworkedEventList,
     }[],
 
 
@@ -289,6 +300,20 @@ export const SharedEntityClientTable = {
         return this.REGISTERED_NETWORKED_ENTITIES[sharedID].create;
     },
 
+    callRemoteEvent(stream: BufferStreamReader, sharedID: number, eventID: number, entity: BaseEntityType){
+        
+
+        const eventDefinition = this.REGISTERED_NETWORKED_ENTITIES[sharedID].eventDefinition[eventID];
+
+        const args = []
+        
+        for(const functionArgumentType of eventDefinition.argumenttypes){
+            const variable = DeserializeTypedVar(stream, functionArgumentType)
+            args.push(variable);
+        }
+
+        entity[eventDefinition.methodname](...args);
+    },
 
     deserialize(stream: BufferStreamReader, frame: number, sharedID: number, entity: BaseEntityType){
         

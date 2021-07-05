@@ -7,12 +7,6 @@ import { SpritePart } from "../parts";
 import { InterpolatedVar, net, networkedclass_client } from "./cliententitydecorators";
 
 
-
-
-// export abstract class RemoteEntity extends Entity {
-
-// }
-
 export class RemoteLocations extends Part {
 
     public positions = new Map<number,Vec2>();
@@ -44,6 +38,12 @@ export class ClientBullet extends Entity {
 
     @net("bullet").interpolatedvariable("_pos")
     _pos = InterpolatedVar(new Vec2(0,0));
+
+    @net("bullet").event("testEvent7")
+    callback(mousePoint: Vec2, num: number){
+        console.log(mousePoint, num);
+    }
+
     // InterpolatedVar(
 
     // @interpolatedvariable("_x")
@@ -58,6 +58,24 @@ export class ClientBullet extends Entity {
         // this.position.y = this._y.value;
 
         // this.redraw();
+    }
+}
+
+@networkedclass_client("ogre")
+export class Ogre extends Entity {
+
+    public sprite = this.addPart(new SpritePart("flower.png"));
+
+
+    @net("ogre").variable("_x")
+    _x = 1;
+
+    @net("ogre").variable("asdasd")
+    asdasd = 123;
+
+    update(dt: number): void {
+        this.position.x = this._x;
+
     }
 }
 

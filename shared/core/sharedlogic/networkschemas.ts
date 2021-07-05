@@ -20,9 +20,9 @@ export const SharedNetworkedEntityDefinitions = {
             //_y: {type:"number", subtype: "float"},
         },
         events: {
-            mousehover: {
-                register_args: {},
-                callback: (mousePoint: Vec2) => void 0,
+            testEvent7: {
+                argTypes: [{ type: "vec2", subtype: "float"}, {type:"number", subtype:"uint8"}],
+                callback: (point: Vec2, testNumber: number) => void 0,
             },
         }
 
@@ -35,10 +35,10 @@ export const SharedNetworkedEntityDefinitions = {
         },
 
         events: {
-            mousehover: {
-                register_args: {},
-                callback: (mousePoint: Vec2) => void 0,
-            },
+            // asdad: {
+            //     argTypes: [],
+            //     callback: (mousePoint: Vec2) => void 0,
+            // },
         }
     },
 } as const;
@@ -46,13 +46,12 @@ export const SharedNetworkedEntityDefinitions = {
 export type SharedNetworkedEntities = typeof SharedNetworkedEntityDefinitions;
 
 // Help with types https://stackoverflow.com/questions/63542526/merge-discriminated-union-of-object-types-in-typescript
-type UnionToIntersection<U> =
-  (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never
 
 // This Types break if a key of two different objects that are equal have different values, because its impossible for the same key to have differnet 
 type A = UnionToIntersection<SharedNetworkedEntities[keyof SharedNetworkedEntities]["variables"]>
 
-export type AllNetworkedVariablesWithTypes = {
+type AllNetworkedVariablesWithTypes = {
     [K in keyof A] : TypescriptTypeOfNetVar<A[K]>
 }
 
@@ -70,6 +69,7 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
 }
 
 // Index is shared index
+
 const orderedSharedEntityVariables: {variableName: keyof AllNetworkedVariablesWithTypes, type: NetworkVariableTypes}[][] = [];
 for(let i = 0; i < orderedSharedEntities.length; i++){
 
@@ -89,6 +89,47 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
 
     orderedSharedEntityVariables[i] = arr;
 }
+
+
+const orderedSharedEntityEvents: {eventName: string, argtypes: NetworkVariableTypes[]}[][] = [];
+for(let i = 0; i < orderedSharedEntities.length; i++){
+
+    const sharedName = sharedIDToNameLookup[i];
+    const eventStruct = SharedNetworkedEntityDefinitions[sharedName]["events"]
+    
+    const orderedEvents: string[] = Object.keys(eventStruct).sort() as any;
+
+    const arr: {eventName: string, argtypes: NetworkVariableTypes[]}[] = [];
+
+    for(const variable of orderedEvents){
+        arr.push({
+            argtypes: SharedNetworkedEntityDefinitions[sharedName]["events"][variable]["argTypes"],
+            eventName: variable,
+        });
+    }
+
+    orderedSharedEntityEvents[i] = arr;
+}
+
+// Index is entityID, index into that array 
+const sharedEntityEventToEventID: Map<string,number>[] = [];
+
+for(let i = 0; i < orderedSharedEntities.length; i++){
+    const map = new Map<string,number>();
+
+    const orderedEventNames = orderedSharedEntityEvents[i].map(e => e.eventName).sort(e => e.localeCompare(e));
+
+    for (let i = 0; i < orderedEventNames.length; i++) {
+        const event = orderedEventNames[i];
+        
+        map.set(event,i);
+    }
+
+
+    sharedEntityEventToEventID[i] = map;
+}
+
+
 
 export const SharedEntityLinker = {
 
@@ -116,6 +157,36 @@ export const SharedEntityLinker = {
         }
         
     },
+
+    validateEvents<T extends keyof SharedNetworkedEntities>(sharedName: T, variables: string[]){
+
+        // Makes sure it has all the required variables
+        const requiredVariables = orderedSharedEntityEvents[sharedNameToIDLookup.get(sharedName)];
+
+        for(const varDefinition of requiredVariables){
+            if(!variables.includes(varDefinition.eventName)){
+                throw new Error(`Shared entity ${sharedName} does not include required event: ${varDefinition.eventName}`);
+            }
+        }
+        
+        //Checks for extra uneeded variables
+        for(const eVar of variables){
+            if(!requiredVariables.some(e => e.eventName === eVar)){
+                throw new Error(`Shared entity ${name} has an unneeded event: ${eVar}`);
+            }
+        }
+
+        if(requiredVariables.length !== variables.length){
+            throw new Error(`Shared entity ${name} has an incorrect number of variable: ${variables.length - requiredVariables.length} too many`);
+        }
+    },
+
+    eventNameToEventID<T extends keyof SharedNetworkedEntities, X extends keyof SharedNetworkedEntities[T]["events"]>(sharedName: T, eventName: X & string){
+        
+        return sharedEntityEventToEventID[this.nameToSharedID(sharedName)].get(eventName);
+
+    },
+
     nameToSharedID(name: keyof SharedNetworkedEntities): number {
         return sharedNameToIDLookup.get(name);
     },

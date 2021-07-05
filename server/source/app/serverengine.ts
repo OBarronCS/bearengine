@@ -2,15 +2,15 @@
 
 import type { Server } from "ws";
 import { ServerEntity } from "./entity";
-import { AssertUnreachable } from "shared/misc/assertstatements";
+import { assert, AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractBearEngine } from "shared/core/abstractengine";
-import { Scene, StreamWriteEntityID } from "shared/core/scene";
+import { NULL_ENTITY_INDEX, Scene, StreamWriteEntityID } from "shared/core/scene";
 import { GamePacket, ServerBoundPacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
 import { PlayerEntity } from "./playerlogic";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
-import { PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources } from "shared/core/sharedlogic/networkschemas";
+import { PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources, SerializeTypedVar, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { TerrainManager } from "shared/core/terrainmanager";
@@ -43,6 +43,9 @@ class PlayerInformation {
         }
     }
 }
+
+
+type EventCallback<EventName extends keyof Def, Def> = "callback" extends keyof Def[EventName] ? Def[EventName]["callback"] : never
 
 
 export class ServerBearEngine extends AbstractBearEngine {
@@ -371,6 +374,32 @@ export class ServerBearEngine extends AbstractBearEngine {
                 RemoteFunctionLinker.serializeRemoteFunction(name, stream, ...args);
             }   
         });
+    }
+
+    //@ts-expect-error
+    callEntityEvent<T extends keyof SharedNetworkedEntities, X extends keyof SharedNetworkedEntities[T]["events"]>(entity: ServerEntity, sharedName: T, event: X & string, ...args: Parameters<EventCallback<X, SharedNetworkedEntities[T]["events"]>>){
+       
+        const id = entity.entityID;
+        assert(id !== NULL_ENTITY_INDEX);
+
+        this.queuePacket({
+            write(stream){
+
+                stream.setUint8(GamePacket.REMOTE_ENTITY_EVENT);
+                stream.setUint8(entity.constructor["SHARED_ID"])
+                StreamWriteEntityID(stream, id);
+                stream.setUint8(SharedEntityLinker.eventNameToEventID(sharedName, event));
+                
+                //@ts-ignore
+                const data = SharedNetworkedEntityDefinitions[sharedName]["events"][event]["argTypes"];
+
+                for (let i = 0; i < data.length; i++) {
+                    //@ts-expect-error
+                    SerializeTypedVar(stream,data[i], args[i])
+                }
+                
+            }
+        })
     }
 
 

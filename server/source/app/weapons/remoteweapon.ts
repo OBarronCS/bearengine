@@ -2,11 +2,14 @@ import { Vec2 } from "shared/shapes/vec2";
 import { Clip, CreateShootController, GunshootController } from "server/source/app/weapons/weapondefinitions";
 
 import { ServerEntity } from "../entity";
-import { networkedclass_server, networkedvariable } from "../networking/serverentitydecorators";
+import { networkedclass_server, sync } from "../networking/serverentitydecorators";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { Effect } from "shared/core/effects";
 import { ServerBearEngine } from "../serverengine";
 import { Line } from "shared/shapes/line";
+import { TickTimer } from "shared/datastructures/ticktimer";
+import { StreamWriteEntityID } from "shared/core/scene";
+import { SharedEntityLinker } from "shared/core/sharedlogic/networkschemas";
 
 export abstract class Gun extends ServerEntity {
 
@@ -171,11 +174,13 @@ export class TerrainHitAddon implements GunAddon {
 @networkedclass_server("bullet")
 export class ServerBullet extends ProjectileBullet {
     
-    @networkedvariable("_pos")
+    @sync("bullet").var("_pos")
     _pos = new Vec2(0,0);
 
-    @networkedvariable("test", true)
+    @sync("bullet").var("test", true)
     test = 1;
+
+    private t = new TickTimer(10, false);
 
     override update(dt: number): void {
         super.update(dt);
@@ -185,6 +190,11 @@ export class ServerBullet extends ProjectileBullet {
         this._pos.set(this.position);
 
         this.markDirty();
+
+
+        if(this.t.tick()){
+           this.engine.callEntityEvent(this, "bullet", "testEvent7", new Vec2(0,0), 123);
+        }
 
         // this.test += 1;
     }
