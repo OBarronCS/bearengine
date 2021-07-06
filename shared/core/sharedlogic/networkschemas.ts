@@ -1,9 +1,8 @@
-import { assert, AssertUnreachable } from "shared/misc/assertstatements";
+import { assert } from "shared/misc/assertstatements";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { GamePacket } from "./packetdefinitions";
-import { Vec2 } from "shared/shapes/vec2";
 import { areEqualSorted, containsDuplicates } from "shared/datastructures/arrayutils";
-import { CreateDefinition, DecodedTemplateType, DeserializeTypedVar, GetTemplateGeneric, NetworkVariableTypes, SerializeTypedVar, SharedTemplates, TypescriptTypeOfNetVar } from "./serialization";
+import { DefineSchema, DeserializeTypedVar, NetworkVariableTypes, SerializeTypedVar, SharedTemplates, TypescriptTypeOfNetVar } from "./serialization";
 
 export interface PacketWriter {
     write(stream: BufferStreamWriter): void,
@@ -31,8 +30,7 @@ interface SharedNetworkEntityFormat {
 /* Callback typing:
     -- Allows the type on the callback to be infered from the "argTypes". 
         - Takes type from the argTypes,
-        - applies them to the labels of the callback
-    TODO: override auto with specific. If the type doesn't extend any, use it by default.
+        - applies them to the labels of the callback (if the callback is any for that variable)
 */
 
 type IfAny<T, Y, N> = 0 extends (1 & T) ? Y : N; 
@@ -51,7 +49,6 @@ type MergeTupleLabels<Labels extends readonly any[], Types extends readonly any[
                 Types[key] : never;
 };
 
-
 type MergeEventTuples<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
     = MergeTupleLabels<Parameters<EVENT["callback"]>,EVENT["argTypes"]>;
 
@@ -61,8 +58,7 @@ type TupleToTypescriptType<T extends readonly NetworkVariableTypes[]> = {
     [Key in keyof T]: TypescriptTypeOfNetVar<T[Key]>
 };
 
-//type d = MergeTupleLabels<Parameters<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]["callback"]>,SharedNetworkedEntities["bullet"]["events"]["testEvent7"]["argTypes"]>
-type ds = MergeTupleLabels<Parameters<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]["callback"]>,TupleToTypescriptType<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]["argTypes"]>>
+type TEST_TYPE = MergeEventTuples<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]>
 
 type NetCallbackTupleType<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
     //@ts-expect-error
@@ -73,29 +69,27 @@ export type NetCallbackTypeV1<EVENT extends { argTypes: readonly [...NetworkVari
     = (...args: NetCallbackTupleType<EVENT>) => void;
 
 // V2
-// MORE HELPFUL TYPE --> Typescript doesn't automatically expand types to object literals, but this will force it
-// https://stackoverflow.com/questions/57683303/how-can-i-see-the-full-expanded-contract-of-a-typescript-type
-type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
+// // MORE HELPFUL TYPE --> Typescript doesn't automatically expand types to object literals, but this will force it
+// // https://stackoverflow.com/questions/57683303/how-can-i-see-the-full-expanded-contract-of-a-typescript-type
+// type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
+// // Breaks when have things like Vec2, ect. Annoying; Could do it manually if the need comes
+// type ExpandRecursively<T> = 
+//     T extends object ? //@ts-expect-error
+//         T extends infer O ? { [K in keyof O]: Expand<TypescriptTypeOfNetVar<O[K]>> } : never//@ts-expect-error
+//         : TypescriptTypeOfNetVar<T>; // Not an object? return the value
+// // Must keep it like this for typescript to detect the literal type
+// type BetterNetCallbackTupleType<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
+//    = ExpandRecursively<MergeEventTuples<EVENT>>;
+// type __BetterTypeTest7 = BetterNetCallbackTupleType<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]>
 
-// Breaks when have things like Vec2, ect. Annoying; Could do it manually if the need comes
-type ExpandRecursively<T> = 
-    T extends object ? //@ts-expect-error
-        T extends infer O ? { [K in keyof O]: Expand<TypescriptTypeOfNetVar<O[K]>> } : never//@ts-expect-error
-        : TypescriptTypeOfNetVar<T>; // Not an object? return the value
-
-
-// Must keep it like this for typescript to detect the literal type
-type BetterNetCallbackTupleType<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
-   = ExpandRecursively<MergeEventTuples<EVENT>>;
-
-type __BetterTypeTest7 = BetterNetCallbackTupleType<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]>
-
-
+export type NetArg<T extends keyof SharedNetworkedEntities, Event extends keyof SharedNetworkedEntities[T]["events"], I extends number> = 
+    //@ts-expect-error
+    NetCallbackTupleType<SharedNetworkedEntities[T]["events"][Event]>[I]
 
 
 
 /** Linking networked entity classes */
-export const SharedNetworkedEntityDefinitions = CreateDefinition<SharedNetworkEntityFormat>()({    
+export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntityFormat>()({    
     "bullet": {
         create: () => void 0,
         variables: {
@@ -108,12 +102,7 @@ export const SharedNetworkedEntityDefinitions = CreateDefinition<SharedNetworkEn
                 argTypes: [{ type: "template", subtype: SharedTemplates.ONE}, {type:"number", subtype:"uint8"}],
                 callback: (point, testNumber) => void 0,
             },
-            // asd: {
-            //     argTypes: [{ type: "vec2", subtype: "float"}, {type:"number", subtype:"uint8"}],
-            //     callback: (point: Vec2, testNumber: number) => void 0,
-            // },
         }
-
     },
     "ogre": {
         create: () => void 0,
@@ -129,9 +118,6 @@ export const SharedNetworkedEntityDefinitions = CreateDefinition<SharedNetworkEn
 } as const);
 
 export type SharedNetworkedEntities = typeof SharedNetworkedEntityDefinitions;
-
-
-
 
 
 
@@ -312,7 +298,7 @@ interface RemoteFunctionFormat {
 }
 
 // Exported for versionhash
-export const RemoteFunctionStruct = CreateDefinition<RemoteFunctionFormat>()({
+export const RemoteFunctionStruct = DefineSchema<RemoteFunctionFormat>()({
     "test1": { 
         argTypes: [{type: "number", subtype: "int32"},{type: "number", subtype: "float"}],
         callback: (name, food) => void 0

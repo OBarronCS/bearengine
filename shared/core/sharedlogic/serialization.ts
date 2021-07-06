@@ -2,13 +2,12 @@ import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bu
 import { AssertUnreachable, assert } from "shared/misc/assertstatements";
 import { Vec2 } from "shared/shapes/vec2";
 
-// Maybe DefineSchema<Schema>()
-export function CreateDefinition<Format>(){
+
+export function DefineSchema<Format>(){
     return function<T extends Format>(value: T){
         return value;
     }
 }
-
 
 
 // Serialization of object literals
@@ -16,11 +15,11 @@ interface TemplateFormat {
     [key: string]: NetworkVariableTypes
 }
 
-export type DecodedTemplateType<T extends TemplateFormat> =  { 
+type DecodedTemplateType<T extends TemplateFormat> =  { 
     [K in keyof T]: TypescriptTypeOfNetVar<T[K]>; 
 };
 
-export type GetTemplateGeneric<D> = D extends TemplateDecoder<infer R> ? R : never
+type GetTemplateGeneric<D> = D extends TemplateDecoder<infer R> ? R : never
 
 class TemplateDecoder<T extends TemplateFormat> {
     
@@ -77,9 +76,8 @@ export function DeserializeTemplate<D extends TemplateDecoder<TemplateFormat>>(s
 
 
 
-
 //*********************** PUT SHARED TEMPLATES HERE *********************// 
-export const SharedTemplates = CreateDefinition<{ [key:string]: TemplateDecoder<any>}>()({
+export const SharedTemplates = DefineSchema<{ [key:string]: TemplateDecoder<any>}>()({
     
     ONE: Template({
         x:{type:"number", subtype:"float"},
@@ -91,15 +89,35 @@ export const SharedTemplates = CreateDefinition<{ [key:string]: TemplateDecoder<
 } as const);
 
 
-export type GetTemplateType<T extends TemplateDecoder<any>> = DecodedTemplateType<GetTemplateGeneric<T>>;
+export type GetTemplateRealType<T extends TemplateDecoder<any>> = DecodedTemplateType<GetTemplateGeneric<T>>;
 
 
+/** Stands for NetworkedVariable */
+export const netv = {
+    uint8(){ return { type: "number", subtype: "uint8"} as const; },
+    int8(){ return { type: "number", subtype: "int8"} as const; },
+
+    uint16(){ return { type: "number", subtype: "uint16"} as const; },
+    int16(){ return { type: "number", subtype: "int16"} as const; },
+
+    uint32(){ return { type: "number", subtype: "uint32"} as const; },
+    int32(){ return { type: "number", subtype: "int32"} as const; },
+
+    float(){ return { type: "number", subtype: "float" } as const; },
+    double(){ return { type: "number", subtype: "double" } as const; },
+
+    array<T extends NetworkVariableTypes>(type: T){ return { type: "array", subtype: type} as const; },
+    
+    template<T extends TemplateFormat>(format: T){ return { type: "template", subtype: Template<T>(format)} as const; },
+
+    // Maybe make it so can also input NumberType ==> netv.vec2(netv.uint8())
+    vec2<T extends NetworkedNumberTypes>(type: T){ return { type: "vec2", subtype: type} as const; },
+ 
+    string(){ return { type: "string" } as const; },
+} as const;
 
 
-
-
-
-
+const g = netv.vec2("double")
 
 
 
