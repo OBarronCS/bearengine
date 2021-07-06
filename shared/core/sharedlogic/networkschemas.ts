@@ -35,10 +35,21 @@ interface SharedNetworkEntityFormat {
     TODO: override auto with specific. If the type doesn't extend any, use it by default.
 */
 
+type IfAny<T, Y, N> = 0 extends (1 & T) ? Y : N; 
+type IsAny<T> = IfAny<T, true, false>;
+
 /*** Takes two tuples, and places the labels of the first tuple onto the second tuple
+ * 
+ * If first tuple values is not any, it stays.
+ * 
  * <Tuple with final labels, Tuple with final types>  */
-type MergeTupleLabels<Labels extends readonly any[], Types extends readonly any[]> = 
-    { [key in keyof Labels]: key extends keyof Types ? Types[key] : never };
+type MergeTupleLabels<Labels extends readonly any[], Types extends readonly any[]> = { 
+    [key in keyof Labels]: 
+        key extends keyof Types ?
+            IsAny<Labels[key]> extends false ?
+            Labels[key]  :
+                Types[key] : never;
+};
 
 
 type MergeEventTuples<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
@@ -50,8 +61,8 @@ type TupleToTypescriptType<T extends readonly NetworkVariableTypes[]> = {
     [Key in keyof T]: TypescriptTypeOfNetVar<T[Key]>
 };
 
-// type d = MergeTupleLabels<Parameters<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]["callback"]>,SharedNetworkedEntities["bullet"]["events"]["testEvent7"]["argTypes"]>
-// type ds = MergeTupleLabels<Parameters<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]["callback"]>,TupleToTypescriptType<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]["argTypes"]>>
+//type d = MergeTupleLabels<Parameters<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]["callback"]>,SharedNetworkedEntities["bullet"]["events"]["testEvent7"]["argTypes"]>
+type ds = MergeTupleLabels<Parameters<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]["callback"]>,TupleToTypescriptType<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]["argTypes"]>>
 
 type NetCallbackTupleType<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
     //@ts-expect-error
