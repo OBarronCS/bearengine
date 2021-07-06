@@ -3,19 +3,12 @@ import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bu
 import { GamePacket } from "./packetdefinitions";
 import { Vec2 } from "shared/shapes/vec2";
 import { areEqualSorted, containsDuplicates } from "shared/datastructures/arrayutils";
-import { DecodedTemplateType, DeserializeTypedVar, GetTemplateGeneric, NetworkVariableTypes, SharedTemplates, TypescriptTypeOfNetVar } from "./serialization";
+import { CreateDefinition, DecodedTemplateType, DeserializeTypedVar, GetTemplateGeneric, NetworkVariableTypes, SerializeTypedVar, SharedTemplates, TypescriptTypeOfNetVar } from "./serialization";
 
 export interface PacketWriter {
     write(stream: BufferStreamWriter): void,
 }
 
-
-// Maybe DefineSchema<Schema>()
-export function CreateDefinition<Format>(){
-    return function<T extends Format>(value: T){
-        return value;
-    }
-}
 
 
 // The format to define networked entities
@@ -44,11 +37,15 @@ interface SharedNetworkEntityFormat {
 
 /*** Takes two tuples, and places the labels of the first tuple onto the second tuple
  * <Tuple with final labels, Tuple with final types>  */
-export type MergeTupleLabels<Labels extends readonly any[], Types extends readonly any[]> = 
-    { [key in keyof Labels]: key extends keyof Types ? Types[key] : never }
+type MergeTupleLabels<Labels extends readonly any[], Types extends readonly any[]> = 
+    { [key in keyof Labels]: key extends keyof Types ? Types[key] : never };
 
-// Map tuple to its typescript types
-export type TupleToTypescriptType<T extends readonly NetworkVariableTypes[]> = {
+
+type MergeEventTuples<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
+    = MergeTupleLabels<Parameters<EVENT["callback"]>,EVENT["argTypes"]>;
+
+// V1
+type TupleToTypescriptType<T extends readonly NetworkVariableTypes[]> = {
     //@ts-expect-error
     [Key in keyof T]: TypescriptTypeOfNetVar<T[Key]>
 };
@@ -58,13 +55,33 @@ export type TupleToTypescriptType<T extends readonly NetworkVariableTypes[]> = {
 
 type NetCallbackTupleType<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
     //@ts-expect-error
-    = MergeTupleLabels<Parameters<EVENT["callback"]>,TupleToTypescriptType<EVENT["argTypes"]>>
+    =  TupleToTypescriptType<MergeEventTuples<EVENT>>;
 
-//@ts-expect-error
-export type NetCallbackType<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }> = (...args: NetCallbackTupleType<EVENT>)=> void
-    
-type J = NetCallbackTupleType<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]>
-type D = NetCallbackType<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]>
+export type NetCallbackTypeV1<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }> 
+    //@ts-expect-error
+    = (...args: NetCallbackTupleType<EVENT>) => void;
+
+// V2
+// MORE HELPFUL TYPE --> Typescript doesn't automatically expand types to object literals, but this will force it
+// https://stackoverflow.com/questions/57683303/how-can-i-see-the-full-expanded-contract-of-a-typescript-type
+type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
+
+// Breaks when have things like Vec2, ect. Annoying; Could do it manually if the need comes
+type ExpandRecursively<T> = 
+    T extends object ? //@ts-expect-error
+        T extends infer O ? { [K in keyof O]: Expand<TypescriptTypeOfNetVar<O[K]>> } : never//@ts-expect-error
+        : TypescriptTypeOfNetVar<T>; // Not an object? return the value
+
+
+// Must keep it like this for typescript to detect the literal type
+type BetterNetCallbackTupleType<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
+   = ExpandRecursively<MergeEventTuples<EVENT>>;
+
+type __BetterTypeTest7 = BetterNetCallbackTupleType<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]>
+
+
+
+
 
 /** Linking networked entity classes */
 export const SharedNetworkedEntityDefinitions = CreateDefinition<SharedNetworkEntityFormat>()({    

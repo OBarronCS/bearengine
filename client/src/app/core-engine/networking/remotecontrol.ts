@@ -45,14 +45,6 @@ export class ClientBullet extends Entity {
         console.log(JSON.stringify(data), testNumber);
     }
 
-    // InterpolatedVar(
-
-    // @interpolatedvariable("_x")
-    // _x = InterpolatedVar(0);
-
-    // @interpolatedvariable("_y")
-    // _y = InterpolatedVar(0);
-
     update(dt: number): void {
         this.position.set(this._pos.value);
         // this.position.x = this._x.value;

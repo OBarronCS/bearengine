@@ -1,7 +1,14 @@
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable, assert } from "shared/misc/assertstatements";
 import { Vec2 } from "shared/shapes/vec2";
-import { CreateDefinition } from "./networkschemas";
+
+// Maybe DefineSchema<Schema>()
+export function CreateDefinition<Format>(){
+    return function<T extends Format>(value: T){
+        return value;
+    }
+}
+
 
 
 // Serialization of object literals

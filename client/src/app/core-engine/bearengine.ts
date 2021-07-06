@@ -162,8 +162,7 @@ export class BearEngine extends AbstractBearEngine {
 
     restartCurrentLevel(){
         this.endCurrentLevel();
-        //@ts-expect-error
-        this.loadLevel(this.activeLevel.constructor);
+        this.loadLevel(this.activeLevel);
     }
 
     // Loads all assets from server

@@ -1,4 +1,4 @@
-import { SharedNetworkedEntities, SharedEntityLinker, SharedNetworkedEntityDefinitions, NetCallbackType } from "shared/core/sharedlogic/networkschemas";
+import { SharedNetworkedEntities, SharedEntityLinker, SharedNetworkedEntityDefinitions, NetCallbackTypeV1 } from "shared/core/sharedlogic/networkschemas";
 import { DeserializeTypedVar, NetworkVariableTypes, TypescriptTypeOfNetVar } from "shared/core/sharedlogic/serialization";
 import { areEqualSorted } from "shared/datastructures/arrayutils";
 import { BufferStreamReader } from "shared/datastructures/bufferstream";
@@ -114,7 +114,7 @@ export function net<SharedName extends keyof SharedNetworkedEntities>(name: Shar
     return {
         event<EventName extends keyof SharedNetworkedEntities[SharedName]["events"]>(eventName: EventName){
             //@ts-expect-error 
-            return function<R extends BaseEntityType>(target: R, key: string, desc: TypedPropertyDescriptor<NetCallbackType<SharedNetworkedEntities[SharedName]["events"][EventName]>>){
+            return function<R extends BaseEntityType>(target: R, key: string, desc: TypedPropertyDescriptor<NetCallbackTypeV1<SharedNetworkedEntities[SharedName]["events"][EventName]>>){
                 
                 const constructorClass = target.constructor;
 
