@@ -10,7 +10,7 @@ import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
 import { PlayerEntity } from "./playerlogic";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
-import { PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources, SerializeTypedVar, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
+import { NetCallbackType, PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { TerrainManager } from "shared/core/terrainmanager";
@@ -21,6 +21,7 @@ import { Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
 import { ItemEnum } from "server/source/app/weapons/weapondefinitions";
 import { AbstractEntity } from "shared/core/abstractentity";
+import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 
 
 
@@ -43,9 +44,6 @@ class PlayerInformation {
         }
     }
 }
-
-
-type EventCallback<EventName extends keyof Def, Def> = "callback" extends keyof Def[EventName] ? Def[EventName]["callback"] : never
 
 
 export class ServerBearEngine extends AbstractBearEngine {
@@ -377,7 +375,7 @@ export class ServerBearEngine extends AbstractBearEngine {
     }
 
     //@ts-expect-error
-    callEntityEvent<SharedName extends keyof SharedNetworkedEntities, EventName extends keyof SharedNetworkedEntities[SharedName]["events"]>(entity: ServerEntity, sharedName: SharedName, event: EventName & string, ...args: Parameters<EventCallback<EventName, SharedNetworkedEntities[SharedName]["events"]>>){
+    callEntityEvent<SharedName extends keyof SharedNetworkedEntities, EventName extends keyof SharedNetworkedEntities[SharedName]["events"]>(entity: ServerEntity, sharedName: SharedName, event: EventName & string, ...args: Parameters<NetCallbackType<SharedNetworkedEntities[SharedName]["events"][EventName]>>){
        
         const id = entity.entityID;
         assert(id !== NULL_ENTITY_INDEX);

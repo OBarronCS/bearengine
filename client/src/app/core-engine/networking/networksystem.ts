@@ -1,7 +1,7 @@
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { Scene, StreamReadEntityID } from "shared/core/scene";
-import { PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker } from "shared/core/sharedlogic/networkschemas";
+import { NetCallbackType, PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker } from "shared/core/sharedlogic/networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { SharedEntityClientTable } from "./cliententitydecorators";
@@ -643,7 +643,7 @@ type RemoteFunctionListType = {
 function remotefunction<T extends keyof RemoteFunction>(functionName: T) {
 
 
-    return function(target: NetworkSystem, propertyKey: keyof NetworkSystem, descriptor: TypedPropertyDescriptor<RemoteFunction[T]["callback"]>){
+    return function(target: NetworkSystem, propertyKey: keyof NetworkSystem, descriptor: TypedPropertyDescriptor<NetCallbackType<RemoteFunction[T]>>){
         // target is the prototype of the class
 
         const constructorClass = target.constructor;

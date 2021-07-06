@@ -1,4 +1,5 @@
-import { SharedNetworkedEntities, SharedEntityLinker, SharedNetworkedEntityDefinitions, NetworkVariableTypes, DeserializeTypedVar, TypescriptTypeOfNetVar } from "shared/core/sharedlogic/networkschemas";
+import { SharedNetworkedEntities, SharedEntityLinker, SharedNetworkedEntityDefinitions, NetCallbackType } from "shared/core/sharedlogic/networkschemas";
+import { DeserializeTypedVar, NetworkVariableTypes, TypescriptTypeOfNetVar } from "shared/core/sharedlogic/serialization";
 import { areEqualSorted } from "shared/datastructures/arrayutils";
 import { BufferStreamReader } from "shared/datastructures/bufferstream";
 import { floor, ceil, lerp, E } from "shared/misc/mathutils";
@@ -107,14 +108,13 @@ type EntityClassType = typeof Entity;
 // This helper types makes an error go away
 type GetTypeScriptType<Var> = Var extends NetworkVariableTypes ? TypescriptTypeOfNetVar<Var> : never;
 
-type EventCallback<EventName extends keyof Def, Def> = "callback" extends keyof Def[EventName] ? Def[EventName]["callback"] : never
-
 //decorator factory factory
 export function net<SharedName extends keyof SharedNetworkedEntities>(name: SharedName){
 
     return {
         event<EventName extends keyof SharedNetworkedEntities[SharedName]["events"]>(eventName: EventName){
-            return function<R extends BaseEntityType>(target: R, key: string, desc: TypedPropertyDescriptor<EventCallback<EventName, SharedNetworkedEntities[SharedName]["events"]>>){
+            //@ts-expect-error 
+            return function<R extends BaseEntityType>(target: R, key: string, desc: TypedPropertyDescriptor<NetCallbackType<SharedNetworkedEntities[SharedName]["events"][EventName]>>){
                 
                 const constructorClass = target.constructor;
 

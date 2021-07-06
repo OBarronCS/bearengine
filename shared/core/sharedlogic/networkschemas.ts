@@ -10,6 +10,7 @@ export interface PacketWriter {
 }
 
 
+// Maybe DefineSchema<Schema>()
 export function CreateDefinition<Format>(){
     return function<T extends Format>(value: T){
         return value;
@@ -34,6 +35,36 @@ interface SharedNetworkEntityFormat {
 }
 
 
+/* Callback typing:
+    -- Allows the type on the callback to be infered from the "argTypes". 
+        - Takes type from the argTypes,
+        - applies them to the labels of the callback
+    TODO: override auto with specific. If the type doesn't extend any, use it by default.
+*/
+
+/*** Takes two tuples, and places the labels of the first tuple onto the second tuple
+ * <Tuple with final labels, Tuple with final types>  */
+export type MergeTupleLabels<Labels extends readonly any[], Types extends readonly any[]> = 
+    { [key in keyof Labels]: key extends keyof Types ? Types[key] : never }
+
+// Map tuple to its typescript types
+export type TupleToTypescriptType<T extends readonly NetworkVariableTypes[]> = {
+    //@ts-expect-error
+    [Key in keyof T]: TypescriptTypeOfNetVar<T[Key]>
+};
+
+// type d = MergeTupleLabels<Parameters<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]["callback"]>,SharedNetworkedEntities["bullet"]["events"]["testEvent7"]["argTypes"]>
+// type ds = MergeTupleLabels<Parameters<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]["callback"]>,TupleToTypescriptType<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]["argTypes"]>>
+
+type NetCallbackTupleType<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
+    //@ts-expect-error
+    = MergeTupleLabels<Parameters<EVENT["callback"]>,TupleToTypescriptType<EVENT["argTypes"]>>
+
+//@ts-expect-error
+export type NetCallbackType<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }> = (...args: NetCallbackTupleType<EVENT>)=> void
+    
+type J = NetCallbackTupleType<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]>
+type D = NetCallbackType<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]>
 
 /** Linking networked entity classes */
 export const SharedNetworkedEntityDefinitions = CreateDefinition<SharedNetworkEntityFormat>()({    
@@ -47,7 +78,7 @@ export const SharedNetworkedEntityDefinitions = CreateDefinition<SharedNetworkEn
         events: {
             testEvent7: {
                 argTypes: [{ type: "template", subtype: SharedTemplates.ONE}, {type:"number", subtype:"uint8"}],
-                callback: (point: DecodedTemplateType<GetTemplateGeneric<typeof SharedTemplates.ONE>>, testNumber: number) => void 0,
+                callback: (point, testNumber) => void 0,
             },
             // asd: {
             //     argTypes: [{ type: "vec2", subtype: "float"}, {type:"number", subtype:"uint8"}],
@@ -70,6 +101,13 @@ export const SharedNetworkedEntityDefinitions = CreateDefinition<SharedNetworkEn
 } as const);
 
 export type SharedNetworkedEntities = typeof SharedNetworkedEntityDefinitions;
+
+
+
+
+
+
+
 
 // Help with types https://stackoverflow.com/questions/63542526/merge-discriminated-union-of-object-types-in-typescript
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never
@@ -249,11 +287,11 @@ interface RemoteFunctionFormat {
 export const RemoteFunctionStruct = CreateDefinition<RemoteFunctionFormat>()({
     "test1": { 
         argTypes: [{type: "number", subtype: "int32"},{type: "number", subtype: "float"}],
-        callback: (name: number, food: number) => void 0
+        callback: (name, food) => void 0
     },
     "testVecFunction": {
         argTypes: [{type: "vec2", subtype: "double"}],
-        callback: (testNumber: Vec2) => void 0
+        callback: (testNumber) => void 0
     }
 
 } as const);

@@ -1,9 +1,9 @@
 import { Part } from "shared/core/abstractpart";
-import { GetTemplateType, SharedTemplates } from "shared/core/sharedlogic/networkschemas";
+import { GetTemplateType, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { ceil, floor } from "shared/misc/mathutils";
 import { randomInt } from "shared/misc/random";
 import { mix, Vec2 } from "shared/shapes/vec2";
-import { DrawableEntity, Entity } from "../entity";
+import { Entity } from "../entity";
 import { SpritePart } from "../parts";
 import { InterpolatedVar, net, networkedclass_client } from "./cliententitydecorators";
 
