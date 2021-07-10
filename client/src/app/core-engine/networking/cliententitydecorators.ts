@@ -212,6 +212,14 @@ export function net<SharedName extends keyof SharedNetworkedEntities>(name: Shar
 //                 (target: T, key: VarName, sharedName: SharedName,varName: VarName, receiveFunc: (this: T, value: SharedNetworkedEntities[SharedName]["variables"][VarName]) => void = undefined){
 // }
 
+// register_clientnetworkedentity
+// register_client_net_entity()
+// OR add it to the ne vars
+//  --> Pull out inner code into a function in that case
+// netv("name").class;
+// 
+
+
 export function networkedclass_client<T extends keyof SharedNetworkedEntities>(classname: T) {
 
     return function<U extends EntityClassType>(targetConstructor: U){

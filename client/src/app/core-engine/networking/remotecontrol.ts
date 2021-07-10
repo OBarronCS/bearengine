@@ -40,6 +40,8 @@ export class ClientBullet extends Entity {
     @net("bullet").interpolatedvariable("_pos")
     _pos = InterpolatedVar(new Vec2(0,0));
 
+
+
     @net("bullet").event("testEvent7")
     callback(data: NetArg<"bullet","testEvent7",0>, testNumber: number){
         console.log(JSON.stringify(data), testNumber);

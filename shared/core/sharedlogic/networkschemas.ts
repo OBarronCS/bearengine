@@ -8,8 +8,6 @@ export interface PacketWriter {
     write(stream: BufferStreamWriter): void,
 }
 
-
-
 // The format to define networked entities
 interface SharedNetworkEntityFormat {
     [key: string] : {
@@ -26,68 +24,6 @@ interface SharedNetworkEntityFormat {
     }
 }
 
-
-/* Callback typing:
-    -- Allows the type on the callback to be infered from the "argTypes". 
-        - Takes type from the argTypes,
-        - applies them to the labels of the callback (if the callback is any for that variable)
-*/
-
-type IfAny<T, Y, N> = 0 extends (1 & T) ? Y : N; 
-type IsAny<T> = IfAny<T, true, false>;
-
-/*** Takes two tuples, and places the labels of the first tuple onto the second tuple
- * 
- * If first tuple values is not any, it stays.
- * 
- * <Tuple with final labels, Tuple with final types>  */
-type MergeTupleLabels<Labels extends readonly any[], Types extends readonly any[]> = { 
-    [key in keyof Labels]: 
-        key extends keyof Types ?
-            IsAny<Labels[key]> extends false ?
-            Labels[key]  :
-                Types[key] : never;
-};
-
-type MergeEventTuples<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
-    = MergeTupleLabels<Parameters<EVENT["callback"]>,EVENT["argTypes"]>;
-
-// V1
-type TupleToTypescriptType<T extends readonly NetworkVariableTypes[]> = {
-    //@ts-expect-error
-    [Key in keyof T]: TypescriptTypeOfNetVar<T[Key]>
-};
-
-type TEST_TYPE = MergeEventTuples<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]>
-
-type NetCallbackTupleType<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
-    //@ts-expect-error
-    =  TupleToTypescriptType<MergeEventTuples<EVENT>>;
-
-export type NetCallbackTypeV1<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }> 
-    //@ts-expect-error
-    = (...args: NetCallbackTupleType<EVENT>) => void;
-
-// V2
-// // MORE HELPFUL TYPE --> Typescript doesn't automatically expand types to object literals, but this will force it
-// // https://stackoverflow.com/questions/57683303/how-can-i-see-the-full-expanded-contract-of-a-typescript-type
-// type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
-// // Breaks when have things like Vec2, ect. Annoying; Could do it manually if the need comes
-// type ExpandRecursively<T> = 
-//     T extends object ? //@ts-expect-error
-//         T extends infer O ? { [K in keyof O]: Expand<TypescriptTypeOfNetVar<O[K]>> } : never//@ts-expect-error
-//         : TypescriptTypeOfNetVar<T>; // Not an object? return the value
-// // Must keep it like this for typescript to detect the literal type
-// type BetterNetCallbackTupleType<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
-//    = ExpandRecursively<MergeEventTuples<EVENT>>;
-// type __BetterTypeTest7 = BetterNetCallbackTupleType<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]>
-
-export type NetArg<T extends keyof SharedNetworkedEntities, Event extends keyof SharedNetworkedEntities[T]["events"], I extends number> = 
-    //@ts-expect-error
-    NetCallbackTupleType<SharedNetworkedEntities[T]["events"][Event]>[I]
-
-
-
 /** Linking networked entity classes */
 export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntityFormat>()({    
     "bullet": {
@@ -95,7 +31,7 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
         variables: {
             _pos: { type:"vec2", subtype: "float" },
             test: { type: "number", subtype: "float"},
-            //_dx: {type:"string"},
+            // _x: {type:"string"},
         },
         events: {
             testEvent7: {
@@ -120,7 +56,52 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
 export type SharedNetworkedEntities = typeof SharedNetworkedEntityDefinitions;
 
 
+/* Callback typing:
+    -- Allows the type on the callback to be infered from the "argTypes". 
+        - Takes type from the argTypes, applies them to the labels of the callback (if the callback is any for that variable)
+*/
+//#region Callback typing
 
+type IfAny<T, Y, N> = 0 extends (1 & T) ? Y : N; 
+// Return true if T is "any" type. False for all other types.
+type IsExplicitlyAny<T> = IfAny<T, true, false>;
+
+/*** Takes two tuples, and places the labels of the first tuple onto the second tuple if first label is not typed
+ * <Tuple with final labels, Tuple with final types>  */
+type MergeTupleLabels<Labels extends readonly any[], Types extends readonly any[]> = { 
+    [key in keyof Labels]: 
+        key extends keyof Types ?
+            IsExplicitlyAny<Labels[key]> extends false ?
+            Labels[key]  :
+                Types[key] : never;
+};
+
+type MergeEventTuples<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
+    = MergeTupleLabels<Parameters<EVENT["callback"]>,EVENT["argTypes"]>;
+
+// V1
+type TupleToTypescriptType<T extends readonly NetworkVariableTypes[]> = {
+    //@ts-expect-error
+    [Key in keyof T]: TypescriptTypeOfNetVar<T[Key]>
+};
+
+// type TEST_TYPE = MergeEventTuples<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]>
+
+type NetCallbackTupleType<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
+    //@ts-expect-error
+    =  TupleToTypescriptType<MergeEventTuples<EVENT>>;
+
+export type NetCallbackTypeV1<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }> 
+    //@ts-expect-error
+    = (...args: NetCallbackTupleType<EVENT>) => void;
+    
+//#endregion
+
+
+// NetEventArg, Parameter, NetCallback
+export type NetArg<T extends keyof SharedNetworkedEntities, Event extends keyof SharedNetworkedEntities[T]["events"], I extends number> = 
+    //@ts-expect-error
+    NetCallbackTupleType<SharedNetworkedEntities[T]["events"][Event]>[I];
 
 
 // Help with types https://stackoverflow.com/questions/63542526/merge-discriminated-union-of-object-types-in-typescript
@@ -218,7 +199,7 @@ export const SharedEntityLinker = {
     },
 
     // Makes sure all the variables are present
-    validateVariables(name: keyof SharedNetworkedEntities, variables: (keyof AllNetworkedVariablesWithTypes)[]){
+    validateVariables<SharedName extends keyof SharedNetworkedEntities>(name: SharedName, variables: (keyof AllNetworkedVariablesWithTypes)[]){
 
         // Makes sure it has all the required variables
         const requiredVariables = orderedSharedEntityVariables[sharedNameToIDLookup.get(name)];
@@ -312,14 +293,7 @@ export const RemoteFunctionStruct = DefineSchema<RemoteFunctionFormat>()({
 
 export type RemoteFunction = typeof RemoteFunctionStruct;
 
-// // Returns a tuple of the equivalent JS Types from the "int32" tuples
-// type MappedTuple<Tuple> =  { 
-//     [K in keyof Tuple]: Tuple[K] extends NetworkVariableTypes ? TypescriptTypeOfNetVar<Tuple[K]>  : never 
-// };
 
-// type B = (...args:MappedTuple<RemoteFunction["test"]["argTypes"]>) => void;
-
-//const dddd: b = null;
 
 const orderedListOfFunctionNames: (keyof RemoteFunction)[] = Object.keys(RemoteFunctionStruct).sort() as any;
 

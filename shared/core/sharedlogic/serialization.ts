@@ -11,6 +11,7 @@ export function DefineSchema<Format>(){
 
 
 // Serialization of object literals
+// Better name than template. Literal? Struct?
 interface TemplateFormat {
     [key: string]: NetworkVariableTypes
 }
@@ -60,10 +61,7 @@ class TemplateDecoder<T extends TemplateFormat> {
     }
 }
 
-// Name too vague
-export function Template<T extends TemplateFormat>(format: Readonly<T>){
-    return new TemplateDecoder(format);
-}
+
 
 export function SerializeTemplate<D extends TemplateDecoder<TemplateFormat>>(stream: BufferStreamWriter, template: D, structToEncode: DecodedTemplateType<GetTemplateGeneric<D>>): void {
     template.serialize(stream, structToEncode);
@@ -74,7 +72,13 @@ export function DeserializeTemplate<D extends TemplateDecoder<TemplateFormat>>(s
     return template.deserialize(stream);
 }
 
+// Distinction between TemplateFormat and Decoder is annoying.
+// CreateStructDecoder(format)
 
+// Name too vague
+export function Template<T extends TemplateFormat>(format: Readonly<T>){
+    return new TemplateDecoder(format);
+}
 
 //*********************** PUT SHARED TEMPLATES HERE *********************// 
 export const SharedTemplates = DefineSchema<{ [key:string]: TemplateDecoder<any>}>()({
@@ -108,6 +112,8 @@ export const netv = {
 
     array<T extends NetworkVariableTypes>(type: T){ return { type: "array", subtype: type} as const; },
     
+    // Maybe make a way to insert a string to index the shared templates
+    // bottom answer https://stackoverflow.com/questions/34798989/is-it-possible-to-overload-object-function-properties-in-typescript
     template<T extends TemplateFormat>(format: T){ return { type: "template", subtype: Template<T>(format)} as const; },
 
     // Maybe make it so can also input NumberType ==> netv.vec2(netv.uint8())
@@ -117,7 +123,6 @@ export const netv = {
 } as const;
 
 
-const g = netv.vec2("double")
 
 
 
@@ -132,7 +137,6 @@ type TemplateType<T extends TemplateFormat> = {
     type: "template",
     subtype: TemplateDecoder<T>;
 }
-
 
 type NumberType = {
     type: "number",
