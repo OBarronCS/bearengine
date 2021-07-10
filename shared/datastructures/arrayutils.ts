@@ -13,6 +13,29 @@ export function range(min: number, max: number, step: number = 1): Iterable<numb
     return arr;
 }
 
+/** Returns true if the array contains duplicate values */
+export function containsDuplicates<T extends number | string>(arr: readonly T[]): boolean {
+    const set = new Set<T>();
+
+    for(const val of arr){
+        if(set.has(val)) return true;
+        set.add(val);
+    }
+
+    return false;
+}
+
+/** Checks if two arrays have the same contents, assuming both are sorted. */
+export function areEqualSorted<T extends (number | string)>(first: readonly T[], second: readonly T[]): boolean{
+    if(first.length !== second.length) return false;
+
+    for(let i = 0; i < first.length; i++){
+        if(first[i] !== second[i]) return false;
+    }
+
+    return true;
+}
+
 /** In-place, "Knuth/Fisher-Yates" shuffle */
 export function shuffle(arr: any[]): void {
     for(let i = arr.length - 1; i > 0; i--){

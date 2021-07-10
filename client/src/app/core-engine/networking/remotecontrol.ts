@@ -1,15 +1,12 @@
 import { Part } from "shared/core/abstractpart";
+import { NetArg } from "shared/core/sharedlogic/networkschemas";
 import { ceil, floor } from "shared/misc/mathutils";
 import { randomInt } from "shared/misc/random";
 import { mix, Vec2 } from "shared/shapes/vec2";
-import { DrawableEntity, Entity } from "../entity";
+import { Entity } from "../entity";
 import { SpritePart } from "../parts";
-import { InterpolatedVar, interpolatedvariable, networkedclass_client, remotevariable } from "./cliententitydecorators";
+import { InterpolatedVar, net, networkedclass_client } from "./cliententitydecorators";
 
-
-export abstract class RemoteEntity extends Entity {
-
-}
 
 export class RemoteLocations extends Part {
 
@@ -32,21 +29,23 @@ export class RemoteLocations extends Part {
 
 
 @networkedclass_client("bullet")
-export class ClientBullet extends RemoteEntity {
+export class ClientBullet extends Entity {
 
     public sprite = this.addPart(new SpritePart("test2.png"));
 
-    @interpolatedvariable("_pos")
+
+    @net("bullet").interpolatedvariable("test")
+    test = InterpolatedVar(1);
+
+    @net("bullet").interpolatedvariable("_pos")
     _pos = InterpolatedVar(new Vec2(0,0));
 
-    @remotevariable("test")
-    test = 1;
 
-    // @interpolatedvariable("_x")
-    // _x = InterpolatedVar(0);
 
-    // @interpolatedvariable("_y")
-    // _y = InterpolatedVar(0);
+    @net("bullet").event("testEvent7")
+    callback(data: NetArg<"bullet","testEvent7",0>, testNumber: number){
+        console.log(JSON.stringify(data), testNumber);
+    }
 
     update(dt: number): void {
         this.position.set(this._pos.value);
@@ -54,6 +53,24 @@ export class ClientBullet extends RemoteEntity {
         // this.position.y = this._y.value;
 
         // this.redraw();
+    }
+}
+
+@networkedclass_client("ogre")
+export class Ogre extends Entity {
+
+    public sprite = this.addPart(new SpritePart("flower.png"));
+
+
+    @net("ogre").variable("_x")
+    _x = 1;
+
+    @net("ogre").variable("asdasd")
+    asdasd = 123;
+
+    update(dt: number): void {
+        this.position.x = this._x;
+
     }
 }
 

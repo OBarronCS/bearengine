@@ -2,15 +2,15 @@
 
 import type { Server } from "ws";
 import { ServerEntity } from "./entity";
-import { AssertUnreachable } from "shared/misc/assertstatements";
+import { assert, AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractBearEngine } from "shared/core/abstractengine";
-import { Scene, StreamWriteEntityID } from "shared/core/scene";
+import { NULL_ENTITY_INDEX, Scene, StreamWriteEntityID } from "shared/core/scene";
 import { GamePacket, ServerBoundPacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
 import { PlayerEntity } from "./playerlogic";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
-import { PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources } from "shared/core/sharedlogic/networkschemas";
+import { NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { TerrainManager } from "shared/core/terrainmanager";
@@ -21,6 +21,7 @@ import { Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
 import { ItemEnum } from "server/source/app/weapons/weapondefinitions";
 import { AbstractEntity } from "shared/core/abstractentity";
+import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 
 
 
@@ -371,6 +372,32 @@ export class ServerBearEngine extends AbstractBearEngine {
                 RemoteFunctionLinker.serializeRemoteFunction(name, stream, ...args);
             }   
         });
+    }
+
+    //@ts-expect-error
+    callEntityEvent<SharedName extends keyof SharedNetworkedEntities, EventName extends keyof SharedNetworkedEntities[SharedName]["events"]>(entity: ServerEntity, sharedName: SharedName, event: EventName & string, ...args: Parameters<NetCallbackTypeV1<SharedNetworkedEntities[SharedName]["events"][EventName]>>){
+       
+        const id = entity.entityID;
+        assert(id !== NULL_ENTITY_INDEX);
+
+        this.queuePacket({
+            write(stream){
+
+                stream.setUint8(GamePacket.REMOTE_ENTITY_EVENT);
+                stream.setUint8(entity.constructor["SHARED_ID"])
+                StreamWriteEntityID(stream, id);
+                stream.setUint8(SharedEntityLinker.eventNameToEventID(sharedName, event));
+                
+                //@ts-ignore
+                const data = SharedNetworkedEntityDefinitions[sharedName]["events"][event]["argTypes"];
+
+                for (let i = 0; i < data.length; i++) {
+                    //@ts-expect-error
+                    SerializeTypedVar(stream,data[i], args[i])
+                }
+                
+            }
+        })
     }
 
 

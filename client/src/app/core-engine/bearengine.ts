@@ -151,13 +151,18 @@ export class BearEngine extends AbstractBearEngine {
         children.forEach(child => child.destroy());
         moreChildren.forEach(child => child.destroy());
 
+        for(const emitter of this.renderer["emitters"]){
+            emitter.destroy();
+        }
+
+        this.renderer["emitters"] = [];
+
         this.levelLoaded = false;
     }   
 
     restartCurrentLevel(){
         this.endCurrentLevel();
-        //@ts-expect-error
-        this.loadLevel(this.activeLevel.constructor);
+        this.loadLevel(this.activeLevel);
     }
 
     // Loads all assets from server

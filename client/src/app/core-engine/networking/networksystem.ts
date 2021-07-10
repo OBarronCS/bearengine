@@ -1,11 +1,11 @@
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { Scene, StreamReadEntityID } from "shared/core/scene";
-import { PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker } from "shared/core/sharedlogic/networkschemas";
+import { NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker } from "shared/core/sharedlogic/networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { SharedEntityClientTable } from "./cliententitydecorators";
-import { RemoteEntity, RemoteLocations } from "./remotecontrol";
+import { RemoteLocations } from "./remotecontrol";
 import { CallbackNetwork, NetworkSettings } from "./clientsocket";
 import { Entity } from "../entity";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
@@ -37,7 +37,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
 
 
 
-    private remoteEntities: Map<number, RemoteEntity> = new Map();
+    private remoteEntities: Map<number, Entity> = new Map();
     private remotePlayers: Map<number, RemotePlayer> = new Map(); 
 
 
@@ -274,6 +274,27 @@ export class NetworkSystem extends Subsystem<BearEngine> {
 
                             break;
                         }       
+
+                        case GamePacket.REMOTE_ENTITY_EVENT: {
+                            
+                            const SHARED_ID = stream.getUint8();
+                            const entityID = StreamReadEntityID(stream);
+                            const eventID = stream.getUint8();
+
+                            let entity = this.remoteEntities.get(entityID);
+
+                            if(entity === undefined){
+                                // Will try to create the entity for now, but we missed the REMOTE_ENTITY_CREATE packet clearly
+                                return;
+                                console.log(`Cannot find entity ${entityID}, will create`);
+                                entity = this.createAutoRemoteEntity(SHARED_ID,entityID)
+                                
+                            }
+
+                            SharedEntityClientTable.callRemoteEvent(stream, SHARED_ID, eventID, entity);
+                            
+                            break;
+                        }
                         case GamePacket.REMOTE_ENTITY_DELETE: {
                             const SHARED_ID = stream.getUint8();
                             const entityID = StreamReadEntityID(stream);
@@ -525,7 +546,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                 const list = obj.constructor["INTERP_LIST"];
                 for(const value of list){
                     const interpVar = obj[value];
-                    const interpValue = interpVar.data.getValue(frameToSimulate);
+                    const interpValue = interpVar.buffer.getValue(frameToSimulate);
                     interpVar.value = interpValue;
                 }
             }
@@ -622,7 +643,7 @@ type RemoteFunctionListType = {
 function remotefunction<T extends keyof RemoteFunction>(functionName: T) {
 
 
-    return function(target: NetworkSystem, propertyKey: keyof NetworkSystem, descriptor: TypedPropertyDescriptor<RemoteFunction[T]["callback"]>){
+    return function(target: NetworkSystem, propertyKey: keyof NetworkSystem, descriptor: TypedPropertyDescriptor<NetCallbackTypeV1<RemoteFunction[T]>>){
         // target is the prototype of the class
 
         const constructorClass = target.constructor;
