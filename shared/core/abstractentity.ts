@@ -37,8 +37,12 @@ export abstract class AbstractEntity<Engine extends AbstractBearEngine = Abstrac
         return part;
     }
 
-    hasPart<K extends new(...args: any[]) => Attribute>(part: K){
-        return this.scene.hasPart(this.entityID, part);
+    hasAttribute<K extends new(...args: any[]) => Attribute>(part: K){
+        return this.scene.hasAttribute(this.entityID, part);
+    }
+
+    getAttribute<T extends Attribute, K extends new(...args: any[]) => T>(partConstructor: K): T | null {
+        return this.scene.getAttribute(this.entityID, partConstructor);
     }
 
     destroy(){

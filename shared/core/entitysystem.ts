@@ -123,7 +123,7 @@ export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> ex
         return container.dense;
     }
 
-    hasPart<K extends new(...args: any[]) => Attribute>(e: EntityID, partConstructor: K): boolean {
+    hasAttribute<K extends new(...args: any[]) => Attribute>(e: EntityID, partConstructor: K): boolean {
 
         if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
 
@@ -136,7 +136,7 @@ export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> ex
         return container.contains(e);
     }
 
-    getPart<T extends Attribute, K extends new(...args: any[]) => T>(e: EntityID, partConstructor: K): T | null {
+    getAttribute<T extends Attribute, K extends new(...args: any[]) => T>(e: EntityID, partConstructor: K): T | null {
 
         if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
         
@@ -175,7 +175,7 @@ export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> ex
         // Register parts
         for(const part of e.parts){
             //@ts-expect-error
-            if(this.hasPart(entityID, part.constructor)) throw Error("Entity already has this part: " + part.constructor.name + " --> " + e.constructor.name);
+            if(this.hasAttribute(entityID, part.constructor)) throw Error("Entity already has this part: " + part.constructor.name + " --> " + e.constructor.name);
             
             let uniquePartID = part.constructor["partID"];
 
