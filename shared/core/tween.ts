@@ -18,8 +18,18 @@ abstract class Tween<T> extends Effect  {
     // How far into the tween we are, [0,1]
     public t = 0;
 
+    /** Seconds after GO that we wait until do anything.  */ 
+    waitTime = 0;
+
+    delay(time: number): this {
+        this.waitTime = time;
+        return this;
+    }
+
     // Linear by default
-    public easingfunction: (t: number) => number = t => t
+    public easingfunction: (t: number) => number = t => t;
+
+
 
     repeat?: number
     loop?: boolean;
@@ -36,17 +46,26 @@ abstract class Tween<T> extends Effect  {
         this.object = obj;
         this.property = prop;
         this.seconds = seconds;
+
         this.onUpdate(function(this: Tween<any>, dt){
             if(this.active){
+                
                 this.t += dt / this.seconds;
-                this.setValueAt(this.easingfunction(clamp(this.t,0,1)));
+
+                if(this.t >= this.waitTime){
+
+                    const appliedTime = this.t - this.waitTime;
+
+                    this.setValueAt(this.easingfunction(clamp(appliedTime,0,1)));
     
-                if(this.t >= 1){
-                    if(this.nextChain){
-                        this.scene.addEntity(this.nextChain)
-                        this.nextChain.active = true;
-                        this.destroy();
+                    if(appliedTime >= 1){
+                        if(this.nextChain){
+                            this.scene.addEntity(this.nextChain)
+                            this.nextChain.active = true;
+                            this.destroy();
+                        }
                     }
+
                 }
             }
         });
@@ -104,6 +123,26 @@ export class VecTween extends Tween<Coordinate> {
     }
 }
 
+
+
+// TweenSequence: a parent of multiple tweens, offset them using delay() 
+export class TweenSequence extends Effect {
+
+    tweens: Tween<any>[] = [];
+
+    override update(dt: number){
+        super.update(dt);
+
+        for(const tween of this.tweens){
+            tween.update(dt);
+        }
+    }
+
+    add(tween: Tween<any>): this {
+        this.tweens.push(tween);
+        return this;
+    }
+}
 
 
 
