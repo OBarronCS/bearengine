@@ -14,7 +14,7 @@ import { Line } from "shared/shapes/line";
 import { Rect } from "shared/shapes/rectangle";
 import { SpatialGrid } from "shared/datastructures/spatialgrid";
 import { AbstractEntity } from "shared/core/abstractentity";
-import { ColliderPart } from "./abstractpart";
+import { ColliderPart } from "./entityattribute";
 import { Subsystem } from "./subsystem";
 
 

@@ -1,5 +1,5 @@
 import { AbstractBearEngine } from "shared/core/abstractengine";
-import { Part, PartQuery} from "shared/core/abstractpart";
+import { Attribute, PartQuery} from "shared/core/entityattribute";
 import { EventRegistry } from "./bearevents";
 import { BearEvents } from "./sharedlogic/eventdefinitions";
 
@@ -25,7 +25,7 @@ export abstract class Subsystem<EngineType extends AbstractBearEngine = Abstract
         return eg;
     }
 
-    addQuery<T extends Part>(
+    addQuery<T extends Attribute>(
                 partClass: new(...args:any[]) => T,
                 onAdd: (part: T) => void = (a) => {},
                 onRemove: (part: T) => void = (a) => {},
@@ -36,13 +36,13 @@ export abstract class Subsystem<EngineType extends AbstractBearEngine = Abstract
         return q;
     }
 
-    addExistingQuery<T extends Part>(q: PartQuery<T>): PartQuery<T> {
+    addExistingQuery<T extends Attribute>(q: PartQuery<T>): PartQuery<T> {
         this.addQueryCheckNoDuplicates(q);
         return q;
     }
 
     // Only checks for same object itself. Will not add if already here. For debugging
-    private addQueryCheckNoDuplicates<T extends Part>(q: PartQuery<T>): PartQuery<T> {
+    private addQueryCheckNoDuplicates<T extends Attribute>(q: PartQuery<T>): PartQuery<T> {
         for(const query of this.queries){
             if(q === query) { 
                 console.trace("Error! Trying to add same query twice!")

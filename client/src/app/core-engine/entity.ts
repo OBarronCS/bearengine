@@ -9,7 +9,7 @@ import { GraphicsPart, SpritePart } from "./parts";
 import { BearEngine } from "./bearengine";
 import { MouseInput } from "../input/mouse";
 import { EngineKeyboard } from "../input/keyboard";
-import { ColliderPart } from "shared/core/abstractpart";
+import { ColliderPart } from "shared/core/entityattribute";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { GameLevel } from "./gamelevel";
 import { bearevent } from "shared/core/bearevents";

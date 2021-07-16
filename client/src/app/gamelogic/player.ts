@@ -1,6 +1,6 @@
 import { AnimatedSprite, Container, Graphics, Sprite, Texture } from "pixi.js";
 import { AssertUnreachable } from "shared/misc/assertstatements";
-import { ColliderPart } from "shared/core/abstractpart";
+import { ColliderPart } from "shared/core/entityattribute";
 import { clamp, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/misc/mathutils";
 import { Line } from "shared/shapes/line";
 import { dimensions } from "shared/shapes/rectangle";
