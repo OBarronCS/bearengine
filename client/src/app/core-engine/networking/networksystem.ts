@@ -1,6 +1,6 @@
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
-import { Scene, StreamReadEntityID } from "shared/core/scene";
+import { EntitySystem, StreamReadEntityID } from "shared/core/entitysystem";
 import { NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker } from "shared/core/sharedlogic/networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
@@ -31,7 +31,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
     private packets = new LinkedQueue<BufferedPacket>();
 
 
-    private scene: Scene;
+    private scene: EntitySystem;
     public remotelocations = this.addQuery(RemoteLocations);
 
 

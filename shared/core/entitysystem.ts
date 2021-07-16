@@ -1,6 +1,6 @@
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
-import { Part, PartContainer } from "shared/core/abstractpart";
-import { PartQuery } from "shared/core/abstractpart";
+import { Attribute, AttributeContainer } from "shared/core/entityattribute";
+import { AttributeQuery } from "shared/core/entityattribute";
 import { Subsystem } from "shared/core/subsystem";
 import { EntityEventListType, EventRegistry } from "shared/core/bearevents";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
@@ -63,14 +63,14 @@ export function StreamReadEntityID(stream: BufferStreamReader): number {
     return stream.getUint32();
 }
 
-export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends Subsystem {
+export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> extends Subsystem {
     
-    private partQueries: PartQuery<Part>[] = [];
+    private partQueries: AttributeQuery<Attribute>[] = [];
     private allEntityEventHandlers: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();;
 
 
     private nextPartID = 0;
-    private partContainers: PartContainer<Part>[] = []
+    private partContainers: AttributeContainer<Attribute>[] = []
 
     // It finds these when iterating all the other systems.
     private preupdate = this.addEventDispatcher("preupdate");
@@ -112,18 +112,18 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
 
     }
 
-    view<K extends new(...args: any[]) => Part>(partConstructor: K): readonly InstanceType<K>[] {
+    view<K extends new(...args: any[]) => Attribute>(partConstructor: K): readonly InstanceType<K>[] {
         //@ts-expect-error
         const partID = partConstructor.partID;
 
         if(partID === -1) return null;
         
         //@ts-expect-error
-        const container: PartContainer<T> = this.partContainers[partID];
+        const container: AttributeContainer<T> = this.partContainers[partID];
         return container.dense;
     }
 
-    hasPart<K extends new(...args: any[]) => Part>(e: EntityID, partConstructor: K): boolean {
+    hasAttribute<K extends new(...args: any[]) => Attribute>(e: EntityID, partConstructor: K): boolean {
 
         if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
 
@@ -136,7 +136,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         return container.contains(e);
     }
 
-    getPart<T extends Part, K extends new(...args: any[]) => T>(e: EntityID, partConstructor: K): T | null {
+    getAttribute<T extends Attribute, K extends new(...args: any[]) => T>(e: EntityID, partConstructor: K): T | null {
 
         if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
         
@@ -146,7 +146,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         if(partID === -1) return null;
         
         //@ts-expect-error
-        const container: PartContainer<T> = this.partContainers[partID];
+        const container: AttributeContainer<T> = this.partContainers[partID];
         return container.getEntityPart(e);
     }
 
@@ -175,7 +175,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
         // Register parts
         for(const part of e.parts){
             //@ts-expect-error
-            if(this.hasPart(entityID, part.constructor)) throw Error("Entity already has this part: " + part.constructor.name + " --> " + e.constructor.name);
+            if(this.hasAttribute(entityID, part.constructor)) throw Error("Entity already has this part: " + part.constructor.name + " --> " + e.constructor.name);
             
             let uniquePartID = part.constructor["partID"];
 
@@ -183,7 +183,7 @@ export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends S
             if(uniquePartID === -1){
                 uniquePartID = part.constructor["partID"] = this.nextPartID++;
 
-                const container = new PartContainer();
+                const container = new AttributeContainer();
                 this.partContainers.push(container);
 
                 const name = part.constructor.name;

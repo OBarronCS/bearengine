@@ -4,7 +4,7 @@ import { GUI, GUIController } from "dat.gui";
 
 import { AbstractBearEngine } from "shared/core/abstractengine";
 import { AbstractEntity } from "shared/core/abstractentity";
-import { Scene } from "shared/core/scene";
+import { EntitySystem } from "shared/core/entitysystem";
 import { Subsystem } from "shared/core/subsystem";
 import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { TerrainManager } from "shared/core/terrainmanager";
@@ -58,7 +58,7 @@ export class BearEngine extends AbstractBearEngine {
     public camera: CameraSystem;
     public mouse: EngineMouse;
     public keyboard: EngineKeyboard;
-    public entityManager: Scene;
+    public entityManager: EntitySystem;
     public terrain: TerrainManager;
     public collisionManager: CollisionManager;
 
@@ -88,7 +88,7 @@ export class BearEngine extends AbstractBearEngine {
         this.terrain = this.registerSystem(new TerrainManager(this));
         this.collisionManager = this.registerSystem(new CollisionManager(this));
 
-        this.entityManager = this.registerSystem(new Scene(this))
+        this.entityManager = this.registerSystem(new EntitySystem(this))
         
         // For testing
         this.mouseEventDispatcher = this.registerSystem(new TestMouseDownEventDispatcher(this))
@@ -138,17 +138,7 @@ export class BearEngine extends AbstractBearEngine {
         this.terrain.clear();
         this.collisionManager.clear()
 
-        const children = this.renderer.mainContainer.removeChildren();
-        const moreChildren = this.renderer.guiContainer.removeChildren();
-        // This is crucial --> otherwise there is a memory leak
-        children.forEach(child => child.destroy());
-        moreChildren.forEach(child => child.destroy());
-
-        for(const emitter of this.renderer["emitters"]){
-            emitter.destroy();
-        }
-
-        this.renderer["emitters"] = [];
+        this.renderer.clear();
 
         this.levelLoaded = false;
     }   

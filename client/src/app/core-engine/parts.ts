@@ -1,14 +1,14 @@
 import { DEG_TO_RAD, Graphics, Sprite } from "pixi.js";
 import { abs, angleDifference, min, sign } from "shared/misc/mathutils"
 import { angleBetween, Coordinate } from "shared/shapes/vec2";
-import { Part } from "shared/core/abstractpart"
+import { Attribute } from "shared/core/entityattribute"
 
 
-export class GraphicsPart extends Part {
+export class GraphicsPart extends Attribute {
     readonly graphics: Graphics = new Graphics();
 }
 
-export class SpritePart extends Part {
+export class SpritePart extends Attribute {
     public file_path: string;
     public sprite: Sprite;
 

@@ -1,5 +1,5 @@
 import { AbstractEntity } from "shared/core/abstractentity";
-import { getEntityIndex } from "./scene";
+import { getEntityIndex } from "./entitysystem";
 import { BearEvents } from "./sharedlogic/eventdefinitions";
 
 // Responsible for a single event type, use as member variable of a subsystem

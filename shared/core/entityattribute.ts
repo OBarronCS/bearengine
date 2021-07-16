@@ -1,15 +1,15 @@
 import { AbstractEntity, EntityID } from "./abstractentity";
 import { Rect, Dimension } from "shared/shapes/rectangle";
 import { Coordinate, Vec2 } from "shared/shapes/vec2";
-import { getEntityIndex } from "./scene";
+import { getEntityIndex } from "./entitysystem";
 
-export abstract class Part {
+export abstract class Attribute {
     public static partID = -1; 
     public owner: AbstractEntity;
 }
 
 
-export class PartContainer<T extends Part> {
+export class AttributeContainer<T extends Attribute> {
 
     onAdd: ((part: T) => void)[] = [];
     onRemove: ((part: T) => void)[] = [];
@@ -81,7 +81,7 @@ export class PartContainer<T extends Part> {
     }
 }
 
-export class PartQuery<T extends Part>{
+export class AttributeQuery<T extends Attribute>{
     
     public parts: T[] = [];
     
@@ -114,7 +114,7 @@ const collidernames = [
 export type ColliderName = typeof collidernames[number]
 
 
-export class ColliderPart extends Part {
+export class ColliderPart extends Attribute {
 
     public name: ColliderName;
 

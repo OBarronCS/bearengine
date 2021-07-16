@@ -1,8 +1,8 @@
 import { Vec2 } from "shared/shapes/vec2";
 
 import { AbstractBearEngine } from "./abstractengine";
-import { Part } from "./abstractpart";
-import { NULL_ENTITY_INDEX, Scene } from "./scene";
+import { Attribute } from "./entityattribute";
+import { NULL_ENTITY_INDEX, EntitySystem } from "./entitysystem";
 
 // Signifies that this number is special
 export type EntityID = number; 
@@ -11,10 +11,10 @@ export abstract class AbstractEntity<Engine extends AbstractBearEngine = Abstrac
     readonly entityID: EntityID = NULL_ENTITY_INDEX;
 
     readonly position: Vec2 = new Vec2(0,0);
-    readonly parts: Part[] = [];
+    readonly parts: Attribute[] = [];
 
     // Set by scene in "addEntity"
-    public scene: Scene;
+    public scene: EntitySystem;
 
     //@ts-expect-error --> Server and client side just make this equal to "engine.this"
     private static ENGINE_OBJECT: Engine;
@@ -31,14 +31,18 @@ export abstract class AbstractEntity<Engine extends AbstractBearEngine = Abstrac
     onAdd(): void {};
     onDestroy(): void {};
 
-    addPart<T extends Part>(part: T): T {
+    addPart<T extends Attribute>(part: T): T {
         this.parts.push(part);
         part.owner = this;
         return part;
     }
 
-    hasPart<K extends new(...args: any[]) => Part>(part: K){
-        return this.scene.hasPart(this.entityID, part);
+    hasAttribute<K extends new(...args: any[]) => Attribute>(part: K){
+        return this.scene.hasAttribute(this.entityID, part);
+    }
+
+    getAttribute<T extends Attribute, K extends new(...args: any[]) => T>(partConstructor: K): T | null {
+        return this.scene.getAttribute(this.entityID, partConstructor);
     }
 
     destroy(){

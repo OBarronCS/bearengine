@@ -1,4 +1,4 @@
-import { Part } from "shared/core/abstractpart";
+import { Attribute } from "shared/core/entityattribute";
 import { NetArg } from "shared/core/sharedlogic/networkschemas";
 import { ceil, floor } from "shared/misc/mathutils";
 import { randomInt } from "shared/misc/random";
@@ -8,7 +8,7 @@ import { SpritePart } from "../parts";
 import { InterpolatedVar, net, networkedclass_client } from "./cliententitydecorators";
 
 
-export class RemoteLocations extends Part {
+export class RemoteLocations extends Attribute {
 
     public positions = new Map<number,Vec2>();
 

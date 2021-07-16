@@ -1,5 +1,5 @@
 import { AbstractBearEngine } from "shared/core/abstractengine";
-import { Part, PartQuery} from "shared/core/abstractpart";
+import { Attribute, AttributeQuery} from "shared/core/entityattribute";
 import { EventRegistry } from "./bearevents";
 import { BearEvents } from "./sharedlogic/eventdefinitions";
 
@@ -8,7 +8,7 @@ import { BearEvents } from "./sharedlogic/eventdefinitions";
 // Optional type override for more flexibility, for server/client specific subsystems
 export abstract class Subsystem<EngineType extends AbstractBearEngine = AbstractBearEngine> {
     
-    public queries: PartQuery<any>[] = [];
+    public queries: AttributeQuery<any>[] = [];
     public eventHandlers: EventRegistry<keyof BearEvents>[] = [];
 
     public engine: EngineType;
@@ -25,24 +25,24 @@ export abstract class Subsystem<EngineType extends AbstractBearEngine = Abstract
         return eg;
     }
 
-    addQuery<T extends Part>(
+    addQuery<T extends Attribute>(
                 partClass: new(...args:any[]) => T,
                 onAdd: (part: T) => void = (a) => {},
                 onRemove: (part: T) => void = (a) => {},
-            ): PartQuery<T> {
+            ): AttributeQuery<T> {
 
-        const q = new PartQuery(partClass,onAdd,onRemove);
+        const q = new AttributeQuery(partClass,onAdd,onRemove);
         this.addQueryCheckNoDuplicates(q);
         return q;
     }
 
-    addExistingQuery<T extends Part>(q: PartQuery<T>): PartQuery<T> {
+    addExistingQuery<T extends Attribute>(q: AttributeQuery<T>): AttributeQuery<T> {
         this.addQueryCheckNoDuplicates(q);
         return q;
     }
 
     // Only checks for same object itself. Will not add if already here. For debugging
-    private addQueryCheckNoDuplicates<T extends Part>(q: PartQuery<T>): PartQuery<T> {
+    private addQueryCheckNoDuplicates<T extends Attribute>(q: AttributeQuery<T>): AttributeQuery<T> {
         for(const query of this.queries){
             if(q === query) { 
                 console.trace("Error! Trying to add same query twice!")
