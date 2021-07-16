@@ -9,23 +9,16 @@ import { Subsystem } from "shared/core/subsystem";
 import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { CollisionManager } from "shared/core/entitycollision";
-import { string2hex } from "shared/misc/mathutils";
 
-import { frameEditor, loadTestLevel } from "../gamelogic/testlevelentities";
+import { frameEditor } from "../gamelogic/testlevelentities";
 import { EngineKeyboard } from "../input/keyboard";
 import { EngineMouse } from "../input/mouse";
 import { CameraSystem } from "./camera";
 import { NetworkSystem } from "./networking/networksystem";
 import { RendererSystem } from "./renderer";
 import { TestMouseDownEventDispatcher } from "./mouseevents";
-import { Rect } from "shared/shapes/rectangle";
-import { Color, rgb } from "shared/datastructures/color";
-import { DrawableEntity, Entity } from "./entity";
-import { SpritePart } from "./parts";
-import { Coordinate, mix, Vec2 } from "shared/shapes/vec2";
 import { Player } from "../gamelogic/player";
 import { GameLevel } from "./gamelevel";
-import { ColliderPart } from "shared/core/abstractpart";
 
 
 
