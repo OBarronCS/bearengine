@@ -1,5 +1,5 @@
 import { Color, blend } from "shared/datastructures/color";
-import { clamp } from "shared/misc/mathutils";
+import { clamp, lerp } from "shared/misc/mathutils";
 import { Coordinate, mix } from "shared/shapes/vec2";
 import { Effect } from "./effects";
 
@@ -30,7 +30,6 @@ abstract class Tween<T> extends Effect  {
     public easingfunction: (t: number) => number = t => t;
 
 
-
     repeat?: number
     loop?: boolean;
     pingpong?: boolean
@@ -59,13 +58,14 @@ abstract class Tween<T> extends Effect  {
                     this.setValueAt(this.easingfunction(clamp(appliedTime,0,1)));
     
                     if(appliedTime >= 1){
+
                         if(this.nextChain){
                             this.scene.addEntity(this.nextChain)
                             this.nextChain.active = true;
-                            this.destroy();
                         }
-                    }
 
+                        this.destroy();
+                    }
                 }
             }
         });
@@ -108,7 +108,12 @@ abstract class Tween<T> extends Effect  {
     }
 }
 
-// class NumberTween
+export class NumberTween extends Tween<number> {
+    setValueAt(t: number): void {
+        this.object[this.property] = lerp(this.initialValue, this.finalValue, t);
+    }
+
+}
 
 export class ColorTween extends Tween<Color> {
     setValueAt(t: number): void {
