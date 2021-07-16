@@ -1,7 +1,7 @@
 import { Graphics } from "pixi.js";
-import { ColliderPart } from "shared/core/abstractpart";
+import { ColliderPart } from "shared/core/entityattribute";
 import { bearevent } from "shared/core/bearevents";
-import { Scene } from "shared/core/scene";
+import { EntitySystem } from "shared/core/entitysystem";
 import { TiledMap } from "shared/core/tiledmapeditor";
 import { dimensions } from "shared/shapes/rectangle";
 import { Vec2 } from "shared/shapes/vec2";
@@ -17,7 +17,7 @@ export class FirstLevel extends GameLevel {
     
     path: string | TiledMap = "assets/firsttest.json";
 
-    start(engine: BearEngine, scene: Scene): void {
+    start(engine: BearEngine, scene: EntitySystem): void {
 
         const p = scene.addEntity(new Player());
 

@@ -1,7 +1,7 @@
 import { AbstractEntity, EntityID } from "./abstractentity";
 import { Rect, Dimension } from "shared/shapes/rectangle";
 import { Coordinate, Vec2 } from "shared/shapes/vec2";
-import { getEntityIndex } from "./scene";
+import { getEntityIndex } from "./entitysystem";
 
 export abstract class Attribute {
     public static partID = -1; 
@@ -81,7 +81,7 @@ export class AttributeContainer<T extends Attribute> {
     }
 }
 
-export class PartQuery<T extends Attribute>{
+export class AttributeQuery<T extends Attribute>{
     
     public parts: T[] = [];
     

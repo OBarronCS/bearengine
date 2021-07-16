@@ -1,5 +1,5 @@
 import { Graphics, Sprite } from "pixi.js";
-import { Scene } from "shared/core/scene";
+import { EntitySystem } from "shared/core/entitysystem";
 
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { string2hex } from "shared/misc/mathutils";
@@ -14,11 +14,11 @@ export abstract class GameLevel {
 
     /** Put null for path if want no data */
     abstract path: string | TiledMap
-    protected abstract start(engine: BearEngine, scene: Scene): void;
+    protected abstract start(engine: BearEngine, scene: EntitySystem): void;
     protected abstract end(engine: BearEngine): void;
     abstract update(dt: number): void;
 
-    internalStart(engine: BearEngine, scene: Scene){
+    internalStart(engine: BearEngine, scene: EntitySystem){
 
         const tiled = typeof this.path === "string" ? 
             engine.getResource(this.path).data as TiledMap :
@@ -56,6 +56,7 @@ export abstract class GameLevel {
             });
         }
 
+        // const graphics = engine.renderer.createCanvas();
         engine.terrain.graphics = new Graphics();
         engine.renderer.addSprite(engine.terrain.graphics);
         engine.terrain.queueRedraw();
@@ -78,7 +79,7 @@ export class DummyLevel extends GameLevel {
         this.path = path;
     }
 
-    start(engine: BearEngine, scene: Scene<Entity>): void {
+    start(engine: BearEngine, scene: EntitySystem<Entity>): void {
         
     }
     end(engine: BearEngine): void {

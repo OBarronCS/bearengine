@@ -1,4 +1,4 @@
-import { autoDetectRenderer, Renderer, Container, DisplayObject, utils, InteractionManager } from "pixi.js";
+import { autoDetectRenderer, Renderer, Container, DisplayObject, utils, InteractionManager, Graphics, Sprite, Texture } from "pixi.js";
 import { clamp } from "shared/misc/mathutils";
 import { BearEngine } from "./bearengine";
 import { GraphicsPart, SpritePart } from "./parts";
@@ -31,10 +31,6 @@ export class RendererSystem extends Subsystem<BearEngine> {
 
     private emitters: Emitter[] = [];
 
-    // addEmitter(emitter: Emitter){
-    //     this.emitters.push(emitter);
-    // }
-
     addEmitter(path: string, settings: EmitterConfig, x: number, y: number): Emitter {
         const e = new Emitter(this.mainContainer, path, settings);
         e.updateSpawnPos(x, y);
@@ -49,8 +45,6 @@ export class RendererSystem extends Subsystem<BearEngine> {
                 },
             g => this.removeSprite(g.graphics)
         );
-
-
 
 
     private sprite_query = this.addQuery(SpritePart,
@@ -125,7 +119,7 @@ export class RendererSystem extends Subsystem<BearEngine> {
 
     updateParticles(dt: number){
         for(const emitter of this.emitters){
-            // emitter.update(dt);
+            emitter.update(dt);
         }
     }
 
@@ -135,7 +129,6 @@ export class RendererSystem extends Subsystem<BearEngine> {
             sprite.sprite.position.copyFrom(sprite.owner.position);
         }
 
-      
 
         this.renderer.render(this.stage);
     }
@@ -158,6 +151,20 @@ export class RendererSystem extends Subsystem<BearEngine> {
     removeSprite<T extends DisplayObject>(sprite:T){
         this.mainContainer.removeChild(sprite)
         return sprite;
+    }
+
+    /** Returns empty graphics object that has been added to the scene. Call destroy() to remove it */
+    createCanvas(){
+        const graphics = new Graphics();
+        this.addSprite(graphics);
+        return graphics;
+    }
+
+    /** Returns a new sprite with given texture. Call destroy() to remove it */
+    createSprite(path: string){
+        const spr = new Sprite(this.getTexture(path));
+        this.addSprite(spr);
+        return spr;
     }
     
     private fitToScreen(){
@@ -208,6 +215,27 @@ export class RendererSystem extends Subsystem<BearEngine> {
         this.renderer.view.style.height = ideal_height  + 'px';
     }
      
+    clear(){
+
+
+        // Must delete emitters first, because the particles are contained in the mainContainer
+        for(const emitter of this.emitters){
+            emitter.destroy();
+        }
+
+        this.emitters = [];
+
+
+
+        const children = this.mainContainer.removeChildren();
+        const moreChildren = this.guiContainer.removeChildren();
+
+        // This is crucial --> otherwise there is a memory leak
+        children.forEach(child => child.destroy());
+        moreChildren.forEach(child => child.destroy());
+    }
+ 
+
     getTexture(_name: string){
         const _str = _name;
         return this.engine.getResource(_str).texture;

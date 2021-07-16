@@ -1,4 +1,4 @@
-import { Scene } from "shared/core/scene";
+import { EntitySystem } from "shared/core/entitysystem";
 import { Entity } from "../entity";
 
 /*
@@ -100,7 +100,7 @@ export const SerializableEntityLookupTable = {
         this.nameToEntityMap.set(name, entityConstructor);
     },
 
-    saveScene(scene: Scene<Entity>): EntityData[]{
+    saveScene(scene: EntitySystem<Entity>): EntityData[]{
 
         const entities: EntityData[] = []
 
@@ -127,7 +127,7 @@ export const SerializableEntityLookupTable = {
         return saveStruct;
     },
 
-    loadScene(scene: Scene<Entity>, data: EntityData[]){
+    loadScene(scene: EntitySystem<Entity>, data: EntityData[]){
         for(const e of data){
             const entity = this.loadEntity(e);
             scene.addEntity(entity);

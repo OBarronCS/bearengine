@@ -2,7 +2,7 @@ import { Vec2 } from "shared/shapes/vec2";
 
 import { AbstractBearEngine } from "./abstractengine";
 import { Attribute } from "./entityattribute";
-import { NULL_ENTITY_INDEX, Scene } from "./scene";
+import { NULL_ENTITY_INDEX, EntitySystem } from "./entitysystem";
 
 // Signifies that this number is special
 export type EntityID = number; 
@@ -14,7 +14,7 @@ export abstract class AbstractEntity<Engine extends AbstractBearEngine = Abstrac
     readonly parts: Attribute[] = [];
 
     // Set by scene in "addEntity"
-    public scene: Scene;
+    public scene: EntitySystem;
 
     //@ts-expect-error --> Server and client side just make this equal to "engine.this"
     private static ENGINE_OBJECT: Engine;

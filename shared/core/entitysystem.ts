@@ -1,6 +1,6 @@
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { Attribute, AttributeContainer } from "shared/core/entityattribute";
-import { PartQuery } from "shared/core/entityattribute";
+import { AttributeQuery } from "shared/core/entityattribute";
 import { Subsystem } from "shared/core/subsystem";
 import { EntityEventListType, EventRegistry } from "shared/core/bearevents";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
@@ -63,9 +63,9 @@ export function StreamReadEntityID(stream: BufferStreamReader): number {
     return stream.getUint32();
 }
 
-export class Scene<EntityType extends AbstractEntity = AbstractEntity> extends Subsystem {
+export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> extends Subsystem {
     
-    private partQueries: PartQuery<Attribute>[] = [];
+    private partQueries: AttributeQuery<Attribute>[] = [];
     private allEntityEventHandlers: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();;
 
 
