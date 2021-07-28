@@ -4,7 +4,7 @@ import type { Server } from "ws";
 import { ServerEntity } from "./entity";
 import { assert, AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractBearEngine } from "shared/core/abstractengine";
-import { NULL_ENTITY_INDEX, Scene, StreamWriteEntityID } from "shared/core/scene";
+import { NULL_ENTITY_INDEX, EntitySystem, StreamWriteEntityID } from "shared/core/entitysystem";
 import { GamePacket, ServerBoundPacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
@@ -67,7 +67,7 @@ export class ServerBearEngine extends AbstractBearEngine {
     public levelbbox: Rect;
     public terrain: TerrainManager;
 
-    private entityManager: Scene<ServerEntity>;
+    private entityManager: EntitySystem<ServerEntity>;
     
 
     // Serializes the packets in here at end of tick, sends to every player
@@ -92,7 +92,7 @@ export class ServerBearEngine extends AbstractBearEngine {
         //@ts-expect-error
         AbstractEntity.ENGINE_OBJECT = this;
 
-        this.entityManager = this.registerSystem(new Scene<ServerEntity>(this));
+        this.entityManager = this.registerSystem(new EntitySystem<ServerEntity>(this));
         this.terrain = this.registerSystem(new TerrainManager(this));
 
         for(const system of this.systems){

@@ -1,4 +1,4 @@
-import { StreamWriteEntityID } from "shared/core/scene";
+import { StreamWriteEntityID } from "shared/core/entitysystem";
 import { SharedNetworkedEntities, SharedEntityLinker } from "shared/core/sharedlogic/networkschemas";
 import { NetworkVariableTypes, SerializeTypedVar, TypescriptTypeOfNetVar } from "shared/core/sharedlogic/serialization";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
