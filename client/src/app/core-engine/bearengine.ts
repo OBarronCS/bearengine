@@ -2,7 +2,7 @@
 import { Graphics, Loader, Sprite, Texture } from "pixi.js";
 import { GUI, GUIController } from "dat.gui";
 
-import { AbstractBearEngine } from "shared/core/abstractengine";
+import { AbstractBearEngine, BearState } from "shared/core/abstractengine";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { EntitySystem } from "shared/core/entitysystem";
 import { Subsystem } from "shared/core/subsystem";
@@ -43,6 +43,19 @@ const maxFPS = 60;
 const simulation_time = 1000 / maxFPS;
 
 export class BearEngine extends AbstractBearEngine {
+
+    update(dt: number): void {
+    }
+
+    onStart(): void {
+    }
+
+    onEnd(): void {
+    }
+
+    corestate: BearState<this>;
+
+    
 
     public tick = 0;
     private lastFrameTimeMs = 0;
@@ -114,6 +127,8 @@ export class BearEngine extends AbstractBearEngine {
         this.entityManager.registerSceneSystems(this.systems);
         frameEditor(this)
     }
+
+    
 
     loadLevel(level: GameLevel){
         console.log("Starting scene");
@@ -241,5 +256,23 @@ export class BearEngine extends AbstractBearEngine {
 }
 
 
+export class MyGameCoreState extends BearState<BearEngine> {
+
+    
+
+
+
+    update(dt: number): void {
+
+    }
+
+    onStart(): void {
+        
+    }
+
+    onEnd(): void {
+
+    }
+}
 
 
