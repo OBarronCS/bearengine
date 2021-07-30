@@ -45,6 +45,7 @@ const simulation_time = 1000 / maxFPS;
 export class BearEngine extends AbstractBearEngine {
 
     update(dt: number): void {
+        
     }
 
     onStart(): void {
@@ -54,8 +55,6 @@ export class BearEngine extends AbstractBearEngine {
     }
 
     corestate: BearState<this>;
-
-    
 
     public tick = 0;
     private lastFrameTimeMs = 0;
@@ -118,8 +117,11 @@ export class BearEngine extends AbstractBearEngine {
         this.keyboard.bind("k", () => {
             this.restartCurrentLevel()
         });
+
         this.keyboard.bind("g", () => this.paused = !this.paused);
     }
+
+    
 
     loadFrameEditor(){
         AbstractEntity["ENGINE_OBJECT"] = this;
@@ -256,11 +258,7 @@ export class BearEngine extends AbstractBearEngine {
 }
 
 
-export class MyGameCoreState extends BearState<BearEngine> {
-
-    
-
-
+export class NetworkGameState extends BearState<BearEngine> {
 
     update(dt: number): void {
 

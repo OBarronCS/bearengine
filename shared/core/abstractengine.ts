@@ -1,20 +1,18 @@
 import { Subsystem } from "./subsystem";
 
-// P stands for "Parent"
-// THINK: Can Generic be anything? Or just another state? If just another state, allows for some things like automatic parent context query getting. 
-export abstract class BearState<P extends BearState<any>> {
+export abstract class BearState<E extends {}> {
 
-    context: P;
+    engine: E;
 
-    constructor(context: P){
-        this.context = context;
+    constructor(engine: E){
+        this.engine = engine;
     }
 
-    abstract update(dt: number): void
+    abstract update(dt: number): void;
     abstract onStart(): void;
     abstract onEnd(): void;
 
-
+    
     systems: Subsystem[] = [];
 
     registerSystem<T extends Subsystem>(system: T): T {
@@ -23,12 +21,10 @@ export abstract class BearState<P extends BearState<any>> {
     }
 }
 
-// A specific case of BearState, having no parent
+
 export abstract class AbstractBearEngine extends BearState<undefined>{
     
-    constructor(){
-        super(undefined);
-    }
+  
 }
 
 // export abstract class AbstractBearEngine {
