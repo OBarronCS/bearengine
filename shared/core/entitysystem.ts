@@ -308,7 +308,7 @@ export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> ex
         entity.entityID = NULL_ENTITY_INDEX;
     }
 
-    registerSceneSystems(systems: Subsystem[]){
+    registerSystems(systems: Subsystem[]){
 
         for(const system of systems){
             this.partQueries.push(...system.queries);

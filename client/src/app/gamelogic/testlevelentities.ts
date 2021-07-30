@@ -27,7 +27,7 @@ import { SpritePart } from "../core-engine/parts";
 import { EntityID } from "shared/core/abstractentity";
 import { BearEngine } from "../core-engine/bearengine";
 import { GUI } from "dat.gui";
-import { BearState } from "shared/core/abstractengine";
+import { BearGame } from "shared/core/abstractengine";
 
 class BasicSprite extends SpriteEntity {
 
@@ -1273,10 +1273,10 @@ class PlayerAnimator extends Entity {
 }
 //#endregion
 
-export class FrameEditor extends BearState<BearEngine> {
+export class FrameEditor extends BearGame<BearEngine> {
     
     update(dt: number): void {
-        throw new Error("Method not implemented.");
+        
     }
 
     onStart(): void {
@@ -1288,7 +1288,7 @@ export class FrameEditor extends BearState<BearEngine> {
     }
 
     onEnd(): void {
-        throw new Error("Method not implemented.");
+
     }
     
 } 

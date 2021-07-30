@@ -2,7 +2,7 @@
 import { Graphics, Loader, Sprite, Texture } from "pixi.js";
 import { GUI, GUIController } from "dat.gui";
 
-import { AbstractBearEngine, BearState } from "shared/core/abstractengine";
+import { BearGame } from "shared/core/abstractengine";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { EntitySystem } from "shared/core/entitysystem";
 import { Subsystem } from "shared/core/subsystem";
@@ -42,19 +42,9 @@ console.log("Assets: " + ALL_TEXTURES)
 const maxFPS = 60;
 const simulation_time = 1000 / maxFPS;
 
-export class BearEngine extends AbstractBearEngine {
+export class BearEngine {
 
-    update(dt: number): void {
-        
-    }
-
-    onStart(): void {
-    }
-
-    onEnd(): void {
-    }
-
-    corestate: BearState<this>;
+    game: BearGame<this>;
 
     public tick = 0;
     private lastFrameTimeMs = 0;
@@ -126,7 +116,7 @@ export class BearEngine extends AbstractBearEngine {
     loadFrameEditor(){
         AbstractEntity["ENGINE_OBJECT"] = this;
     
-        this.entityManager.registerSceneSystems(this.systems);
+        this.entityManager.registerSystems(this.systems);
         frameEditor(this)
     }
 
@@ -138,7 +128,7 @@ export class BearEngine extends AbstractBearEngine {
 
         AbstractEntity["ENGINE_OBJECT"] = this;
 
-        this.entityManager.registerSceneSystems(this.systems);
+        this.entityManager.registerSystems(this.systems);
 
         this.activeLevel = level;
         level.internalStart(this, this.entityManager);
@@ -199,11 +189,41 @@ export class BearEngine extends AbstractBearEngine {
         (this.loop.bind(this))();
     }
 
-    private _boundloop = this.loop.bind(this);
 
-    loop(timestamp: number = performance.now()){
+    private update(dt: number){
+
+        this.mouse.update();
+        this.keyboard.update();
+        this.camera.update(dt);
+
 
         
+        this.networksystem.readPackets();
+
+        this.terrain.update(dt);
+        this.collisionManager.update(dt);
+
+        this.mouseEventDispatcher.update(dt)
+
+        if(this.levelLoaded){
+            this.activeLevel.update(dt);
+        }
+
+
+        this.entityManager.update(dt);
+
+        this.networksystem.writePackets();
+
+
+
+
+        this.renderer.updateParticles(dt);
+    }
+
+
+    private _boundloop = this.loop.bind(this);
+    loop(timestamp: number = performance.now()){
+
         if(!this.paused){
             this.accumulated += timestamp - this.lastFrameTimeMs;
 
@@ -217,36 +237,12 @@ export class BearEngine extends AbstractBearEngine {
                 // divide by 1000 to get seconds
                 const dt = simulation_time / 1000;
 
-
-                this.networksystem.readPackets();
-
-                this.mouse.update();
-                this.keyboard.update();
-                this.camera.update(dt);
-
-                this.terrain.update(dt);
-                this.collisionManager.update(dt);
-
-                this.mouseEventDispatcher.update(dt)
-
-                if(this.levelLoaded){
-                    this.activeLevel.update(dt);
-                }
-
-
-                this.entityManager.update(dt);
-
-
-                this.networksystem.writePackets();
-
-                this.renderer.updateParticles(dt);
+                this.update(dt);
 
                 this.tick++;
                 this.totalTime += dt;
                 this.accumulated -= simulation_time;
             }
-            
-            //console.log(performance.now() - timestamp) 
         }
                
         this.renderer.update();
@@ -258,7 +254,16 @@ export class BearEngine extends AbstractBearEngine {
 }
 
 
-export class NetworkGameState extends BearState<BearEngine> {
+export class NetworkGameState extends BearGame<BearEngine> {
+
+    // Subsystems
+    public networksystem: NetworkSystem;
+    public entityManager: EntitySystem;
+    public terrain: TerrainManager;
+    public collisionManager: CollisionManager;
+
+    private mouseEventDispatcher: TestMouseDownEventDispatcher;
+
 
     update(dt: number): void {
 
