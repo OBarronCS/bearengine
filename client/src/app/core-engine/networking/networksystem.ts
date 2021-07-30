@@ -32,7 +32,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
 
     private scene: EntitySystem;
-    public remotelocations = this.addQuery(RemoteLocations);
+    public remotelocations = this.addQuery(RemoteLocations, 
+        (e) => console.log(e)
+    );
 
 
 
@@ -374,6 +376,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 continue;
                             }
 
+                            console.log("Creating other player, id: " + pID)
+
                             const entity = new RemotePlayer(pID);
                             this.remotePlayers.set(pID, entity);
                             this.scene.addEntity(entity);
@@ -401,7 +405,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                            break;
                         }
                         case GamePacket.PLAYER_POSITION:{
-                            
+                           
+
+
                             // Find correct entity
                             const playerID = stream.getUint8();
                     
@@ -416,12 +422,15 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 continue;
                             }
 
+
                             let e = this.remotePlayers.get(playerID);
                             if(e === undefined){
                                 console.log("Unknown player data");
                                 continue;
                             }
-                            
+
+                            console.log(`Player data for ${playerID}, at tick ${frame}`)
+
                             e.locations.addPosition(frame, x,y);
                             e.setState(state,flipped);
                             e.health = health;

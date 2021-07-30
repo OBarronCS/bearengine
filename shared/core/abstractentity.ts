@@ -7,7 +7,7 @@ import { NULL_ENTITY_INDEX, EntitySystem } from "./entitysystem";
 // Signifies that this number is special
 export type EntityID = number; 
 
-export abstract class AbstractEntity<TGame extends BearGame<any> = BearGame<{}>> {
+export abstract class AbstractEntity<TGame extends BearGame<any> = BearGame<{}, any>> {
     readonly entityID: EntityID = NULL_ENTITY_INDEX;
 
     readonly position: Vec2 = new Vec2(0,0);

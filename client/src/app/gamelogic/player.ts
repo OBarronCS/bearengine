@@ -1250,12 +1250,13 @@ export class RemotePlayer extends Entity {
 
     graphics = this.addPart(new GraphicsPart());
 
+    locations = this.addPart(new RemoteLocations());
+
     constructor(id: number){
         super();
         this.id = id;
     }
 
-    public locations = this.addPart(new RemoteLocations());
     
     private readonly runAnimation = new PlayerAnimationState(this.engine.getResource("player/run.json").data as SavePlayerAnimation, 4, new Vec2(40,16));
     private readonly wallslideAnimation = new PlayerAnimationState(this.engine.getResource("player/wallslide.json").data as SavePlayerAnimation, 30, new Vec2(44,16));

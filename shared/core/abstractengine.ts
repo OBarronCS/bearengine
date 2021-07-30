@@ -4,13 +4,13 @@ import { Subsystem } from "./subsystem";
 
 
 
-export abstract class BearGame<TEngine extends {}> {
+export abstract class BearGame<TEngine extends {}, TEntity extends AbstractEntity = AbstractEntity> {
 
     systems: Subsystem[] = [];
 
     engine: TEngine;
 
-    entities: EntitySystem;
+    entities: EntitySystem<TEntity>;
 
     constructor(engine: TEngine){
         this.engine = engine;
@@ -42,22 +42,10 @@ export abstract class BearGame<TEngine extends {}> {
 
     
     
-
     registerSystem<T extends Subsystem>(system: T): T {
         this.systems.push(system);
         return system;
     }
 }
-
-
-// export abstract class AbstractBearEngine {
-    
-//     protected systems: Subsystem[] = [];
-    
-//     public registerSystem<T extends Subsystem>(system: T): T {
-//         this.systems.push(system);
-//         return system;
-//     }
-// }
 
 

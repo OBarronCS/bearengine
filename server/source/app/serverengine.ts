@@ -3,7 +3,6 @@
 import type { Server } from "ws";
 import { ServerEntity } from "./entity";
 import { assert, AssertUnreachable } from "shared/misc/assertstatements";
-import { AbstractBearEngine } from "shared/core/abstractengine";
 import { NULL_ENTITY_INDEX, EntitySystem, StreamWriteEntityID } from "shared/core/entitysystem";
 import { GamePacket, ServerBoundPacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
@@ -22,6 +21,7 @@ import { Rect } from "shared/shapes/rectangle";
 import { ItemEnum } from "server/source/app/weapons/weapondefinitions";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
+import { BearGame } from "shared/core/abstractengine";
 
 
 
@@ -46,7 +46,10 @@ class PlayerInformation {
 }
 
 
-export class ServerBearEngine extends AbstractBearEngine {
+export class ServerBearEngine extends BearGame<{}, ServerEntity> {
+    update(dt: number): void {}
+    protected onStart(): void {}
+    protected onEnd(): void {}
     
     public readonly TICK_RATE: number;
     private referenceTime: bigint = 0n;
@@ -67,11 +70,9 @@ export class ServerBearEngine extends AbstractBearEngine {
     public levelbbox: Rect;
     public terrain: TerrainManager;
 
-    private entityManager: EntitySystem<ServerEntity>;
     
 
     // Serializes the packets in here at end of tick, sends to every player
-
     private currentTickPacketsForEveryone: PacketWriter[] = [];
 
     queuePacket(packet: PacketWriter){
@@ -86,24 +87,21 @@ export class ServerBearEngine extends AbstractBearEngine {
 
 
     constructor(tick_rate: number){
-        super();
+        super({});
         this.TICK_RATE = tick_rate;
 
-        //@ts-expect-error
-        AbstractEntity.ENGINE_OBJECT = this;
-
-        this.entityManager = this.registerSystem(new EntitySystem<ServerEntity>(this));
-        this.terrain = this.registerSystem(new TerrainManager(this));
-
-        for(const system of this.systems){
-            system.init()
-        }
 
         // Links shared entity classes
         SharedEntityServerTable.init()
     }
 
+    protected initSystems(){
+        this.terrain = this.registerSystem(new TerrainManager(this));
+    }
+
     start(socket: Server){
+        this.initialize();
+
         this.network = new ServerNetwork(socket);
         this.network.start();
         this.previousTickTime = Date.now();
@@ -150,7 +148,7 @@ export class ServerBearEngine extends AbstractBearEngine {
 
             const player = new PlayerEntity();
             p.playerEntity = player;
-            this.entityManager.addEntity(player);
+            this.entities.addEntity(player);
 
             p.personalPackets.enqueue({
                 write(stream){
@@ -177,7 +175,7 @@ export class ServerBearEngine extends AbstractBearEngine {
 
     endStage(){
         this.terrain.clear();
-        this.entityManager.clear();
+        this.entities.clear();
 
 
         this.isStageActive = false;
@@ -295,7 +293,7 @@ export class ServerBearEngine extends AbstractBearEngine {
         // Get entities marked dirty
         const entitiesToSerialize: ServerEntity[] = []
 
-        for(const entity of this.entityManager.entities){
+        for(const entity of this.entities.entities){
             if(entity.stateHasBeenChanged){
 
                 entitiesToSerialize.push(entity);
@@ -424,7 +422,7 @@ export class ServerBearEngine extends AbstractBearEngine {
 
     
     createRemoteEntity(e: ServerEntity){
-        this.entityManager.addEntity(e);
+        this.entities.addEntity(e);
         
         const id = e.entityID;
         
@@ -449,7 +447,7 @@ export class ServerBearEngine extends AbstractBearEngine {
             }
         });
 
-        this.entityManager.destroyEntity(e);
+        this.entities.destroyEntity(e);
     }
 
     private _boundLoop = this.loop.bind(this);
@@ -488,7 +486,7 @@ export class ServerBearEngine extends AbstractBearEngine {
             }
 
             for(let i = 0; i < 60/this.TICK_RATE; i++){
-                this.entityManager.update(dt);
+                this.entities.update(dt);
             }
 
 
@@ -509,4 +507,5 @@ export class ServerBearEngine extends AbstractBearEngine {
         }
     }
 }
+
 
