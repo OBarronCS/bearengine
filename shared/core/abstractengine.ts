@@ -6,17 +6,22 @@ import { Subsystem } from "./subsystem";
 
 export abstract class BearGame<TEngine extends {}> {
 
+    systems: Subsystem[] = [];
+
     engine: TEngine;
 
-    entities: EntitySystem = this.registerSystem(new EntitySystem(this))
+    entities: EntitySystem;
 
     constructor(engine: TEngine){
         this.engine = engine;
+        this.entities = this.registerSystem(new EntitySystem(this));
     }
+
+    protected abstract initSystems(): void;
 
     initialize(){
 
-        this.onStart();
+        this.initSystems();
 
         for(const system of this.systems){
             system.init();
@@ -24,7 +29,11 @@ export abstract class BearGame<TEngine extends {}> {
 
         this.entities.registerSystems(this.systems);
 
-        AbstractEntity["ENGINE_OBJECT"] = this;
+        AbstractEntity["GAME_OBJECT"] = this;
+
+
+
+        this.onStart();
     }
 
     abstract update(dt: number): void;
@@ -32,7 +41,7 @@ export abstract class BearGame<TEngine extends {}> {
     protected abstract onEnd(): void;
 
     
-    systems: Subsystem[] = [];
+    
 
     registerSystem<T extends Subsystem>(system: T): T {
         this.systems.push(system);

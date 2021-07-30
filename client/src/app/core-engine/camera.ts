@@ -9,8 +9,13 @@ import { Subsystem } from "shared/core/subsystem";
 import { EngineMouse } from "../input/mouse";
 import { BearEngine } from "./bearengine";
 
-export class CameraSystem extends Subsystem<BearEngine> {
+export class CameraSystem  {
     
+    public engine: BearEngine;
+    constructor(engine: BearEngine){
+        this.engine = engine;
+    }
+
     public container: Container;
     public renderer: RendererSystem;
     public mouse: EngineMouse;

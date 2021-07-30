@@ -6,6 +6,7 @@ import { Subsystem } from "shared/core/subsystem";
 import { Color } from "shared/datastructures/color";
 
 import { Emitter, EmitterConfig } from "pixi-particles"
+import { BearGame } from "shared/core/abstractengine";
 
 
 // arbitrary, but make it high enough so it looks good --> this is the base render texture height!
@@ -18,7 +19,9 @@ const MAX_RATIO = 21/9;
 //https://pixijs.download/dev/docs/PIXI.utils.html#.isMobile
 const isMobile = utils.isMobile.any;
 
-export class RendererSystem extends Subsystem<BearEngine> {
+export class RendererSystem {
+
+
     public renderer: Renderer;
 
     public stage = new Container();
@@ -38,34 +41,9 @@ export class RendererSystem extends Subsystem<BearEngine> {
         return e;
     }
 
-    private graphics_query = this.addQuery(GraphicsPart,
-            g => {
-                g.graphics.zIndex = 1;
-                this.addSprite(g.graphics)
-                },
-            g => this.removeSprite(g.graphics)
-        );
-
-
-    private sprite_query = this.addQuery(SpritePart,
-            s => {
-                if(s.file_path !== ""){
-                    s.sprite.texture = this.getTexture(s.file_path);
-                }
-                this.addSprite(s.sprite)
-            },
-            s => {
-                this.removeSprite(s.sprite);
-            
-                s.sprite.destroy({
-                    children: true,
-                    baseTexture: false,
-                    texture: false
-            });
-        });
-
+    engine: BearEngine;
     constructor(engine: BearEngine, targetDiv: HTMLElement, targetWindow: Window){
-        super(engine);
+        this.engine = engine;
         this.targetWindow = targetWindow;
         this.targetDiv = targetDiv;
         document.body.style.zoom = "1.0"
@@ -101,7 +79,13 @@ export class RendererSystem extends Subsystem<BearEngine> {
         this.stage.addChild(this.mainContainer);
         this.stage.addChild(this.guiContainer);
 
-        //this.setCursorSprite("assets/flower.png")
+        //this.setCursorSprite("assets/flower.png");
+
+        // Stops right click menu
+        this.renderer.view.addEventListener('contextmenu', function(ev) {
+            ev.preventDefault();
+            return false;
+        }, false);
     }
 
     setCursorSprite(path: string){
@@ -115,7 +99,6 @@ export class RendererSystem extends Subsystem<BearEngine> {
         this.renderer.backgroundColor = color.hex()
     }
 
-    init(){}
 
     updateParticles(dt: number){
         for(const emitter of this.emitters){
@@ -125,12 +108,8 @@ export class RendererSystem extends Subsystem<BearEngine> {
 
     update(){
 
-        for(const sprite of this.sprite_query){
-            sprite.sprite.position.copyFrom(sprite.owner.position);
-        }
-
-
         this.renderer.render(this.stage);
+        
     }
 
     addGUI<T extends DisplayObject>(sprite: T){
@@ -251,3 +230,48 @@ export class RendererSystem extends Subsystem<BearEngine> {
 }
 
 
+
+export class DefaultEntityRenderer extends Subsystem<BearGame<BearEngine>> {
+
+    private renderer = this.game.engine.renderer;
+
+    private graphics_query = this.addQuery(GraphicsPart,
+        g => {
+            g.graphics.zIndex = 1;
+            this.renderer.addSprite(g.graphics)
+            },
+        g => this.renderer.removeSprite(g.graphics)
+    );
+
+
+    private sprite_query = this.addQuery(SpritePart,
+            s => {
+                if(s.file_path !== ""){
+                    s.sprite.texture = this.renderer.getTexture(s.file_path);
+                }
+                this.renderer.addSprite(s.sprite)
+            },
+            s => {
+                this.renderer.removeSprite(s.sprite);
+            
+                s.sprite.destroy({
+                    children: true,
+                    baseTexture: false,
+                    texture: false
+            });
+        });
+
+    init(): void {}
+
+    update(delta: number): void {
+        for(const sprite of this.sprite_query){
+            sprite.sprite.position.copyFrom(sprite.owner.position);
+        }
+    }
+
+    clear(){
+        this.renderer.clear();
+    }
+
+
+}

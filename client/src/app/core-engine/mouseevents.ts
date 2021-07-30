@@ -1,7 +1,7 @@
 import { Subsystem } from "shared/core/subsystem";
-import { BearEngine } from "./bearengine";
+import type { BearEngine, NetworkPlatformGame } from "./bearengine";
 
-export class TestMouseDownEventDispatcher extends Subsystem<BearEngine> {
+export class TestMouseDownEventDispatcher extends Subsystem<NetworkPlatformGame> {
     
     init(): void {}
 
@@ -13,7 +13,7 @@ export class TestMouseDownEventDispatcher extends Subsystem<BearEngine> {
 
     update(delta: number): void {
         const mouse = this.engine.mouse;
-        const collision = this.engine.collisionManager;
+        const collision = this.game.collisionManager;
 
 
         const underMouse = collision.circleQuery(mouse.x, mouse.y, 1);
@@ -48,8 +48,7 @@ export class TestMouseDownEventDispatcher extends Subsystem<BearEngine> {
             }
         }
 
-
-
+        
     }
 
 }

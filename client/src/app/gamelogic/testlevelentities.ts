@@ -28,6 +28,7 @@ import { EntityID } from "shared/core/abstractentity";
 import { BearEngine } from "../core-engine/bearengine";
 import { GUI } from "dat.gui";
 import { BearGame } from "shared/core/abstractengine";
+import { DefaultEntityRenderer } from "../core-engine/renderer";
 
 class BasicSprite extends SpriteEntity {
 
@@ -105,7 +106,7 @@ export function frameEditor(engine: BearEngine): void {
     
     engine.renderer.setBackgroundColor(rgb(22, 30, 80));
 
-    const scene = engine.entityManager;
+    const scene = null //engine.entityManager;
 
     class DraggableEntity extends DrawableEntity {
             
@@ -1275,16 +1276,23 @@ class PlayerAnimator extends Entity {
 
 export class FrameEditor extends BearGame<BearEngine> {
     
+    renderer = this.registerSystem(new DefaultEntityRenderer(this));
+
+    initSystems(): void {
+
+    }
+    
     update(dt: number): void {
-        
+        this.entities.update(dt);
+
+        this.renderer.update(dt);
     }
 
     onStart(): void {
-        const engine = this.engine;
 
-        engine.renderer.setBackgroundColor(rgb(22, 30, 80));
+        this.engine.renderer.setBackgroundColor(rgb(22, 30, 80));
 
-        engine.entityManager.addEntity(new PlayerAnimator());
+        this.entities.addEntity(new PlayerAnimator());
     }
 
     onEnd(): void {
@@ -1504,7 +1512,9 @@ export class CircleEntity extends DrawableEntity {
 
 
 export function loadTestLevel(engine: BearEngine): void {
-    const scene = engine.entityManager;
+    //const scene = engine.entityManager;
+
+    const scene = null
 
     // class Test123 extends Entity {
 
@@ -1679,7 +1689,7 @@ export function loadTestLevel(engine: BearEngine): void {
         }
         draw(g: Graphics): void {
             g.clear();
-            this.engine.collisionManager.draw(g);
+            this.game.collisionManager.draw(g);
         }
     }
     // this.addEntity(new Debug())
