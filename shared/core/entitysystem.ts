@@ -181,15 +181,19 @@ export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> ex
 
             // First time adding this type of part
             if(uniquePartID === -1){
+                // console.log("Adding for the first time: " + part.constructor.name);
                 uniquePartID = part.constructor["partID"] = this.nextPartID++;
 
                 const container = new AttributeContainer();
                 this.partContainers.push(container);
 
                 const name = part.constructor.name;
+                // console.log(this.partQueries);
                 for(const query of this.partQueries){
-                    
+                    // console.log("Query name: " + query.name)
+
                     if(query.name === name){
+                        // console.log("Adding to query")
                         container.onAdd.push(query.onAdd);
                         container.onRemove.push(query.onRemove);
 
@@ -348,7 +352,7 @@ export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> ex
     }
 
     
-    // Part containers are kept as they are. Can be re-used.
+    //  Does not clear queries
     clear(){
         const entityCopy = this.entities.slice(0);
 
@@ -364,9 +368,6 @@ export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> ex
         this.freeID = NULL_ENTITY_INDEX;
         this.sparse = [];
         this.entities = [];
-
-        this.partQueries = [];
-        this.allEntityEventHandlers = new Map();
     }
 }
 

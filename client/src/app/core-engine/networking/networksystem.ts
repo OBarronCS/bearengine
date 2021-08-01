@@ -429,7 +429,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 continue;
                             }
 
-                            console.log(`Player data for ${playerID}, at tick ${frame}`)
+                            // console.log(`Player data for ${playerID}, at tick ${frame}`)
 
                             e.locations.addPosition(frame, x,y);
                             e.setState(state,flipped);
@@ -546,6 +546,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
             // Interpolation of entities
             const frameToSimulate = this.getServerTickToSimulate();
+
 
             for(const obj of this.remotelocations){
                 obj.setPosition(frameToSimulate)
