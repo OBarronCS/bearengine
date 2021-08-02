@@ -28,7 +28,7 @@ export class EndRoundPacket extends PacketWriter {
     }
 
     write(stream: BufferStreamWriter): void {
-        stream.setUint8(GamePacket.END_ROUND)
+        stream.setUint8(GamePacket.END_ROUND);
     }
 }
 

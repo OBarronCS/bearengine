@@ -12,6 +12,7 @@ import { bearevent } from "shared/core/bearevents";
 import { Vec2 } from "shared/shapes/vec2";
 import { FirstLevel } from "./gamelogic/firstlevel";
 import { DummyLevel } from "./core-engine/gamelevel";
+import { FrameEditor } from "./gamelogic/testlevelentities";
 
 const engine = new BearEngine();
 
@@ -20,13 +21,12 @@ engine.loadAssets().then(RESOURCES => {
     // dragAndDropTest(engine.renderer.renderer.view);
 
     const game = new NetworkPlatformGame(engine);
-
     engine.start(game);
-
-    
     game.loadLevel(new FirstLevel());
     
-    // game.loadFrameEditor();
+
+    //engine.start(new FrameEditor(engine))
+    //game.loadFrameEditor();
 })
 
 

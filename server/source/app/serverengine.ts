@@ -26,20 +26,20 @@ import { EndRoundPacket, InitPacket, PlayerCreatePacket, PlayerDestroyPacket, Re
 
 
 
-const MAX_DATA_PER_PACKET = 2048;
+const MAX_BYTES_PER_PACKET = 2048;
 
 class PlayerInformation {
 
     constructor(public connectionID: ConnectionID){}
 
-    personalStream = new BufferStreamWriter(new ArrayBuffer(MAX_DATA_PER_PACKET * 2));
+    personalStream = new BufferStreamWriter(new ArrayBuffer(MAX_BYTES_PER_PACKET * 2));
 
     playerEntity: PlayerEntity;
 
     personalPackets: Queue<PacketWriter> = new LinkedQueue<PacketWriter>();
 
     serializePersonalPackets(stream: BufferStreamWriter){
-        while(this.personalPackets.size() > 0 && this.personalStream.size() < MAX_DATA_PER_PACKET){
+        while(this.personalPackets.size() > 0 && this.personalStream.size() < MAX_BYTES_PER_PACKET){
             const packet = this.personalPackets.dequeue();
             packet.write(stream);
         }
@@ -138,7 +138,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         }
 
 
-        const value = RemoteResourceLinker.getIDFromResource(str);
+        const levelID = RemoteResourceLinker.getIDFromResource(str);
 
 
         let i = 0;
@@ -152,27 +152,11 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             this.entities.addEntity(player);
 
             p.personalPackets.enqueue(
-                new StartRoundPacket(i * 200, 0, value)
-                // {
-                    // write(stream){
-                    //     stream.setUint8(GamePacket.START_ROUND);
-                    //     stream.setFloat32(i * 200);
-                    //     stream.setFloat32(0);
-                    //     stream.setUint8(value);
-                    // }
-                // }
+                new StartRoundPacket(i * 200, 0, levelID)
             );
 
-            this.currentTickPacketsForEveryone.push(
+            this.queuePacket(
                 new PlayerCreatePacket(clientID, i * 200, 0)
-            //     {
-            //     write(stream){
-            //         stream.setUint8(GamePacket.PLAYER_CREATE);
-            //         stream.setUint8(clientID);
-            //         stream.setFloat32(i * 200);
-            //         stream.setFloat32(0);
-            //     }
-            // }
             );
         }
 
@@ -187,13 +171,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         this.isStageActive = false;
 
-        this.currentTickPacketsForEveryone.push(
-            new EndRoundPacket(),
-        //     {
-        //     write(stream){
-        //         stream.setUint8(GamePacket.END_ROUND);
-        //     }
-        // }
+        this.queuePacket(
+            new EndRoundPacket()
         );
     }
     
@@ -227,30 +206,12 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         // INIT DATA, tick rate, current time and tick
                         // const _this = this;
                         pInfo.personalPackets.enqueue(
-                            new InitPacket(NETWORK_VERSION_HASH,this.TICK_RATE, this.referenceTime, this.referenceTick, clientID),
-                            // {
-                            //     write(stream){
-                            //         stream.setUint8(GamePacket.INIT);
-
-                            //         stream.setBigUint64(NETWORK_VERSION_HASH);
-                            //         stream.setUint8(_this.TICK_RATE)
-
-                            //         stream.setBigUint64(_this.referenceTime);
-                            //         stream.setUint16(_this.referenceTick);
-                            //         stream.setUint8(clientID);
-                            //     }
-                            // }
+                            new InitPacket(NETWORK_VERSION_HASH,this.TICK_RATE, this.referenceTime, this.referenceTick, clientID)
                         )
 
                         // START TICKING
                         pInfo.personalPackets.enqueue(
-                            new ServerIsTickingPacket(this.tick),
-                                // {
-                                // write(stream){
-                                //     stream.setUint8(GamePacket.SERVER_IS_TICKING);
-                                //     stream.setUint16(_this.tick);
-                                // }
-                            // }
+                            new ServerIsTickingPacket(this.tick)
                         );
                         
                         pInfo.personalPackets.addAllQueue(this.lifetimeImportantPackets);
@@ -270,14 +231,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         this.players.delete(clientID);
                         this.clients.splice(index,1);
 
-                        this.currentTickPacketsForEveryone.push(
-                            new PlayerDestroyPacket(clientID),
-                        //     {
-                        //     write(stream){
-                        //         stream.setUint8(GamePacket.PLAYER_DESTROY);
-                        //         stream.setUint8(clientID);
-                        //     }
-                        // }
+                        this.queuePacket(
+                            new PlayerDestroyPacket(clientID)
                         );
 
                         break;
@@ -377,11 +332,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         
         this.queuePacket(
             new RemoteFunctionPacket(name, ...args)
-        //     {
-        //     write(stream){
-        //         RemoteFunctionLinker.serializeRemoteFunction(name, stream, ...args);
-        //     }
-        // }
         );
     }
 
@@ -392,13 +342,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         const connection = this.players.get(target);
 
-        connection.personalPackets.enqueue(packet,
-        //     {
-        //     write(stream){
-        //         RemoteFunctionLinker.serializeRemoteFunction(name, stream, ...args);
-        //     }   
-        // }
-        );
+        connection.personalPackets.enqueue(packet);
     }
 
     //@ts-expect-error
@@ -408,25 +352,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         assert(id !== NULL_ENTITY_INDEX);
 
         this.queuePacket(new RemoteEntityEventPacket(sharedName, event, entity.constructor["SHARED_ID"], id,...args));
-
-        // this.queuePacket({
-        //     write(stream){
-
-        //         stream.setUint8(GamePacket.REMOTE_ENTITY_EVENT);
-        //         stream.setUint8(entity.constructor["SHARED_ID"])
-        //         StreamWriteEntityID(stream, id);
-        //         stream.setUint8(SharedEntityLinker.eventNameToEventID(sharedName, event));
-                
-        //         //@ts-ignore
-        //         const data = SharedNetworkedEntityDefinitions[sharedName]["events"][event]["argTypes"];
-
-        //         for (let i = 0; i < data.length; i++) {
-        //             //@ts-expect-error
-        //             SerializeTypedVar(stream,data[i], args[i])
-        //         }
-                
-        //     }
-        // })
     }
 
 
@@ -443,12 +368,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         this.queuePacket(
             new SetItemPacket(weapon)
-        //     {
-        //     write(stream){
-        //         stream.setUint8(GamePacket.SET_ITEM);
-        //         stream.setUint8(weapon);
-        //     }
-        // // }
         );
     }
 
@@ -460,15 +379,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         
         const id = e.entityID;
         
-        this.currentTickPacketsForEveryone.push(new RemoteEntityCreatePacket(e.constructor["SHARED_ID"], id));
-
-        // this.currentTickPacketsForEveryone.push({
-        //     write(stream){
-        //         stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
-        //         stream.setUint8(e.constructor["SHARED_ID"]);
-        //         StreamWriteEntityID(stream, id);
-        //     }
-        // });
+        this.queuePacket(new RemoteEntityCreatePacket(e.constructor["SHARED_ID"], id));
     }
 
     
@@ -476,15 +387,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         const id = e.entityID;
 
-        this.currentTickPacketsForEveryone.push(new RemoteEntityDestroyPacket(e.constructor["SHARED_ID"], id));
-
-        // this.currentTickPacketsForEveryone.push({
-        //     write(stream){
-        //         stream.setUint8(GamePacket.REMOTE_ENTITY_DELETE);
-        //         stream.setUint8(e.constructor["SHARED_ID"]);
-        //         StreamWriteEntityID(stream, id);
-        //     }
-        // });
+        this.queuePacket(new RemoteEntityDestroyPacket(e.constructor["SHARED_ID"], id));
 
         this.entities.destroyEntity(e);
     }
@@ -514,14 +417,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         p.playerEntity.dead = true;
 
                         console.log("Death!")
-                        this.currentTickPacketsForEveryone.push(
+                        this.queuePacket(
                             new PlayerDestroyPacket(player)
-                        //     {
-                        //     write(stream){
-                        //         stream.setUint8(GamePacket.PLAYER_DESTROY);
-                        //         stream.setUint8(player);
-                        //     }
-                        // }
                         )
                     }
                 }

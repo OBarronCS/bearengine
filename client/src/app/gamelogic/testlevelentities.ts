@@ -1276,10 +1276,10 @@ class PlayerAnimator extends Entity {
 
 export class FrameEditor extends BearGame<BearEngine> {
     
-    renderer = this.registerSystem(new DefaultEntityRenderer(this));
+    renderer: DefaultEntityRenderer;
 
     initSystems(): void {
-
+        this.renderer = this.registerSystem(new DefaultEntityRenderer(this));
     }
     
     update(dt: number): void {

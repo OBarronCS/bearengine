@@ -86,15 +86,6 @@ export class BearEngine {
         this.keyboard.bind("g", () => this.paused = !this.paused);
     }
 
-    
-
-    loadFrameEditor(){
-        frameEditor(this)
-    }
-
-
-  
-
     // Loads all assets from server
     async loadAssets(): Promise<typeof SHARED_RESOURCES>{
         return new Promise( (resolve) => {
