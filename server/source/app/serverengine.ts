@@ -9,7 +9,7 @@ import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
 import { PlayerEntity } from "./playerlogic";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
-import { NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
+import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { TerrainManager } from "shared/core/terrainmanager";
@@ -22,6 +22,7 @@ import { ItemEnum } from "server/source/app/weapons/weapondefinitions";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
+import { EndRoundPacket, InitPacket, PlayerCreatePacket, PlayerDestroyPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetItemPacket, StartRoundPacket } from "./networking/gamepacketwriters";
 
 
 
@@ -150,23 +151,29 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             p.playerEntity = player;
             this.entities.addEntity(player);
 
-            p.personalPackets.enqueue({
-                write(stream){
-                    stream.setUint8(GamePacket.START_ROUND);
-                    stream.setFloat32(i * 200);
-                    stream.setFloat32(0);
-                    stream.setUint8(value);
-                }
-            });
+            p.personalPackets.enqueue(
+                new StartRoundPacket(i * 200, 0, value)
+                // {
+                    // write(stream){
+                    //     stream.setUint8(GamePacket.START_ROUND);
+                    //     stream.setFloat32(i * 200);
+                    //     stream.setFloat32(0);
+                    //     stream.setUint8(value);
+                    // }
+                // }
+            );
 
-            this.currentTickPacketsForEveryone.push({
-                write(stream){
-                    stream.setUint8(GamePacket.PLAYER_CREATE);
-                    stream.setUint8(clientID);
-                    stream.setFloat32(i * 200);
-                    stream.setFloat32(0);
-                }
-            });
+            this.currentTickPacketsForEveryone.push(
+                new PlayerCreatePacket(clientID, i * 200, 0)
+            //     {
+            //     write(stream){
+            //         stream.setUint8(GamePacket.PLAYER_CREATE);
+            //         stream.setUint8(clientID);
+            //         stream.setFloat32(i * 200);
+            //         stream.setFloat32(0);
+            //     }
+            // }
+            );
         }
 
 
@@ -180,11 +187,14 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         this.isStageActive = false;
 
-        this.currentTickPacketsForEveryone.push({
-            write(stream){
-                stream.setUint8(GamePacket.END_ROUND);
-            }
-        });
+        this.currentTickPacketsForEveryone.push(
+            new EndRoundPacket(),
+        //     {
+        //     write(stream){
+        //         stream.setUint8(GamePacket.END_ROUND);
+        //     }
+        // }
+        );
     }
     
     // Reads from queue of data since last tick
@@ -215,26 +225,33 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         
 
                         // INIT DATA, tick rate, current time and tick
-                        const _this = this;
-                        pInfo.personalPackets.enqueue({
-                            write(stream){
-                                stream.setUint8(GamePacket.INIT);
+                        // const _this = this;
+                        pInfo.personalPackets.enqueue(
+                            new InitPacket(NETWORK_VERSION_HASH,this.TICK_RATE, this.referenceTime, this.referenceTick, clientID),
+                            // {
+                            //     write(stream){
+                            //         stream.setUint8(GamePacket.INIT);
 
-                                stream.setBigUint64(NETWORK_VERSION_HASH);
-                                stream.setUint8(_this.TICK_RATE)
-                                stream.setBigUint64(_this.referenceTime);
-                                stream.setUint16(_this.referenceTick);
-                                stream.setUint8(clientID);
-                            }
-                        })
+                            //         stream.setBigUint64(NETWORK_VERSION_HASH);
+                            //         stream.setUint8(_this.TICK_RATE)
+
+                            //         stream.setBigUint64(_this.referenceTime);
+                            //         stream.setUint16(_this.referenceTick);
+                            //         stream.setUint8(clientID);
+                            //     }
+                            // }
+                        )
 
                         // START TICKING
-                        pInfo.personalPackets.enqueue({
-                            write(stream){
-                                stream.setUint8(GamePacket.SERVER_IS_TICKING);
-                                stream.setUint16(_this.tick);
-                            }
-                        });
+                        pInfo.personalPackets.enqueue(
+                            new ServerIsTickingPacket(this.tick),
+                                // {
+                                // write(stream){
+                                //     stream.setUint8(GamePacket.SERVER_IS_TICKING);
+                                //     stream.setUint16(_this.tick);
+                                // }
+                            // }
+                        );
                         
                         pInfo.personalPackets.addAllQueue(this.lifetimeImportantPackets);
 
@@ -253,12 +270,15 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         this.players.delete(clientID);
                         this.clients.splice(index,1);
 
-                        this.currentTickPacketsForEveryone.push({
-                            write(stream){
-                                stream.setUint8(GamePacket.PLAYER_DESTROY);
-                                stream.setUint8(clientID);
-                            }
-                        });
+                        this.currentTickPacketsForEveryone.push(
+                            new PlayerDestroyPacket(clientID),
+                        //     {
+                        //     write(stream){
+                        //         stream.setUint8(GamePacket.PLAYER_DESTROY);
+                        //         stream.setUint8(clientID);
+                        //     }
+                        // }
+                        );
 
                         break;
                     }
@@ -352,50 +372,61 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 
 
-    broadcastRemoteFunction<T extends keyof RemoteFunction>(name: T, ...args: Parameters<RemoteFunction[T]["callback"]>){
+    //@ts-expect-error
+    broadcastRemoteFunction<T extends keyof RemoteFunction>(name: T, ...args: NetCallbackTupleType<RemoteFunction[T]>){
         
-        this.queuePacket({
-            write(stream){
-                RemoteFunctionLinker.serializeRemoteFunction(name, stream, ...args);
-            }
-        });
-    }
-
-    callRemoteFunction<T extends keyof RemoteFunction>(target: ConnectionID, name: T, ...args: Parameters<RemoteFunction[T]["callback"]>){
-
-        const connection = this.players.get(target);
-
-        connection.personalPackets.enqueue({
-            write(stream){
-                RemoteFunctionLinker.serializeRemoteFunction(name, stream, ...args);
-            }   
-        });
+        this.queuePacket(
+            new RemoteFunctionPacket(name, ...args)
+        //     {
+        //     write(stream){
+        //         RemoteFunctionLinker.serializeRemoteFunction(name, stream, ...args);
+        //     }
+        // }
+        );
     }
 
     //@ts-expect-error
-    callEntityEvent<SharedName extends keyof SharedNetworkedEntities, EventName extends keyof SharedNetworkedEntities[SharedName]["events"]>(entity: ServerEntity, sharedName: SharedName, event: EventName & string, ...args: Parameters<NetCallbackTypeV1<SharedNetworkedEntities[SharedName]["events"][EventName]>>){
+    callRemoteFunction<T extends keyof RemoteFunction>(target: ConnectionID, name: T, ...args: NetCallbackTupleType<RemoteFunction[T]>){
+
+        const packet = new RemoteFunctionPacket(name, ...args);
+
+        const connection = this.players.get(target);
+
+        connection.personalPackets.enqueue(packet,
+        //     {
+        //     write(stream){
+        //         RemoteFunctionLinker.serializeRemoteFunction(name, stream, ...args);
+        //     }   
+        // }
+        );
+    }
+
+    //@ts-expect-error
+    callEntityEvent<SharedName extends keyof SharedNetworkedEntities, EventName extends keyof SharedNetworkedEntities[SharedName]["events"]>(entity: ServerEntity, sharedName: SharedName, event: EventName, ...args: Parameters<NetCallbackTypeV1<SharedNetworkedEntities[SharedName]["events"][EventName]>>){
        
         const id = entity.entityID;
         assert(id !== NULL_ENTITY_INDEX);
 
-        this.queuePacket({
-            write(stream){
+        this.queuePacket(new RemoteEntityEventPacket(sharedName, event, entity.constructor["SHARED_ID"], id,...args));
 
-                stream.setUint8(GamePacket.REMOTE_ENTITY_EVENT);
-                stream.setUint8(entity.constructor["SHARED_ID"])
-                StreamWriteEntityID(stream, id);
-                stream.setUint8(SharedEntityLinker.eventNameToEventID(sharedName, event));
-                
-                //@ts-ignore
-                const data = SharedNetworkedEntityDefinitions[sharedName]["events"][event]["argTypes"];
+        // this.queuePacket({
+        //     write(stream){
 
-                for (let i = 0; i < data.length; i++) {
-                    //@ts-expect-error
-                    SerializeTypedVar(stream,data[i], args[i])
-                }
+        //         stream.setUint8(GamePacket.REMOTE_ENTITY_EVENT);
+        //         stream.setUint8(entity.constructor["SHARED_ID"])
+        //         StreamWriteEntityID(stream, id);
+        //         stream.setUint8(SharedEntityLinker.eventNameToEventID(sharedName, event));
                 
-            }
-        })
+        //         //@ts-ignore
+        //         const data = SharedNetworkedEntityDefinitions[sharedName]["events"][event]["argTypes"];
+
+        //         for (let i = 0; i < data.length; i++) {
+        //             //@ts-expect-error
+        //             SerializeTypedVar(stream,data[i], args[i])
+        //         }
+                
+        //     }
+        // })
     }
 
 
@@ -410,12 +441,15 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             p.playerEntity.setItem(weapon)
         }
 
-        this.queuePacket({
-            write(stream){
-                stream.setUint8(GamePacket.SET_ITEM);
-                stream.setUint8(weapon);
-            }
-        });
+        this.queuePacket(
+            new SetItemPacket(weapon)
+        //     {
+        //     write(stream){
+        //         stream.setUint8(GamePacket.SET_ITEM);
+        //         stream.setUint8(weapon);
+        //     }
+        // // }
+        );
     }
 
 
@@ -426,26 +460,31 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         
         const id = e.entityID;
         
-        this.currentTickPacketsForEveryone.push({
-            write(stream){
-                stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
-                stream.setUint8(e.constructor["SHARED_ID"]);
-                StreamWriteEntityID(stream, id);
-            }
-        });
+        this.currentTickPacketsForEveryone.push(new RemoteEntityCreatePacket(e.constructor["SHARED_ID"], id));
+
+        // this.currentTickPacketsForEveryone.push({
+        //     write(stream){
+        //         stream.setUint8(GamePacket.REMOTE_ENTITY_CREATE);
+        //         stream.setUint8(e.constructor["SHARED_ID"]);
+        //         StreamWriteEntityID(stream, id);
+        //     }
+        // });
     }
 
     
     destroyRemoteEntity(e: ServerEntity){
 
         const id = e.entityID;
-        this.currentTickPacketsForEveryone.push({
-            write(stream){
-                stream.setUint8(GamePacket.REMOTE_ENTITY_DELETE);
-                stream.setUint8(e.constructor["SHARED_ID"]);
-                StreamWriteEntityID(stream, id);
-            }
-        });
+
+        this.currentTickPacketsForEveryone.push(new RemoteEntityDestroyPacket(e.constructor["SHARED_ID"], id));
+
+        // this.currentTickPacketsForEveryone.push({
+        //     write(stream){
+        //         stream.setUint8(GamePacket.REMOTE_ENTITY_DELETE);
+        //         stream.setUint8(e.constructor["SHARED_ID"]);
+        //         StreamWriteEntityID(stream, id);
+        //     }
+        // });
 
         this.entities.destroyEntity(e);
     }
@@ -475,12 +514,15 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         p.playerEntity.dead = true;
 
                         console.log("Death!")
-                        this.currentTickPacketsForEveryone.push({
-                            write(stream){
-                                stream.setUint8(GamePacket.PLAYER_DESTROY);
-                                stream.setUint8(player);
-                            }
-                        })
+                        this.currentTickPacketsForEveryone.push(
+                            new PlayerDestroyPacket(player)
+                        //     {
+                        //     write(stream){
+                        //         stream.setUint8(GamePacket.PLAYER_DESTROY);
+                        //         stream.setUint8(player);
+                        //     }
+                        // }
+                        )
                     }
                 }
             }

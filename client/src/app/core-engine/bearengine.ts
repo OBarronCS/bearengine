@@ -236,7 +236,7 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
     
 
     loadLevel(level: GameLevel){
-        console.log("Starting scene");
+        console.log("Starting level");
         if(this.levelLoaded) throw new Error("TRYING TO LOAD A LEVEL WHEN ONE IS ALREADY LOADED");
 
         this.activeLevel = level;
@@ -250,7 +250,7 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
 
         this.activeLevel.internalEnd(this);
 
-        
+
         this.entities.clear();
         this.terrain.clear();
         this.collisionManager.clear()

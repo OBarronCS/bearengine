@@ -1,5 +1,5 @@
 import { autoDetectRenderer, Renderer, Container, DisplayObject, utils, InteractionManager, Graphics, Sprite, Texture } from "pixi.js";
-import { clamp } from "shared/misc/mathutils";
+import { clamp, E } from "shared/misc/mathutils";
 import { BearEngine } from "./bearengine";
 import { GraphicsPart, SpritePart } from "./parts";
 import { Subsystem } from "shared/core/subsystem";
@@ -101,6 +101,17 @@ export class RendererSystem {
 
 
     updateParticles(dt: number){
+        // To remove emitters once they are dead
+        // Should have _destroyWhenComplete() set to true. Or call
+        // for(let i = this.emitters.length - 1; i > 0;i--){
+        //     const e = this.emitters[i];
+        //     e.update(dt);
+        //     if (!e.emit && !e["_activeParticlesFirst"]) {
+        //          e.destroy()
+        //         this.emitters.pop();
+        //     }
+        // }
+
         for(const emitter of this.emitters){
             emitter.update(dt);
         }
