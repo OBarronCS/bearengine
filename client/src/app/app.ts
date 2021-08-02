@@ -26,7 +26,6 @@ engine.loadAssets().then(RESOURCES => {
     
 
     //engine.start(new FrameEditor(engine))
-    //game.loadFrameEditor();
 })
 
 

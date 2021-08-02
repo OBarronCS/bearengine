@@ -47,9 +47,9 @@ export class BearEngine {
     game: BearGame<this>;
 
     public tick = 0;
+    public totalTime = 0;
     private lastFrameTimeMs = 0;
     private accumulated = 0;
-    public totalTime = 0;
 
     public paused = false;
 

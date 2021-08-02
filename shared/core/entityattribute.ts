@@ -38,7 +38,7 @@ export class AttributeContainer<T extends Attribute> {
             return null;
         }
 
-        return this.dense[getEntityIndex(sparseIndex)];
+        return this.dense[getEntityIndex(value)];
     }
 
     contains(e: EntityID): boolean {

@@ -57,8 +57,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     private referenceTick: number = 0;
     
     public tick = 0;
-    private previousTickTime: number = 0;
     public totalTime = 0;
+    private previousTickTime: number = 0;
 
 
 
@@ -66,6 +66,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     
 
     public isStageActive: boolean = false;
+
 
     // Subsystems
     public levelbbox: Rect;
@@ -80,6 +81,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         this.currentTickPacketsForEveryone.push(packet);
     }
 
+    // Set of all packets that should be sent to any player joining mid-game
     private lifetimeImportantPackets: Queue<PacketWriter> = new LinkedQueue<PacketWriter>();
 
 

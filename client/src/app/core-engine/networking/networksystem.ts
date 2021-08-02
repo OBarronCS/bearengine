@@ -38,6 +38,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
 
 
+    private sendStream = new BufferStreamWriter(new ArrayBuffer(256));
+
 
     private remoteEntities: Map<number, Entity> = new Map();
     private remotePlayers: Map<number, RemotePlayer> = new Map(); 
@@ -183,7 +185,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
         if(abs(this.ping - pingThisTime) > 4){
             this.ping = pingThisTime;
         }
-        if(this.ping < 0) console.log("Ping is negative") 
+        if(this.ping < 0) console.log("Ping is negative. How") 
         if(this.ping <= 0) this.ping = 1;
 
 
@@ -602,7 +604,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
         if(this.network.CONNECTED && this.SERVER_IS_TICKING && this.LEVEL_ACTIVE){
             const player = this.game.player;
 
-            const stream = new BufferStreamWriter(new ArrayBuffer(256));
+
+            const stream = this.sendStream;
             stream.setUint8(ServerPacketSubType.QUEUE);
 
             if(!player.dead){    
@@ -625,6 +628,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             this.packetsToSerialize = []
 
             this.network.send(stream.cutoff());
+
+            // Allow it to be re-used
+            stream.refresh()
         }
     }
 

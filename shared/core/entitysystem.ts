@@ -6,6 +6,7 @@ import { EntityEventListType, EventRegistry } from "shared/core/bearevents";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { assert } from "shared/misc/assertstatements";
 import { BearEvents } from "./sharedlogic/eventdefinitions";
+import { SparseSet } from "shared/datastructures/sparseset";
 
 
 // Most significant 8 bits are version number, unsigned int --> [0,255], wraps 
@@ -44,7 +45,6 @@ function entityToString(id: EntityID){
     return str
 }
 
-// Sends entityIndex as 16 bit unsigned integer. Server should never have over 2 ^ 16 entities alive at same time. I 
 export function StreamWriteEntityID(stream: BufferStreamWriter, entityID: EntityID): void {
     // const indexNumber = getEntityIndex(entityID);
 
@@ -63,7 +63,7 @@ export function StreamReadEntityID(stream: BufferStreamReader): number {
     return stream.getUint32();
 }
 
-export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> extends Subsystem {
+export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> extends Subsystem {
     
     private partQueries: AttributeQuery<Attribute>[] = [];
     private allEntityEventHandlers: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();;
@@ -80,7 +80,7 @@ export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> ex
     // Set of entities
     private freeID = NULL_ENTITY_INDEX; 
     private sparse: number[] = [];
-    public entities: EntityType[] = [];
+    public entities: TEntity[] = [];
 
     private deleteEntityQueue: EntityID[] = [];
 
@@ -116,7 +116,7 @@ export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> ex
         //@ts-expect-error
         const partID = partConstructor.partID;
 
-        if(partID === -1) return null;
+        if(partID === -1) return [];
         
         //@ts-expect-error
         const container: AttributeContainer<T> = this.partContainers[partID];
@@ -150,7 +150,7 @@ export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> ex
         return container.getEntityPart(e);
     }
 
-    addEntity<T extends EntityType>(e: T): T {
+    addEntity<T extends TEntity>(e: T): T {
 
         if(e.entityID !== NULL_ENTITY_INDEX) {
             console.log("trying to add the same entity twice;")
@@ -209,7 +209,7 @@ export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> ex
         return e;
     }
 
-    private registerEvents<T extends EntityType>(e: T, sparseIndex: number): void {
+    private registerEvents<T extends TEntity>(e: T, sparseIndex: number): void {
 
         // console.log(e, e.constructor["EVENT_REGISTRY"]);
 
@@ -228,7 +228,7 @@ export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> ex
         }
     }
 
-    private deleteEvents<T extends EntityType>(e: T, sparseIndex: number){
+    private deleteEvents<T extends TEntity>(e: T, sparseIndex: number){
         if(e.constructor["EVENT_REGISTRY"]){
             const list = e.constructor["EVENT_REGISTRY"] as EntityEventListType<T>;
 
@@ -244,13 +244,11 @@ export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> ex
     }
 
     /** Null if entity has already been deleted */
-    getEntity<T extends EntityType = EntityType>(entityID: EntityID): T | null {
+    getEntity<T extends TEntity = TEntity>(entityID: EntityID): T | null {
         const sparseIndex = getEntityIndex(entityID);
         const version = getEntityVersion(entityID); 
         
         if(getEntityVersion(this.sparse[sparseIndex]) !== version) {
-            // This is fairly common
-            // console.log("Trying to delete something that has already been deleted");
             return null;
         }
         
@@ -260,7 +258,7 @@ export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> ex
     }
 
     /** Queues the destroyal of an entity, end of scene system tick */
-    destroyEntity<T extends EntityType>(e: T): void {
+    destroyEntity<T extends TEntity>(e: T): void {
         this.destroyEntityID(e.entityID);
     }
 
@@ -372,5 +370,91 @@ export class EntitySystem<EntityType extends AbstractEntity = AbstractEntity> ex
 }
 
 
+
+
+
+
+
+
+// // Put on pause; Need to figure out Updating, entity deletion
+// //  Perhaps this is something that lives on an EntitySystem (they have member variable)
+// //  Which in turns call this update();
+// //  EntitySystem.subsets:EntitySystemEntityType<TEntity>[] = [];
+
+// type EntitySystemEntityType<T> = T extends EntitySystem<infer R> ? R : never; 
+
+// class EntitySystemSubset<TSystem extends EntitySystem<AbstractEntity>, TEntity extends EntitySystemEntityType<TSystem> = EntitySystemEntityType<TSystem>> {
+
+//     private parentEntitySystem: TSystem;
+
+//     private subset: SparseSet<TEntity> = new SparseSet<TEntity>();
+
+//     constructor(system: TSystem){
+//         this.parentEntitySystem = system;
+//     }
+
+//     view<K extends new(...args: any[]) => Attribute>(partConstructor: K): readonly InstanceType<K>[] {
+//         return this.parentEntitySystem.view(partConstructor);
+//     }
+
+//     hasAttribute<K extends new(...args: any[]) => Attribute>(e: EntityID, partConstructor: K): boolean {
+//         return this.parentEntitySystem.hasAttribute(e, partConstructor);
+//     }
+
+//     getAttribute<T extends Attribute, K extends new(...args: any[]) => T>(e: EntityID, partConstructor: K): T | null {
+//         return this.parentEntitySystem.getAttribute(e, partConstructor);
+//     }
+
+//     addEntity<T extends TEntity>(e: T): T {
+//         if(e.entityID !== NULL_ENTITY_INDEX) {
+//             console.log("trying to add the same entity twice;")
+//             return e;
+//         }
+
+//         this.parentEntitySystem.addEntity(e);
+
+//         this.subset.add(e.entityID, e);
+    
+
+//         // Create interface to solve this error
+//         e.scene = this;
+
+
+//         return e;
+//     }
+
+
+//     /** Null if entity has already been deleted */
+//     getEntity<T extends TEntity = TEntity>(entityID: EntityID): T | null {
+//         return this.parentEntitySystem.getEntity(entityID);
+//     }
+
+//     /** Queues the destroyal of an entity, end of scene system tick */
+//     destroyEntity<T extends TEntity>(e: T): void {
+//         this.parentEntitySystem.destroyEntity(e);
+
+//         this.destroyEntityID(e.entityID);
+//     }
+
+//     /** Queues the destroyal of an entity, end of scene system tick */
+//     destroyEntityID(id: EntityID): void {
+//         this.parentEntitySystem.destroyEntityID(id);
+
+//     }
+    
+
+//     update(delta: number): void {
+
+        
+//     }
+
+    
+//     //  Does not clear queries
+//     clear(){
+        
+
+        
+//     }
+// }
 
 
