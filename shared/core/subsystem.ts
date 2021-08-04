@@ -1,19 +1,21 @@
-import { AbstractBearEngine } from "shared/core/abstractengine";
 import { Attribute, AttributeQuery} from "shared/core/entityattribute";
+import { BearGame } from "./abstractengine";
 import { EventRegistry } from "./bearevents";
 import { BearEvents } from "./sharedlogic/eventdefinitions";
 
 // new(engine: BearEngine) => T
 
 // Optional type override for more flexibility, for server/client specific subsystems
-export abstract class Subsystem<EngineType extends AbstractBearEngine = AbstractBearEngine> {
+export abstract class Subsystem<TGame extends BearGame<any> = BearGame<{}>> {
     
     public queries: AttributeQuery<any>[] = [];
     public eventHandlers: EventRegistry<keyof BearEvents>[] = [];
 
-    public engine: EngineType;
-    constructor(engine: EngineType){
-        this.engine = engine;
+    public game: TGame;
+    public engine: TGame["engine"]
+    constructor(game: TGame){
+        this.game = game;
+        this.engine = game.engine;
     }
 
     abstract init(): void;

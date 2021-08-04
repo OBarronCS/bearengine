@@ -1,8 +1,8 @@
-import { AbstractBearEngine } from "./abstractengine";
+import { BearGame } from "./abstractengine";
 import { AbstractEntity } from "./abstractentity";
 
 // USE: Subclass, or provide functions in 'on' functions!
-export class Effect<T extends AbstractBearEngine = AbstractBearEngine> extends AbstractEntity<T> {
+export class Effect<T extends BearGame<any> = BearGame<{}>> extends AbstractEntity<T> {
 
 	private startFunctions: (() => void)[] = [];
 	private updateFunctions: ((dt: number) => void)[] = [];

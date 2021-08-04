@@ -37,8 +37,7 @@ https://drafts.csswg.org/css-color/#funcdef-hsl
 */
 
 import { randomInt } from "shared/misc/random";
-import { utils } from "pixi.js";
-import { floor, lerp } from "shared/misc/mathutils";
+import { floor, lerp, string2hex } from "shared/misc/mathutils";
 
 
 export function rgb(r: number,g: number,b: number,a = 1): Color{
@@ -47,23 +46,26 @@ export function rgb(r: number,g: number,b: number,a = 1): Color{
 
 export class Color {
 
-    static RED = new Color([255,0,0,1]);
-    static GREEN = new Color([0,255,0,1]);
-    static BLUE = new Color([0,0,255,1]);
+    static RED: Readonly<Color> = new Color([255,0,0,1]);
+    static GREEN: Readonly<Color> = new Color([0,255,0,1]);
+    static BLUE: Readonly<Color> = new Color([0,0,255,1]);
 
     static random(): Color {
         return new Color([randomInt(0,256), randomInt(0,256), randomInt(0,256), 1]);
     }
 
+    /** "[#]RRGGBB" */
     static fromString(str: string): Color {
-        return this.fromNumber(utils.string2hex(str));
+        return this.fromNumber(string2hex(str));
     }
 
+    /** 0xRRGGBB */
     static fromNumber(num: number): Color {
-        const rgb = utils.hex2rgb(num).map(v => floor(v * 255));
-        
-        // @ts-expect-error
-        return new Color([...rgb, 1]);
+        const r = (num & 0xFF0000) >>> 16;
+        const g = (num & 0x00FF00) >>> 8;
+        const b = num & 0x0000FF;
+
+        return new Color([r,g,b, 1]);
     }
 
     constructor(
@@ -108,6 +110,8 @@ export class Color {
 
     // equals?
 }
+
+
 //* mix for colors */
 export function blend(color1: Color, color2: Color, percent: number, target: Color = new Color([0,0,0,0])){
     for(let i = 0; i < 4; i++){

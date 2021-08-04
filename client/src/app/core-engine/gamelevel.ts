@@ -4,7 +4,7 @@ import { EntitySystem } from "shared/core/entitysystem";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { string2hex } from "shared/misc/mathutils";
 import { Rect } from "shared/shapes/rectangle";
-import { ASSET_FOLDER_NAME, BearEngine } from "./bearengine"
+import { ASSET_FOLDER_NAME, BearEngine, NetworkPlatformGame } from "./bearengine"
 import { Entity } from "./entity";
 
 
@@ -14,11 +14,13 @@ export abstract class GameLevel {
 
     /** Put null for path if want no data */
     abstract path: string | TiledMap
-    protected abstract start(engine: BearEngine, scene: EntitySystem): void;
-    protected abstract end(engine: BearEngine): void;
     abstract update(dt: number): void;
+    protected abstract start(engine: NetworkPlatformGame, scene: EntitySystem): void;
+    protected abstract end(engine: NetworkPlatformGame): void;
 
-    internalStart(engine: BearEngine, scene: EntitySystem){
+
+    internalStart(game: NetworkPlatformGame, scene: EntitySystem){
+        const engine = game.engine;
 
         const tiled = typeof this.path === "string" ? 
             engine.getResource(this.path).data as TiledMap :
@@ -37,12 +39,12 @@ export abstract class GameLevel {
             this.bbox = new Rect(0,0,width,height);
             
             const bodies = mapdata.bodies;
-            engine.terrain.setupGrid(width, height);
+            game.terrain.setupGrid(width, height);
             bodies.forEach( (body) => {
-                engine.terrain.addTerrain(body.points, body.normals)
+                game.terrain.addTerrain(body.points, body.normals)
             });
 
-            engine.collisionManager.setupGrid(width, height);
+            game.collisionManager.setupGrid(width, height);
 
             engine.renderer.renderer.backgroundColor = string2hex(mapdata.world.backgroundcolor);
             // Load sprites from map 
@@ -57,16 +59,16 @@ export abstract class GameLevel {
         }
 
         // const graphics = engine.renderer.createCanvas();
-        engine.terrain.graphics = new Graphics();
-        engine.renderer.addSprite(engine.terrain.graphics);
-        engine.terrain.queueRedraw();
+        game.terrain.graphics = new Graphics();
+        engine.renderer.addSprite(game.terrain.graphics);
+        game.terrain.queueRedraw();
 
-        this.start(engine, scene);
+        this.start(game, scene);
     }
 
-    internalEnd(engine: BearEngine){
+    internalEnd(game: NetworkPlatformGame){
 
-        this.end(engine);
+        this.end(game);
     }
 }
 
@@ -79,10 +81,10 @@ export class DummyLevel extends GameLevel {
         this.path = path;
     }
 
-    start(engine: BearEngine, scene: EntitySystem<Entity>): void {
+    start(engine: NetworkPlatformGame, scene: EntitySystem<Entity>): void {
         
     }
-    end(engine: BearEngine): void {
+    end(engine: NetworkPlatformGame): void {
 
     }
     update(dt: number): void {

@@ -29,7 +29,13 @@ export interface MouseInput {
     onmousemove(func: (worldPoint:Vec2,screenPoint:Vec2) => void): void,
 }
 
-export class EngineMouse extends Subsystem<BearEngine> {
+export class EngineMouse {
+
+    public engine: BearEngine;
+    constructor(engine: BearEngine){
+        this.engine = engine;
+    }
+
     // Really far away so doesn't overlap with anyone at beginning
     position: Vec2 = new Vec2(-99999999,-99999999);
     screenPosition: Vec2 = new Vec2(-99999999,-99999999);
@@ -56,8 +62,8 @@ export class EngineMouse extends Subsystem<BearEngine> {
 
     // click --> called once when left mouse button down and up
     private _click: ((worldPoint:Vec2,screenPoint:Vec2) => void)[] = [];
-    private _mousemove:  ((worldPoint:Vec2,screenPoint:Vec2) => void)[] = [];
-    private _mousedown:  ((worldPoint:Vec2,screenPoint:Vec2) => void)[][] = [[],[],[]];
+    private _mousemove: ((worldPoint:Vec2,screenPoint:Vec2) => void)[] = [];
+    private _mousedown: ((worldPoint:Vec2,screenPoint:Vec2) => void)[][] = [[],[],[]];
     private _mouseup: ((worldPoint:Vec2,screenPoint:Vec2) => void)[][] = [[],[],[]];
     private _onscroll: ((direction: number,worldPoint:Vec2,screenPoint:Vec2) => void)[] = [];
 

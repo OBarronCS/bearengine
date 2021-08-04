@@ -52,22 +52,10 @@ export class RandomizedBag<T> {
 
     // return an independent iterator over items in random order
     // linear time, linear space per iterator
-    [Symbol.iterator](){
+    [Symbol.iterator](): Iterator<T> {
         const arrayCopy: T[] = [...this.items];
         shuffle(arrayCopy);
-        let currentIndex = 0;
-        
-        const iterator = {
-            next: () => {
-                if(currentIndex !== arrayCopy.length){
-                    const item = arrayCopy[currentIndex++];
-                    return { value: item, done: false };
-                } 
-            
-                return { value: null, done: true };
-            }
-        };
-        return iterator;
+        return arrayCopy[Symbol.iterator]();
     }
 }
 

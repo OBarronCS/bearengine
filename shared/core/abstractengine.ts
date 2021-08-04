@@ -1,40 +1,51 @@
+import { AbstractEntity } from "./abstractentity";
+import { EntitySystem } from "./entitysystem";
 import { Subsystem } from "./subsystem";
 
-export abstract class BearState<E extends {}> {
 
-    engine: E;
 
-    constructor(engine: E){
+export abstract class BearGame<TEngine extends {}, TEntity extends AbstractEntity = AbstractEntity> {
+
+    systems: Subsystem[] = [];
+
+    engine: TEngine;
+
+    entities: EntitySystem<TEntity>;
+
+    constructor(engine: TEngine){
         this.engine = engine;
+        this.entities = this.registerSystem(new EntitySystem(this));
+    }
+
+    protected abstract initSystems(): void;
+
+    initialize(){
+
+        this.initSystems();
+
+        for(const system of this.systems){
+            system.init();
+        }
+
+        this.entities.registerSystems(this.systems);
+
+        AbstractEntity["GAME_OBJECT"] = this;
+
+
+
+        this.onStart();
     }
 
     abstract update(dt: number): void;
-    abstract onStart(): void;
-    abstract onEnd(): void;
+    protected abstract onStart(): void;
+    protected abstract onEnd(): void;
 
     
-    systems: Subsystem[] = [];
-
+    
     registerSystem<T extends Subsystem>(system: T): T {
         this.systems.push(system);
         return system;
     }
 }
-
-
-export abstract class AbstractBearEngine extends BearState<undefined>{
-    
-  
-}
-
-// export abstract class AbstractBearEngine {
-    
-//     protected systems: Subsystem[] = [];
-    
-//     public registerSystem<T extends Subsystem>(system: T): T {
-//         this.systems.push(system);
-//         return system;
-//     }
-// }
 
 

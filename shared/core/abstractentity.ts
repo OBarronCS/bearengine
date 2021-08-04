@@ -1,13 +1,13 @@
 import { Vec2 } from "shared/shapes/vec2";
+import { BearGame } from "./abstractengine";
 
-import { AbstractBearEngine } from "./abstractengine";
 import { Attribute } from "./entityattribute";
 import { NULL_ENTITY_INDEX, EntitySystem } from "./entitysystem";
 
 // Signifies that this number is special
 export type EntityID = number; 
 
-export abstract class AbstractEntity<Engine extends AbstractBearEngine = AbstractBearEngine> {
+export abstract class AbstractEntity<TGame extends BearGame<any> = BearGame<{}, any>> {
     readonly entityID: EntityID = NULL_ENTITY_INDEX;
 
     readonly position: Vec2 = new Vec2(0,0);
@@ -17,8 +17,10 @@ export abstract class AbstractEntity<Engine extends AbstractBearEngine = Abstrac
     public scene: EntitySystem;
 
     //@ts-expect-error --> Server and client side just make this equal to "engine.this"
-    private static ENGINE_OBJECT: Engine;
-    get engine(): Engine { return AbstractEntity.ENGINE_OBJECT; }
+    private static GAME_OBJECT: TGame;
+    get game(): TGame { return AbstractEntity.GAME_OBJECT}
+    get engine(): TGame["engine"] { return this.game.engine; }
+    
 
     get x() { return this.position.x; }
     set x(x: number) { this.position.x = x; }

@@ -6,7 +6,7 @@ import { Dimension, dimensions } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 
 import { GraphicsPart, SpritePart } from "./parts";
-import { BearEngine } from "./bearengine";
+import { BearEngine, NetworkPlatformGame } from "./bearengine";
 import { MouseInput } from "../input/mouse";
 import { EngineKeyboard } from "../input/keyboard";
 import { ColliderPart } from "shared/core/entityattribute";
@@ -16,13 +16,13 @@ import { bearevent } from "shared/core/bearevents";
 
 
 // Client specific entity
-export abstract class Entity extends AbstractEntity<BearEngine> {
+export abstract class Entity extends AbstractEntity<NetworkPlatformGame> {
 
 
-    get terrain(): TerrainManager { return this.engine.terrain; }
+    get terrain(): TerrainManager { return this.game.terrain; }
     get mouse(): MouseInput { return this.engine.mouse; }
     get keyboard(): EngineKeyboard { return this.engine.keyboard; }
-    get level(): GameLevel { return this.engine.activeLevel; } 
+    get level(): GameLevel { return this.game.activeLevel; } 
 
     // Used for quick movement implementation
     simpleMovement(speed: number): Coordinate {

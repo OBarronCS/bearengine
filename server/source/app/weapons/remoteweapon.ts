@@ -8,6 +8,7 @@ import { Effect } from "shared/core/effects";
 import { ServerBearEngine } from "../serverengine";
 import { Line } from "shared/shapes/line";
 import { TickTimer } from "shared/datastructures/ticktimer";
+import { TerrainCarveCirclePacket } from "../networking/gamepacketwriters";
 
 
 export abstract class Gun extends ServerEntity {
@@ -63,9 +64,9 @@ export class Hitscan extends Gun {
 
 
         // Check in radius to see if any players are hurt
-        for(const client of this.engine.clients){
+        for(const client of this.game.clients){
 
-            const p = this.engine.players.get(client);
+            const p = this.game.players.get(client);
 
             if(ray.pointDistance(p.playerEntity.position) < 30){
                 p.playerEntity.health -= 16;
@@ -97,7 +98,7 @@ export class ModularGun extends Gun {
             addon.modifyShot(bullet);
         }
     
-        this.engine.createRemoteEntity(bullet);
+        this.game.createRemoteEntity(bullet);
     }
 }
 
@@ -120,14 +121,14 @@ export class ProjectileBullet extends Effect<ServerBearEngine> {
         super();
     
         this.onUpdate(function(dt: number){
-            if(!this.engine.levelbbox.contains(this.position)){
+            if(!this.game.levelbbox.contains(this.position)){
                 this.destroy();
             }
         });
     }
 
     override destroy(){
-        this.engine.destroyRemoteEntity(this);
+        this.game.destroyRemoteEntity(this);
     }
 } 
 
@@ -136,28 +137,31 @@ export class TerrainHitAddon implements GunAddon {
 
     modifyShot(bullet: ProjectileBullet){
         bullet.onUpdate(function(){
-            const testTerrain = this.engine.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)));
+            const testTerrain = this.game.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)));
             
             const RADIUS = 40;
             const DMG_RADIUS = 80;
 
             if(testTerrain){
-                this.engine.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
+                this.game.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
 
-                this.engine.queuePacket({
-                    write(stream){
-                        stream.setUint8(GamePacket.TERRAIN_CARVE_CIRCLE);
-                        stream.setFloat64(testTerrain.point.x);
-                        stream.setFloat64(testTerrain.point.y);
-                        stream.setInt32(RADIUS);
-                    }
-                })
+                this.game.queuePacket(
+                    new TerrainCarveCirclePacket(testTerrain.point.x, testTerrain.point.y, RADIUS)
+                //     {
+                //     write(stream){
+                //         stream.setUint8(GamePacket.TERRAIN_CARVE_CIRCLE);
+                //         stream.setFloat64(testTerrain.point.x);
+                //         stream.setFloat64(testTerrain.point.y);
+                //         stream.setInt32(RADIUS);
+                //     }
+                // })
+                );
 
                 const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
 
                 // Check in radius to see if any players are hurt
-                for(const client of this.engine.clients){
-                    const p = this.engine.players.get(client);
+                for(const client of this.game.clients){
+                    const p = this.game.players.get(client);
 
                     if(Vec2.distanceSquared(p.playerEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
                         p.playerEntity.health -= 16;
@@ -192,7 +196,7 @@ export class ServerBullet extends ProjectileBullet {
 
 
         if(this.t.tick()){
-           this.engine.callEntityEvent(this, "bullet", "testEvent7", {arr: ["asd"], otherValue: new Vec2(23,31), x : 1}, 123);
+           this.game.callEntityEvent(this, "bullet", "testEvent7", {arr: ["asd"], otherValue: new Vec2(23,31), x : 1}, 123);
         }
 
         // this.test += 1;

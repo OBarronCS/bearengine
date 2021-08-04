@@ -12,7 +12,7 @@ import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bu
 import { Player, RemotePlayer } from "../../gamelogic/player";
 import { abs, ceil } from "shared/misc/mathutils";
 import { LinkedQueue } from "shared/datastructures/queue";
-import { BearEngine } from "../bearengine";
+import { BearEngine, NetworkPlatformGame } from "../bearengine";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { ItemEnum } from "server/source/app/weapons/weapondefinitions";
@@ -25,16 +25,20 @@ interface BufferedPacket {
 }
 
 /** Reads packets from network, sends them */
-export class NetworkSystem extends Subsystem<BearEngine> {
+export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
     private network: CallbackNetwork;
     private packets = new LinkedQueue<BufferedPacket>();
 
 
     private scene: EntitySystem;
-    public remotelocations = this.addQuery(RemoteLocations);
+    public remotelocations = this.addQuery(RemoteLocations, 
+        (e) => console.log(e)
+    );
 
 
+
+    private sendStream = new BufferStreamWriter(new ArrayBuffer(256));
 
 
     private remoteEntities: Map<number, Entity> = new Map();
@@ -77,7 +81,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
     */
     private dejitterTime = 50;
     
-    constructor(engine: BearEngine, settings: NetworkSettings){
+    constructor(engine: NetworkPlatformGame, settings: NetworkSettings){
         super(engine);
         this.network = new CallbackNetwork(settings, this.onmessage.bind(this));;
     }
@@ -125,7 +129,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
     }
 
     init(): void {
-        this.scene = this.engine.entityManager;
+        this.scene = this.game.entities;
 
         // Put it pretty far in the past so forces it to calculate
         this.timeOfLastPing = Date.now() - 1000000;
@@ -181,7 +185,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
         if(abs(this.ping - pingThisTime) > 4){
             this.ping = pingThisTime;
         }
-        if(this.ping < 0) console.log("Ping is negative") 
+        if(this.ping < 0) console.log("Ping is negative. How") 
         if(this.ping <= 0) this.ping = 1;
 
 
@@ -323,10 +327,10 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             const y = stream.getFloat32();
                             const level = RemoteResourceLinker.getResourceFromID(stream.getUint8());
 
-                            this.engine.endCurrentLevel();
-                            this.engine.loadLevel(new DummyLevel(level));
+                            this.game.endCurrentLevel();
+                            this.game.loadLevel(new DummyLevel(level));
 
-                            const p = this.engine.player = new Player();
+                            const p = this.game.player = new Player();
 
                             this.scene.addEntity(p);
 
@@ -374,6 +378,8 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                                 continue;
                             }
 
+                            console.log("Creating other player, id: " + pID)
+
                             const entity = new RemotePlayer(pID);
                             this.remotePlayers.set(pID, entity);
                             this.scene.addEntity(entity);
@@ -386,7 +392,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
 
                            if(pId === this.PLAYER_ID){
                                // Destroy my own
-                               this.engine.player.dead = true;
+                               this.game.player.dead = true;
 
                                continue;
                            }
@@ -401,7 +407,9 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                            break;
                         }
                         case GamePacket.PLAYER_POSITION:{
-                            
+                           
+
+
                             // Find correct entity
                             const playerID = stream.getUint8();
                     
@@ -412,16 +420,19 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             const health = stream.getUint8();
 
                             if(playerID === this.PLAYER_ID){
-                                this.engine.player.health = health;
+                                this.game.player.health = health;
                                 continue;
                             }
+
 
                             let e = this.remotePlayers.get(playerID);
                             if(e === undefined){
                                 console.log("Unknown player data");
                                 continue;
                             }
-                            
+
+                            // console.log(`Player data for ${playerID}, at tick ${frame}`)
+
                             e.locations.addPosition(frame, x,y);
                             e.setState(state,flipped);
                             e.health = health;
@@ -429,7 +440,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                             break;
                         }
                         case GamePacket.TERRAIN_CARVE_CIRCLE: {
-                            const terrain = this.engine.terrain;
+                            const terrain = this.game.terrain;
                             const x = stream.getFloat64();
                             const y = stream.getFloat64();
                             const r = stream.getInt32();
@@ -525,7 +536,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
                         case GamePacket.SET_ITEM: {
                             const item: ItemEnum = stream.getUint8();
 
-                            this.engine.player.itemInHand.setItem(item);
+                            this.game.player.itemInHand.setItem(item);
                             
                             break;
                         }
@@ -537,6 +548,7 @@ export class NetworkSystem extends Subsystem<BearEngine> {
 
             // Interpolation of entities
             const frameToSimulate = this.getServerTickToSimulate();
+
 
             for(const obj of this.remotelocations){
                 obj.setPosition(frameToSimulate)
@@ -590,9 +602,10 @@ export class NetworkSystem extends Subsystem<BearEngine> {
     
     writePackets(){
         if(this.network.CONNECTED && this.SERVER_IS_TICKING && this.LEVEL_ACTIVE){
-            const player = this.engine.player;
+            const player = this.game.player;
 
-            const stream = new BufferStreamWriter(new ArrayBuffer(256));
+
+            const stream = this.sendStream;
             stream.setUint8(ServerPacketSubType.QUEUE);
 
             if(!player.dead){    
@@ -615,6 +628,9 @@ export class NetworkSystem extends Subsystem<BearEngine> {
             this.packetsToSerialize = []
 
             this.network.send(stream.cutoff());
+
+            // Allow it to be re-used
+            stream.refresh()
         }
     }
 
