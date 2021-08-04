@@ -5,7 +5,7 @@ import { EntitySystem } from "shared/core/entitysystem";
 import { TiledMap } from "shared/core/tiledmapeditor";
 import { dimensions } from "shared/shapes/rectangle";
 import { Vec2 } from "shared/shapes/vec2";
-import { BearEngine } from "../core-engine/bearengine";
+import { BearEngine, NetworkPlatformGame } from "../core-engine/bearengine";
 import { DrawableEntity, Entity, GMEntity } from "../core-engine/entity";
 import { GameLevel } from "../core-engine/gamelevel";
 import { SpritePart } from "../core-engine/parts";
@@ -17,7 +17,7 @@ export class FirstLevel extends GameLevel {
     
     path: string | TiledMap = "assets/firsttest.json";
 
-    start(engine: BearEngine, scene: EntitySystem): void {
+    start(game: NetworkPlatformGame, scene: EntitySystem): void {
 
         const p = scene.addEntity(new Player());
 
@@ -99,7 +99,7 @@ export class FirstLevel extends GameLevel {
             }
             draw(g: Graphics): void {
                 g.clear();
-                this.engine.collisionManager.draw(g);
+                this.game.collisionManager.draw(g);
             }
         }
         // scene.addEntity(new Debug())
@@ -109,7 +109,7 @@ export class FirstLevel extends GameLevel {
     }
 
 
-    end(engine: BearEngine): void {
+    end(engine: NetworkPlatformGame): void {
 
 
 

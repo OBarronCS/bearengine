@@ -553,9 +553,9 @@ export class Player extends DrawableEntity {
     /** If not collision to terrain, return bottom of bot ray, not rotated */
     private getFeetCollisionPoint():{ point: Vec2, normal: Vec2, collision: boolean} {
         // The player has already moved at this point
-        const leftRay = this.engine.terrain.lineCollision(this.leftDownRay.A, this.leftDownRay.B);
-        const rightRay = this.engine.terrain.lineCollision(this.rightDownRay.A, this.rightDownRay.B);
-        const midRay = this.engine.terrain.lineCollision(this.midDownRay.A, this.midDownRay.B);
+        const leftRay = this.game.terrain.lineCollision(this.leftDownRay.A, this.leftDownRay.B);
+        const rightRay = this.game.terrain.lineCollision(this.rightDownRay.A, this.rightDownRay.B);
+        const midRay = this.game.terrain.lineCollision(this.midDownRay.A, this.midDownRay.B);
 
         const tempWinningRay = (leftRay === null && rightRay === null) ? null : 
                             (leftRay === null) ? rightRay : 
@@ -584,8 +584,8 @@ export class Player extends DrawableEntity {
     /** If not collision to terrain, return bottom of bot ray, not rotated */
     private getHeadCollisionPoint():{ point: Vec2, normal: Vec2, collision: boolean} {
         // The player has already moved at this point
-        const leftRay = this.engine.terrain.lineCollision(this.leftHeadRay.A, this.leftHeadRay.B);
-        const rightRay = this.engine.terrain.lineCollision(this.rightHeadRay.A, this.rightHeadRay.B);
+        const leftRay = this.game.terrain.lineCollision(this.leftHeadRay.A, this.leftHeadRay.B);
+        const rightRay = this.game.terrain.lineCollision(this.rightHeadRay.A, this.rightHeadRay.B);
         
         const winningRay = (leftRay === null && rightRay === null) ? null : 
                             (leftRay === null) ? rightRay : 
@@ -608,8 +608,8 @@ export class Player extends DrawableEntity {
 
     /** return nearest point of intersection, else collision = false */
     private getRightWallCollisionPoint():{ point: Vec2, normal: Vec2, collision: boolean, both: boolean } {
-        const waistRay = this.engine.terrain.lineCollision(this.rightWallRay.A, this.rightWallRay.B);
-        const climbRay = this.engine.terrain.lineCollision(this.rightClimbRay.A, this.rightClimbRay.B);
+        const waistRay = this.game.terrain.lineCollision(this.rightWallRay.A, this.rightWallRay.B);
+        const climbRay = this.game.terrain.lineCollision(this.rightClimbRay.A, this.rightClimbRay.B);
         
         const winningRay = (waistRay === null && climbRay === null) ? null : 
                             (waistRay === null) ? climbRay : 
@@ -636,8 +636,8 @@ export class Player extends DrawableEntity {
 
     /** return nearest point of intersection, else collision = false */
     private getLeftWallCollisionPoint():{ point: Vec2, normal: Vec2, collision: boolean, both: boolean } {
-        const waistRay = this.engine.terrain.lineCollision(this.leftWallRay.A, this.leftWallRay.B);
-        const climbRay = this.engine.terrain.lineCollision(this.leftClimbRay.A, this.leftClimbRay.B);
+        const waistRay = this.game.terrain.lineCollision(this.leftWallRay.A, this.leftWallRay.B);
+        const climbRay = this.game.terrain.lineCollision(this.leftClimbRay.A, this.leftClimbRay.B);
         
         const winningRay = (waistRay === null && climbRay === null) ? null : 
                             (waistRay === null) ? climbRay : 
@@ -1105,13 +1105,13 @@ export class Player extends DrawableEntity {
         // CLIMBING
         this.setSensorLocations();
         if(horz_move > 0){
-            const climbTest = this.engine.terrain.lineCollision(this.rightClimbRay.A, this.rightClimbRay.B);
+            const climbTest = this.game.terrain.lineCollision(this.rightClimbRay.A, this.rightClimbRay.B);
                 
             if(climbTest === null){
 
                 this.rightClimbRay.B.x += 8;
 
-                const targetPoint = this.engine.terrain.lineCollision(this.rightClimbRay.B, this.rightClimbRay.B.clone().add({x:0,y:this.player_height / 2}));
+                const targetPoint = this.game.terrain.lineCollision(this.rightClimbRay.B, this.rightClimbRay.B.clone().add({x:0,y:this.player_height / 2}));
                 if(targetPoint !== null){
                     if(targetPoint.normal.y < -.8){
                         this.climbStateData = {
@@ -1135,13 +1135,13 @@ export class Player extends DrawableEntity {
             }
         } else if(horz_move < 0){
             // left
-            const climbTest = this.engine.terrain.lineCollision(this.leftClimbRay.A, this.leftClimbRay.B);
+            const climbTest = this.game.terrain.lineCollision(this.leftClimbRay.A, this.leftClimbRay.B);
                 
             if(climbTest === null){
 
                 this.leftClimbRay.B.x -= 8;
 
-                const targetPoint = this.engine.terrain.lineCollision(this.leftClimbRay.B, this.leftClimbRay.B.clone().add({x:0,y:this.player_height / 2}));
+                const targetPoint = this.game.terrain.lineCollision(this.leftClimbRay.B, this.leftClimbRay.B.clone().add({x:0,y:this.player_height / 2}));
                 if(targetPoint !== null){
                     if(targetPoint.normal.y < -.8){
                         this.climbStateData = {
@@ -1250,12 +1250,13 @@ export class RemotePlayer extends Entity {
 
     graphics = this.addPart(new GraphicsPart());
 
+    locations = this.addPart(new RemoteLocations());
+
     constructor(id: number){
         super();
         this.id = id;
     }
 
-    public locations = this.addPart(new RemoteLocations());
     
     private readonly runAnimation = new PlayerAnimationState(this.engine.getResource("player/run.json").data as SavePlayerAnimation, 4, new Vec2(40,16));
     private readonly wallslideAnimation = new PlayerAnimationState(this.engine.getResource("player/wallslide.json").data as SavePlayerAnimation, 30, new Vec2(44,16));

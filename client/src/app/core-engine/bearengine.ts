@@ -2,7 +2,7 @@
 import { Graphics, Loader, Sprite, Texture } from "pixi.js";
 import { GUI, GUIController } from "dat.gui";
 
-import { AbstractBearEngine } from "shared/core/abstractengine";
+import { BearGame } from "shared/core/abstractengine";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { EntitySystem } from "shared/core/entitysystem";
 import { Subsystem } from "shared/core/subsystem";
@@ -15,7 +15,7 @@ import { EngineKeyboard } from "../input/keyboard";
 import { EngineMouse } from "../input/mouse";
 import { CameraSystem } from "./camera";
 import { NetworkSystem } from "./networking/networksystem";
-import { RendererSystem } from "./renderer";
+import { DefaultEntityRenderer, RendererSystem } from "./renderer";
 import { TestMouseDownEventDispatcher } from "./mouseevents";
 import { Player } from "../gamelogic/player";
 import { GameLevel } from "./gamelevel";
@@ -42,110 +42,48 @@ console.log("Assets: " + ALL_TEXTURES)
 const maxFPS = 60;
 const simulation_time = 1000 / maxFPS;
 
-export class BearEngine extends AbstractBearEngine {
+export class BearEngine {
+
+    game: BearGame<this>;
 
     public tick = 0;
+    public totalTime = 0;
     private lastFrameTimeMs = 0;
     private accumulated = 0;
-    public totalTime = 0;
 
     public paused = false;
 
 
-    // Subsystems
-    public networksystem: NetworkSystem;
     public renderer: RendererSystem;
     public camera: CameraSystem;
     public mouse: EngineMouse;
     public keyboard: EngineKeyboard;
-    public entityManager: EntitySystem;
-    public terrain: TerrainManager;
-    public collisionManager: CollisionManager;
 
-    private mouseEventDispatcher: TestMouseDownEventDispatcher;
-
-
-    public activeLevel: GameLevel;
-    public levelLoaded = false;
-
-
-    public player: Player = null;
 
 
     init(): void {
         const div = document.querySelector("#display") as HTMLElement;
-
-        // Register order matters due to dependencies
-        this.networksystem = this.registerSystem(new NetworkSystem(this, { port: 80 }));
         
 
-        this.mouse = this.registerSystem(new EngineMouse(this));
-        this.keyboard = this.registerSystem(new EngineKeyboard(this));
-        this.camera = this.registerSystem(new CameraSystem(this));
+        this.mouse = new EngineMouse(this);
+        this.keyboard = new EngineKeyboard();
 
-
-
-        this.terrain = this.registerSystem(new TerrainManager(this));
-        this.collisionManager = this.registerSystem(new CollisionManager(this));
-
-        this.entityManager = this.registerSystem(new EntitySystem(this))
+        this.camera = new CameraSystem(this);
         
-        // For testing
-        this.mouseEventDispatcher = this.registerSystem(new TestMouseDownEventDispatcher(this))
-
-        
-        this.renderer = this.registerSystem(new RendererSystem(this, div, window));
+        this.renderer = new RendererSystem(this, div, window);
 
 
 
-        for(const system of this.systems){
-            system.init();
-        }
+        this.mouse.init();
+        this.keyboard.init(this.renderer.renderer.view.ownerDocument.defaultView);
+        this.camera.init();
 
-        this.keyboard.bind("k", () => {
-            this.restartCurrentLevel()
-        });
+
+        // this.keyboard.bind("k", () => {
+        //     this.restartCurrentLevel()
+        // });
+
         this.keyboard.bind("g", () => this.paused = !this.paused);
-    }
-
-    loadFrameEditor(){
-        AbstractEntity["ENGINE_OBJECT"] = this;
-    
-        this.entityManager.registerSceneSystems(this.systems);
-        frameEditor(this)
-    }
-
-    loadLevel(level: GameLevel){
-        console.log("Starting scene");
-        if(this.levelLoaded) throw new Error("TRYING TO LOAD A LEVEL WHEN ONE IS ALREADY LOADED");
-
-        AbstractEntity["ENGINE_OBJECT"] = this;
-
-        this.entityManager.registerSceneSystems(this.systems);
-
-        this.activeLevel = level;
-        level.internalStart(this, this.entityManager);
-
-        this.levelLoaded = true;
-    }
-
-    endCurrentLevel(){
-        console.log("Ending level")
-
-        this.activeLevel.internalEnd(this);
-
-        this.entityManager.clear();
-        this.terrain.clear();
-        this.collisionManager.clear()
-
-        this.renderer.clear();
-
-        this.levelLoaded = false;
-    }   
-
-    restartCurrentLevel(){
-        this.endCurrentLevel();
-        this.loadLevel(this.activeLevel);
     }
 
     // Loads all assets from server
@@ -163,7 +101,7 @@ export class BearEngine extends AbstractBearEngine {
     }
 
     getResource(path: string) {
-        if(path.startsWith("assets/")) path = path.substr(7);
+        if(path.startsWith(ASSET_FOLDER_NAME)) path = path.substr(7);
         
         const fullPath = ASSET_FOLDER_NAME + path;
         const data = SHARED_RESOURCES[fullPath];
@@ -173,20 +111,31 @@ export class BearEngine extends AbstractBearEngine {
         return data;
     }
 
-    /** Starts main loop. Connects to server */
-    start(){
-        if(this.renderer === null) console.error("RENDERER NOT INITIALIZED");
-
-        this.networksystem.connect();
-
+    /** Starts main loop. */
+    start(game: BearGame<any>){
+        this.game = game;
+        this.game.initialize();
         (this.loop.bind(this))();
     }
 
-    private _boundloop = this.loop.bind(this);
 
+    private update(dt: number){
+        this.mouse.update();
+        this.keyboard.update();
+        this.camera.update(dt);
+
+
+        this.game.update(dt);
+
+
+        this.renderer.updateParticles(dt);
+    }
+
+
+
+    private _boundloop = this.loop.bind(this);
     loop(timestamp: number = performance.now()){
 
-        
         if(!this.paused){
             this.accumulated += timestamp - this.lastFrameTimeMs;
 
@@ -200,36 +149,12 @@ export class BearEngine extends AbstractBearEngine {
                 // divide by 1000 to get seconds
                 const dt = simulation_time / 1000;
 
-
-                this.networksystem.readPackets();
-
-                this.mouse.update();
-                this.keyboard.update();
-                this.camera.update(dt);
-
-                this.terrain.update(dt);
-                this.collisionManager.update(dt);
-
-                this.mouseEventDispatcher.update(dt)
-
-                if(this.levelLoaded){
-                    this.activeLevel.update(dt);
-                }
-
-
-                this.entityManager.update(dt);
-
-
-                this.networksystem.writePackets();
-
-                this.renderer.updateParticles(dt);
+                this.update(dt);
 
                 this.tick++;
                 this.totalTime += dt;
                 this.accumulated -= simulation_time;
             }
-            
-            //console.log(performance.now() - timestamp) 
         }
                
         this.renderer.update();
@@ -241,5 +166,95 @@ export class BearEngine extends AbstractBearEngine {
 }
 
 
+export class NetworkPlatformGame extends BearGame<BearEngine> {
+  
+
+    public activeLevel: GameLevel;
+    public levelLoaded = false;
+
+    public player: Player = null;
+    
+    // Subsystems
+    public networksystem: NetworkSystem;
+    public terrain: TerrainManager;
+    public collisionManager: CollisionManager;
+
+    private mouseEventDispatcher: TestMouseDownEventDispatcher;
+
+    public entityRenderer: DefaultEntityRenderer;
+
+    initSystems(): void {
+        this.networksystem = this.registerSystem(new NetworkSystem(this, {port:80}));
+        this.terrain = this.registerSystem(new TerrainManager(this));
+        this.collisionManager = this.registerSystem(new CollisionManager(this));
+        this.mouseEventDispatcher = this.registerSystem(new TestMouseDownEventDispatcher(this));
+        this.entityRenderer = this.registerSystem(new DefaultEntityRenderer(this));
+    }
+
+    onStart(): void {
+        this.networksystem.connect();
+    }
+
+
+    update(dt: number): void {
+
+        this.networksystem.readPackets();
+
+        this.terrain.update(dt);
+        this.collisionManager.update(dt);
+
+        this.mouseEventDispatcher.update(dt)
+
+        // if(this.levelLoaded){
+        //     this.activeLevel.update(dt);
+        // }
+
+
+        this.entities.update(dt);
+
+        this.networksystem.writePackets();
+
+
+        this.entityRenderer.update(dt);
+    }
+
+   
+
+    onEnd(): void {
+
+    }
+
+    
+
+    loadLevel(level: GameLevel){
+        console.log("Starting level");
+        if(this.levelLoaded) throw new Error("TRYING TO LOAD A LEVEL WHEN ONE IS ALREADY LOADED");
+
+        this.activeLevel = level;
+        level.internalStart(this, this.entities);
+
+        this.levelLoaded = true;
+    }
+
+    endCurrentLevel(){
+        console.log("Ending level")
+
+        this.activeLevel.internalEnd(this);
+
+
+        this.entities.clear();
+        this.terrain.clear();
+        this.collisionManager.clear()
+
+        this.entityRenderer.clear();
+
+        this.levelLoaded = false;
+    }   
+
+    restartCurrentLevel(){
+        this.endCurrentLevel();
+        this.loadLevel(this.activeLevel);
+    }
+}
 
 

@@ -122,6 +122,7 @@ export class BufferStreamWriter {
         return this.dataview.buffer.slice(0,this.maxOffset);
     }
 
+    /* Allows buffer to be re-used. Does not override data */
     refresh(){
         this.byteOffset = 0;
         this.maxOffset = 0;

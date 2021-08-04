@@ -4,9 +4,18 @@ import { GamePacket } from "./packetdefinitions";
 import { areEqualSorted, containsDuplicates } from "shared/datastructures/arrayutils";
 import { DefineSchema, DeserializeTypedVar, NetworkVariableTypes, SerializeTypedVar, SharedTemplates, TypescriptTypeOfNetVar } from "./serialization";
 
-export interface PacketWriter {
-    write(stream: BufferStreamWriter): void,
-}
+
+export abstract class PacketWriter {
+    savePacket: boolean;
+
+    constructor(savePacket: boolean){
+        this.savePacket = savePacket;
+    }
+
+    abstract write(stream: BufferStreamWriter): void;
+} 
+
+
 
 // The format to define networked entities
 interface SharedNetworkEntityFormat {
@@ -87,7 +96,8 @@ type TupleToTypescriptType<T extends readonly NetworkVariableTypes[]> = {
 
 // type TEST_TYPE = MergeEventTuples<SharedNetworkedEntities["bullet"]["events"]["testEvent7"]>
 
-type NetCallbackTupleType<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
+/** Returns a tuple type */
+export type NetCallbackTupleType<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
     //@ts-expect-error
     =  TupleToTypescriptType<MergeEventTuples<EVENT>>;
 
@@ -246,8 +256,9 @@ export const SharedEntityLinker = {
         }
     },
 
-    eventNameToEventID<T extends keyof SharedNetworkedEntities, X extends keyof SharedNetworkedEntities[T]["events"]>(sharedName: T, eventName: X & string){
+    eventNameToEventID<T extends keyof SharedNetworkedEntities, X extends keyof SharedNetworkedEntities[T]["events"]>(sharedName: T, eventName: X){
         
+        //@ts-expect-error
         return sharedEntityEventToEventID[this.nameToSharedID(sharedName)].get(eventName);
 
     },
@@ -292,6 +303,8 @@ export const RemoteFunctionStruct = DefineSchema<RemoteFunctionFormat>()({
 } as const);
 
 export type RemoteFunction = typeof RemoteFunctionStruct;
+
+
 
 
 

@@ -5,7 +5,7 @@ import { Subsystem } from "shared/core/subsystem";
 import { BearEngine } from "../core-engine/bearengine";
 
 
-export class EngineKeyboard extends Subsystem<BearEngine> {
+export class EngineKeyboard {
 
     // Things that were down last tick
     private lastKeyDownMap = new Map<KECode,boolean>();
@@ -21,9 +21,10 @@ export class EngineKeyboard extends Subsystem<BearEngine> {
 
     private mousetrap: MousetrapInstance;
 
-    init(){
-        const renderer = this.engine.renderer;
-        const form: Window = renderer.renderer.view.ownerDocument.defaultView;
+
+
+    init(target: Window){
+        const form = target;
     
         //The types definitions are incorrect as you can bind a window
         //https://github.com/ccampbell/mousetrap/issues/247
@@ -35,13 +36,7 @@ export class EngineKeyboard extends Subsystem<BearEngine> {
         
         form.addEventListener("keyup",(e) => {
             this.keyDownMap.set(e.code as KECode,false);
-        });
-        
-        // Stops right click menu
-        renderer.renderer.view.addEventListener('contextmenu', function(ev) {
-            ev.preventDefault();
-            return false;
-        }, false);
+        });   
     }
 
     update(){
