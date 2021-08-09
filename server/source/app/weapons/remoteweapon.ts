@@ -1,14 +1,14 @@
+import { Effect } from "shared/core/effects";
+import { Clip, CreateShootController, GunshootController } from "shared/core/sharedlogic/weapondefinitions";
+import { TickTimer } from "shared/datastructures/ticktimer";
+import { Line } from "shared/shapes/line";
 import { Vec2 } from "shared/shapes/vec2";
-import { Clip, CreateShootController, GunshootController } from "server/source/app/weapons/weapondefinitions";
 
 import { ServerEntity } from "../entity";
-import { networkedclass_server, sync } from "../networking/serverentitydecorators";
-import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
-import { Effect } from "shared/core/effects";
-import { ServerBearEngine } from "../serverengine";
-import { Line } from "shared/shapes/line";
-import { TickTimer } from "shared/datastructures/ticktimer";
 import { TerrainCarveCirclePacket } from "../networking/gamepacketwriters";
+import { networkedclass_server, sync } from "../networking/serverentitydecorators";
+import { ServerBearEngine } from "../serverengine";
+
 
 
 export abstract class Gun extends ServerEntity {

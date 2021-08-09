@@ -1,6 +1,6 @@
 import { Gun, Hitscan, ModularGun, TerrainHitAddon } from "./weapons/remoteweapon";
 import { Vec2 } from "shared/shapes/vec2";
-import { Clip, CreateShootController, ItemEnum } from "./weapons/weapondefinitions";
+import { Clip, CreateShootController, ItemEnum } from "../../../shared/core/sharedlogic/weapondefinitions";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { random_range } from "shared/misc/random";
 import { ServerEntity } from "./entity";

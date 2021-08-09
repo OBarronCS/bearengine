@@ -68,6 +68,7 @@ export abstract class GameLevel {
 
     internalEnd(game: NetworkPlatformGame){
 
+        game.engine.renderer.removeSprite(game.terrain.graphics);
         this.end(game);
     }
 }

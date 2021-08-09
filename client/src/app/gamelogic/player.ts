@@ -16,7 +16,7 @@ import { SavePlayerAnimation } from "./testlevelentities";
 
 import { Emitter } from "pixi-particles";
 
-import { ItemEnum } from "server/source/app/weapons/weapondefinitions";
+import { ItemEnum } from "shared/core/sharedlogic/weapondefinitions";
 
 
 

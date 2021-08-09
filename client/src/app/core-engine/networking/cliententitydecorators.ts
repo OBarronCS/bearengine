@@ -328,6 +328,14 @@ export const SharedEntityClientTable = {
         entity[eventDefinition.methodname](...args);
     },
 
+    readThroughRemoteEventStream(stream: BufferStreamReader, sharedID: number, eventID: number, entity: BaseEntityType){
+        const eventDefinition = this.REGISTERED_NETWORKED_ENTITIES[sharedID].eventDefinition[eventID];
+        
+        for(const functionArgumentType of eventDefinition.argumenttypes){
+            DeserializeTypedVar(stream, functionArgumentType)
+        }
+    },
+
     deserialize(stream: BufferStreamReader, frame: number, sharedID: number, entity: BaseEntityType){
         
         const variableslist = this.REGISTERED_NETWORKED_ENTITIES[sharedID].varDefinition
@@ -346,7 +354,6 @@ export const SharedEntityClientTable = {
                 entity[variableinfo.recieveFuncName](value);
             }
         }
-
     }
 }
 

@@ -18,7 +18,7 @@ import { TerrainManager } from "shared/core/terrainmanager";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
-import { ItemEnum } from "server/source/app/weapons/weapondefinitions";
+import { ItemEnum } from "shared/core/sharedlogic/weapondefinitions";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";

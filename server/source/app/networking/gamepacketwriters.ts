@@ -4,7 +4,7 @@ import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { Gamemode } from "shared/core/sharedlogic/sharedenums";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
-import { ItemEnum } from "../weapons/weapondefinitions";
+import { ItemEnum } from "../../../../shared/core/sharedlogic/weapondefinitions";
 import { ConnectionID } from "./serversocket";
 
 

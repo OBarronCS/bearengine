@@ -18,7 +18,7 @@ import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { DummyLevel } from "../gamelevel";
 import { Vec2 } from "shared/shapes/vec2";
 
-import { ItemEnum } from "server/source/app/weapons/weapondefinitions";
+import { ItemEnum } from "shared/core/sharedlogic/weapondefinitions";
  
 import { Gamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
@@ -93,6 +93,12 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     /** milliseconds, adjusted on ping packets */
     private CLOCK_DELTA = 0;
 
+    private _serverTime = 0;
+    currentServerTime(): number { return this._serverTime; }
+    
+    private _serverTick = 0;
+    currentServerTick(): number { return this._serverTick; }
+
     // Generous, default ping
     // MAYBE: set it to -1 and don't start ticking until we actually know it. Right now it starts ticking and then some time later the ping is adjusted
     private ping: number = 100;
@@ -108,13 +114,16 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
     // Calculating bytes/second processed from network. Keeps only stuff from the last second.
     // Use priority queue to make sure nothing from more than a second ago is counted 
-    byteAmountReceived: Deque<{bytes:number, time: number}> = new Deque();
+    private byteAmountReceived: Deque<{bytes:number, time: number}> = new Deque();
     bytesPerSecond = 0;
     
     
+
+    
+
     constructor(engine: NetworkPlatformGame, settings: NetworkSettings){
         super(engine);
-        this.network = new CallbackNetwork(settings, this.onmessage.bind(this));;
+        this.network = new CallbackNetwork(settings, this.onmessage.bind(this));
     }
 
     public connect(){
@@ -242,7 +251,14 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
         if(this.network.CONNECTED){
 
             // send ping packet every 2 seconds
+
             const now = Date.now();
+
+
+            this._serverTime = now + this.CLOCK_DELTA;
+            this._serverTick = this.calculateCurrentServerTick();
+
+
             if(now >= this.timeOfLastPing + 2000){
                 this.sendPing();
                 this.timeOfLastPing = now;
@@ -269,8 +285,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                     // Amount of bytes received in the last second
                     this.bytesPerSecond = sum;;// / (dt / 1000);
                 }
+            } else {
+                this.bytesPerSecond = 0;
             }
-
 
 
             
@@ -284,6 +301,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                 while(stream.hasMoreData()){
                     const type: GamePacket = stream.getUint8();
+
+                    // console.log(GamePacket[type])
 
                     switch(type){
                         case GamePacket.INIT: {
@@ -348,7 +367,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const client = this.otherClients.get(uniqueID);
 
                             if(client === null) { 
-                                console.log("PING FOR UNKNOWN PLAYER");
+                                console.log("GAMEMODE FOR UNKNOWN PLAYER");
                                 continue;
                             }
 
@@ -399,7 +418,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 // Will try to create the entity for now, but we missed the REMOTE_ENTITY_CREATE packet clearly
                                 console.log(`Cannot find entity ${entityID}, will create`);
                                 entity = this.createAutoRemoteEntity(SHARED_ID,entityID)
-                                continue;
                             }
 
                             SharedEntityClientTable.deserialize(stream, frame, SHARED_ID, entity);
@@ -417,6 +435,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             if(entity === undefined){
                                 // Will try to create the entity for now, but we missed the REMOTE_ENTITY_CREATE packet clearly
+                                SharedEntityClientTable.readThroughRemoteEventStream(stream, SHARED_ID, eventID, entity)
                                 continue;
                                 console.log(`Cannot find entity ${entityID}, will create`);
                                 entity = this.createAutoRemoteEntity(SHARED_ID,entityID)
@@ -674,6 +693,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                 
             }
 
+
             // Interpolation of entities
             const frameToSimulate = this.getServerTickToSimulate();
 
@@ -693,11 +713,25 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
         }
     }
 
+    /** Returns the fractional tick that we think the server is "currently simulating" */
+    private calculateCurrentServerTick(): number {
+        // The time of the latest packet we "just received", translated to serverTime
+        const serverTimeOfPacketJustReceived = (this.currentServerTime() - this.ping);
+
+        // Now we know what 'server time' frame to simulate, need to convert it to a frame number
+        const msPassedSinceLastTickReference = serverTimeOfPacketJustReceived - Number(this.REFERENCE_SERVER_TICK_TIME);
+
+        
+        // Divide by thousand in there to convert to seconds, which is the unit of SERVER_SEND_RATE 
+        const currentServerTick = this.REFERENCE_SERVER_TICK_ID + (((msPassedSinceLastTickReference / 1000) * (this.SERVER_SEND_RATE)));
+        
+        return currentServerTick;
+    }
 
     /** Includes fractional part of tick */
     private getServerTickToSimulate(): number {
         // In milliseconds
-        const serverTime = Date.now() + this.CLOCK_DELTA;
+        const serverTime = this.currentServerTime(); //Date.now() + this.CLOCK_DELTA;
 
         // If ping is inaccurate, this will break. 
         // If this.ping is a lot lower than it really is, interpolation will break. 
