@@ -23,7 +23,7 @@ const BITS_FOR_HASH = 64n - BITS_FOR_MANUAL;
 const HASH_MASK = (1n << BITS_FOR_HASH) - 1n; 
 
 
-function StringHash(str: string): bigint {
+export function StringHash(str: string): bigint {
     let stringHash = 0n;
     for(const char of str){
         stringHash = BigInt(char.charCodeAt(0)) + (17n * stringHash);

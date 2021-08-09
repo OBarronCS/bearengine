@@ -15,6 +15,7 @@ import { swap } from "./arrayutils"
 export class PQ<T> {
 
     protected arr: T[] = []
+    // Natural ordering comparator. Largest values will come first in queue
     protected compareFunction: (a:T, b:T) => number;
     protected N: number = 0;
 
@@ -68,6 +69,14 @@ export class PQ<T> {
                 return iterator;
             }
         }
+    }
+
+    clone(): PQ<T> {
+        const pq = new PQ<T>(this.compareFunction);
+        pq.arr = [...this.arr];
+        pq.N = this.N;
+
+        return pq;
     }
 }
 

@@ -145,16 +145,8 @@ export class TerrainHitAddon implements GunAddon {
             if(testTerrain){
                 this.game.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
 
-                this.game.queuePacket(
+                this.game.enqueueGlobalPacket(
                     new TerrainCarveCirclePacket(testTerrain.point.x, testTerrain.point.y, RADIUS)
-                //     {
-                //     write(stream){
-                //         stream.setUint8(GamePacket.TERRAIN_CARVE_CIRCLE);
-                //         stream.setFloat64(testTerrain.point.x);
-                //         stream.setFloat64(testTerrain.point.y);
-                //         stream.setInt32(RADIUS);
-                //     }
-                // })
                 );
 
                 const point = new Vec2(testTerrain.point.x,testTerrain.point.y);

@@ -36,6 +36,11 @@ export enum GamePacket {
     
     SET_ITEM, // [ItemEnum; uint8]
 
+    // Notifying clients about other clients connected to the server
+    OTHER_PLAYER_INFO_ADD, //      [unique_client_id: uint8, ping: uint16, gamemode: Gamemode] // add string to this one day
+    OTHER_PLAYER_INFO_PING, //     [unique_client_id: uint8, ping: uint16]
+    OTHER_PLAYER_INFO_GAMEMODE, // [unique_client_id: uint8, gamemode: Gamemode]
+    OTHER_PLAYER_INFO_REMOVE, //   [unique_client_id: uint8]
 
     // command to create OTHER players 
     PLAYER_CREATE, // [playerID: uint8, x: float32, y: float32]

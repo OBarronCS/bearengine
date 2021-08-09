@@ -19,6 +19,7 @@ import { DefaultEntityRenderer, RendererSystem } from "./renderer";
 import { TestMouseDownEventDispatcher } from "./mouseevents";
 import { Player } from "../gamelogic/player";
 import { GameLevel } from "./gamelevel";
+import { DebugScreen } from "../gamelogic/debugoverlay";
 
 
 
@@ -183,12 +184,15 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
 
     public entityRenderer: DefaultEntityRenderer;
 
+    public debug: DebugScreen;
+
     initSystems(): void {
         this.networksystem = this.registerSystem(new NetworkSystem(this, {port:80}));
         this.terrain = this.registerSystem(new TerrainManager(this));
         this.collisionManager = this.registerSystem(new CollisionManager(this));
         this.mouseEventDispatcher = this.registerSystem(new TestMouseDownEventDispatcher(this));
         this.entityRenderer = this.registerSystem(new DefaultEntityRenderer(this));
+        this.debug = this.registerSystem(new DebugScreen(this));
     }
 
     onStart(): void {
@@ -213,6 +217,8 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         this.entities.update(dt);
 
         this.networksystem.writePackets();
+
+        this.debug.update(dt);
 
 
         this.entityRenderer.update(dt);
