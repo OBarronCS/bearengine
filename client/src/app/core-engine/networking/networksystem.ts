@@ -396,7 +396,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const sharedClassID = stream.getUint8();
                             const entityID = StreamReadEntityID(stream);
 
-                            console.log("CREATE, ", sharedClassID, " ", entityID);
+                            console.log("CREATE: ", sharedClassID, " ", entityID);
 
                             const check = this.remoteEntities.get(entityID);
                             if(check !== undefined) throw new Error("Entity already exists");
@@ -419,6 +419,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 console.log(`Cannot find entity ${entityID}, will create`);
                                 entity = this.createAutoRemoteEntity(SHARED_ID,entityID)
                             }
+
+                            //console.log("CHANGING VAR: " + entityID + " at frame " + frame);
 
                             SharedEntityClientTable.deserialize(stream, frame, SHARED_ID, entity);
 
@@ -477,8 +479,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             this.game.endCurrentLevel();
                             this.game.loadLevel(new DummyLevel(level));
 
-                            const p = this.game.player = new Player();
-
+                            const p = (this.game.player = new Player());
                             this.scene.addEntity(p);
 
                             p.x = x;
@@ -697,6 +698,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             // Interpolation of entities
             const frameToSimulate = this.getServerTickToSimulate();
 
+            console.log(frameToSimulate);
 
             for(const obj of this.remotelocations){
                 obj.setPosition(frameToSimulate)

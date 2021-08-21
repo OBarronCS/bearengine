@@ -10,7 +10,6 @@ import { networkedclass_server, sync } from "../networking/serverentitydecorator
 import { ServerBearEngine } from "../serverengine";
 
 
-
 export abstract class Gun extends ServerEntity {
 
     readonly shootController: GunshootController;
@@ -53,6 +52,8 @@ export abstract class Gun extends ServerEntity {
     abstract shoot(): void;
 }
 
+
+
 export class Hitscan extends Gun {
 
     constructor(){
@@ -76,6 +77,10 @@ export class Hitscan extends Gun {
 
 }
 
+interface GunAddon {
+    modifyShot: (bullet: ModularBullet) => void,
+    [key: string]: any; // allow for random data
+}
 
 export class ModularGun extends Gun {
 
@@ -102,12 +107,7 @@ export class ModularGun extends Gun {
     }
 }
 
-interface GunAddon {
-    modifyShot: (bullet: ProjectileBullet) => void,
-    [key: string]: any; // allow for random data
-}
-
-export class ProjectileBullet extends Effect<ServerBearEngine> {
+export class ModularBullet extends Effect<ServerBearEngine> {
     
     stateHasBeenChanged = false;
     markDirty(): void {
@@ -135,7 +135,7 @@ export class ProjectileBullet extends Effect<ServerBearEngine> {
 
 export class TerrainHitAddon implements GunAddon {
 
-    modifyShot(bullet: ProjectileBullet){
+    modifyShot(bullet: ModularBullet){
         bullet.onUpdate(function(){
             const testTerrain = this.game.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)));
             
@@ -167,7 +167,7 @@ export class TerrainHitAddon implements GunAddon {
 }
 
 @networkedclass_server("bullet")
-export class ServerBullet extends ProjectileBullet {
+export class ServerBullet extends ModularBullet {
     
     @sync("bullet").var("_pos")
     _pos = new Vec2(0,0);

@@ -34,6 +34,8 @@ type PulseDefinition = {
     submode: "auto"|"semiauto"
 }
 
+export type SimpleWeaponControllerDefinition = AutoDefinition | SemiAutoDefinition | PulseDefinition;
+
 export function CreateShootController(def: AutoDefinition | SemiAutoDefinition | PulseDefinition): GunshootController {
     
     let trigger: GunshootController
