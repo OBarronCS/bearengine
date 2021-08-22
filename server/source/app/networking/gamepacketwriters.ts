@@ -4,7 +4,6 @@ import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { Gamemode } from "shared/core/sharedlogic/sharedenums";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
-import { ItemEnum } from "../../../../shared/core/sharedlogic/weapondefinitions";
 import { ConnectionID } from "./serversocket";
 
 
@@ -130,15 +129,15 @@ export class PlayerDestroyPacket extends PacketWriter {
 }
 
 
-export class SetItemPacket extends PacketWriter {
+export class SetInvItemPacket extends PacketWriter {
 
-    constructor(public weaponID: ItemEnum){
-        super(true);
+    constructor(public itemID: number){
+        super(false);
     }
 
     write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.SET_ITEM);
-        stream.setUint8(this.weaponID)
+        stream.setUint8(GamePacket.SET_INV_ITEM);
+        stream.setUint8(this.itemID);
 
     }
 }

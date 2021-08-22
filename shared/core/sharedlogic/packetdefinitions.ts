@@ -33,8 +33,6 @@ export enum GamePacket {
 
     END_ROUND, // [] empty 
 
-    
-    SET_ITEM, // [ItemEnum; uint8]
 
 
     CLEAR_INV_ITEM, // []

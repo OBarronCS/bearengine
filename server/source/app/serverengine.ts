@@ -18,13 +18,13 @@ import { TerrainManager } from "shared/core/terrainmanager";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
-import { ItemEnum } from "shared/core/sharedlogic/weapondefinitions";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
-import { EndRoundPacket, InitPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, PlayerCreatePacket, PlayerDestroyPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetItemPacket, StartRoundPacket } from "./networking/gamepacketwriters";
+import { EndRoundPacket, InitPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, PlayerCreatePacket, PlayerDestroyPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetInvItemPacket, StartRoundPacket } from "./networking/gamepacketwriters";
 import { Gamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
+import { TerrainCarverGun } from "./weapons/serveritems";
 
 
 const MAX_BYTES_PER_PACKET = 2048;
@@ -398,17 +398,16 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
     testweapon(){
 
-        const weapon = ItemEnum.TERRAIN_CARVER;
-
         for(const client of this.clients){
             const p = this.players.get(client);
 
-            p.playerEntity.setItem(weapon)
+            const weapon = new TerrainCarverGun();
+
+            p.playerEntity.setWeapon(weapon);
+
+            p.personalPackets.enqueue(new SetInvItemPacket(weapon.item_data.item_id));
         }
 
-        this.enqueueGlobalPacket(
-            new SetItemPacket(weapon)
-        );
     }
 
 

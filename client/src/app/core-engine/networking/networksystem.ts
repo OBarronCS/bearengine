@@ -17,12 +17,11 @@ import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { DummyLevel } from "../gamelevel";
 import { Vec2 } from "shared/shapes/vec2";
-
-import { ItemEnum } from "shared/core/sharedlogic/weapondefinitions";
  
 import { Gamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
+import { CreateItem, ItemType, ITEM_LINKER } from "shared/core/sharedlogic/items";
 
 class ClientInfo {
     uniqueID: number;
@@ -681,10 +680,31 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             break;
                         }
 
-                        case GamePacket.SET_ITEM: {
-                            const item: ItemEnum = stream.getUint8();
+                        case GamePacket.SET_INV_ITEM: {
+                            const item = stream.getUint8();
 
-                            this.game.player.itemInHand.setItem(item);
+                            const item_data = CreateItem(ITEM_LINKER.IDToName(item));
+
+                            switch(item_data.item_type){
+                                // case ItemType.SIMPLE: {
+                                //     break;
+                                // }
+                                case ItemType.HITSCAN_WEAPON: {
+                                    break;
+                                }
+                                case ItemType.TERRAIN_CARVER: {
+                                    break;
+                                }
+
+                                default: AssertUnreachable(item_data);
+                            }
+
+                            this.game.player.itemInHand.setItem(item_data);
+                            
+                            break;
+                        }
+
+                        case GamePacket.CLEAR_INV_ITEM: {
                             
                             break;
                         }
