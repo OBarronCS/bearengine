@@ -1,7 +1,10 @@
 import { Sprite, Graphics } from "pixi.js";
 import { Effect } from "shared/core/effects";
 import { CreateItemData, GunItemData, ItemData, ItemType } from "shared/core/sharedlogic/items";
+import { PacketWriter } from "shared/core/sharedlogic/networkschemas";
+import { GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { CreateShootController, GunshootController } from "shared/core/sharedlogic/weapondefinitions";
+import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { random_range } from "shared/misc/random";
 import { Line } from "shared/shapes/line";
@@ -75,13 +78,41 @@ export abstract class Gun<T extends GunItemData = GunItemData> extends Item<T> {
 }
 
 
+export function ShootHitscanWeapon(game: NetworkPlatformGame, line: Line): void {
+    line.draw(game.engine.renderer.createCanvas(), 0xbeef00);
+}
+
+export class ServerBoundHitscanPacket extends PacketWriter {
+
+    constructor(public createServerTick: number, public start: Vec2, public end: Vec2){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(ServerBoundPacket.SHOOT_WEAPON);
+        stream.setUint8(ItemType.HITSCAN_WEAPON);
+
+        stream.setFloat32(this.createServerTick);
+        
+        stream.setFloat32(this.start.x);
+        stream.setFloat32(this.start.y);
+
+        stream.setFloat32(this.end.x);
+        stream.setFloat32(this.end.y);
+
+    }
+}
 
 export class Hitscan extends Gun {
 
     shoot(game: NetworkPlatformGame): void {
         const ray = new Line(this.position, Vec2.add(this.position, this.direction.extend(1000)));
 
-        ray.draw(game.engine.renderer.createCanvas(), 0xbeef00);
+        ShootHitscanWeapon(game, ray);
+
+        game.networksystem.queuePacket(
+            new ServerBoundHitscanPacket(0,ray.A, ray.B)
+        )
 
         // // Check in radius to see if any players are hurt
         // for(const client of game.clients){
@@ -224,14 +255,15 @@ export class ItemDrawer extends Entity {
         this.setSprite(item.item_sprite);
     }
 
+    clear(){
+        this.image.sprite.visible = false;
+    }
+
     private setSprite(path: string){
         this.image.sprite.visible = true;
         this.image.sprite.texture = this.engine.getResource(path).texture;
     }
 
-    clear(){
-        this.image.sprite.visible = false;
-    }
 
     update(dt: number): void {
     }

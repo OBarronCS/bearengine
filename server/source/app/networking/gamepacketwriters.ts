@@ -1,9 +1,11 @@
 import { StreamWriteEntityID } from "shared/core/entitysystem";
+import { ItemType } from "shared/core/sharedlogic/items";
 import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { Gamemode } from "shared/core/sharedlogic/sharedenums";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
+import { Vec2 } from "shared/shapes/vec2";
 import { ConnectionID } from "./serversocket";
 
 
@@ -236,3 +238,24 @@ export class TerrainCarveCirclePacket extends PacketWriter {
     }
 }
 
+
+export class HitscanShotPacket extends PacketWriter {
+
+    constructor(public createServerTick: number, public start: Vec2, public end: Vec2){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.SHOOT_WEAPON);
+        stream.setUint8(ItemType.HITSCAN_WEAPON);
+        
+        stream.setFloat32(this.createServerTick);
+
+        stream.setFloat32(this.start.x);
+        stream.setFloat32(this.start.y);
+
+        stream.setFloat32(this.end.x);
+        stream.setFloat32(this.end.y);
+
+    }
+}

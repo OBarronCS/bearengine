@@ -22,7 +22,8 @@ import { Gamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
 import { CreateItemData, ItemType, ITEM_LINKER } from "shared/core/sharedlogic/items";
-import { CreateClientItemFromType } from "../clientitems";
+import { CreateClientItemFromType, ShootHitscanWeapon } from "../clientitems";
+import { Line } from "shared/shapes/line";
 
 class ClientInfo {
     uniqueID: number;
@@ -695,6 +696,39 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                         case GamePacket.CLEAR_INV_ITEM: {
                             
+                            this.game.player.clearItem();
+
+                            break;
+                        }
+
+                        case GamePacket.SHOOT_WEAPON: {
+
+                            const item_type: ItemType = stream.getUint8();
+                            const createServerTick = stream.getFloat32();
+                            const pos = new Vec2(stream.getFloat32(), stream.getFloat32());
+
+                            switch(item_type){
+                                // fallthrough all non-weapons
+                                case ItemType.SIMPLE:{
+                                    console.log("How did this happen?")
+                                    break;
+                                }
+                                case ItemType.TERRAIN_CARVER:{
+                                    
+                                    break;
+                                }
+                                case ItemType.HITSCAN_WEAPON:{
+                                    const end = new Vec2(stream.getFloat32(), stream.getFloat32());
+                                    const ray = new Line(pos, end);
+                                    console.log("YOOO")
+                                    ShootHitscanWeapon(this.game, ray);
+                                    break;
+                                }
+                                default: AssertUnreachable(item_type);
+
+                            }
+
+
                             break;
                         }
                         default: AssertUnreachable(type);
@@ -707,7 +741,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             // Interpolation of entities
             const frameToSimulate = this.getServerTickToSimulate();
 
-            console.log(frameToSimulate);
+            // console.log(frameToSimulate);
 
             for(const obj of this.remotelocations){
                 obj.setPosition(frameToSimulate)
