@@ -56,8 +56,6 @@ const ITEM_DEFINITIONS = DefineSchema< { [K: string]: ALL_ITEM_TYPES } >()({
         capacity: 10,
         reload_time: 10,
         shoot_controller: { type: "auto", time_between_shots: 6 },
-
-
     },
 
 } as const);
@@ -137,11 +135,12 @@ export const ITEM_LINKER = {
     }
 }
 
-export function CreateItemFromID(item_id: number){
-    return CreateItem(ITEM_LINKER.IDToName(item_id));
+export function CreateItemDataFromID(item_id: number){
+    return CreateItemData(ITEM_LINKER.IDToName(item_id));
 }
 
-export function CreateItem<T extends keyof typeof ALL_ITEMS>(item_name: T){
+/** Returns a clone of the item template */
+export function CreateItemData<T extends keyof typeof ALL_ITEMS>(item_name: T){
     return {...ALL_ITEMS[item_name]};
 }
 

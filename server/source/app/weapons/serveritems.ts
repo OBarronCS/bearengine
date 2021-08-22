@@ -9,7 +9,7 @@ import { TerrainCarveCirclePacket } from "../networking/gamepacketwriters";
 import { networkedclass_server, sync } from "../networking/serverentitydecorators";
 import { ServerBearEngine } from "../serverengine";
 
-import { CreateItem, GunItemData, ItemData } from "shared/core/sharedlogic/items";
+import { CreateItemData, GunItemData, ItemData } from "shared/core/sharedlogic/items";
 
 export class ServerItem<T extends ItemData> {
     item_data: T;
@@ -176,7 +176,7 @@ export class TerrainCarverGun extends ModularGun<GunItemData> {
 
     constructor(){
         super(
-            CreateItem("terrain_carver"),
+            CreateItemData("terrain_carver"),
             [
             new TerrainHitAddon(),
             {

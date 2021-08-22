@@ -21,7 +21,8 @@ import { Vec2 } from "shared/shapes/vec2";
 import { Gamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
-import { CreateItem, ItemType, ITEM_LINKER } from "shared/core/sharedlogic/items";
+import { CreateItemData, ItemType, ITEM_LINKER } from "shared/core/sharedlogic/items";
+import { CreateClientItemFromType } from "../clientitems";
 
 class ClientInfo {
     uniqueID: number;
@@ -681,26 +682,14 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         }
 
                         case GamePacket.SET_INV_ITEM: {
-                            const item = stream.getUint8();
+                            const item_id = stream.getUint8();
 
-                            const item_data = CreateItem(ITEM_LINKER.IDToName(item));
+                            const item_data = CreateItemData(ITEM_LINKER.IDToName(item_id));
 
-                            switch(item_data.item_type){
-                                // case ItemType.SIMPLE: {
-                                //     break;
-                                // }
-                                case ItemType.HITSCAN_WEAPON: {
-                                    break;
-                                }
-                                case ItemType.TERRAIN_CARVER: {
-                                    break;
-                                }
+                            const item = CreateClientItemFromType(item_data);
 
-                                default: AssertUnreachable(item_data);
-                            }
-
-                            this.game.player.itemInHand.setItem(item_data);
                             
+                            this.game.player.setItem(item);
                             break;
                         }
 

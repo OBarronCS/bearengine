@@ -15,8 +15,8 @@ import { GraphicsPart, SpritePart } from "../core-engine/parts";
 import { SavePlayerAnimation } from "./testlevelentities";
 
 import { Emitter } from "pixi-particles";
-import { CreateItem, ItemData } from "shared/core/sharedlogic/items"
-import { Gun, Hitscan, ItemDrawer, TerrainCarverGun } from "../core-engine/clientitems";
+import { CreateItemData, ItemData } from "shared/core/sharedlogic/items"
+import { Gun, Hitscan, Item, ItemDrawer, TerrainCarverGun } from "../core-engine/clientitems";
 
 
 
@@ -266,8 +266,11 @@ export class Player extends DrawableEntity {
 
     itemInHand: ItemDrawer = new ItemDrawer();
 
-    weapon: Gun = new Hitscan(CreateItem("first_hitscan"));
+    weapon: Gun = new Hitscan(CreateItemData("first_hitscan"));
 
+    setItem(item: Item<ItemData>){
+        this.itemInHand.setItem(item.item_data);
+    }
 
     constructor(){
         super();
@@ -301,7 +304,7 @@ export class Player extends DrawableEntity {
     override onAdd(){
         this.scene.addEntity(this.itemInHand);
 
-        this.itemInHand.setItem(this.weapon);
+        this.setItem(this.weapon);
 
         this.runAnimation.setScale(2);
         this.wallslideAnimation.setScale(2);
@@ -644,9 +647,10 @@ export class Player extends DrawableEntity {
             this.itemInHand.image.sprite.scale.x = -1;
             this.itemInHand.image.angle = angleToMouse + PI;
         }
-
-        this.weapon.update(dt,this.position, difference.normalize(), this.mouse.isDown("left"), this.game);
-
+        
+        if(this.weapon !== null){
+            this.weapon.update(dt,this.position, difference.normalize(), this.mouse.isDown("left"), this.game);
+        }
         // if(this.itemInHand.operate(this.mouse.isDown("left"))){
         //     if(this.state === PlayerState.GROUND) this.state = PlayerState.AIR;
 

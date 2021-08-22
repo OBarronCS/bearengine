@@ -1,7 +1,8 @@
 import { Sprite, Graphics } from "pixi.js";
 import { Effect } from "shared/core/effects";
-import { CreateItem, GunItemData, ItemData } from "shared/core/sharedlogic/items";
+import { CreateItemData, GunItemData, ItemData, ItemType } from "shared/core/sharedlogic/items";
 import { CreateShootController, GunshootController } from "shared/core/sharedlogic/weapondefinitions";
+import { AssertUnreachable } from "shared/misc/assertstatements";
 import { random_range } from "shared/misc/random";
 import { Line } from "shared/shapes/line";
 import { Vec2 } from "shared/shapes/vec2";
@@ -9,6 +10,27 @@ import { BearEngine, NetworkPlatformGame } from "./bearengine";
 import { Entity } from "./entity";
 import { SpritePart } from "./parts";
 
+export function CreateClientItemFromType(item_data: ItemData){
+    
+    const type = item_data.item_type;
+
+    switch(type){
+        case ItemType.TERRAIN_CARVER: {
+            return new TerrainCarverGun();
+            break;
+        }
+        case ItemType.HITSCAN_WEAPON: {
+            //@ts-expect-error
+            return new Hitscan(item_data);
+            break;
+        }
+        case ItemType.SIMPLE: {
+            return new Item(item_data);
+            break;
+        }
+        default: AssertUnreachable(type);
+    }
+}
 
 export class Item<T extends ItemData> {
     item_data: T;
@@ -160,7 +182,7 @@ export class TerrainCarverGun extends ModularGun<GunItemData> {
 
     constructor(){
         super(
-            CreateItem("terrain_carver"),
+            CreateItemData("terrain_carver"),
             [
             new TerrainHitAddon(),
             {
