@@ -6,13 +6,12 @@ import { SimpleWeaponControllerDefinition } from "./weapondefinitions";
 
 enum ItemType {
     SIMPLE, // Items that you just need to check for the presence of, have no logic; ect: gold
-    MODULAR_WEAPON,
+    TERRAIN_CARVER,
     HITSCAN_WEAPON,
 }
 
 
 interface ItemData {
-    name: string,
     type: ItemType,
     sprite: string,
 }
@@ -21,31 +20,41 @@ interface SimpleItemData extends ItemData {
     type: ItemType.SIMPLE,
 }
 
-interface WeaponItemData extends ItemData {
-    type: ItemType.WEAPON,
+interface TerrainCarverItemData extends ItemData {
+    type: ItemType.TERRAIN_CARVER,
     shoot_controller: SimpleWeaponControllerDefinition,
     capacity: number,
     reload_time: number,
     ammo: number
 }
 
-type ALL_ITEM_TYPES = WeaponItemData | SimpleItemData;
+interface HitscanWeaponItemData extends ItemData {
+    type: ItemType.HITSCAN_WEAPON,
+    shoot_controller: SimpleWeaponControllerDefinition,
+    capacity: number,
+    reload_time: number,
+    ammo: number
+}
+
+type ALL_ITEM_TYPES = TerrainCarverItemData | HitscanWeaponItemData | SimpleItemData;
 
 
 const ITEM_DEFINITIONS = DefineSchema< { [K: string]: ALL_ITEM_TYPES } >()({
-    test: {
-        name: "asd",
-        type: ItemType.WEAPON,
-        sprite: "",
-        shoot_controller: { type: "auto", time_between_shots:123 },
+    terrain_carver: {
+        type: ItemType.TERRAIN_CARVER,
+        sprite: "weapon1.png",
+        shoot_controller: { type: "auto", time_between_shots: 15 },
         capacity: 10,
         ammo: 10,
         reload_time: 12,
     },
-    billy: {
-        name: "asd",
-        type: ItemType.SIMPLE,
+    first_hitscan: {
+        type: ItemType.HITSCAN_WEAPON,
         sprite: "",
+        ammo: 10,
+        capacity: 10,
+        reload_time: 10,
+        shoot_controller: { type: "auto", time_between_shots: 6 }
     }
 
 } as const);
@@ -59,7 +68,8 @@ export function SerializeItemData(stream: BufferStreamWriter, item: ALL_ITEM_TYP
             
             break;
         }
-        case ItemType.WEAPON: {
+        case ItemType.HITSCAN_WEAPON:
+        case ItemType.TERRAIN_CARVER: {
             stream.setUint16(item.ammo);
 
             break;
@@ -78,7 +88,8 @@ export function DeserializeItemData(stream: BufferStreamReader, targetItem: ALL_
             
             break;
         }
-        case ItemType.WEAPON: {
+        case ItemType.HITSCAN_WEAPON:
+        case ItemType.TERRAIN_CARVER: {
             targetItem["ammo"] = stream.getUint16();
             
             break;
@@ -97,11 +108,12 @@ const ALL_ITEMS = (function(){
 
     let max_id:number = 0;
 
-    const items: {[key in keyof typeof ITEM_DEFINITIONS]: typeof ITEM_DEFINITIONS[key] & {readonly item_id : number} } = {} as any;
+    const items: {[key in keyof typeof ITEM_DEFINITIONS]: typeof ITEM_DEFINITIONS[key] & {readonly item_id : number, readonly item_name: string } } = {} as any;
 
     for(const name of shared_item_names){
+        const item_name = name;
         const item_id = max_id++;
-        items[name] = {...ITEM_DEFINITIONS[name], item_id };
+        items[name] = {...ITEM_DEFINITIONS[name], item_id, item_name};
 
         //@ts-expect-error
         idToNameMap.set(item_id, name);

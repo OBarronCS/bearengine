@@ -1,9 +1,9 @@
 
-export enum ItemEnum {
-    EMPTY,
-    HIT_SCAN,
-    TERRAIN_CARVER,
-}
+// export enum ItemEnum {
+//     EMPTY,
+//     HIT_SCAN,
+//     TERRAIN_CARVER,
+// }
 
 export class Clip {
     constructor(
@@ -50,9 +50,6 @@ export function CreateShootController(def: AutoDefinition | SemiAutoDefinition |
 
     return trigger;
 }
-
-
-
 
 
 
