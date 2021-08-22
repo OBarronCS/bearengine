@@ -84,10 +84,10 @@ export class Vec2 {
     }
 
 
-    
-    constructor(_x: number,_y: number){
-        this.x = _x;
-        this.y = _y;
+    /** Zero by default. y = x if only first argument provided */
+    constructor(x: number = 0, y: number = x){
+        this.x = x;
+        this.y = y;
     }
 
     public dot(vec: Coordinate): number {

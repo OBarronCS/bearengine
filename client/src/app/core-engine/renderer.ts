@@ -123,24 +123,24 @@ export class RendererSystem {
         
     }
 
-    addGUI<T extends DisplayObject>(sprite: T){
-        this.guiContainer.addChild(sprite)
-        return sprite
+    addGUI<T extends DisplayObject>(container: T){
+        this.guiContainer.addChild(container)
+        return container
     }
 
-    removeGUI<T extends DisplayObject>(sprite: T){
-        this.guiContainer.removeChild(sprite)
-        return sprite
+    removeGUI<T extends DisplayObject>(container: T){
+        this.guiContainer.removeChild(container)
+        return container
     }
 
-    addSprite<T extends DisplayObject>(sprite: T){
-        this.mainContainer.addChild(sprite)
-        return sprite
+    addSprite<T extends DisplayObject>(container: T){
+        this.mainContainer.addChild(container)
+        return container
     }
         
-    removeSprite<T extends DisplayObject>(sprite:T){
-        this.mainContainer.removeChild(sprite)
-        return sprite;
+    removeSprite<T extends DisplayObject>(container:T){
+        this.mainContainer.removeChild(container)
+        return container;
     }
 
     /** Returns empty graphics object that has been added to the scene. Call destroy() to remove it */
@@ -216,13 +216,15 @@ export class RendererSystem {
         this.emitters = [];
 
 
+        // this.mainContainer.destroy();
+        // this.guiContainer.destroy();
 
-        const children = this.mainContainer.removeChildren();
-        const moreChildren = this.guiContainer.removeChildren();
+        // const children = this.mainContainer.removeChildren();
+        // const moreChildren = this.guiContainer.removeChildren();
 
-        // This is crucial --> otherwise there is a memory leak
-        children.forEach(child => child.destroy());
-        moreChildren.forEach(child => child.destroy());
+        // // This is crucial --> otherwise there is a memory leak
+        // children.forEach(child => child.destroy());
+        // moreChildren.forEach(child => child.destroy());
     }
  
 

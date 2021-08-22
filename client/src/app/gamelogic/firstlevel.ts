@@ -92,6 +92,8 @@ export class FirstLevel extends GameLevel {
             }
         }
 
+        scene.addEntity(new OtherTest());
+
         // Drawing the collision grid
         class Debug extends DrawableEntity {
             update(dt: number): void {
@@ -103,9 +105,6 @@ export class FirstLevel extends GameLevel {
             }
         }
         // scene.addEntity(new Debug())
-
-        scene.addEntity(new OtherTest());
-
     }
 
 

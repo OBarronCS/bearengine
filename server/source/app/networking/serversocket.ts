@@ -1,6 +1,6 @@
 
 
-import WS from "ws"
+import WS, { createWebSocketStream } from "ws"
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream"
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { LinkedQueue } from "shared/datastructures/queue";
@@ -13,6 +13,17 @@ interface BufferedPacket {
     buffer: BufferStreamReader;
 }
 
+// class SocketWrapper {
+//     connectionID: ConnectionID;
+//     socket: WS;
+
+//     constructor(){
+//         // this.socket.
+//     }
+
+
+// }
+
 export class ServerNetwork {
     //private readonly port: number;
 
@@ -20,7 +31,7 @@ export class ServerNetwork {
 
     private NEXT_CONNECTION_ID = 0;
 
-    // List of connections. WS also has some built into way to do this...
+    // List of connections. WS also has a built into way to do this
     protected sockets: WS[] = [];
 
     private clientMap = new Map<WS,ConnectionID>();
@@ -28,12 +39,12 @@ export class ServerNetwork {
 
     private packets = new LinkedQueue<BufferedPacket>();
     
-
+    
     constructor(server: WS.Server){
         this.server = server;
     }
 
-    /** Start handling connections */
+    /** Start handling websocket connections */
     public start(){
         this.server.on("connection", this.newClient.bind(this));
 
@@ -57,6 +68,7 @@ export class ServerNetwork {
         // Join message to engine
         const stream = new BufferStreamWriter(new ArrayBuffer(1))
         stream.setUint8(ServerBoundPacket.JOIN_GAME);
+
         this.packets.enqueue({
             client:connectionID,
             buffer:new BufferStreamReader(stream.cutoff()),
@@ -64,11 +76,11 @@ export class ServerNetwork {
 
         socket.on("close", () => {
             const client = this.clientMap.get(socket);
-            console.log("Client disconnected, ", client);
 
             if(client === undefined) throw new Error("Closing socket from unknown client. If this error goes off then there is something deeply wrong");
+            console.log("Client disconnected, ", client);
 
-            // Sends this info to the engine as a packet. 
+            // Sends this info to the engine as a packet;
             const stream = new BufferStreamWriter(new ArrayBuffer(1))
             stream.setUint8(ServerBoundPacket.LEAVE_GAME);
             this.packets.enqueue({
@@ -84,7 +96,7 @@ export class ServerNetwork {
             this.sockets.splice(index,1);
         });
 
-        socket.on('message', (data: ArrayBuffer) => {
+        socket.on("message", (data: ArrayBuffer) => {
             const stream = new BufferStreamReader(data);
 
             const type: ServerPacketSubType = stream.getUint8();
@@ -153,6 +165,7 @@ export class ServerNetwork {
     public kickclient(clientID: ConnectionID){
         const socket = this.reverseClientMap.get(clientID);
         socket.close();
+        // socket.terminate(); --> close is immediately
     }
 
     public closeServer(){

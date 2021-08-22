@@ -15,9 +15,8 @@ import { GraphicsPart, SpritePart } from "../core-engine/parts";
 import { SavePlayerAnimation } from "./testlevelentities";
 
 import { Emitter } from "pixi-particles";
-
-import { ItemEnum } from "server/source/app/weapons/weapondefinitions";
-
+import { CreateItemData, ItemData } from "shared/core/sharedlogic/items"
+import { Gun, Hitscan, Item, ItemDrawer, TerrainCarverGun } from "../core-engine/clientitems";
 
 
 
@@ -173,50 +172,6 @@ class PlayerAnimationState {
     }
 }
 
-class Item extends Entity {
-
-    image = this.addPart(new SpritePart(new Sprite()));
-
-    constructor(){
-        super();
-        this.image.sprite.visible = false;
-    }
-
-    setItem(item: ItemEnum){
-        switch(item){
-            case ItemEnum.EMPTY: {
-                this.clear();
-                break;
-            }
-            case ItemEnum.HIT_SCAN: {
-                this.setSprite("weapon1.png")
-                break;
-            }
-            case ItemEnum.TERRAIN_CARVER: {
-                this.setSprite("weapon1.png")
-                break;
-            }
-            default: AssertUnreachable(item);
-
-        }
-    }
-
-    private setSprite(path: string){
-        this.image.sprite.visible = true;
-        this.image.sprite.texture = this.engine.getResource(path).texture;
-    }
-
-    clear(){
-        this.image.sprite.visible = false;
-    }
-
-    update(dt: number): void {
-    }
-
-    draw(g: Graphics): void {
-
-    }
-}
 
 
 export class Player extends DrawableEntity {
@@ -309,7 +264,13 @@ export class Player extends DrawableEntity {
     private colliderPart: ColliderPart;
 
 
-    itemInHand: Item = new Item();
+    itemInHand: ItemDrawer = new ItemDrawer();
+
+    weapon: Gun = new Hitscan(CreateItemData("first_hitscan"));
+
+    setItem(item: Item<ItemData>){
+        this.itemInHand.setItem(item.item_data);
+    }
 
     constructor(){
         super();
@@ -341,7 +302,10 @@ export class Player extends DrawableEntity {
     private emitter: Emitter;
 
     override onAdd(){
-        this.scene.addEntity(this.itemInHand)
+        this.scene.addEntity(this.itemInHand);
+
+        this.setItem(this.weapon);
+
         this.runAnimation.setScale(2);
         this.wallslideAnimation.setScale(2);
         this.idleAnimation.setScale(2);
@@ -666,7 +630,7 @@ export class Player extends DrawableEntity {
     update(dt: number): void {
         if(this.dead) return;
         
-        this.emitter.updateSpawnPos(this.mouse.x, this.mouse.y)
+        this.emitter.updateSpawnPos(this.mouse.x, this.mouse.y);
         if(this.y > this.level.bbox.height + 800) this.y = 0;
 
 
@@ -683,9 +647,10 @@ export class Player extends DrawableEntity {
             this.itemInHand.image.sprite.scale.x = -1;
             this.itemInHand.image.angle = angleToMouse + PI;
         }
-
-        const kb = difference.negate().extend(2.5);
-
+        
+        if(this.weapon !== null){
+            this.weapon.update(dt,this.position, difference.normalize(), this.mouse.isDown("left"), this.game);
+        }
         // if(this.itemInHand.operate(this.mouse.isDown("left"))){
         //     if(this.state === PlayerState.GROUND) this.state = PlayerState.AIR;
 
@@ -1242,14 +1207,11 @@ export class Player extends DrawableEntity {
 
 export class RemotePlayer extends Entity {
 
-    colliderPart = this.addPart(new ColliderPart(dimensions(48,30),{x:24, y:15}));
-    
-    public IS_REMOTE_PLAYER = true;
+    // colliderPart = this.addPart(new ColliderPart(dimensions(48,30),{x:24, y:15}));
     readonly id: number;
     public health = 100;
 
     graphics = this.addPart(new GraphicsPart());
-
     locations = this.addPart(new RemoteLocations());
 
     constructor(id: number){

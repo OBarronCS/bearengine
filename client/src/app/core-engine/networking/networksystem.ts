@@ -15,30 +15,54 @@ import { LinkedQueue } from "shared/datastructures/queue";
 import { BearEngine, NetworkPlatformGame } from "../bearengine";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
-import { ItemEnum } from "server/source/app/weapons/weapondefinitions";
 import { DummyLevel } from "../gamelevel";
 import { Vec2 } from "shared/shapes/vec2";
+ 
+import { Gamemode } from "shared/core/sharedlogic/sharedenums"
+import { SparseSet } from "shared/datastructures/sparseset";
+import { Deque } from "shared/datastructures/deque";
+import { CreateItemData, ItemType, ITEM_LINKER } from "shared/core/sharedlogic/items";
+import { CreateClientItemFromType } from "../clientitems";
+
+class ClientInfo {
+    uniqueID: number;
+    ping: number;
+    name: string;
+    gamemode: Gamemode;
+
+    constructor(uniqueID: number, ping: number, name: string, gamemode: Gamemode){
+        this.uniqueID = uniqueID;
+        this.ping = ping;
+        this.name = name;
+        this.gamemode = gamemode;
+    }
+
+    toString(): string {
+        return `Client ${this.uniqueID}: [ping: ${this.ping}, gamemode: ${this.gamemode}]`;
+    }
+}
 
 interface BufferedPacket {
     buffer: BufferStreamReader;
     id: number;
 }
 
-/** Reads packets from network, sends them */
+
 export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
     private network: CallbackNetwork;
+    /** Packets from the server are queued here */
     private packets = new LinkedQueue<BufferedPacket>();
+    private sendStream = new BufferStreamWriter(new ArrayBuffer(256));
 
 
     private scene: EntitySystem;
-    public remotelocations = this.addQuery(RemoteLocations, 
-        (e) => console.log(e)
-    );
+    public remotelocations = this.addQuery(RemoteLocations);
 
+    
 
-
-    private sendStream = new BufferStreamWriter(new ArrayBuffer(256));
+    /** Set of all other clients */
+    private otherClients = new SparseSet<ClientInfo>(256);
 
 
     private remoteEntities: Map<number, Entity> = new Map();
@@ -52,10 +76,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
 
 
-    public LEVEL_ACTIVE = false;
+    public SERVER_ROUND_ACTIVE = false;
 
 
-
+    // MY PLAYER ID
     public PLAYER_ID = -1;
 
 
@@ -69,6 +93,12 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     /** milliseconds, adjusted on ping packets */
     private CLOCK_DELTA = 0;
 
+    private _serverTime = 0;
+    currentServerTime(): number { return this._serverTime; }
+    
+    private _serverTick = 0;
+    currentServerTick(): number { return this._serverTick; }
+
     // Generous, default ping
     // MAYBE: set it to -1 and don't start ticking until we actually know it. Right now it starts ticking and then some time later the ping is adjusted
     private ping: number = 100;
@@ -77,13 +107,23 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
      * Used to adjust the currentTick we should simulate, used for interpolation. 
      * In effect, hold onto info for this long before simulating them 
      * In practice, it combats jitter in packet receiving times (even though server sends at perfect interval, we don't receive them in that same perfect interval)
-     * Experiment with making this lower, maybe even 50
+     * Experiment with making this lower
     */
     private dejitterTime = 50;
+
+
+    // Calculating bytes/second processed from network. Keeps only stuff from the last second.
+    // Use priority queue to make sure nothing from more than a second ago is counted 
+    private byteAmountReceived: Deque<{bytes:number, time: number}> = new Deque();
+    bytesPerSecond = 0;
     
+    
+
+    
+
     constructor(engine: NetworkPlatformGame, settings: NetworkSettings){
         super(engine);
-        this.network = new CallbackNetwork(settings, this.onmessage.bind(this));;
+        this.network = new CallbackNetwork(settings, this.onmessage.bind(this));
     }
 
     public connect(){
@@ -91,6 +131,14 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     }
 
     private onmessage(buffer: ArrayBuffer){
+
+        const timeReceived = Date.now();
+
+        this.byteAmountReceived.pushRight({
+            bytes: buffer.byteLength,
+            time: timeReceived
+        });
+
         const stream = new BufferStreamReader(buffer);
 
         const subtype: ClientBoundSubType = stream.getUint8();
@@ -199,15 +247,48 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     private timeOfLastPing = Date.now(); 
 
     /**  Read from network, apply packets */
-    readPackets(){
+    readPackets(): void {
         if(this.network.CONNECTED){
 
             // send ping packet every 2 seconds
+
             const now = Date.now();
+
+
+            this._serverTime = now + this.CLOCK_DELTA;
+            this._serverTick = this.calculateCurrentServerTick();
+
+
             if(now >= this.timeOfLastPing + 2000){
                 this.sendPing();
                 this.timeOfLastPing = now;
             }
+
+
+            // Calculation bytes per second
+            while(!this.byteAmountReceived.isEmpty() && this.byteAmountReceived.peekLeft().time < now - 1025){
+                this.byteAmountReceived.popLeft();
+            }
+
+
+            if(!this.byteAmountReceived.isEmpty()){
+                if(this.byteAmountReceived.size() === 1){
+                    this.bytesPerSecond = this.byteAmountReceived.peekLeft().bytes;
+                } else {
+                    
+                    let sum = 0;
+                    for(const value of this.byteAmountReceived){
+                        sum += value.bytes;
+                    }
+                    // const dt = this.byteAmountReceived.peekRight().time - this.byteAmountReceived.peekLeft().time;
+
+                    // Amount of bytes received in the last second
+                    this.bytesPerSecond = sum;;// / (dt / 1000);
+                }
+            } else {
+                this.bytesPerSecond = 0;
+            }
+
 
             
             const packets = this.packets;
@@ -220,6 +301,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                 while(stream.hasMoreData()){
                     const type: GamePacket = stream.getUint8();
+
+                    // console.log(GamePacket[type])
 
                     switch(type){
                         case GamePacket.INIT: {
@@ -245,11 +328,75 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const tick = stream.getUint16(); // Reads this number so stream isn't broken
                             break;
                         }
+
+                        // OTHER PLAYER INFO
+                        case GamePacket.OTHER_PLAYER_INFO_ADD: {
+                            const uniqueID = stream.getUint8();
+                            const ping = stream.getUint16();
+                            const gamemode = stream.getUint8();
+
+                            
+
+                            // Don't add self
+                            if(this.PLAYER_ID !== uniqueID){
+                                const newClient = new ClientInfo(uniqueID,ping,"",gamemode);
+
+                                console.log("Create client: " + newClient.toString());
+
+                                this.otherClients.set(uniqueID, newClient);
+                            }
+
+                            break;
+                        }
+                        case GamePacket.OTHER_PLAYER_INFO_REMOVE: {
+                            const uniqueID = stream.getUint8();
+
+                            const i = this.otherClients.get(uniqueID);
+                            console.log("Removing player: " + i);
+
+                            this.otherClients.remove(uniqueID);
+
+                            
+
+                            break;
+                        }
+                        case GamePacket.OTHER_PLAYER_INFO_GAMEMODE: {
+                            const uniqueID = stream.getUint8();
+                            const gamemode: Gamemode = stream.getUint8();
+
+                            const client = this.otherClients.get(uniqueID);
+
+                            if(client === null) { 
+                                console.log("GAMEMODE FOR UNKNOWN PLAYER");
+                                continue;
+                            }
+
+                            client.gamemode = gamemode;
+
+                            break;
+                        }
+                        case GamePacket.OTHER_PLAYER_INFO_PING: {
+                            const uniqueID = stream.getUint8();
+                            const ping = stream.getUint16()
+
+                            const client = this.otherClients.get(uniqueID);
+
+                            if(client === null) { 
+                                console.log("PING FOR UNKNOWN PLAYER");
+                                continue;
+                            }
+
+                            client.ping = ping;
+                            
+                            break;
+                        }
+
+
                         case GamePacket.REMOTE_ENTITY_CREATE: {
                             const sharedClassID = stream.getUint8();
                             const entityID = StreamReadEntityID(stream);
 
-                            console.log("CREATE, ", sharedClassID, " ", entityID);
+                            console.log("CREATE: ", sharedClassID, " ", entityID);
 
                             const check = this.remoteEntities.get(entityID);
                             if(check !== undefined) throw new Error("Entity already exists");
@@ -271,8 +418,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 // Will try to create the entity for now, but we missed the REMOTE_ENTITY_CREATE packet clearly
                                 console.log(`Cannot find entity ${entityID}, will create`);
                                 entity = this.createAutoRemoteEntity(SHARED_ID,entityID)
-                                return;
                             }
+
+                            //console.log("CHANGING VAR: " + entityID + " at frame " + frame);
 
                             SharedEntityClientTable.deserialize(stream, frame, SHARED_ID, entity);
 
@@ -289,7 +437,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             if(entity === undefined){
                                 // Will try to create the entity for now, but we missed the REMOTE_ENTITY_CREATE packet clearly
-                                return;
+                                SharedEntityClientTable.readThroughRemoteEventStream(stream, SHARED_ID, eventID, entity)
+                                continue;
                                 console.log(`Cannot find entity ${entityID}, will create`);
                                 entity = this.createAutoRemoteEntity(SHARED_ID,entityID)
                                 
@@ -330,14 +479,13 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             this.game.endCurrentLevel();
                             this.game.loadLevel(new DummyLevel(level));
 
-                            const p = this.game.player = new Player();
-
+                            const p = (this.game.player = new Player());
                             this.scene.addEntity(p);
 
                             p.x = x;
                             p.y = y;
 
-                            this.LEVEL_ACTIVE = true;
+                            this.SERVER_ROUND_ACTIVE = true;
                             console.log("Round begun")
                             break;
                         }
@@ -357,7 +505,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             // this.engine.player = null;
 
-                            this.LEVEL_ACTIVE = false;
+                            this.SERVER_ROUND_ACTIVE = false;
 
                             break;
                         }
@@ -533,10 +681,19 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             break;
                         }
 
-                        case GamePacket.SET_ITEM: {
-                            const item: ItemEnum = stream.getUint8();
+                        case GamePacket.SET_INV_ITEM: {
+                            const item_id = stream.getUint8();
 
-                            this.game.player.itemInHand.setItem(item);
+                            const item_data = CreateItemData(ITEM_LINKER.IDToName(item_id));
+
+                            const item = CreateClientItemFromType(item_data);
+
+                            
+                            this.game.player.setItem(item);
+                            break;
+                        }
+
+                        case GamePacket.CLEAR_INV_ITEM: {
                             
                             break;
                         }
@@ -546,9 +703,11 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                 
             }
 
+
             // Interpolation of entities
             const frameToSimulate = this.getServerTickToSimulate();
 
+            console.log(frameToSimulate);
 
             for(const obj of this.remotelocations){
                 obj.setPosition(frameToSimulate)
@@ -565,11 +724,25 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
         }
     }
 
+    /** Returns the fractional tick that we think the server is "currently simulating" */
+    private calculateCurrentServerTick(): number {
+        // The time of the latest packet we "just received", translated to serverTime
+        const serverTimeOfPacketJustReceived = (this.currentServerTime() - this.ping);
+
+        // Now we know what 'server time' frame to simulate, need to convert it to a frame number
+        const msPassedSinceLastTickReference = serverTimeOfPacketJustReceived - Number(this.REFERENCE_SERVER_TICK_TIME);
+
+        
+        // Divide by thousand in there to convert to seconds, which is the unit of SERVER_SEND_RATE 
+        const currentServerTick = this.REFERENCE_SERVER_TICK_ID + (((msPassedSinceLastTickReference / 1000) * (this.SERVER_SEND_RATE)));
+        
+        return currentServerTick;
+    }
 
     /** Includes fractional part of tick */
     private getServerTickToSimulate(): number {
         // In milliseconds
-        const serverTime = Date.now() + this.CLOCK_DELTA;
+        const serverTime = this.currentServerTime(); //Date.now() + this.CLOCK_DELTA;
 
         // If ping is inaccurate, this will break. 
         // If this.ping is a lot lower than it really is, interpolation will break. 
@@ -601,7 +774,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     }
     
     writePackets(){
-        if(this.network.CONNECTED && this.SERVER_IS_TICKING && this.LEVEL_ACTIVE){
+        if(this.network.CONNECTED && this.SERVER_IS_TICKING && this.SERVER_ROUND_ACTIVE){
             const player = this.game.player;
 
 

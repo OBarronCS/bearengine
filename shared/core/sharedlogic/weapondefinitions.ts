@@ -1,9 +1,9 @@
 
-export enum ItemEnum {
-    EMPTY,
-    HIT_SCAN,
-    TERRAIN_CARVER,
-}
+// export enum ItemEnum {
+//     EMPTY,
+//     HIT_SCAN,
+//     TERRAIN_CARVER,
+// }
 
 export class Clip {
     constructor(
@@ -34,6 +34,8 @@ type PulseDefinition = {
     submode: "auto"|"semiauto"
 }
 
+export type SimpleWeaponControllerDefinition = AutoDefinition | SemiAutoDefinition | PulseDefinition;
+
 export function CreateShootController(def: AutoDefinition | SemiAutoDefinition | PulseDefinition): GunshootController {
     
     let trigger: GunshootController
@@ -48,9 +50,6 @@ export function CreateShootController(def: AutoDefinition | SemiAutoDefinition |
 
     return trigger;
 }
-
-
-
 
 
 

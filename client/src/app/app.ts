@@ -13,6 +13,9 @@ import { Vec2 } from "shared/shapes/vec2";
 import { FirstLevel } from "./gamelogic/firstlevel";
 import { DummyLevel } from "./core-engine/gamelevel";
 import { FrameEditor } from "./gamelogic/testlevelentities";
+import { StringHash } from "shared/core/sharedlogic/versionhash";
+import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
+
 
 const engine = new BearEngine();
 

@@ -1,6 +1,6 @@
 
 
-// A map when using small positive integer keys. Fast iteration of values;
+// A map when using small positive integer keys. Fast contains() check, Fast iteration of keys and values;
 
 /** Keys must be nonnegative */
 export class SparseSet<V> {

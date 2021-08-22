@@ -2,8 +2,9 @@ import { StreamWriteEntityID } from "shared/core/entitysystem";
 import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
+import { Gamemode } from "shared/core/sharedlogic/sharedenums";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
-import { ItemEnum } from "../weapons/weapondefinitions";
+import { ConnectionID } from "./serversocket";
 
 
 // savePacket is irrelevent for packet to specific clients, like this one
@@ -35,7 +36,7 @@ export class EndRoundPacket extends PacketWriter {
 export class InitPacket extends PacketWriter {
    
 
-    constructor(public network_version_hash: bigint, public tick_rate: number, public referenceTime: bigint, public referenceTick: number, public yourPlayerID: number){
+    constructor(public network_version_hash: bigint, public tick_rate: number, public referenceTime: bigint, public referenceTick: number, public yourPlayerID: ConnectionID){
         super(false)
     }
 
@@ -65,6 +66,36 @@ export class ServerIsTickingPacket extends PacketWriter {
         stream.setUint16(this.tick);
     }
 }
+
+
+export class OtherPlayerInfoAddPacket extends PacketWriter {
+    
+    constructor(public playerID: ConnectionID, public ping: number, public gamemode: Gamemode){
+        super(false)
+    }
+
+    write(stream: BufferStreamWriter): void {
+        stream.setUint8(GamePacket.OTHER_PLAYER_INFO_ADD);
+        
+        stream.setUint8(this.playerID);
+        stream.setUint16(this.ping);
+        stream.setUint8(this.gamemode);
+    }
+}
+
+export class OtherPlayerInfoRemovePacket extends PacketWriter {
+
+    constructor(public playerID: ConnectionID){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.OTHER_PLAYER_INFO_REMOVE);
+        stream.setUint8(this.playerID);
+    }
+}
+
+
 
 
 
@@ -98,15 +129,15 @@ export class PlayerDestroyPacket extends PacketWriter {
 }
 
 
-export class SetItemPacket extends PacketWriter {
+export class SetInvItemPacket extends PacketWriter {
 
-    constructor(public weaponID: ItemEnum){
-        super(true);
+    constructor(public itemID: number){
+        super(false);
     }
 
     write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.SET_ITEM);
-        stream.setUint8(this.weaponID)
+        stream.setUint8(GamePacket.SET_INV_ITEM);
+        stream.setUint8(this.itemID);
 
     }
 }
