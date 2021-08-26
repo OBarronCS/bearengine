@@ -4,7 +4,8 @@ import { Rect } from "shared/shapes/rectangle";
 
 import { RendererSystem } from "./renderer";
 import { EngineKeyboard } from "../input/keyboard";
-import { lerp, round, smoothNoise } from "shared/misc/mathutils";
+import { lerp, round } from "shared/misc/mathutils";
+import { smoothNoise } from "shared/misc/random";
 import { Subsystem } from "shared/core/subsystem";
 import { EngineMouse } from "../input/mouse";
 import { BearEngine } from "./bearengine";
@@ -20,9 +21,11 @@ export class CameraSystem  {
     public renderer: RendererSystem;
     public mouse: EngineMouse;
     
-
-    public targetMiddle: Vec2;
-    public mode: "free" | "follow" = "free"
+    private mode: "free" | "follow" = "free"
+    private targetMiddle: Vec2;
+    
+    // base degree angle
+    private baseDangle = 0;
 
     // Used for camera shake [0,1]
     private trauma = 0;
@@ -47,11 +50,15 @@ export class CameraSystem  {
         const keyboard = this.engine.keyboard;
         const mouse = this.mouse = this.engine.mouse;
 
-        keyboard.bind("space", () => {
-            this.center.set({x: 500, y:500});
+        const space = () => {
             this.renderer.mainContainer.scale.x = 1;
             this.renderer.mainContainer.scale.y = 1;
-        });
+
+            this.left = -50;
+            this.top = -50;
+        }
+        space();
+        keyboard.bind("space", space);
 
         // DRAGGING 
 
@@ -200,16 +207,16 @@ export class CameraSystem  {
     get viewWidth(){ return 2 * this.container.position.x / this.container.scale.x; }
     get viewHeight(){ return 2 * this.container.position.y / this.container.scale.y; }
 
-    // base degree angle
-    private baseDangle = 0;
+
 
     follow(vec: Vec2){
         this.targetMiddle = vec;
         this.mode = "follow";
     }
 
-    
-    
+    free(){
+        this.mode = "free"
+    }
 
     inView(point: Coordinate){
         return point.x >= this.left && point.x <= this.right && point.y >= this.top && point.y <= this.bot;

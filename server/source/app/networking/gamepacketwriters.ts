@@ -1,9 +1,11 @@
 import { StreamWriteEntityID } from "shared/core/entitysystem";
+import { ItemType } from "shared/core/sharedlogic/items";
 import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { Gamemode } from "shared/core/sharedlogic/sharedenums";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
+import { Vec2 } from "shared/shapes/vec2";
 import { ConnectionID } from "./serversocket";
 
 
@@ -223,7 +225,7 @@ export class RemoteEntityEventPacket<TSharedName extends keyof SharedNetworkedEn
 
 export class TerrainCarveCirclePacket extends PacketWriter {
 
-    constructor(public x: number, public y: number, public radius: number){
+    constructor(public x: number, public y: number, public radius: number, public serverShotID: number){
         super(true);
     }
 
@@ -232,7 +234,74 @@ export class TerrainCarveCirclePacket extends PacketWriter {
         stream.setFloat64(this.x);
         stream.setFloat64(this.y);
         stream.setInt32(this.radius);
+        stream.setUint32(this.serverShotID);
+    }
+}
 
+
+export class HitscanShotPacket extends PacketWriter {
+
+    constructor(public playerID: number, public serverShotID: number, public createServerTick: number,  public start: Vec2, public end: Vec2){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.SHOOT_WEAPON);
+        stream.setUint8(this.playerID);
+        stream.setUint8(ItemType.HITSCAN_WEAPON);
+
+
+        stream.setUint32(this.serverShotID);
+        
+        stream.setFloat32(this.createServerTick);
+
+        stream.setFloat32(this.start.x);
+        stream.setFloat32(this.start.y);
+
+        stream.setFloat32(this.end.x);
+        stream.setFloat32(this.end.y);
+
+    }
+}
+
+
+export class TerrainCarverShotPacket extends PacketWriter {
+
+    constructor(public playerID: number, public serverShotID: number, public createServerTick: number, public start: Vec2, public velocity: Vec2){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.SHOOT_WEAPON);
+        stream.setUint8(this.playerID);
+        stream.setUint8(ItemType.TERRAIN_CARVER);
+
+        stream.setUint32(this.serverShotID);
+        
+        stream.setFloat32(this.createServerTick);
+
+        stream.setFloat32(this.start.x);
+        stream.setFloat32(this.start.y);
+
+        stream.setFloat32(this.velocity.x);
+        stream.setFloat32(this.velocity.y);
+    }
+}
+
+
+
+export class AcknowledgeShotPacket extends PacketWriter {
+
+    constructor(private success: boolean, private localID: number, private serverID: number){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.ACKNOWLEDGE_SHOT);
+        
+        stream.setBool(this.success);
+        stream.setUint32(this.localID);
+        stream.setUint32(this.serverID);
     }
 }
 

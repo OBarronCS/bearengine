@@ -24,7 +24,7 @@ export class ServerItem<T extends ItemData> {
     get item_sprite(){ return this.item_data.item_sprite; }
 }
 
-export abstract class Gun<T extends ItemData> extends ServerItem<T> {
+abstract class Gun<T extends ItemData> extends ServerItem<T> {
 
     readonly position = new Vec2();
     readonly direction = new Vec2();
@@ -52,9 +52,7 @@ export abstract class Gun<T extends ItemData> extends ServerItem<T> {
     abstract shoot(game: ServerBearEngine): void;
 }
 
-
-
-export class Hitscan extends Gun<GunItemData> {
+class Hitscan extends Gun<GunItemData> {
 
     readonly shootController: GunshootController;
     // readonly clip: Clip;
@@ -80,7 +78,6 @@ export class Hitscan extends Gun<GunItemData> {
             }
         } 
     }
-
 }
 
 interface GunAddon {
@@ -88,7 +85,7 @@ interface GunAddon {
     [key: string]: any; // allow for random data
 }
 
-export class ModularGun<T extends ItemData> extends Gun<T> {
+class ModularGun<T extends ItemData> extends Gun<T> {
 
     addons: GunAddon[] = [];
 
@@ -113,7 +110,7 @@ export class ModularGun<T extends ItemData> extends Gun<T> {
     }
 }
 
-export class ModularBullet extends Effect<ServerBearEngine> {
+class ModularBullet extends Effect<ServerBearEngine> {
     
     stateHasBeenChanged = false;
     markDirty(): void {
@@ -126,6 +123,7 @@ export class ModularBullet extends Effect<ServerBearEngine> {
         super();
     
         this.onUpdate(function(dt: number){
+            this.position.add(this.velocity)
             if(!this.game.levelbbox.contains(this.position)){
                 this.destroy();
             }
@@ -138,70 +136,116 @@ export class ModularBullet extends Effect<ServerBearEngine> {
 } 
 
 
-export class TerrainHitAddon implements GunAddon {
 
-    modifyShot(bullet: ModularBullet){
-        bullet.onUpdate(function(){
-            const testTerrain = this.game.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)));
+
+// const ServerTerrainHitAddon: GunAddon = {
+
+//     modifyShot(bullet: ModularBullet){
+//         bullet.onUpdate(function(){
+//             const testTerrain = this.game.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)));
             
-            const RADIUS = 40;
-            const DMG_RADIUS = 80;
+//             const RADIUS = 40;
+//             const DMG_RADIUS = 80;
 
-            if(testTerrain){
-                this.game.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
+//             if(testTerrain){
+//                 this.game.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
 
-                this.game.enqueueGlobalPacket(
-                    new TerrainCarveCirclePacket(testTerrain.point.x, testTerrain.point.y, RADIUS)
-                );
+//                 this.game.enqueueGlobalPacket(
+//                     new TerrainCarveCirclePacket(testTerrain.point.x, testTerrain.point.y, RADIUS)
+//                 );
 
-                const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
+//                 const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
 
-                // Check in radius to see if any players are hurt
-                for(const client of this.game.clients){
-                    const p = this.game.players.get(client);
+//                 // Check in radius to see if any players are hurt
+//                 for(const client of this.game.clients){
+//                     const p = this.game.players.get(client);
 
-                    if(Vec2.distanceSquared(p.playerEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
-                        p.playerEntity.health -= 16;
-                    }
-                } 
+//                     if(Vec2.distanceSquared(p.playerEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
+//                         p.playerEntity.health -= 16;
+//                     }
+//                 } 
                  
-                this.destroy();
-            }
-        })
-    }
+//                 this.destroy();
+//             }
+//         })
+//     }
+// }
+
+
+export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number, position: Vec2, velocity: Vec2){
+
+    const bullet = new ModularBullet();
+
+    bullet.position.set(position);
+    bullet.velocity.set(velocity);
+    
+    bullet.onUpdate(function(){
+        const testTerrain = this.game.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)));
+        
+        const RADIUS = 40;
+        const DMG_RADIUS = 80;
+
+        if(testTerrain){
+            this.game.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
+
+            this.game.enqueueGlobalPacket(
+                new TerrainCarveCirclePacket(testTerrain.point.x, testTerrain.point.y, RADIUS, shotID)
+            );
+
+            const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
+
+            // Check in radius to see if any players are hurt
+            for(const client of this.game.clients){
+                const p = this.game.players.get(client);
+
+                if(Vec2.distanceSquared(p.playerEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
+                    p.playerEntity.health -= 16;
+                }
+            } 
+             
+            this.destroy();
+        }
+    });
+
+    const grav = new Vec2(0,.35);
+
+    bullet.onUpdate(function(){
+        this.velocity.add(grav);
+    });
+
+    game.entities.addEntity(bullet);
 }
 
 
-export class TerrainCarverGun extends ModularGun<GunItemData> {
 
-    constructor(){
-        super(
-            CreateItemData("terrain_carver"),
-            [
-            new TerrainHitAddon(),
-            {
-                modifyShot(bullet){
-                    bullet.onInterval(2, function(times){
-                        this.velocity.drotate(random_range(-6,6))
-                    })
-                }
-            },
-            {
-                gravity: new Vec2(0,.35),
-                modifyShot(effect){
+// class TerrainCarverGun extends ModularGun<GunItemData> {
+
+//     constructor(){
+//         super(
+//             CreateItemData("terrain_carver"),
+//             [
+//             new TerrainHitAddon(),
+//             {
+//                 modifyShot(bullet){
+//                     bullet.onInterval(2, function(times){
+//                         this.velocity.drotate(random_range(-6,6))
+//                     })
+//                 }
+//             },
+//             {
+//                 gravity: new Vec2(0,.35),
+//                 modifyShot(effect){
         
-                    const self = this;
+//                     const self = this;
         
-                    effect.onUpdate(function(){
-                        this.velocity.add(self.gravity);
-                    })
-                }
-            },
-        ])
-    }
-}
-
-
+//                     effect.onUpdate(function(){
+//                         this.velocity.add(self.gravity);
+//                     })
+//                 }
+//             },
+//         ])
+//     }
+// }
 
 
 

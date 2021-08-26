@@ -11,36 +11,41 @@ export class Effect<T extends BearGame<any> = BearGame<{}>> extends AbstractEnti
 	private intervalFunctions: [number, (lap: number) => void, number, number][] = [];
 	private delayFunctions: ([number,() => void])[] = [];
 	
-	time_alive = 0;
+	ticks_alive = 0;
 	
 	hasOnlyStart(): boolean {
 		return this.updateFunctions.length === 0 && this.finishFunctions.length === 0 && this.intervalFunctions.length === 0 && this.delayFunctions.length === 0;
 	}
 
-	onStart(func:((this:this) => void)){
+	onStart(func:((this:this) => void)): this {
 		const boundedFunc = func.bind(this);
 		this.startFunctions.push(boundedFunc)
+		return this;
 	}
 	
-	onUpdate(func: ((this:this, dt: number) => void)){
+	onUpdate(func: ((this:this, dt: number) => void)): this {
 		const boundedFunc = func.bind(this);
-		this.updateFunctions.push(boundedFunc)
+		this.updateFunctions.push(boundedFunc);
+		return this;
 	}
 	
-	onFinish(func: (this:this) => void){
+	onFinish(func: (this:this) => void): this {
 		const boundedFunc = func.bind(this);
 		this.finishFunctions.push(boundedFunc)
+		return this;
 	}
 
 	/// max_times = 0 does not work as of now... Just don't do that
-	onInterval(time: number, func: (this:this, lap: number) => void, max_times = -1){
+	onInterval(time: number, func: (this:this, lap: number) => void, max_times = -1): this {
 		const boundedFunc = func.bind(this);
 		this.intervalFunctions.push([time, boundedFunc, 0, max_times]);
+		return this;
 	}
 	
-	onDelay(time: number, func: (this:this) => void){
+	onDelay(time: number, func: (this:this) => void): this {
 		const boundedFunc = func.bind(this);
 		this.delayFunctions.push([time, boundedFunc]);
+		return this;
 	}
 
 	destroyAfter(time: number){
@@ -61,13 +66,13 @@ export class Effect<T extends BearGame<any> = BearGame<{}>> extends AbstractEnti
 	}
 
 	update(dt: number): void {
-		this.time_alive += 1;
+		this.ticks_alive += 1;
 	
 		// functions that run after a delay!
 		for (let i = this.delayFunctions.length - 1; i >= 0; --i) {
 			const delayInfo = this.delayFunctions[i];
 			const time = delayInfo[0];
-			if(this.time_alive % time === 0){
+			if(this.ticks_alive % time === 0){
 				delayInfo[1]();
 				this.delayFunctions.splice(i, 1)
 			}
@@ -77,7 +82,7 @@ export class Effect<T extends BearGame<any> = BearGame<{}>> extends AbstractEnti
 		for (let i = this.intervalFunctions.length - 1; i >= 0; --i) {
 			const intervalInfo = this.intervalFunctions[i];
 			const time = intervalInfo[0];
-			if(this.time_alive % time == 0){
+			if(this.ticks_alive % time == 0){
 				const func = intervalInfo[1];
 				const num = intervalInfo[2];
 				func(num);

@@ -21,10 +21,13 @@ import { Rect } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
-import { EndRoundPacket, InitPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, PlayerCreatePacket, PlayerDestroyPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetInvItemPacket, StartRoundPacket } from "./networking/gamepacketwriters";
+import { AcknowledgeShotPacket, EndRoundPacket, HitscanShotPacket, InitPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, PlayerCreatePacket, PlayerDestroyPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetInvItemPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
 import { Gamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
-import { TerrainCarverGun } from "./weapons/serveritems";
+import { ALL_ITEMS, ItemType } from "shared/core/sharedlogic/items";
+
+import "server/source/app/weapons/serveritems.ts"
+import { ServerShootTerrainCarver } from "./weapons/serveritems";
 
 
 const MAX_BYTES_PER_PACKET = 2048;
@@ -105,6 +108,11 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     public players = new Map<ConnectionID,PlayerInformation>();
     
 
+    private serverShotID = 0;
+
+    getServerShotID(){
+        return this.serverShotID++;
+    }
 
     constructor(tick_rate: number){
         super({});
@@ -295,6 +303,61 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         break;
                     }
 
+                    case ServerBoundPacket.REQUEST_SHOOT_WEAPON: {
+                        
+                        const item_type: ItemType = stream.getUint8();
+
+                        const clientShotID = stream.getUint32();
+
+                        const createServerTick = stream.getFloat32();
+                        const pos = new Vec2(stream.getFloat32(), stream.getFloat32());
+
+                        switch(item_type){
+                            // fallthrough all non-weapons
+                            case ItemType.SIMPLE:{
+                                console.log("How did this happen?")
+                                break;
+                            }
+                            case ItemType.TERRAIN_CARVER:{
+                                const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
+
+                                const shotID = this.getServerShotID();
+
+                                this.players.get(clientID).personalPackets.enqueue(
+                                    new AcknowledgeShotPacket(true,clientShotID, shotID)
+                                )
+
+                                this.enqueueGlobalPacket(
+                                    new TerrainCarverShotPacket(clientID, shotID, createServerTick, pos, velocity)
+                                );
+
+                                ServerShootTerrainCarver(this, shotID, pos, velocity);
+
+                                
+
+                                break;
+                            }
+                            case ItemType.HITSCAN_WEAPON:{
+                                const end = new Vec2(stream.getFloat32(), stream.getFloat32());
+
+                                const shotID = this.getServerShotID();
+
+                                this.enqueueGlobalPacket(
+                                    new HitscanShotPacket(clientID, shotID, createServerTick, pos, end)
+                                )
+
+                                // const ray = new Line(pos, Vec2.add(pos, end));
+                                // ShootHitscanWeapon(this.game, ray)
+                                break;
+                            }
+                            default: AssertUnreachable(item_type);
+
+                        }
+                        
+                        
+                        break;
+                    }
+
                     default: AssertUnreachable(type);
                 }
             }
@@ -401,11 +464,12 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         for(const client of this.clients){
             const p = this.players.get(client);
 
-            const weapon = new TerrainCarverGun();
 
-            p.playerEntity.setWeapon(weapon);
+            const item_id = ALL_ITEMS["terrain_carver"].item_id;
 
-            p.personalPackets.enqueue(new SetInvItemPacket(weapon.item_data.item_id));
+            // p.playerEntity.setWeapon(weapon);
+
+            p.personalPackets.enqueue(new SetInvItemPacket(item_id));
         }
 
     }

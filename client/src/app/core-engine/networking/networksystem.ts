@@ -22,7 +22,8 @@ import { Gamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
 import { CreateItemData, ItemType, ITEM_LINKER } from "shared/core/sharedlogic/items";
-import { CreateClientItemFromType } from "../clientitems";
+import { CreateClientItemFromType, ShootHitscanWeapon, ShootModularWeapon, TerrainCarverAddons } from "../clientitems";
+import { Line } from "shared/shapes/line";
 
 class ClientInfo {
     uniqueID: number;
@@ -49,6 +50,13 @@ interface BufferedPacket {
 
 
 export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
+
+
+    private incShotID = 0;
+
+    getLocalShotID(){
+        return this.incShotID++;
+    }
 
     private network: CallbackNetwork;
     /** Packets from the server are queued here */
@@ -118,6 +126,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     bytesPerSecond = 0;
     
     
+
+    private serverShotIDToEntity: Map<number,AbstractEntity> = new Map();
+    // values exist here while shot awaiting acknowledgement from the server
+    public localShotIDToEntity: Map<number,AbstractEntity> = new Map();
 
     
 
@@ -556,9 +568,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         }
                         case GamePacket.PLAYER_POSITION:{
                            
-
-
-                            // Find correct entity
                             const playerID = stream.getUint8();
                     
                             const x = stream.getFloat32();
@@ -572,7 +581,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 continue;
                             }
 
-
+                            // Find correct entity
                             let e = this.remotePlayers.get(playerID);
                             if(e === undefined){
                                 console.log("Unknown player data");
@@ -592,8 +601,19 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const x = stream.getFloat64();
                             const y = stream.getFloat64();
                             const r = stream.getInt32();
+
+                            const serverShotID = stream.getUint32();
                             
                             terrain.carveCircle(x, y, r);
+
+                            // Check if we have a copy of bullet that created this effect. If so, delete it.
+                            const prediction = this.serverShotIDToEntity.get(serverShotID);
+
+                            if(prediction !== undefined){
+                                this.serverShotIDToEntity.delete(serverShotID);
+                                
+                                prediction.destroy();
+                            }
 
                             this.engine.renderer.addEmitter("assets/flower.png", {
                                 alpha: {
@@ -695,8 +715,73 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                         case GamePacket.CLEAR_INV_ITEM: {
                             
+                            this.game.player.clearItem();
+
                             break;
                         }
+
+                        case GamePacket.SHOOT_WEAPON: {
+
+                            const creatorID = stream.getUint8();
+                            const item_type: ItemType = stream.getUint8();
+
+                            const serverShotID = stream.getUint32();
+
+                            const createServerTick = stream.getFloat32();
+                            const pos = new Vec2(stream.getFloat32(), stream.getFloat32());
+
+
+
+                            switch(item_type){
+                                // fallthrough all non-weapons
+                                case ItemType.SIMPLE:{
+                                    console.log("How did this happen?")
+                                    break;
+                                }
+                                case ItemType.TERRAIN_CARVER:{
+                                    const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
+
+                                    if(this.PLAYER_ID !== creatorID){
+                                        const b = ShootModularWeapon(this.game, TerrainCarverAddons, pos, velocity);
+
+                                        this.serverShotIDToEntity.set(serverShotID, b);
+                                    }
+                                    break;
+                                }
+                                case ItemType.HITSCAN_WEAPON:{
+                                    const end = new Vec2(stream.getFloat32(), stream.getFloat32());
+                                    const ray = new Line(pos, end);
+                                    if(this.PLAYER_ID !== creatorID)
+                                        ShootHitscanWeapon(this.game, ray);
+                                    break;
+                                }
+                                default: AssertUnreachable(item_type);
+
+                            }
+
+
+                            break;
+                        }
+                        case GamePacket.ACKNOWLEDGE_SHOT: {
+                            const success = stream.getBool();
+
+                            const localShotID = stream.getUint32();
+                            const serverShotID = stream.getUint32();
+
+
+                            if(success){
+                                const bullet = this.localShotIDToEntity.get(localShotID);
+                                // May not exist, for some reason...
+                                if(bullet !== undefined){
+                                    
+                                    this.serverShotIDToEntity.set(serverShotID, bullet);
+                                    this.localShotIDToEntity.delete(localShotID);
+                                }
+                            }
+
+                            break;
+                        }
+
                         default: AssertUnreachable(type);
                     }
                 }
@@ -707,7 +792,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             // Interpolation of entities
             const frameToSimulate = this.getServerTickToSimulate();
 
-            console.log(frameToSimulate);
+            // console.log(frameToSimulate);
 
             for(const obj of this.remotelocations){
                 obj.setPosition(frameToSimulate)

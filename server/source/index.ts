@@ -55,7 +55,7 @@ rl.on('line', (input: string) => {
     const first = allWords[0];
 
     switch(first){
-        case "starts": {
+        case "s": {
             engine.beginStage(allWords[1] as any);
             break;
         }

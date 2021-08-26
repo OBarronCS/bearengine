@@ -266,10 +266,17 @@ export class Player extends DrawableEntity {
 
     itemInHand: ItemDrawer = new ItemDrawer();
 
-    weapon: Gun = new Hitscan(CreateItemData("first_hitscan"));
+    weapon: Gun = null;
 
     setItem(item: Item<ItemData>){
         this.itemInHand.setItem(item.item_data);
+        if(item instanceof Gun){
+            this.weapon = item;
+        }
+    }
+
+    clearItem(){
+        this.itemInHand.clear();
     }
 
     constructor(){
@@ -303,8 +310,6 @@ export class Player extends DrawableEntity {
 
     override onAdd(){
         this.scene.addEntity(this.itemInHand);
-
-        this.setItem(this.weapon);
 
         this.runAnimation.setScale(2);
         this.wallslideAnimation.setScale(2);
@@ -626,8 +631,19 @@ export class Player extends DrawableEntity {
         }
     }
 
+    private followCam = false;
 
     update(dt: number): void {
+        if(this.keyboard.wasPressed("KeyJ")){
+            this.followCam = !this.followCam;
+            if(this.followCam){
+                this.engine.camera.follow(this.position);
+            } else {
+                this.engine.camera.free();
+            }
+        }
+
+
         if(this.dead) return;
         
         this.emitter.updateSpawnPos(this.mouse.x, this.mouse.y);

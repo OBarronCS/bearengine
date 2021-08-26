@@ -104,7 +104,7 @@ export function DeserializeItemData(stream: BufferStreamReader, targetItem: ALL_
 const idToNameMap: Map<number, keyof typeof ITEM_DEFINITIONS> = new Map();
 const nameToIdMap: Map< keyof typeof ITEM_DEFINITIONS, number> = new Map();
 
-const ALL_ITEMS = (function(){
+export const ALL_ITEMS = (function(){
     const shared_item_names = Object.keys(ITEM_DEFINITIONS).sort();
 
     let max_id:number = 0;
