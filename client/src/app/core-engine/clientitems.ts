@@ -4,6 +4,7 @@ import { CreateItemData, GunItemData, ItemData, ItemType } from "shared/core/sha
 import { PacketWriter } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { CreateShootController, GunshootController } from "shared/core/sharedlogic/weapondefinitions";
+import { NumberTween } from "shared/core/tween";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { random_range } from "shared/misc/random";
@@ -78,22 +79,30 @@ export abstract class Gun<T extends GunItemData = GunItemData> extends Item<T> {
 }
 
 
+
 export function ShootHitscanWeapon(game: NetworkPlatformGame, line: Line): void {
-    line.draw(game.engine.renderer.createCanvas(), 0xbeef00);
+
+    const canvas = game.engine.renderer.createCanvas();
+    line.draw(canvas, 0xbeef00);
+    const tween = new NumberTween(canvas, "alpha",.4).from(1).to(0).go().onFinish(() => canvas.destroy());
+
+    game.entities.addEntity(tween);
 }
 
 export class ServerBoundHitscanPacket extends PacketWriter {
 
-    constructor(public createServerTick: number, public start: Vec2, public end: Vec2){
+    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public end: Vec2){
         super(false);
     }
 
     write(stream: BufferStreamWriter){
-        stream.setUint8(ServerBoundPacket.SHOOT_WEAPON);
+        stream.setUint8(ServerBoundPacket.REQUEST_SHOOT_WEAPON);
         stream.setUint8(ItemType.HITSCAN_WEAPON);
 
-        stream.setFloat32(this.createServerTick);
+        stream.setUint32(this.localShotID);
         
+        stream.setFloat32(this.createServerTick);
+
         stream.setFloat32(this.start.x);
         stream.setFloat32(this.start.y);
 
@@ -111,7 +120,7 @@ export class Hitscan extends Gun {
         ShootHitscanWeapon(game, ray);
 
         game.networksystem.queuePacket(
-            new ServerBoundHitscanPacket(0,ray.A, ray.B)
+            new ServerBoundHitscanPacket(0,game.networksystem.getLocalShotID(), ray.A, ray.B)
         )
 
         // // Check in radius to see if any players are hurt
@@ -132,6 +141,24 @@ interface GunAddon {
     [key: string]: any; // allow for random data
 }
 
+
+export function ShootModularWeapon(game: NetworkPlatformGame, addons: GunAddon[], position: Vec2, velocity: Vec2): void {
+    const bullet = new ModularBullet();
+            
+    bullet.position.set(position);
+
+    bullet.velocity.set(velocity);
+
+
+    for(const addon of addons){
+        addon.modifyShot(bullet);
+    }
+
+    game.entities.addEntity(bullet);
+}
+
+
+
 export class ModularGun<T extends GunItemData> extends Gun<T> {
 
     addons: GunAddon[] = [];
@@ -142,41 +169,69 @@ export class ModularGun<T extends GunItemData> extends Gun<T> {
     }
 
     shoot(game: NetworkPlatformGame){
-        const bullet = new ModularBullet();
+        const velocity = this.direction.clone().extend(25);
+        ShootModularWeapon(game,this.addons,this.position,velocity);
+
+        game.networksystem.queuePacket(
+            new ServerBoundTerrainCarverPacket(0,game.networksystem.getLocalShotID(), this.position.clone(), velocity)
+        )
+
+        // const bullet = new ModularBullet();
             
-        bullet.position.set(this.position);
+        // bullet.position.set(this.position);
 
-        bullet.velocity.set(this.direction.clone().extend(25));
+        // bullet.velocity.set(this.direction.clone().extend(25));
 
 
-        for(const addon of this.addons){
-            addon.modifyShot(bullet);
-        }
+        // for(const addon of this.addons){
+        //     addon.modifyShot(bullet);
+        // }
     
-        game.entities.addEntity(bullet);
+        // game.entities.addEntity(bullet);
     }
 }
 
 export class ModularBullet extends Effect<NetworkPlatformGame> {
     
     readonly velocity = new Vec2();
-    private sprite = this.addPart(new SpritePart("test2.png"))
+    private sprite = this.addPart(new SpritePart("test2.png"));
 
     constructor(){
         super();
-    
+
         this.onUpdate(function(dt: number){
             this.position.add(this.velocity);
-            console.log(this.position.x)
             if(!this.game.activeLevel.bbox.contains(this.position)){
                 this.destroy();
             }
         });
     }
-} 
+}
+
+export class ServerBoundTerrainCarverPacket extends PacketWriter {
+
+    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public velocity: Vec2){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(ServerBoundPacket.REQUEST_SHOOT_WEAPON);
+        stream.setUint8(ItemType.TERRAIN_CARVER);
+        stream.setUint32(this.localShotID);
+
+        stream.setFloat32(this.createServerTick);
+
+        stream.setFloat32(this.start.x);
+        stream.setFloat32(this.start.y);
+
+        stream.setFloat32(this.velocity.x);
+        stream.setFloat32(this.velocity.y);
+
+    }
+}
 
 
-export class TerrainHitAddon implements GunAddon {
+class TerrainHitAddon implements GunAddon {
 
     modifyShot(bullet: ModularBullet){
         bullet.onUpdate(function(){
@@ -209,32 +264,35 @@ export class TerrainHitAddon implements GunAddon {
     }
 }
 
+export const TerrainCarverAddons: GunAddon[] = [
+    new TerrainHitAddon(),
+    {
+        modifyShot(bullet){
+            // bullet.onInterval(2, function(times){
+            //     this.velocity.drotate(random_range(-6,6))
+            // })
+        }
+    },
+    {
+        gravity: new Vec2(0,.35),
+        modifyShot(effect){
+
+            const self = this;
+
+            effect.onUpdate(function(){
+                this.velocity.add(self.gravity);
+            })
+        }
+    },
+]
+
 export class TerrainCarverGun extends ModularGun<GunItemData> {
 
     constructor(){
         super(
             CreateItemData("terrain_carver"),
-            [
-            new TerrainHitAddon(),
-            {
-                modifyShot(bullet){
-                    bullet.onInterval(2, function(times){
-                        this.velocity.drotate(random_range(-6,6))
-                    })
-                }
-            },
-            {
-                gravity: new Vec2(0,.35),
-                modifyShot(effect){
-        
-                    const self = this;
-        
-                    effect.onUpdate(function(){
-                        this.velocity.add(self.gravity);
-                    })
-                }
-            },
-        ])
+            TerrainCarverAddons
+        )
     }
 }
 

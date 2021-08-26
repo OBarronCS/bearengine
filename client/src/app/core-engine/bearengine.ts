@@ -168,7 +168,7 @@ export class BearEngine {
 
 
 export class NetworkPlatformGame extends BearGame<BearEngine> {
-  
+
 
     public activeLevel: GameLevel;
     public levelLoaded = false;

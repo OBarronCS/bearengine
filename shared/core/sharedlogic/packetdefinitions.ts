@@ -55,12 +55,15 @@ export enum GamePacket {
     TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
 
 
-    SHOOT_WEAPON, // [ITEM_ID_OF_WEAPON: uint8, createServerTick: float32, x: float32, y: float32,]
+    SHOOT_WEAPON, // [creator_id: uint8, ITEM_ID_OF_WEAPON: uint8, serverShotID: uint32, createServerTick: float32, x: float32, y: float32, ...extra_data]
+
+    ACKNOWLEDGE_SHOT // [success: bool, localShotID: uint32, serverShotID: uint32];
 }
 
 /*
 SHOT EXTRA DATA DEFINITIONS:
-    HITSCAN_WEAPON: [end_x: float32, end_y: float32]
+    HITSCAN_WEAPON: [end_x: float32, end_y: float32];
+    TERRAIN_CARVER: [velocity_x: float32, vel_y: float32];
 */
 
 
@@ -80,7 +83,7 @@ export enum ServerBoundPacket {
 
     PLAYER_POSITION, // [x: float32, y: float32, mouse_x: float32, mouse_y: float32, uint8: animationstate, bool: flipped, isMouseDown: bool, isFDown: bool, isQDown: bool]
 
-    SHOOT_WEAPON, // [ITEM_ID_OF_WEAPON: uint8, createServerTick: float32, x: float32, y: float32,]
+    REQUEST_SHOOT_WEAPON, // [ITEM_ID_OF_WEAPON: uint8, localShootID: uint32, createServerTick: float32, x: float32, y: float32, ...data]
 }
 
 

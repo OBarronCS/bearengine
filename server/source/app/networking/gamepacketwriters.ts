@@ -241,13 +241,17 @@ export class TerrainCarveCirclePacket extends PacketWriter {
 
 export class HitscanShotPacket extends PacketWriter {
 
-    constructor(public createServerTick: number, public start: Vec2, public end: Vec2){
+    constructor(public playerID: number, public serverShotID: number, public createServerTick: number,  public start: Vec2, public end: Vec2){
         super(false);
     }
 
     write(stream: BufferStreamWriter){
         stream.setUint8(GamePacket.SHOOT_WEAPON);
+        stream.setUint8(this.playerID);
         stream.setUint8(ItemType.HITSCAN_WEAPON);
+
+
+        stream.setUint32(this.serverShotID);
         
         stream.setFloat32(this.createServerTick);
 
@@ -259,3 +263,28 @@ export class HitscanShotPacket extends PacketWriter {
 
     }
 }
+
+
+export class TerrainCarverShotPacket extends PacketWriter {
+
+    constructor(public playerID: number, public serverShotID: number, public createServerTick: number, public start: Vec2, public velocity: Vec2){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.SHOOT_WEAPON);
+        stream.setUint8(this.playerID);
+        stream.setUint8(ItemType.TERRAIN_CARVER);
+
+        stream.setUint32(this.serverShotID);
+        
+        stream.setFloat32(this.createServerTick);
+
+        stream.setFloat32(this.start.x);
+        stream.setFloat32(this.start.y);
+
+        stream.setFloat32(this.velocity.x);
+        stream.setFloat32(this.velocity.y);
+    }
+}
+

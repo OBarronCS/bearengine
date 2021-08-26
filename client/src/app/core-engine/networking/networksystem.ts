@@ -22,7 +22,7 @@ import { Gamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
 import { CreateItemData, ItemType, ITEM_LINKER } from "shared/core/sharedlogic/items";
-import { CreateClientItemFromType, ShootHitscanWeapon } from "../clientitems";
+import { CreateClientItemFromType, ShootHitscanWeapon, ShootModularWeapon, TerrainCarverAddons } from "../clientitems";
 import { Line } from "shared/shapes/line";
 
 class ClientInfo {
@@ -50,6 +50,13 @@ interface BufferedPacket {
 
 
 export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
+
+
+    private incShotID = 0;
+
+    getLocalShotID(){
+        return this.incShotID++;
+    }
 
     private network: CallbackNetwork;
     /** Packets from the server are queued here */
@@ -703,7 +710,11 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                         case GamePacket.SHOOT_WEAPON: {
 
+                            const creatorID = stream.getUint8();
                             const item_type: ItemType = stream.getUint8();
+
+                            const serverShotID = stream.getUint32();
+
                             const createServerTick = stream.getFloat32();
                             const pos = new Vec2(stream.getFloat32(), stream.getFloat32());
 
@@ -714,14 +725,17 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     break;
                                 }
                                 case ItemType.TERRAIN_CARVER:{
-                                    
+                                    const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
+
+                                    if(this.PLAYER_ID !== creatorID)
+                                        ShootModularWeapon(this.game, TerrainCarverAddons, pos, velocity);
                                     break;
                                 }
                                 case ItemType.HITSCAN_WEAPON:{
                                     const end = new Vec2(stream.getFloat32(), stream.getFloat32());
                                     const ray = new Line(pos, end);
-                                    console.log("YOOO")
-                                    ShootHitscanWeapon(this.game, ray);
+                                    if(this.PLAYER_ID !== creatorID)
+                                        ShootHitscanWeapon(this.game, ray);
                                     break;
                                 }
                                 default: AssertUnreachable(item_type);
@@ -731,6 +745,16 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             break;
                         }
+                        case GamePacket.ACKNOWLEDGE_SHOT: {
+                            const success = stream.getBool();
+
+                            const localShotID = stream.getUint32();
+                            const serverShotID = stream.getUint32();
+
+
+                            break;
+                        }
+
                         default: AssertUnreachable(type);
                     }
                 }

@@ -21,7 +21,7 @@ import { Rect } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
-import { EndRoundPacket, HitscanShotPacket, InitPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, PlayerCreatePacket, PlayerDestroyPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetInvItemPacket, StartRoundPacket } from "./networking/gamepacketwriters";
+import { EndRoundPacket, HitscanShotPacket, InitPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, PlayerCreatePacket, PlayerDestroyPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetInvItemPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
 import { Gamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ALL_ITEMS, ItemType } from "shared/core/sharedlogic/items";
@@ -107,6 +107,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     public players = new Map<ConnectionID,PlayerInformation>();
     
 
+    private serverShotID = 0;
 
     constructor(tick_rate: number){
         super({});
@@ -297,9 +298,12 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         break;
                     }
 
-                    case ServerBoundPacket.SHOOT_WEAPON: {
+                    case ServerBoundPacket.REQUEST_SHOOT_WEAPON: {
                         
                         const item_type: ItemType = stream.getUint8();
+
+                        const clientShotID = stream.getUint32();
+
                         const createServerTick = stream.getFloat32();
                         const pos = new Vec2(stream.getFloat32(), stream.getFloat32());
 
@@ -310,14 +314,18 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                                 break;
                             }
                             case ItemType.TERRAIN_CARVER:{
-                                
+                                const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
+
+                                this.enqueueGlobalPacket(
+                                    new TerrainCarverShotPacket(clientID, this.serverShotID++, createServerTick, pos, velocity)
+                                );
                                 break;
                             }
                             case ItemType.HITSCAN_WEAPON:{
                                 const end = new Vec2(stream.getFloat32(), stream.getFloat32());
 
                                 this.enqueueGlobalPacket(
-                                    new HitscanShotPacket(createServerTick, pos, end)
+                                    new HitscanShotPacket(clientID, this.serverShotID++, createServerTick, pos, end)
                                 )
 
                                 // const ray = new Line(pos, Vec2.add(pos, end));
@@ -439,9 +447,11 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             const p = this.players.get(client);
 
 
+            const item_id = ALL_ITEMS["terrain_carver"].item_id;
+
             // p.playerEntity.setWeapon(weapon);
 
-            p.personalPackets.enqueue(new SetInvItemPacket(ALL_ITEMS["first_hitscan"].item_id));
+            p.personalPackets.enqueue(new SetInvItemPacket(item_id));
         }
 
     }

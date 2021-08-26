@@ -55,11 +55,6 @@ export function smoothstep(leftedge: number, rightedge: number, x: number): numb
     return val * val * (3 - (2*val))
 }
 
-// About -1 to 1, just for testing before I get real perlin noise
-export function smoothNoise(seed: number): number {
-	return (Math.sin(7*seed) + Math.sin(Math.PI * seed) + Math.cos(11*seed))/3
-}
-
 
 /** RADIANS, finds shortest angle difference between two angles */
 export function angleDifference(from: number, to: number){

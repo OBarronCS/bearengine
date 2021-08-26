@@ -1,4 +1,4 @@
-import { Gun, Hitscan, ModularGun, TerrainHitAddon } from "./weapons/serveritems";
+import { Gun } from "./weapons/serveritems";
 import { Vec2 } from "shared/shapes/vec2";
 import { Clip, CreateShootController } from "shared/core/sharedlogic/weapondefinitions";
 import { AssertUnreachable } from "shared/misc/assertstatements";
