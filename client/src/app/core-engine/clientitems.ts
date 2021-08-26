@@ -142,7 +142,7 @@ interface GunAddon {
 }
 
 
-export function ShootModularWeapon(game: NetworkPlatformGame, addons: GunAddon[], position: Vec2, velocity: Vec2): void {
+export function ShootModularWeapon(game: NetworkPlatformGame, addons: GunAddon[], position: Vec2, velocity: Vec2): ModularBullet {
     const bullet = new ModularBullet();
             
     bullet.position.set(position);
@@ -155,6 +155,8 @@ export function ShootModularWeapon(game: NetworkPlatformGame, addons: GunAddon[]
     }
 
     game.entities.addEntity(bullet);
+
+    return bullet;
 }
 
 
@@ -170,10 +172,13 @@ export class ModularGun<T extends GunItemData> extends Gun<T> {
 
     shoot(game: NetworkPlatformGame){
         const velocity = this.direction.clone().extend(25);
-        ShootModularWeapon(game,this.addons,this.position,velocity);
+        const b = ShootModularWeapon(game,this.addons,this.position,velocity);
+
+        const localID = game.networksystem.getLocalShotID();
+        game.networksystem.localShotIDToEntity.set(localID,b)
 
         game.networksystem.queuePacket(
-            new ServerBoundTerrainCarverPacket(0,game.networksystem.getLocalShotID(), this.position.clone(), velocity)
+            new ServerBoundTerrainCarverPacket(0, localID, this.position.clone(), velocity)
         )
 
         // const bullet = new ModularBullet();

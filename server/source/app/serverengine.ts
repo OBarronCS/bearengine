@@ -21,12 +21,13 @@ import { Rect } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
-import { EndRoundPacket, HitscanShotPacket, InitPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, PlayerCreatePacket, PlayerDestroyPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetInvItemPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
+import { AcknowledgeShotPacket, EndRoundPacket, HitscanShotPacket, InitPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, PlayerCreatePacket, PlayerDestroyPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetInvItemPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
 import { Gamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ALL_ITEMS, ItemType } from "shared/core/sharedlogic/items";
 
 import "server/source/app/weapons/serveritems.ts"
+import { ServerShootTerrainCarver } from "./weapons/serveritems";
 
 
 const MAX_BYTES_PER_PACKET = 2048;
@@ -108,6 +109,10 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     
 
     private serverShotID = 0;
+
+    getServerShotID(){
+        return this.serverShotID++;
+    }
 
     constructor(tick_rate: number){
         super({});
@@ -316,16 +321,29 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                             case ItemType.TERRAIN_CARVER:{
                                 const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
 
+                                const shotID = this.getServerShotID();
+
+                                this.players.get(clientID).personalPackets.enqueue(
+                                    new AcknowledgeShotPacket(true,clientShotID, shotID)
+                                )
+
                                 this.enqueueGlobalPacket(
-                                    new TerrainCarverShotPacket(clientID, this.serverShotID++, createServerTick, pos, velocity)
+                                    new TerrainCarverShotPacket(clientID, shotID, createServerTick, pos, velocity)
                                 );
+
+                                ServerShootTerrainCarver(this, shotID, pos, velocity);
+
+                                
+
                                 break;
                             }
                             case ItemType.HITSCAN_WEAPON:{
                                 const end = new Vec2(stream.getFloat32(), stream.getFloat32());
 
+                                const shotID = this.getServerShotID();
+
                                 this.enqueueGlobalPacket(
-                                    new HitscanShotPacket(clientID, this.serverShotID++, createServerTick, pos, end)
+                                    new HitscanShotPacket(clientID, shotID, createServerTick, pos, end)
                                 )
 
                                 // const ray = new Line(pos, Vec2.add(pos, end));
@@ -447,7 +465,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             const p = this.players.get(client);
 
 
-            const item_id = ALL_ITEMS["terrain_carver"].item_id;
+            const item_id = ALL_ITEMS["first_hitscan"].item_id;
 
             // p.playerEntity.setWeapon(weapon);
 

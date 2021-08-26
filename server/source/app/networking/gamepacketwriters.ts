@@ -225,7 +225,7 @@ export class RemoteEntityEventPacket<TSharedName extends keyof SharedNetworkedEn
 
 export class TerrainCarveCirclePacket extends PacketWriter {
 
-    constructor(public x: number, public y: number, public radius: number){
+    constructor(public x: number, public y: number, public radius: number, public serverShotID: number){
         super(true);
     }
 
@@ -234,7 +234,7 @@ export class TerrainCarveCirclePacket extends PacketWriter {
         stream.setFloat64(this.x);
         stream.setFloat64(this.y);
         stream.setInt32(this.radius);
-
+        stream.setUint32(this.serverShotID);
     }
 }
 
@@ -285,6 +285,23 @@ export class TerrainCarverShotPacket extends PacketWriter {
 
         stream.setFloat32(this.velocity.x);
         stream.setFloat32(this.velocity.y);
+    }
+}
+
+
+
+export class AcknowledgeShotPacket extends PacketWriter {
+
+    constructor(private success: boolean, private localID: number, private serverID: number){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.ACKNOWLEDGE_SHOT);
+        
+        stream.setBool(this.success);
+        stream.setUint32(this.localID);
+        stream.setUint32(this.serverID);
     }
 }
 

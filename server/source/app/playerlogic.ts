@@ -1,8 +1,5 @@
-import { Gun } from "./weapons/serveritems";
+
 import { Vec2 } from "shared/shapes/vec2";
-import { Clip, CreateShootController } from "shared/core/sharedlogic/weapondefinitions";
-import { AssertUnreachable } from "shared/misc/assertstatements";
-import { random_range } from "shared/misc/random";
 import { ServerEntity } from "./entity";
 import "./networking/networkedentities";
 
@@ -16,25 +13,25 @@ export class PlayerEntity extends ServerEntity {
     mouse: Vec2 = new Vec2(0,0);
     mousedown = false;
     
-    item: Gun<any> = null;
+    // item: Gun<any> = null;
 
     update(dt: number): void {
-        if(this.item !== null){
-            this.item.direction.set(Vec2.subtract(this.mouse, this.item.position));
-            this.item.position.set(this.position);
-            // if(this.mousedown){
-            //     this.item.holdTrigger();
-            // }
-        }
+        // if(this.item !== null){
+        //     this.item.direction.set(Vec2.subtract(this.mouse, this.item.position));
+        //     this.item.position.set(this.position);
+        //     // if(this.mousedown){
+        //     //     this.item.holdTrigger();
+        //     // }
+        // }
     }
 
-    setWeapon(gun: Gun<any>){
-        this.item = gun;
-    }
+    // // setWeapon(gun: Gun<any>){
+    // //     this.item = gun;
+    // // }
 
-    clearItem(){
-        this.item = null;
-    }
+    // clearItem(){
+    //     this.item = null;
+    // }
 }
 
 

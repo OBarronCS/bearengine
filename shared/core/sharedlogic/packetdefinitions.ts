@@ -52,7 +52,7 @@ export enum GamePacket {
 
     // TODO: EXPLOSION: [fromPlayer: uint8, x: float32, y: float32, strength: uint8] // handle knockback on clients
 
-    TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
+    TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32, serverShotID: uint32]
 
 
     SHOOT_WEAPON, // [creator_id: uint8, ITEM_ID_OF_WEAPON: uint8, serverShotID: uint32, createServerTick: float32, x: float32, y: float32, ...extra_data]

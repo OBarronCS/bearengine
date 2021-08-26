@@ -127,6 +127,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     
     
 
+    private serverShotIDToEntity: Map<number,AbstractEntity> = new Map();
+    // values exist here while shot awaiting acknowledgement from the server
+    public localShotIDToEntity: Map<number,AbstractEntity> = new Map();
+
     
 
     constructor(engine: NetworkPlatformGame, settings: NetworkSettings){
@@ -564,9 +568,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         }
                         case GamePacket.PLAYER_POSITION:{
                            
-
-
-                            // Find correct entity
                             const playerID = stream.getUint8();
                     
                             const x = stream.getFloat32();
@@ -580,7 +581,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 continue;
                             }
 
-
+                            // Find correct entity
                             let e = this.remotePlayers.get(playerID);
                             if(e === undefined){
                                 console.log("Unknown player data");
@@ -600,8 +601,19 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const x = stream.getFloat64();
                             const y = stream.getFloat64();
                             const r = stream.getInt32();
+
+                            const serverShotID = stream.getUint32();
                             
                             terrain.carveCircle(x, y, r);
+
+                            // Check if we have a copy of bullet that created this effect. If so, delete it.
+                            const prediction = this.serverShotIDToEntity.get(serverShotID);
+
+                            if(prediction !== undefined){
+                                this.serverShotIDToEntity.delete(serverShotID);
+                                
+                                prediction.destroy();
+                            }
 
                             this.engine.renderer.addEmitter("assets/flower.png", {
                                 alpha: {
@@ -718,6 +730,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const createServerTick = stream.getFloat32();
                             const pos = new Vec2(stream.getFloat32(), stream.getFloat32());
 
+
+
                             switch(item_type){
                                 // fallthrough all non-weapons
                                 case ItemType.SIMPLE:{
@@ -727,8 +741,11 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 case ItemType.TERRAIN_CARVER:{
                                     const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
 
-                                    if(this.PLAYER_ID !== creatorID)
-                                        ShootModularWeapon(this.game, TerrainCarverAddons, pos, velocity);
+                                    if(this.PLAYER_ID !== creatorID){
+                                        const b = ShootModularWeapon(this.game, TerrainCarverAddons, pos, velocity);
+
+                                        this.serverShotIDToEntity.set(serverShotID, b);
+                                    }
                                     break;
                                 }
                                 case ItemType.HITSCAN_WEAPON:{
@@ -751,6 +768,16 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const localShotID = stream.getUint32();
                             const serverShotID = stream.getUint32();
 
+
+                            if(success){
+                                const bullet = this.localShotIDToEntity.get(localShotID);
+                                // May not exist, for some reason...
+                                if(bullet !== undefined){
+                                    
+                                    this.serverShotIDToEntity.set(serverShotID, bullet);
+                                    this.localShotIDToEntity.delete(localShotID);
+                                }
+                            }
 
                             break;
                         }
