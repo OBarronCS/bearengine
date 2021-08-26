@@ -631,8 +631,19 @@ export class Player extends DrawableEntity {
         }
     }
 
+    private followCam = false;
 
     update(dt: number): void {
+        if(this.keyboard.wasPressed("KeyJ")){
+            this.followCam = !this.followCam;
+            if(this.followCam){
+                this.engine.camera.follow(this.position);
+            } else {
+                this.engine.camera.free();
+            }
+        }
+
+
         if(this.dead) return;
         
         this.emitter.updateSpawnPos(this.mouse.x, this.mouse.y);
