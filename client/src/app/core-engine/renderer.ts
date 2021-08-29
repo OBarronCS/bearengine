@@ -5,7 +5,7 @@ import { GraphicsPart, SpritePart } from "./parts";
 import { Subsystem } from "shared/core/subsystem";
 import { Color } from "shared/datastructures/color";
 
-import { Emitter, EmitterConfig } from "pixi-particles"
+import { Emitter, EmitterConfig, OldEmitterConfig } from "pixi-particles"
 import { BearGame } from "shared/core/abstractengine";
 
 
@@ -34,7 +34,7 @@ export class RendererSystem {
 
     private emitters: Emitter[] = [];
 
-    addEmitter(path: string, settings: EmitterConfig, x: number, y: number): Emitter {
+    addEmitter(path: string, settings: EmitterConfig | OldEmitterConfig, x: number, y: number): Emitter {
         const e = new Emitter(this.mainContainer, path, settings);
         e.updateSpawnPos(x, y);
         this.emitters.push(e);

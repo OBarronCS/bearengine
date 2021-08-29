@@ -24,6 +24,7 @@ import { Deque } from "shared/datastructures/deque";
 import { CreateItemData, ItemType, ITEM_LINKER } from "shared/core/sharedlogic/items";
 import { CreateClientItemFromType, ShootHitscanWeapon, ShootModularWeapon, TerrainCarverAddons } from "../clientitems";
 import { Line } from "shared/shapes/line";
+import { PARTICLE_CONFIG } from "../particles";
 
 class ClientInfo {
     uniqueID: number;
@@ -615,88 +616,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 prediction.destroy();
                             }
 
-                            this.engine.renderer.addEmitter("assets/flower.png", {
-                                alpha: {
-                                    list: [
-                                        {
-                                            value: 0.8,
-                                            time: 0
-                                        },
-                                        {
-                                            value: 0.1,
-                                            time: 1
-                                        }
-                                    ],
-                                    isStepped: false
-                                },
-                                scale: {
-                                    list: [
-                                        {
-                                            value: 1,
-                                            time: 0
-                                        },
-                                        {
-                                            value: 0.3,
-                                            time: 1
-                                        }
-                                    ],
-                                    isStepped: false
-                                },
-                                color: {
-                                    list: [
-                                        {
-                                            value: "fb1010",
-                                            time: 0
-                                        },
-                                        {
-                                            value: "f5b830",
-                                            time: 1
-                                        }
-                                    ],
-                                    isStepped: false
-                                },
-                                speed: {
-                                    list: [
-                                        {
-                                            value: 200,
-                                            time: 0
-                                        },
-                                        {
-                                            value: 100,
-                                            time: 1
-                                        }
-                                    ],
-                                    isStepped: false
-                                },
-                                startRotation: {
-                                    min: 0,
-                                    max: 360
-                                },
-                                rotationSpeed: {
-                                    min: 0,
-                                    max: 0
-                                },
-                                lifetime: {
-                                    min: 0.5,
-                                    max: 0.5
-                                },
-                                frequency: 0.008,
-                                spawnChance: 1,
-                                particlesPerWave: 1,
-                                emitterLifetime: 0.31,
-                                maxParticles: 1000,
-                                pos: {
-                                    x: 0,
-                                    y: 0
-                                },
-                                addAtBack: false,
-                                spawnType: "circle",
-                                spawnCircle: {
-                                    x: 0,
-                                    y: 0,
-                                    r: 10
-                                }
-                            }, x, y);
+                            this.engine.renderer.addEmitter("assets/flower.png", PARTICLE_CONFIG["TERRAIN_EXPLOSION"], x, y);
                             
                             break;
                         }

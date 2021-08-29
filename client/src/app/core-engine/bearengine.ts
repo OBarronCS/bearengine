@@ -31,6 +31,8 @@ export const ASSET_FOLDER_NAME = "assets/";
 // Returns names of files!
 // r is the require function
 function importAll(r: any): [] {
+    // console.log(r.keys());
+    // console.log(r.resolve(r.keys()[0]));
     const webpackObjs = r.keys().map(r);
     return webpackObjs.map((v:any) => v.default)
 }
