@@ -1,9 +1,6 @@
 import * as Mousetrap from "mousetrap"
 import { ExtendedKeyboardEvent, MousetrapInstance } from "mousetrap";
 import { KECode } from "../apiwrappers/keyboardapiwrapper";
-import { Subsystem } from "shared/core/subsystem";
-import { BearEngine } from "../core-engine/bearengine";
-
 
 export class EngineKeyboard {
 

@@ -465,7 +465,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             const p = this.players.get(client);
 
 
-            const item_id = ALL_ITEMS["terrain_carver"].item_id;
+            const item_id = ALL_ITEMS["first_hitscan"].item_id;
 
             // p.playerEntity.setWeapon(weapon);
 

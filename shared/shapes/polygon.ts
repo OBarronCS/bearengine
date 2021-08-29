@@ -1,7 +1,7 @@
 import { Shape } from "./shapesinterfaces";
 import { Coordinate, Vec2, mix, flattenVecArray, distanceSquared } from "./vec2";
 import { Rect } from "./rectangle";
-import { abs, atan2, cos, max, min, niceColor, PI, sin, TWO_PI } from "../misc/mathutils";
+import { abs, atan2, cos, max, min, niceColor, PI, sign, sin, TWO_PI } from "../misc/mathutils";
 
 import type { Graphics, Point } from "pixi.js";
 
@@ -360,6 +360,29 @@ export class Polygon implements Shape<Polygon>{
         }
         return closestPoint;
     }
+
+    // expand(length: number): Polygon {
+
+    //     const expandedPoints: Vec2[] = [];
+
+    //     //let j = this.points.length - 1;
+    //     for(let i = 0; i < this.points.length; i++){
+    //         const A = this.points[i];
+    //         const B = this.points[(i + 1) % this.points.length];
+    //         const C = this.points[(i + 2) % this.points.length];
+
+    //         const AB = Vec2.subtract(B, A);
+    //         const CB = Vec2.subtract(B, C);
+
+    //         const outward = Vec2.add(AB, CB).normalize().extend(length);
+
+    //         outward.scale(sign((AB.x * CB.y) - (AB.y * CB.x)));
+
+    //         expandedPoints.push(Vec2.add(B,outward));
+    //     }
+
+    //     return Polygon.from(expandedPoints);
+    // }
 
     toPolygon(): Polygon {
         return this.clone();

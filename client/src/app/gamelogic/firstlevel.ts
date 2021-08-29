@@ -10,14 +10,41 @@ import { DrawableEntity, Entity, GMEntity } from "../core-engine/entity";
 import { GameLevel } from "../core-engine/gamelevel";
 import { SpritePart } from "../core-engine/parts";
 import { Player } from "./player";
+import { Polygon } from "shared/shapes/polygon";
 
 
+
+// class PolygonExpandTest extends DrawableEntity {
+
+//     poly = Polygon.random(24);
+//     expandedpoly = this.poly;
+//     test = this.redraw()
+
+
+
+
+//     draw(g: Graphics): void {
+//         this.poly.draw(g);
+//         this.expandedpoly.draw(g);
+//     }
+
+//     update(dt: number): void {
+//         if(this.keyboard.wasPressed("KeyL")){
+//             this.expandedpoly = this.expandedpoly.expand(50);
+//             this.redraw()
+//         }
+//     }
+
+
+// }
 
 export class FirstLevel extends GameLevel {
     
     path: string | TiledMap = "assets/firsttest.json";
 
     start(game: NetworkPlatformGame, scene: EntitySystem): void {
+
+        // scene.addEntity(new PolygonExpandTest)
 
         const p = scene.addEntity(new Player());
 
