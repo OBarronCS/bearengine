@@ -1,4 +1,5 @@
 import { Container, Text } from "pixi.js";
+import { Gamemode } from "shared/core/sharedlogic/sharedenums";
 import { Subsystem } from "shared/core/subsystem";
 import { randomChar } from "shared/misc/random";
 import { NetworkPlatformGame } from "../core-engine/bearengine";
@@ -11,7 +12,7 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
 
     y = 5;
 
-    
+    private gamemode = this.addTextField();
     private bytesPerSecond = this.addTextField();
     private ping = this.addTextField();
 
@@ -31,7 +32,7 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
 
 
     update(delta: number): void {
-        
+        this.gamemode.text = "Gamemode: " + Gamemode[this.game.networksystem.my_gamemode];
         this.bytesPerSecond.text = "B/s: " + this.game.networksystem.bytesPerSecond;
         this.ping.text = "Ping: " + this.game.networksystem["ping"]
         

@@ -16,9 +16,7 @@ export enum GamePacket {
 
     REMOTE_ENTITY_CREATE, // [ SHARED_ID: uint8, entityID]
     REMOTE_ENTITY_VARIABLE_CHANGE, // [ SHARED_ID: uint8, entityID, ...data];
-    
     REMOTE_ENTITY_EVENT, // [SHARED_ID: uint8, entityID, EVENT_ID: uint8][...data];
-
     REMOTE_ENTITY_DELETE, // [SHARED_ID: uint8, entityID]
 
 
@@ -26,12 +24,18 @@ export enum GamePacket {
 
     /*  
         This packets makes it so you create your player entity, and load level data
-    
         x y and is your respawn point, level is value that points to level string
     */
+    // personal packet
+    // Client sets gamemode to ALIVE, creates local player entity, and loads the terrain from level
+    // If a player never receives this packet, its assumed they are still spectators
     START_ROUND, // [x:float32, y:float32, level_enum: uint8]
     END_ROUND, // [] empty 
 
+
+
+    // If client joins will game is active, this packet is sent to them
+    JOIN_LATE_INFO, // [level_enum: uint8]
 
 
     CLEAR_INV_ITEM, // []
@@ -43,12 +47,11 @@ export enum GamePacket {
     OTHER_PLAYER_INFO_GAMEMODE, // [unique_client_id: uint8, gamemode: Gamemode]
     OTHER_PLAYER_INFO_REMOVE, //   [unique_client_id: uint8]
 
-    // command to create OTHER players 
-    PLAYER_CREATE, // [playerID: uint8, x: float32, y: float32]
 
-    PLAYER_POSITION, // [playerID: uint8, x: float32, y: float32, uint8: animationstate, bool: flipped, health: uint8];
-    
-    PLAYER_DESTROY, // [playerID: uint8]
+    // command to create OTHER players 
+    PLAYER_ENTITY_CREATE, // [playerID: uint8, x: float32, y: float32]
+    PLAYER_ENTITY_POSITION, // [playerID: uint8, x: float32, y: float32, uint8: animationstate, bool: flipped, health: uint8];
+    PLAYER_ENTITY_DESTROY, // [playerID: uint8]
 
     // TODO: EXPLOSION: [fromPlayer: uint8, x: float32, y: float32, strength: uint8] // handle knockback on clients
 

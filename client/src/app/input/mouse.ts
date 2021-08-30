@@ -1,6 +1,5 @@
 import { Vec2 } from "shared/shapes/vec2";
 import { sign } from "shared/misc/mathutils";
-import { Subsystem } from "shared/core/subsystem";
 import { Point } from "pixi.js";
 import { BearEngine } from "../core-engine/bearengine";
 

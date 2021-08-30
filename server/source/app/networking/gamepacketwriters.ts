@@ -35,6 +35,19 @@ export class EndRoundPacket extends PacketWriter {
     }
 }
 
+export class JoinLatePacket extends PacketWriter {
+
+    constructor(public level_enum: number){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.JOIN_LATE_INFO);
+        stream.setUint8(this.level_enum);
+
+    }
+}
+
 export class InitPacket extends PacketWriter {
    
 
@@ -85,6 +98,21 @@ export class OtherPlayerInfoAddPacket extends PacketWriter {
     }
 }
 
+export class OtherPlayerInfoUpdateGamemodePacket extends PacketWriter {
+    
+    constructor(public playerID: ConnectionID, public gamemode: Gamemode){
+        super(false)
+    }
+
+    write(stream: BufferStreamWriter): void {
+        stream.setUint8(GamePacket.OTHER_PLAYER_INFO_GAMEMODE);
+        
+        stream.setUint8(this.playerID);
+        stream.setUint8(this.gamemode);
+    }
+}
+
+
 export class OtherPlayerInfoRemovePacket extends PacketWriter {
 
     constructor(public playerID: ConnectionID){
@@ -108,7 +136,7 @@ export class PlayerCreatePacket extends PacketWriter {
     }
 
     write(stream: BufferStreamWriter): void {
-        stream.setUint8(GamePacket.PLAYER_CREATE);
+        stream.setUint8(GamePacket.PLAYER_ENTITY_CREATE);
         stream.setUint8(this.clientID);
         stream.setFloat32(this.x);
         stream.setFloat32(this.y);
@@ -123,7 +151,7 @@ export class PlayerDestroyPacket extends PacketWriter {
 
     write(stream: BufferStreamWriter): void {
 
-        stream.setUint8(GamePacket.PLAYER_DESTROY);
+        stream.setUint8(GamePacket.PLAYER_ENTITY_DESTROY);
         stream.setUint8(this.clientID);
     
     }
