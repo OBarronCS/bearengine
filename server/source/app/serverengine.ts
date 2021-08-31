@@ -28,12 +28,13 @@ import { ALL_ITEMS, ItemType } from "shared/core/sharedlogic/items";
 
 import "server/source/app/weapons/serveritems.ts"
 import { ServerShootTerrainCarver } from "./weapons/serveritems";
+import { commandDispatcher } from "./servercommands";
 
 
 const MAX_BYTES_PER_PACKET = 2048;
 
 /** Per client info  */
-class PlayerInformation {
+export class PlayerInformation {
 
     /** Unique ID to identify this connection */
     readonly connectionID: ConnectionID;
@@ -478,6 +479,9 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         this.enqueueGlobalPacket(new RemoteEntityEventPacket(sharedName, event, entity.constructor["SHARED_ID"], id,...args));
     }
 
+    dispatchCommand(command: string){
+        commandDispatcher.parse({engine:this, player: null}, command)
+    }
 
 
     testweapon(){

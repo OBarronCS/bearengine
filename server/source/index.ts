@@ -55,6 +55,11 @@ rl.on('line', (input: string) => {
     const first = allWords[0];
 
     switch(first){
+        case "command": {
+            engine.dispatchCommand(allWords.slice(1).join(" "));
+            break
+        }
+
         case "s": {
             engine.beginStage(allWords[1] as any);
             break;
