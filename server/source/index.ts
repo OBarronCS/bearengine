@@ -6,6 +6,7 @@ import { readFile } from "fs";
 import path from "path";
 
 import { ServerBearEngine } from "./app/serverengine";
+import { ReadLine, createInterface } from "readline";
 
 const app = express();
 
@@ -39,11 +40,8 @@ engine.start(websocket);
 
 
 
-
 // Callback for input --> 
-const readline = require("readline");
-
-const rl = readline.createInterface({
+const rl: ReadLine = createInterface({
     input: process.stdin,
     output: process.stdout
 });
@@ -88,7 +86,7 @@ rl.on('line', (input: string) => {
         }
         
         default: {
-            console.log(" You made a typo ")
+            console.log("You made a typo")
         }
     }
 });

@@ -33,45 +33,53 @@ command(command_name: string). // defines function name
 
 // Responsible for one type of command
 interface CommandArgumentParser<T> {
-    parse(queue: Queue<string>): CheckedResult<T> // reads from queue, does validation
+    parse(queue: Queue<string>): CheckedResult<T, string> // reads from queue, does validation
     hint(): string[];
 }
 
-interface CheckedResult<T> {
-    success: boolean;
-    value: T;
-    error_string: string;
+
+type CheckedResult<T, E> = IValidResult<T> | IErrorResult<E>;
+
+interface IValidResult<T> {
+    success: true,
+    value: T
 }
 
-function ErrorResult(error_string: string): CheckedResult<null> {
-    const result: CheckedResult<null> = {
-        success: false,
-        value: null,
-        error_string: error_string
-    } 
-
-    return result;
+interface IErrorResult<E> {
+    success: false,
+    error: E
 }
 
-function ValidResult<T>(value: T): CheckedResult<T> {
-    const result: CheckedResult<T> = {
+function ValidResult<T>(value: T): IValidResult<T> {
+    return {
         success: true,
         value: value,
-        error_string: ""
-    } 
-
-    return result;
+    }
 }
 
-class DoubleNumberParser implements CommandArgumentParser<number>{
 
-    parse(queue: Queue<string>): CheckedResult<number> {
+function ErrorResult<E>(err: E): IErrorResult<E> {
+    return {
+        success: false,
+        error: err
+    } 
+}
+
+
+
+class DoubleNumberParser implements CommandArgumentParser<number> {
+
+    parse(queue: Queue<string>): CheckedResult<number, string> {
         const passedInString = queue.dequeue();
 
         const double = parseFloat(passedInString);
 
         if(isNaN(double)) { 
             return ErrorResult("NaN");
+        }
+
+        if(!isFinite(double)){
+            return ErrorResult("Infinity");
         }
  
         return ValidResult(double);
@@ -92,7 +100,7 @@ class StringOptionsParser<TStringOptions extends string = string> implements Com
         this.options = new Set(options);
     }
 
-    parse(q: Queue<string>): CheckedResult<TStringOptions> {
+    parse(q: Queue<string>): CheckedResult<TStringOptions, string> {
         const passedInString = q.dequeue() as TStringOptions;
 
 
@@ -120,10 +128,10 @@ export const comv = {
     }
 }
 
+
 type TypescriptTypes<T extends readonly CommandArgumentParser<any>[]> = {
     [Key in keyof T]: T[Key] extends CommandArgumentParser<infer R> ? R : never;
 };
-
 
 
 // Holds all the information for a given command.
@@ -139,7 +147,7 @@ class CommandParser<TParsers extends readonly CommandArgumentParser<any>[], TCon
         this.argParsers = argParsers;
     }
 
-    parse(context: TContext, args: Queue<string>): CheckedResult<null> {
+    parse(context: TContext, args: Queue<string>): CheckedResult<null, string> {
         const realArgs = [];
 
         for(const parser of this.argParsers){
@@ -150,6 +158,7 @@ class CommandParser<TParsers extends readonly CommandArgumentParser<any>[], TCon
 
             const result = parser.parse(args);
 
+            // Early exits if found error in one of the arguments
             if(result.success === false){
                 return result;
             }
@@ -191,7 +200,7 @@ export class CommandDatabase<TContext> {
 
     private commands: Map<string, CommandParser<any, TContext>> = new Map();
 
-    parse(context: TContext, command: string): CheckedResult<null> {
+    parse(context: TContext, command: string): CheckedResult<null, string> {
         const trimmedString = command.trim();
 
         if(trimmedString.length === 0){

@@ -7,6 +7,10 @@ import type { PlayerInformation, ServerBearEngine } from "./serverengine";
 // The script is built from that perspective, so the server could just put a dummy player object
 // /giveall weapon
 // /giveone weapon
+// /giveme 
+
+// isPlayer: boolean;
+// playerID = -1;
 
 export interface CommandContext {
     engine: ServerBearEngine,
@@ -21,7 +25,6 @@ export const commandDispatcher = new CommandDatabase<CommandContext>();
 const database = commandDispatcher;
 
 // Some of these assume they are being called by a player
-
 database.add(
     command("item").args(comv.string_options<keyof typeof ALL_ITEMS>(Object.keys(ALL_ITEMS)))
         .run((context, item_name: keyof typeof ALL_ITEMS) => {
@@ -31,6 +34,7 @@ database.add(
             );
         })
     );
+
 
 
 
