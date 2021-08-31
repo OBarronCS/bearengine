@@ -2,7 +2,7 @@ import { LinkedQueue, Queue } from "shared/datastructures/queue";
 
 /* Parse and execute commands sent by clients 
 
-How to:
+Should NOT throw exceptions. Returns a CheckedResult object, with success flag.
 
 "Context" --> meant to give some information about what "initiated" the command
     Probably should contain info like the engine object, what player iniated the command if on server, 
@@ -23,8 +23,6 @@ const test = command("test").
 
 database.add(test);
 
-
-
 command(command_name: string). // defines function name
     args(...args). // defines arguments
         run((source, ...args) => { // if the command is called succesfully, this callback is called
@@ -35,19 +33,48 @@ command(command_name: string). // defines function name
 
 // Responsible for one type of command
 interface CommandArgumentParser<T> {
-    parse(queue: Queue<string>): T // reads from queue, does validation
+    parse(queue: Queue<string>): CheckedResult<T> // reads from queue, does validation
     hint(): string[];
 }
 
+interface CheckedResult<T> {
+    success: boolean;
+    value: T;
+    error_string: string;
+}
+
+function ErrorResult(error_string: string): CheckedResult<null> {
+    const result: CheckedResult<null> = {
+        success: false,
+        value: null,
+        error_string: error_string
+    } 
+
+    return result;
+}
+
+function ValidResult<T>(value: T): CheckedResult<T> {
+    const result: CheckedResult<T> = {
+        success: true,
+        value: value,
+        error_string: ""
+    } 
+
+    return result;
+}
 
 class DoubleNumberParser implements CommandArgumentParser<number>{
 
-    parse(queue: Queue<string>): number {
+    parse(queue: Queue<string>): CheckedResult<number> {
         const passedInString = queue.dequeue();
 
         const double = parseFloat(passedInString);
+
+        if(isNaN(double)) { 
+            return ErrorResult("NaN");
+        }
  
-        return double;
+        return ValidResult(double);
     }
 
     hint(): string[] {
@@ -65,16 +92,15 @@ class StringOptionsParser<TStringOptions extends string = string> implements Com
         this.options = new Set(options);
     }
 
-    parse(q: Queue<string>): TStringOptions {
-        const passedInString = q.dequeue();
+    parse(q: Queue<string>): CheckedResult<TStringOptions> {
+        const passedInString = q.dequeue() as TStringOptions;
 
 
         if(!this.options.has(passedInString)){
-            throw new Error("AHHHHH");
+            return ErrorResult(`${passedInString} not valid, must be ${[...this.options].toString()}`);
         }
 
-        //@ts-expect-error
-        return passedInString;
+        return ValidResult(passedInString);
     }
 
     hint(): string[] {
@@ -113,14 +139,27 @@ class CommandParser<TParsers extends readonly CommandArgumentParser<any>[], TCon
         this.argParsers = argParsers;
     }
 
-    parse(context: TContext, args: Queue<string>): void {
-        const realArgs = []
+    parse(context: TContext, args: Queue<string>): CheckedResult<null> {
+        const realArgs = [];
 
         for(const parser of this.argParsers){
-            realArgs.push(parser.parse(args))
+
+            if(args.isEmpty()){
+                return ErrorResult("Missing next argument: [" + parser.hint() + "]")
+            }
+
+            const result = parser.parse(args);
+
+            if(result.success === false){
+                return result;
+            }
+
+            realArgs.push(result.value);
         }
 
-        this.commandCallback(context, ...(realArgs as any as TypescriptTypes<TParsers>));
+        this.commandCallback(context, ...realArgs as any as TypescriptTypes<TParsers>);
+
+        return ValidResult(null);
     }
 }
 
@@ -152,8 +191,14 @@ export class CommandDatabase<TContext> {
 
     private commands: Map<string, CommandParser<any, TContext>> = new Map();
 
-    parse(context: TContext, command: string){
-        const words = command.trim().split(" ");
+    parse(context: TContext, command: string): CheckedResult<null> {
+        const trimmedString = command.trim();
+
+        if(trimmedString.length === 0){
+            return ErrorResult("Empty command")
+        }
+        
+        const words = trimmedString.split(" ");
 
         const command_name = words[0];
 
@@ -167,10 +212,14 @@ export class CommandDatabase<TContext> {
                 queue.enqueue(words[i]);
             }
 
-            handler.parse(context,queue)
+            const result = handler.parse(context,queue);
+
+            return result;
+
         } else {
-            console.log("UNKNOWN COMMAND: " + command_name)
+            return ErrorResult("Command name not found");
         }
+
     }
 
     add(command: CommandParser<any, TContext>){
