@@ -28,19 +28,11 @@ export class CameraSystem  {
     private baseDangle = 0;
 
     // Used for camera shake [0,1]
-    private trauma = 0;
-
-    private mouse_info = new Text("",new TextStyle({"fill": "white"}));
-    
+    private trauma = 0;    
 
     // I couldn't get this to work well so just reverted to original DOM events
     init(): void {
         const renderer = this.renderer = this.engine.renderer;
-
-        this.mouse_info.x = 5;
-        this.mouse_info.y = renderer.getPercentHeight(1) - 50;
-        renderer.addGUI(this.mouse_info);
-
         const container = this.container = renderer.mainContainer;
 
         // pivot should be at center of screen at all times. Allows rotation around the middle
@@ -163,8 +155,7 @@ export class CameraSystem  {
     }
 
     update(delta: number){
-        this.mouse_info.text = `${round(this.mouse.position.x, 1)},${round( this.mouse.position.y, 1)}`;
-
+        
         const maxAngle = 20;
         const maxOffset = 40;
         

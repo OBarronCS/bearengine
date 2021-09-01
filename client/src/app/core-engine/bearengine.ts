@@ -20,6 +20,7 @@ import { TestMouseDownEventDispatcher } from "./mouseevents";
 import { Player } from "../gamelogic/player";
 import { GameLevel } from "./gamelevel";
 import { DebugScreen } from "../gamelogic/debugoverlay";
+import { Chatbox } from "../gamelogic/chatbox";
 
 
 
@@ -85,8 +86,7 @@ export class BearEngine {
         // this.keyboard.bind("k", () => {
         //     this.restartCurrentLevel()
         // });
-
-        this.keyboard.bind("g", () => this.paused = !this.paused);
+        // this.keyboard.bind("g", () => this.paused = !this.paused);
     }
 
     // Loads all assets from server
@@ -187,6 +187,7 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
     public entityRenderer: DefaultEntityRenderer;
 
     public debug: DebugScreen;
+    public chatbox: Chatbox
 
     initSystems(): void {
         this.networksystem = this.registerSystem(new NetworkSystem(this, {port:80}));
@@ -195,6 +196,7 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         this.mouseEventDispatcher = this.registerSystem(new TestMouseDownEventDispatcher(this));
         this.entityRenderer = this.registerSystem(new DefaultEntityRenderer(this));
         this.debug = this.registerSystem(new DebugScreen(this));
+        this.chatbox = this.registerSystem(new Chatbox(this));
     }
 
     onStart(): void {
@@ -218,9 +220,12 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
 
         this.entities.update(dt);
 
+        this.chatbox.update(dt);
+
         this.networksystem.writePackets();
 
         this.debug.update(dt);
+
 
 
         this.entityRenderer.update(dt);
