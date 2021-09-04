@@ -54,27 +54,30 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
             const press_info = this.engine.keyboard.pressedKeyInfo();
 
             
-
             for(const info of press_info){
-                if(info.code === "ArrowLeft"){
-                    this.text_buffer.cursorLeft()
-                } else if(info.code === "ArrowRight"){
-                    this.text_buffer.cursorRight()
-                } else if(info.code === "Backspace"){
-                    if(this.engine.keyboard.isDown("ControlLeft")){
-                        this.text_buffer.deleteWord();
-                    } else {
-                        this.text_buffer.deleteChar();
+                switch(info.code){
+                    case "ArrowLeft": this.text_buffer.cursorLeft(); break;
+                    case "ArrowRight": this.text_buffer.cursorRight(); break;
+                    case "Backspace": {
+                        if(this.engine.keyboard.isDown("ControlLeft")){
+                            this.text_buffer.deleteWord();
+                        } else {
+                            this.text_buffer.deleteChar();
+                        }
+                        break;
                     }
-                } else {
-                    console.log(info.char, info.code);
+                    default: {
+                        console.log(info.char, info.code);
 
-                    if(info.char.length === 1 && StringIsASCII(info.char)){
-                        this.text_buffer.insertChar(info.char.charCodeAt(0));
+                        if(info.char.length === 1 && StringIsASCII(info.char)){
+                            this.text_buffer.insertChar(info.char.charCodeAt(0));
+                        }
                     }
                 }
+
             }
 
+            // Update text if something was pressed
             if(press_info.length !== 0){
             
                 this.text_field.text = this.text_buffer.createString();
@@ -124,7 +127,7 @@ class TextGapBuffer {
     }
 
     cursorRight(): void {
-        if(this.startRight !== MAX_MESSAGE_SIZE){
+        if(this.startRight !== this.max_size){
             this.buffer[this.endLeft++] = this.buffer[this.startRight++];
         }
     }
@@ -162,7 +165,7 @@ class TextGapBuffer {
             str += String.fromCharCode(this.buffer[i]);
         }
 
-        for(let i = this.startRight; i < MAX_MESSAGE_SIZE; i++){
+        for(let i = this.startRight; i < this.max_size; i++){
             str += String.fromCharCode(this.buffer[i]);
         }
 
