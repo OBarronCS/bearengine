@@ -46,7 +46,8 @@ export class RendererSystem {
         this.engine = engine;
         this.targetWindow = targetWindow;
         this.targetDiv = targetDiv;
-        document.body.style.zoom = "1.0"
+        
+        //document.body.style.zoom = "1.0"
         
         // These numbers mean nothing --> the second the screen is resized in the fitToScreen call
         // these are overridden

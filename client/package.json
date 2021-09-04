@@ -14,7 +14,7 @@
     "dat.gui": "^0.7.7",
     "mousetrap": "^1.6.5",
     "pixi-particles": "^4.3.1",
-    "pixi.js": "^5.3.9"
+    "pixi.js": "^5.3.10"
   },
   "devDependencies": {
     "@types/dat.gui": "^0.7.5",

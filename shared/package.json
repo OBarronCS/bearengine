@@ -8,7 +8,7 @@
   "license": "ISC",
   "dependencies": {
     "earcut": "^2.2.2",
-    "pixi.js": "^5.3.9",
+    "pixi.js": "^5.3.10",
     "typescript": "^4.4.2"
   },
   "devDependencies": {
