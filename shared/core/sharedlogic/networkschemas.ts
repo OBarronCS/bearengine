@@ -98,7 +98,6 @@ type TupleToTypescriptType<T extends readonly NetworkVariableTypes[]> = {
 
 /** Returns a tuple type */
 export type NetCallbackTupleType<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }>
-    //@ts-expect-error
     =  TupleToTypescriptType<MergeEventTuples<EVENT>>;
 
 export type NetCallbackTypeV1<EVENT extends { argTypes: readonly [...NetworkVariableTypes[]], callback: (...args: any[]) => void }> 
