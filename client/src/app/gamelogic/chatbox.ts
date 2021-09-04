@@ -3,7 +3,7 @@ import { StringIsASCII } from "shared/core/sharedlogic/serialization";
 import { Subsystem } from "shared/core/subsystem";
 import { NetworkPlatformGame } from "../core-engine/bearengine";
 
-const MAX_MESSAGE_SIZE = 1024;
+const MAX_MESSAGE_SIZE = 128;
 
 export class Chatbox extends Subsystem<NetworkPlatformGame> {
 
@@ -220,6 +220,12 @@ class TextGapBuffer {
 
     }
 
+    insertChar(charCode: number): void {
+        if(this.endLeft !== this.startRight){
+            this.buffer[this.endLeft++] = charCode;
+        }
+    }
+
     deleteChar(): void {
         if(this.endLeft !== 0){
             // Technically, don't need to clear the char in the buffer, but when inspecting the bytes it makes it confusing
@@ -227,9 +233,7 @@ class TextGapBuffer {
         }
     }
 
-    insertChar(charCode: number): void {
-        this.buffer[this.endLeft++] = charCode;
-    }
+    
 
 
     createString(): string {
