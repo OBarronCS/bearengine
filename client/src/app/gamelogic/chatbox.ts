@@ -1,4 +1,4 @@
-import { Container, Graphics, Text } from "pixi.js";
+import { Container, Graphics, Text, TextStyle, TextMetrics } from "pixi.js";
 import { StringIsASCII } from "shared/core/sharedlogic/serialization";
 import { Subsystem } from "shared/core/subsystem";
 import { NetworkPlatformGame } from "../core-engine/bearengine";
@@ -17,22 +17,33 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
 
     enabled = false;
 
+    private text_style = new TextStyle({
+        fontFamily: "Tahoma",
+        stroke: "white",
+        letterSpacing: 1,
+        fontSize: 36
+    });
+
+    
+    private text_field = new Text("", this.text_style);
+
     private box = new Graphics();
 
-    private text_field = this.addTextField();
-
-    addTextField(): Text {
-        const t = new Text("");
+    private cursor = new Graphics();
 
 
-        this.container.addChild(t);
-        return t;
-    }
+    private text_metrics: TextMetrics = TextMetrics.measureText("", this.text_style);
 
     init(): void {
+        
+        this.text_field.x = 10;
+        this.container.addChild(this.text_field);
+
         this.container.y = this.engine.renderer.getPercentHeight(1) - this.height;
         this.container.visible = false;
         this.container.addChild(this.box);
+        
+        this.container.addChild(this.cursor);
 
         // const y = this.engine.renderer.getPercentHeight(1) - this.height;
 
@@ -56,14 +67,35 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
             
             for(const info of press_info){
                 switch(info.code){
-                    case "ArrowLeft": this.text_buffer.cursorLeft(); break;
-                    case "ArrowRight": this.text_buffer.cursorRight(); break;
+                    case "ArrowLeft": { 
+                        if(this.engine.keyboard.isDown("ControlLeft")){
+                            this.text_buffer.wordLeft()
+                        } else { 
+                            this.text_buffer.cursorLeft(); 
+                        }
+
+                        break;
+                    }
+                    case "ArrowRight": {
+                        if(this.engine.keyboard.isDown("ControlLeft")){
+                            this.text_buffer.wordRight()
+                        } else { 
+                            this.text_buffer.cursorRight(); 
+                        }
+
+                        break;
+                    }
                     case "Backspace": {
                         if(this.engine.keyboard.isDown("ControlLeft")){
                             this.text_buffer.deleteWord();
                         } else {
                             this.text_buffer.deleteChar();
                         }
+                        break;
+                    }
+                    case "Enter": {
+                        this.text_buffer.clear();
+
                         break;
                     }
                     default: {
@@ -81,7 +113,24 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
             if(press_info.length !== 0){
             
                 this.text_field.text = this.text_buffer.createString();
+
+                this.text_metrics= TextMetrics.measureText(this.text_field.text.substring(0,this.text_buffer["endLeft"]), this.text_style);
+
+            
+        
             }
+
+            // Draw cursors at correct spot 
+            
+            this.cursor.clear();
+
+            this.cursor.lineStyle(2);
+            
+            const x = this.text_metrics.width + this.text_field.x;
+
+            this.cursor.moveTo(x, 4)
+            this.cursor.lineTo(x, this.text_metrics.lineHeight - 2)
+
         }
 
 
@@ -107,8 +156,8 @@ const SPACE_CHARCODE = " ".charCodeAt(0);
 class TextGapBuffer {
 
     private max_size: number;
-    private buffer: Uint8Array;
 
+    private buffer: Uint8Array;
     private endLeft: number;
     private startRight: number;
 
@@ -126,11 +175,35 @@ class TextGapBuffer {
         }
     }
 
+    wordLeft(): void {
+         // If start at a space, delete spaces until hit none-space
+        while(this.endLeft !== 0 && this.buffer[this.endLeft - 1] === SPACE_CHARCODE){
+            this.cursorLeft();
+        }
+
+
+        while(this.endLeft !== 0 && this.buffer[this.endLeft - 1] !== SPACE_CHARCODE){
+            this.cursorLeft();
+        }
+    }
+
     cursorRight(): void {
         if(this.startRight !== this.max_size){
             this.buffer[this.endLeft++] = this.buffer[this.startRight++];
         }
     }
+
+    wordRight(): void {
+        // If right at a space, move through spaces until hit none-space
+       while(this.startRight !== this.max_size && this.buffer[this.startRight] === SPACE_CHARCODE){
+           this.cursorRight();
+       }
+
+
+       while(this.startRight !== this.max_size && this.buffer[this.startRight] !== SPACE_CHARCODE){
+           this.cursorRight();
+       }
+   }
 
     // Deletes chars until hits a space character. If start at space character, goes throw the word before it
     deleteWord(): void {
@@ -170,5 +243,11 @@ class TextGapBuffer {
         }
 
         return str;
+    }
+
+    clear(){
+        this.buffer.fill(0);
+        this.endLeft = 0;
+        this.startRight = this.max_size;
     }
 }
