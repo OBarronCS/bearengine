@@ -90,7 +90,7 @@ export class BearEngine {
     }
 
     // Loads all assets from server
-    async loadAssets(): Promise<typeof SHARED_RESOURCES>{
+    async loadAssets(): Promise<typeof SHARED_RESOURCES> {
         return new Promise( (resolve) => {
 
             SHARED_LOADER.add(ALL_TEXTURES);

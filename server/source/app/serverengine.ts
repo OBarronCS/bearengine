@@ -480,7 +480,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 
     dispatchCommand(command: string){
-        const result = commandDispatcher.parse({engine:this, player: null}, command);
+        const result = commandDispatcher.parse({engine:this, targetPlayer: null}, command);
 
         if(result.success === false){
             console.log(`Command failed: ${result.error}`)

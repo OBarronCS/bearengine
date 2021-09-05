@@ -14,7 +14,7 @@ import type { PlayerInformation, ServerBearEngine } from "./serverengine";
 
 export interface CommandContext {
     engine: ServerBearEngine,
-    player: PlayerInformation
+    targetPlayer: PlayerInformation
 }
 
 const command = BindCommandCreator<CommandContext>();

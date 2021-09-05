@@ -1,5 +1,5 @@
 import { Container, Graphics, Text, TextStyle, TextMetrics } from "pixi.js";
-import { StringIsASCII } from "shared/core/sharedlogic/serialization";
+import { StringIsPrintableASCII } from "shared/core/sharedlogic/serialization";
 import { Subsystem } from "shared/core/subsystem";
 import { NetworkPlatformGame } from "../core-engine/bearengine";
 
@@ -99,9 +99,9 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
                         break;
                     }
                     default: {
-                        console.log(info.char, info.code);
+                        // console.log(info.char, info.code);
 
-                        if(info.char.length === 1 && StringIsASCII(info.char)){
+                        if(info.char.length === 1 && StringIsPrintableASCII(info.char)){
                             this.text_buffer.insertChar(info.char.charCodeAt(0));
                         }
                     }
@@ -111,13 +111,9 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
 
             // Update text if something was pressed
             if(press_info.length !== 0){
-            
                 this.text_field.text = this.text_buffer.createString();
 
-                this.text_metrics= TextMetrics.measureText(this.text_field.text.substring(0,this.text_buffer["endLeft"]), this.text_style);
-
-            
-        
+                this.text_metrics = TextMetrics.measureText(this.text_field.text.substring(0,this.text_buffer["endLeft"]), this.text_style);
             }
 
             // Draw cursors at correct spot 

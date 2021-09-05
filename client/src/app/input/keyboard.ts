@@ -26,6 +26,15 @@ export class EngineKeyboard {
 
 
     init(target: Window){
+        target.addEventListener("blur", e => {
+            // Could iterate this and put all values into "keyReleasedMap" than clear it;
+            // console.log("blur")
+            this.keyDownMap.clear();
+            this.keyPressedMap.clear();
+            this.keyReleasedMap.clear();
+        });
+
+
         const form = target;
     
         //The types definitions are incorrect as you can bind a window
