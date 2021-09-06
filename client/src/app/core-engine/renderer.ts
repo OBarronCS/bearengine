@@ -5,7 +5,7 @@ import { GraphicsPart, SpritePart } from "./parts";
 import { Subsystem } from "shared/core/subsystem";
 import { Color } from "shared/datastructures/color";
 
-import { Emitter, EmitterConfig } from "pixi-particles"
+import { Emitter, EmitterConfig, OldEmitterConfig } from "pixi-particles"
 import { BearGame } from "shared/core/abstractengine";
 
 
@@ -34,7 +34,7 @@ export class RendererSystem {
 
     private emitters: Emitter[] = [];
 
-    addEmitter(path: string, settings: EmitterConfig, x: number, y: number): Emitter {
+    addEmitter(path: string, settings: EmitterConfig | OldEmitterConfig, x: number, y: number): Emitter {
         const e = new Emitter(this.mainContainer, path, settings);
         e.updateSpawnPos(x, y);
         this.emitters.push(e);
@@ -46,7 +46,8 @@ export class RendererSystem {
         this.engine = engine;
         this.targetWindow = targetWindow;
         this.targetDiv = targetDiv;
-        document.body.style.zoom = "1.0"
+        
+        //document.body.style.zoom = "1.0"
         
         // These numbers mean nothing --> the second the screen is resized in the fitToScreen call
         // these are overridden
@@ -68,7 +69,7 @@ export class RendererSystem {
 
         targetDiv.appendChild(this.renderer.view);
 
-        this.targetWindow.onresize = (e) => this.fitToScreen();
+        this.targetWindow.addEventListener("resize", (e) => this.fitToScreen());
         
 
         this.mainContainer.zIndex = 0;
@@ -141,6 +142,12 @@ export class RendererSystem {
     removeSprite<T extends DisplayObject>(container:T){
         this.mainContainer.removeChild(container)
         return container;
+    }
+
+    createGUICanvas(){
+        const graphics = new Graphics();
+        this.addGUI(graphics);
+        return graphics;
     }
 
     /** Returns empty graphics object that has been added to the scene. Call destroy() to remove it */

@@ -20,6 +20,8 @@ export class CameraSystem  {
     public container: Container;
     public renderer: RendererSystem;
     public mouse: EngineMouse;
+
+    private center: Vec2 = new Vec2(0,0);
     
     private mode: "free" | "follow" = "free"
     private targetMiddle: Vec2;
@@ -30,22 +32,22 @@ export class CameraSystem  {
     // Used for camera shake [0,1]
     private trauma = 0;
 
-    private mouse_info = new Text("",new TextStyle({"fill": "white"}));
-    
-
     // I couldn't get this to work well so just reverted to original DOM events
     init(): void {
+
+
+
         const renderer = this.renderer = this.engine.renderer;
-
-        this.mouse_info.x = 5;
-        this.mouse_info.y = renderer.getPercentHeight(1) - 50;
-        renderer.addGUI(this.mouse_info);
-
         const container = this.container = renderer.mainContainer;
 
+        this.setPivot();
+
+        this.renderer.renderer.view.addEventListener("resize", (e) => this.setPivot());
+
+       
         // pivot should be at center of screen at all times. Allows rotation around the middle
-        container.position.x = renderer.renderer.width / 2;
-        container.position.y = renderer.renderer.height / 2;
+        // container.position.x = renderer.renderer.width / 2;
+        // container.position.y = renderer.renderer.height / 2;
 
         const keyboard = this.engine.keyboard;
         const mouse = this.mouse = this.engine.mouse;
@@ -162,9 +164,16 @@ export class CameraSystem  {
         });
     }
 
-    update(delta: number){
-        this.mouse_info.text = `${round(this.mouse.position.x, 1)},${round( this.mouse.position.y, 1)}`;
 
+    setPivot(){
+
+        // pivot should be at center of screen at all times. Allows rotation around the middle
+        this.container.position.x = this.renderer.renderer.width / 2;
+        this.container.position.y = this.renderer.renderer.height / 2;
+    }
+
+    update(delta: number){
+        
         const maxAngle = 20;
         const maxOffset = 40;
         
@@ -189,7 +198,7 @@ export class CameraSystem  {
         this.container.scale.copyFrom(factor);
     }
 
-    private center: Vec2 = new Vec2(0,0);
+
 
     set left(x: number) { this.center.x = x + (this.container.position.x / this.container.scale.x); }
     get left(): number { return this.center.x - (this.container.position.x / this.container.scale.x); }

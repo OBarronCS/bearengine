@@ -6,6 +6,7 @@ import { readFile } from "fs";
 import path from "path";
 
 import { ServerBearEngine } from "./app/serverengine";
+import { ReadLine, createInterface } from "readline";
 
 const app = express();
 
@@ -39,11 +40,8 @@ engine.start(websocket);
 
 
 
-
 // Callback for input --> 
-const readline = require("readline");
-
-const rl = readline.createInterface({
+const rl: ReadLine = createInterface({
     input: process.stdin,
     output: process.stdout
 });
@@ -55,13 +53,13 @@ rl.on('line', (input: string) => {
     const first = allWords[0];
 
     switch(first){
-        case "s": {
-            engine.beginStage(allWords[1] as any);
-            break;
+        case "command": {
+            engine.dispatchCommand(allWords.slice(1).join(" "));
+            break
         }
 
-        case "weapon": {
-            engine.testweapon();
+        case "s": {
+            engine.beginStage(allWords[1] as any);
             break;
         }
 
@@ -70,20 +68,8 @@ rl.on('line', (input: string) => {
             break;
         }
 
-        case "packets": {
-            console.log(engine["lifetimeImportantPackets"].size())
-            break;
-        }
-
-        case "engine": {
-            const variable = allWords[1];
-
-            console.log(engine[variable])
-            break;
-        }
-        
         default: {
-            console.log(" You made a typo ")
+            console.log("You made a typo")
         }
     }
 });

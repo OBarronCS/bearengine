@@ -17,6 +17,7 @@ import { SavePlayerAnimation } from "./testlevelentities";
 import { Emitter } from "pixi-particles";
 import { CreateItemData, ItemData } from "shared/core/sharedlogic/items"
 import { Gun, Hitscan, Item, ItemDrawer, TerrainCarverGun } from "../core-engine/clientitems";
+import { PARTICLE_CONFIG } from "../core-engine/particles";
 
 
 
@@ -175,6 +176,8 @@ class PlayerAnimationState {
 
 
 export class Player extends DrawableEntity {
+
+    private healthbar: Graphics;
     
     private readonly runAnimation = new PlayerAnimationState(this.engine.getResource("player/run.json").data as SavePlayerAnimation, 4, new Vec2(40,16));
     private readonly wallslideAnimation = new PlayerAnimationState(this.engine.getResource("player/wallslide.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
@@ -309,6 +312,9 @@ export class Player extends DrawableEntity {
     private emitter: Emitter;
 
     override onAdd(){
+        this.healthbar = this.engine.renderer.createGUICanvas();
+
+
         this.scene.addEntity(this.itemInHand);
 
         this.runAnimation.setScale(2);
@@ -323,91 +329,12 @@ export class Player extends DrawableEntity {
 
         this.setSprite("run");
 
-        this.emitter = this.engine.renderer.addEmitter("assets/particle.png", {
-            "alpha": {
-                list: [
-                    {
-                        value: 1,
-                        time: 0,
-                    },
-                    {
-                        value:.82,
-                        time: 1,
-                    }
-                ]
-            },
-            "scale": {
-                list: [
-                    {
-                        value: .2,
-                        time: 0,
-                    },
-                    {
-                        value:.01,
-                        time: 1,
-                    }
-                ],
-            },
-            "color": {
-                list: [
-                    {
-                        value: "#aecfd9",
-                        time: 0,
-                    },
-                    {
-                        value:"#000000",
-                        time: 1,
-                    }
-                ],
-            },
-            "speed": {
-
-                list: [
-                    {
-                        value: 50,
-                        time: 0,
-                    },
-                    {
-                        value:50,
-                        time: 1,
-                    }
-                ],
-            },
-            "acceleration": {
-                "x": 0,
-                "y": 0
-            },
-            "maxSpeed": 0,
-            "startRotation": {
-                "min": 180,
-                "max": 360
-            },
-            "noRotation": false,
-            "rotationSpeed": {
-                "min": 8,
-                "max": 0
-            },
-            "lifetime": {
-                "min": 0.2,
-                "max": 0.8
-            },
-            "blendMode": "normal",
-            "frequency": 0.001,
-            "emitterLifetime": -1,
-            "maxParticles": 499,
-            "pos": {
-                "x": 0,
-                "y": 0
-            },
-            "addAtBack": false,
-            "spawnType": "burst",
-            "particlesPerWave": 2,
-            "particleSpacing": 0,
-            "angleStart": 0
-        }, this.x, this.y)
+        this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["ROCKET"], this.x, this.y)
     }
 
     override onDestroy(){
+        this.healthbar.destroy();
+
         this.scene.destroyEntity(this.itemInHand)
         this.engine.renderer.removeSprite(this.runAnimation.container);
         this.engine.renderer.removeSprite(this.wallslideAnimation.container);
@@ -643,8 +570,22 @@ export class Player extends DrawableEntity {
             }
         }
 
+        this.healthbar.clear();
+
+        const health_width = 500;
+        const health_height = 40;
+        const x = this.engine.renderer.getPercentWidth(.5) - (health_width / 2);
+
+
+        drawHealthBar(this.healthbar, x, 20, health_width, health_height, this.health / 100, 1);
+
+
+        this.healthbar
+
 
         if(this.dead) return;
+
+        
         
         this.emitter.updateSpawnPos(this.mouse.x, this.mouse.y);
         if(this.y > this.level.bbox.height + 800) this.y = 0;

@@ -24,6 +24,7 @@ import { Deque } from "shared/datastructures/deque";
 import { CreateItemData, ItemType, ITEM_LINKER } from "shared/core/sharedlogic/items";
 import { CreateClientItemFromType, ShootHitscanWeapon, ShootModularWeapon, TerrainCarverAddons } from "../clientitems";
 import { Line } from "shared/shapes/line";
+import { PARTICLE_CONFIG } from "../particles";
 
 class ClientInfo {
     uniqueID: number;
@@ -38,8 +39,12 @@ class ClientInfo {
         this.gamemode = gamemode;
     }
 
+    updateGamemodeString(): string {
+        return `Client ${this.uniqueID} updated gamemode to ${Gamemode[this.gamemode]}`;
+    }
+
     toString(): string {
-        return `Client ${this.uniqueID}: [ping: ${this.ping}, gamemode: ${this.gamemode}]`;
+        return `Client ${this.uniqueID}: [ping: ${this.ping}, gamemode: ${Gamemode[this.gamemode]}]`;
     }
 }
 
@@ -57,6 +62,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     getLocalShotID(){
         return this.incShotID++;
     }
+
 
     private network: CallbackNetwork;
     /** Packets from the server are queued here */
@@ -89,6 +95,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
     // MY PLAYER ID
     public PLAYER_ID = -1;
+
+
+    public my_gamemode: Gamemode = Gamemode.SPECTATOR;
+
 
 
     public SERVER_IS_TICKING: boolean = false;
@@ -339,13 +349,21 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             this.SERVER_IS_TICKING = true;
                             const tick = stream.getUint16(); // Reads this number so stream isn't broken
                             break;
+
                         }
 
-                        // OTHER PLAYER INFO
+                        case GamePacket.SET_GAMEMODE: {
+                            const gamemode: Gamemode = stream.getUint8();
+
+                            this.my_gamemode = gamemode;
+                            break;
+                        }
+
+                        // Other player connected to server
                         case GamePacket.OTHER_PLAYER_INFO_ADD: {
                             const uniqueID = stream.getUint8();
                             const ping = stream.getUint16();
-                            const gamemode = stream.getUint8();
+                            const gamemode: Gamemode = stream.getUint8();
 
                             
 
@@ -353,22 +371,22 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             if(this.PLAYER_ID !== uniqueID){
                                 const newClient = new ClientInfo(uniqueID,ping,"",gamemode);
 
-                                console.log("Create client: " + newClient.toString());
+                                console.log("Create other client: " + newClient.toString());
 
                                 this.otherClients.set(uniqueID, newClient);
                             }
 
                             break;
                         }
+                        // Other player disconnected
                         case GamePacket.OTHER_PLAYER_INFO_REMOVE: {
                             const uniqueID = stream.getUint8();
 
                             const i = this.otherClients.get(uniqueID);
-                            console.log("Removing player: " + i);
+                            console.log("Player disconnected: " + i);
 
                             this.otherClients.remove(uniqueID);
 
-                            
 
                             break;
                         }
@@ -378,12 +396,17 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             const client = this.otherClients.get(uniqueID);
 
+                            if(uniqueID === this.PLAYER_ID){
+                                continue;
+                            }
+
                             if(client === null) { 
                                 console.log("GAMEMODE FOR UNKNOWN PLAYER");
                                 continue;
                             }
 
                             client.gamemode = gamemode;
+                            console.log(client.updateGamemodeString());
 
                             break;
                         }
@@ -437,8 +460,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             SharedEntityClientTable.deserialize(stream, frame, SHARED_ID, entity);
 
                             break;
-                        }       
-
+                        }
                         case GamePacket.REMOTE_ENTITY_EVENT: {
                             
                             const SHARED_ID = stream.getUint8();
@@ -448,8 +470,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             let entity = this.remoteEntities.get(entityID);
 
                             if(entity === undefined){
-                                // Will try to create the entity for now, but we missed the REMOTE_ENTITY_CREATE packet clearly
                                 SharedEntityClientTable.readThroughRemoteEventStream(stream, SHARED_ID, eventID, entity)
+                                // Will try to create the entity for now, but we missed the REMOTE_ENTITY_CREATE packet clearly
                                 continue;
                                 console.log(`Cannot find entity ${entityID}, will create`);
                                 entity = this.createAutoRemoteEntity(SHARED_ID,entityID)
@@ -473,6 +495,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             break;
                         }
+
                         case GamePacket.REMOTE_FUNCTION_CALL:{
                             const functionID = stream.getUint8();
                             const functionName = RemoteFunctionLinker.getStringFromID(functionID)
@@ -483,6 +506,16 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             break;
                         }
+
+                        case GamePacket.JOIN_LATE_INFO: {
+                            const level = RemoteResourceLinker.getResourceFromID(stream.getUint8());
+
+                            this.game.endCurrentLevel();
+                            this.game.loadLevel(new DummyLevel(level));
+
+                            break;
+                        }
+
                         case GamePacket.START_ROUND: {
                             const x = stream.getFloat32();
                             const y = stream.getFloat32();
@@ -490,6 +523,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             this.game.endCurrentLevel();
                             this.game.loadLevel(new DummyLevel(level));
+
+                            this.my_gamemode = Gamemode.ALIVE;
 
                             const p = (this.game.player = new Player());
                             this.scene.addEntity(p);
@@ -521,7 +556,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             break;
                         }
-                        case GamePacket.PLAYER_CREATE : {
+
+                        case GamePacket.PLAYER_ENTITY_CREATE : {
                             // [playerID: uint8, x: float32, y: float32]
 
                             const pID = stream.getUint8();
@@ -546,12 +582,12 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             break;
                         }
-                        case GamePacket.PLAYER_DESTROY:{
+                        case GamePacket.PLAYER_ENTITY_DESTROY:{
                             // Find correct entity
                            const pId = stream.getUint8();
 
+                            // Destroy my own player entity
                            if(pId === this.PLAYER_ID){
-                               // Destroy my own
                                this.game.player.dead = true;
 
                                continue;
@@ -566,7 +602,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                            }
                            break;
                         }
-                        case GamePacket.PLAYER_POSITION:{
+                        case GamePacket.PLAYER_ENTITY_POSITION:{
                            
                             const playerID = stream.getUint8();
                     
@@ -576,15 +612,19 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const flipped = stream.getBool();
                             const health = stream.getUint8();
 
+                            
+
                             if(playerID === this.PLAYER_ID){
                                 this.game.player.health = health;
+
+                                // console.log(health);
                                 continue;
                             }
 
                             // Find correct entity
                             let e = this.remotePlayers.get(playerID);
                             if(e === undefined){
-                                console.log("Unknown player data");
+                                console.log("Unknown player entity data");
                                 continue;
                             }
 
@@ -596,6 +636,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             break;
                         }
+
                         case GamePacket.TERRAIN_CARVE_CIRCLE: {
                             const terrain = this.game.terrain;
                             const x = stream.getFloat64();
@@ -615,88 +656,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 prediction.destroy();
                             }
 
-                            this.engine.renderer.addEmitter("assets/flower.png", {
-                                alpha: {
-                                    list: [
-                                        {
-                                            value: 0.8,
-                                            time: 0
-                                        },
-                                        {
-                                            value: 0.1,
-                                            time: 1
-                                        }
-                                    ],
-                                    isStepped: false
-                                },
-                                scale: {
-                                    list: [
-                                        {
-                                            value: 1,
-                                            time: 0
-                                        },
-                                        {
-                                            value: 0.3,
-                                            time: 1
-                                        }
-                                    ],
-                                    isStepped: false
-                                },
-                                color: {
-                                    list: [
-                                        {
-                                            value: "fb1010",
-                                            time: 0
-                                        },
-                                        {
-                                            value: "f5b830",
-                                            time: 1
-                                        }
-                                    ],
-                                    isStepped: false
-                                },
-                                speed: {
-                                    list: [
-                                        {
-                                            value: 200,
-                                            time: 0
-                                        },
-                                        {
-                                            value: 100,
-                                            time: 1
-                                        }
-                                    ],
-                                    isStepped: false
-                                },
-                                startRotation: {
-                                    min: 0,
-                                    max: 360
-                                },
-                                rotationSpeed: {
-                                    min: 0,
-                                    max: 0
-                                },
-                                lifetime: {
-                                    min: 0.5,
-                                    max: 0.5
-                                },
-                                frequency: 0.008,
-                                spawnChance: 1,
-                                particlesPerWave: 1,
-                                emitterLifetime: 0.31,
-                                maxParticles: 1000,
-                                pos: {
-                                    x: 0,
-                                    y: 0
-                                },
-                                addAtBack: false,
-                                spawnType: "circle",
-                                spawnCircle: {
-                                    x: 0,
-                                    y: 0,
-                                    r: 10
-                                }
-                            }, x, y);
+                            this.engine.renderer.addEmitter("assets/flower.png", PARTICLE_CONFIG["TERRAIN_EXPLOSION"], x, y);
                             
                             break;
                         }
@@ -708,8 +668,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             const item = CreateClientItemFromType(item_data);
 
-                            
-                            this.game.player.setItem(item);
+                            if(this.my_gamemode === Gamemode.ALIVE){
+                                this.game.player.setItem(item);
+                            }
                             break;
                         }
 
@@ -860,35 +821,39 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     
     writePackets(){
         if(this.network.CONNECTED && this.SERVER_IS_TICKING && this.SERVER_ROUND_ACTIVE){
-            const player = this.game.player;
 
+            if(this.my_gamemode === Gamemode.ALIVE){
 
-            const stream = this.sendStream;
-            stream.setUint8(ServerPacketSubType.QUEUE);
+                const player = this.game.player;
 
-            if(!player.dead){    
-                stream.setUint8(ServerBoundPacket.PLAYER_POSITION);
-                stream.setFloat32(player.x);
-                stream.setFloat32(player.y);
-                stream.setFloat32(this.engine.mouse.x);
-                stream.setFloat32(this.engine.mouse.y);
-                stream.setUint8(player.state);
-                stream.setBool(player.xspd < 0);
-                stream.setBool(this.engine.mouse.isDown("left"));
-                stream.setBool(this.engine.keyboard.wasPressed("KeyF"));
-                stream.setBool(this.engine.keyboard.wasPressed("KeyQ"));
+                const stream = this.sendStream;
+                stream.setUint8(ServerPacketSubType.QUEUE);
+
+                
+                if(!player.dead){    
+                    stream.setUint8(ServerBoundPacket.PLAYER_POSITION);
+                    stream.setFloat32(player.x);
+                    stream.setFloat32(player.y);
+                    stream.setFloat32(this.engine.mouse.x);
+                    stream.setFloat32(this.engine.mouse.y);
+                    stream.setUint8(player.state);
+                    stream.setBool(player.xspd < 0);
+                    stream.setBool(this.engine.mouse.isDown("left"));
+                    stream.setBool(this.engine.keyboard.wasPressed("KeyF"));
+                    stream.setBool(this.engine.keyboard.wasPressed("KeyQ"));
+                }
+
+                for(const packet of this.packetsToSerialize){
+                    packet.write(stream);
+                }
+
+                this.packetsToSerialize = []
+
+                this.network.send(stream.cutoff());
+
+                // Allow it to be re-used
+                stream.refresh()
             }
-
-            for(const packet of this.packetsToSerialize){
-                packet.write(stream);
-            }
-
-            this.packetsToSerialize = []
-
-            this.network.send(stream.cutoff());
-
-            // Allow it to be re-used
-            stream.refresh()
         }
     }
 

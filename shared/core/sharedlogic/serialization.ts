@@ -299,14 +299,21 @@ export function DeserializeTypedNumber(stream: BufferStreamReader, type: Network
 // All ascii characters
 // Fit in 1 byte
 
-const ASCII_REGEX = /^[\x00-\x7F]*$/;
+// Really, only values [32-126] (inclusive) are printable characters.
+const PRINTABLE_ASCII_REGEX = /^[\x20-\x7E]*$/;
+
+// const ASCII_REGEX = /^[\x00-\x7F]*$/;
+
+export function StringIsPrintableASCII(str: string): boolean {
+    return PRINTABLE_ASCII_REGEX.test(str);
+}
 
 export function SerializeString(stream: BufferStreamWriter, str: string): void {
     
     const length = str.length;
 
     assert(length <= ((1 << 16) - 1), "String must be less than 65536 characters --> " + str);
-    assert(ASCII_REGEX.test(str), "String must be ascii encodable --> " + str);
+    assert(StringIsPrintableASCII(str), "String must be ascii encodable --> " + str);
     
 
     stream.setUint16(length);

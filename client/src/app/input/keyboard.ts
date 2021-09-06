@@ -13,30 +13,60 @@ export class EngineKeyboard {
     // Was it pressed Between this and last
     private keyPressedMap = new Map<KECode,boolean>();
 
+    // Does not capture some keys, like backkey and forward
+    private _tempAllPressedKeys: { code: KECode, char: string}[] = [];
+    private allPressedKeys: { code: KECode, char: string}[] = [];
+
     // Was it released between this an last tick
     private keyReleasedMap = new Map<KECode,boolean>();
+
 
     private mousetrap: MousetrapInstance;
 
 
 
     init(target: Window){
+        target.addEventListener("blur", e => {
+            // Could iterate this and put all values into "keyReleasedMap" than clear it;
+            // console.log("blur")
+            this.keyDownMap.clear();
+            this.keyPressedMap.clear();
+            this.keyReleasedMap.clear();
+        });
+
+
         const form = target;
     
         //The types definitions are incorrect as you can bind a window
         //https://github.com/ccampbell/mousetrap/issues/247
         ///@ts-expect-error
         this.mousetrap = new Mousetrap(form);
+
         form.addEventListener("keydown",(e) => {
             this.keyDownMap.set(e.code as KECode,true);
+            
+            this._tempAllPressedKeys.push({
+                code: e.code as KECode,
+                char: e.key
+            });
         });
         
         form.addEventListener("keyup",(e) => {
             this.keyDownMap.set(e.code as KECode,false);
-        });   
+        });
+    }
+
+    /** Returns information on all keyboard presses in last tick. Any key */
+    pressedKeyInfo(): Readonly<EngineKeyboard["allPressedKeys"]> {
+        return this.allPressedKeys;
     }
 
     update(){
+        this.allPressedKeys = [];
+
+        this.allPressedKeys.push(...this._tempAllPressedKeys);
+        this._tempAllPressedKeys = [];
+
         // run before update loop
         // what things did I have down LAST run
         this.keyPressedMap.clear();
