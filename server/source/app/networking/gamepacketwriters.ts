@@ -35,6 +35,18 @@ export class EndRoundPacket extends PacketWriter {
     }
 }
 
+export class SetGamemodePacket extends PacketWriter {
+
+    constructor(public gamemode: Gamemode){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.SET_GAMEMODE);
+        stream.setUint8(this.gamemode);
+    }
+}
+
 export class JoinLatePacket extends PacketWriter {
 
     constructor(public level_enum: number){
@@ -129,7 +141,7 @@ export class OtherPlayerInfoRemovePacket extends PacketWriter {
 
 
 
-export class PlayerCreatePacket extends PacketWriter {
+export class PlayerEntityCreatePacket extends PacketWriter {
 
     constructor(public clientID: number, public x: number, public y: number){
         super(true);
@@ -143,7 +155,7 @@ export class PlayerCreatePacket extends PacketWriter {
     }
 }
 
-export class PlayerDestroyPacket extends PacketWriter {
+export class PlayerEntityDestroyPacket extends PacketWriter {
 
     constructor(public clientID: number){
         super(true);

@@ -349,9 +349,17 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             this.SERVER_IS_TICKING = true;
                             const tick = stream.getUint16(); // Reads this number so stream isn't broken
                             break;
+
                         }
 
-                        // OTHER PLAYER INFO
+                        case GamePacket.SET_GAMEMODE: {
+                            const gamemode: Gamemode = stream.getUint8();
+
+                            this.my_gamemode = gamemode;
+                            break;
+                        }
+
+                        // Other player connected to server
                         case GamePacket.OTHER_PLAYER_INFO_ADD: {
                             const uniqueID = stream.getUint8();
                             const ping = stream.getUint16();
@@ -363,22 +371,22 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             if(this.PLAYER_ID !== uniqueID){
                                 const newClient = new ClientInfo(uniqueID,ping,"",gamemode);
 
-                                console.log("Create client: " + newClient.toString());
+                                console.log("Create other client: " + newClient.toString());
 
                                 this.otherClients.set(uniqueID, newClient);
                             }
 
                             break;
                         }
+                        // Other player disconnected
                         case GamePacket.OTHER_PLAYER_INFO_REMOVE: {
                             const uniqueID = stream.getUint8();
 
                             const i = this.otherClients.get(uniqueID);
-                            console.log("Removing player: " + i);
+                            console.log("Player disconnected: " + i);
 
                             this.otherClients.remove(uniqueID);
 
-                            
 
                             break;
                         }
@@ -452,8 +460,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             SharedEntityClientTable.deserialize(stream, frame, SHARED_ID, entity);
 
                             break;
-                        }       
-
+                        }
                         case GamePacket.REMOTE_ENTITY_EVENT: {
                             
                             const SHARED_ID = stream.getUint8();
@@ -463,8 +470,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             let entity = this.remoteEntities.get(entityID);
 
                             if(entity === undefined){
-                                // Will try to create the entity for now, but we missed the REMOTE_ENTITY_CREATE packet clearly
                                 SharedEntityClientTable.readThroughRemoteEventStream(stream, SHARED_ID, eventID, entity)
+                                // Will try to create the entity for now, but we missed the REMOTE_ENTITY_CREATE packet clearly
                                 continue;
                                 console.log(`Cannot find entity ${entityID}, will create`);
                                 entity = this.createAutoRemoteEntity(SHARED_ID,entityID)
@@ -488,6 +495,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             break;
                         }
+
                         case GamePacket.REMOTE_FUNCTION_CALL:{
                             const functionID = stream.getUint8();
                             const functionName = RemoteFunctionLinker.getStringFromID(functionID)
@@ -498,6 +506,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             break;
                         }
+
                         case GamePacket.JOIN_LATE_INFO: {
                             const level = RemoteResourceLinker.getResourceFromID(stream.getUint8());
 
@@ -547,6 +556,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             break;
                         }
+
                         case GamePacket.PLAYER_ENTITY_CREATE : {
                             // [playerID: uint8, x: float32, y: float32]
 
@@ -576,8 +586,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             // Find correct entity
                            const pId = stream.getUint8();
 
+                            // Destroy my own player entity
                            if(pId === this.PLAYER_ID){
-                               // Destroy my own
                                this.game.player.dead = true;
 
                                continue;
@@ -602,15 +612,19 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const flipped = stream.getBool();
                             const health = stream.getUint8();
 
+                            
+
                             if(playerID === this.PLAYER_ID){
                                 this.game.player.health = health;
+
+                                // console.log(health);
                                 continue;
                             }
 
                             // Find correct entity
                             let e = this.remotePlayers.get(playerID);
                             if(e === undefined){
-                                console.log("Unknown player data");
+                                console.log("Unknown player entity data");
                                 continue;
                             }
 
@@ -622,6 +636,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             break;
                         }
+
                         case GamePacket.TERRAIN_CARVE_CIRCLE: {
                             const terrain = this.game.terrain;
                             const x = stream.getFloat64();

@@ -63,28 +63,11 @@ rl.on('line', (input: string) => {
             break;
         }
 
-        case "weapon": {
-            engine.testweapon();
-            break;
-        }
-
         case "end": {
             engine.endStage()
             break;
         }
 
-        case "packets": {
-            console.log(engine["lifetimeImportantPackets"].size())
-            break;
-        }
-
-        case "engine": {
-            const variable = allWords[1];
-
-            console.log(engine[variable])
-            break;
-        }
-        
         default: {
             console.log("You made a typo")
         }

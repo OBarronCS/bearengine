@@ -176,6 +176,8 @@ class PlayerAnimationState {
 
 
 export class Player extends DrawableEntity {
+
+    private healthbar: Graphics;
     
     private readonly runAnimation = new PlayerAnimationState(this.engine.getResource("player/run.json").data as SavePlayerAnimation, 4, new Vec2(40,16));
     private readonly wallslideAnimation = new PlayerAnimationState(this.engine.getResource("player/wallslide.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
@@ -310,6 +312,9 @@ export class Player extends DrawableEntity {
     private emitter: Emitter;
 
     override onAdd(){
+        this.healthbar = this.engine.renderer.createGUICanvas();
+
+
         this.scene.addEntity(this.itemInHand);
 
         this.runAnimation.setScale(2);
@@ -328,6 +333,8 @@ export class Player extends DrawableEntity {
     }
 
     override onDestroy(){
+        this.healthbar.destroy();
+
         this.scene.destroyEntity(this.itemInHand)
         this.engine.renderer.removeSprite(this.runAnimation.container);
         this.engine.renderer.removeSprite(this.wallslideAnimation.container);
@@ -563,8 +570,22 @@ export class Player extends DrawableEntity {
             }
         }
 
+        this.healthbar.clear();
+
+        const health_width = 500;
+        const health_height = 40;
+        const x = this.engine.renderer.getPercentWidth(.5) - (health_width / 2);
+
+
+        drawHealthBar(this.healthbar, x, 20, health_width, health_height, this.health / 100, 1);
+
+
+        this.healthbar
+
 
         if(this.dead) return;
+
+        
         
         this.emitter.updateSpawnPos(this.mouse.x, this.mouse.y);
         if(this.y > this.level.bbox.height + 800) this.y = 0;

@@ -69,7 +69,7 @@ export class RendererSystem {
 
         targetDiv.appendChild(this.renderer.view);
 
-        this.targetWindow.onresize = (e) => this.fitToScreen();
+        this.targetWindow.addEventListener("resize", (e) => this.fitToScreen());
         
 
         this.mainContainer.zIndex = 0;
@@ -142,6 +142,12 @@ export class RendererSystem {
     removeSprite<T extends DisplayObject>(container:T){
         this.mainContainer.removeChild(container)
         return container;
+    }
+
+    createGUICanvas(){
+        const graphics = new Graphics();
+        this.addGUI(graphics);
+        return graphics;
     }
 
     /** Returns empty graphics object that has been added to the scene. Call destroy() to remove it */

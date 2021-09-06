@@ -32,6 +32,8 @@ export enum GamePacket {
     START_ROUND, // [x:float32, y:float32, level_enum: uint8]
     END_ROUND, // [] empty 
 
+    // Personal Packet
+    SET_GAMEMODE, // [gaemmode: Gamemode]
 
 
     // If client joins will game is active, this packet is sent to them
@@ -48,7 +50,7 @@ export enum GamePacket {
     OTHER_PLAYER_INFO_REMOVE, //   [unique_client_id: uint8]
 
 
-    // command to create OTHER players 
+    // command to create/change state of OTHER players. Ignore if ID === localID; 
     PLAYER_ENTITY_CREATE, // [playerID: uint8, x: float32, y: float32]
     PLAYER_ENTITY_POSITION, // [playerID: uint8, x: float32, y: float32, uint8: animationstate, bool: flipped, health: uint8];
     PLAYER_ENTITY_DESTROY, // [playerID: uint8]

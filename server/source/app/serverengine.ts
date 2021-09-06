@@ -21,7 +21,7 @@ import { Rect } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
-import { AcknowledgeShotPacket, EndRoundPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerCreatePacket, PlayerDestroyPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetInvItemPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
+import { AcknowledgeShotPacket, EndRoundPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCreatePacket, PlayerEntityDestroyPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGamemodePacket, SetInvItemPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
 import { Gamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ALL_ITEMS, ItemType } from "shared/core/sharedlogic/items";
@@ -178,16 +178,21 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
             p.gamemode = Gamemode.ALIVE
 
+            const spawn_x = 150 + (i * 200);
+            const spawn_y = 0;
+
             const player = new PlayerEntity();
             p.playerEntity = player;
             this.entities.addEntity(player);
 
+            
+
             p.personalPackets.enqueue(
-                new StartRoundPacket(i * 200, 0, levelID)
+                new StartRoundPacket(spawn_x, spawn_y, levelID)
             );
 
             this.enqueueGlobalPacket(
-                new PlayerCreatePacket(clientID, i * 200, 0)
+                new PlayerEntityCreatePacket(clientID, spawn_x, spawn_y)
             );
 
             this.enqueueGlobalPacket(
@@ -294,7 +299,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         );
 
                         this.enqueueGlobalPacket(
-                            new PlayerDestroyPacket(clientID)
+                            new PlayerEntityDestroyPacket(clientID)
                         );
 
                         break;
@@ -488,22 +493,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 
 
-    testweapon(){
-
-        for(const client of this.clients){
-            const p = this.players.get(client);
-
-
-            const item_id = ALL_ITEMS["first_hitscan"].item_id;
-
-            // p.playerEntity.setWeapon(weapon);
-
-            p.personalPackets.enqueue(new SetInvItemPacket(item_id));
-        }
-
-    }
-
-
 
     
     createRemoteEntity(e: ServerEntity){
@@ -541,6 +530,11 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
             this.readNetwork();
 
+            for(let i = 0; i < 60/this.TICK_RATE; i++){
+                this.entities.update(dt);
+            }
+
+
             // Check for dead players
             if(this.isStageActive){
                 for(const player of this.clients){
@@ -549,21 +543,31 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                     if(p.gamemode === Gamemode.ALIVE) {
                         
                         if(p.playerEntity.health <= 0 && p.playerEntity.dead === false){
+                            
+                            console.log(`Player ${player} died!`)
+                            
+                            p.playerEntity.health = 0;
                             p.playerEntity.dead = true;
 
-                            console.log("Death!")
+
+                            p.gamemode = Gamemode.SPECTATOR;
+
+                            
+                            p.personalPackets.enqueue(
+                                new SetGamemodePacket(Gamemode.SPECTATOR)
+                            )
+
                             this.enqueueGlobalPacket(
-                                new PlayerDestroyPacket(player)
+                                new OtherPlayerInfoUpdateGamemodePacket(player, Gamemode.SPECTATOR)
+                            );
+
+                            this.enqueueGlobalPacket(
+                                new PlayerEntityDestroyPacket(player)
                             );
                         }
-                }
+                    }
                 }
             }
-
-            for(let i = 0; i < 60/this.TICK_RATE; i++){
-                this.entities.update(dt);
-            }
-
 
 
             this.writeToNetwork()
