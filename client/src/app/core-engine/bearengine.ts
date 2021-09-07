@@ -168,6 +168,16 @@ export class BearEngine {
 
 }
 
+/*
+
+window.onkeydown = (e: KeyboardEvent) => {
+    if(e.code === "KeyO")
+        CreateWindow({ width: 400,height:380, center:true}).then(e => {
+            console.log("WINDOW LOADED YAY")
+        })
+}
+
+*/
 
 export class NetworkPlatformGame extends BearGame<BearEngine> {
 

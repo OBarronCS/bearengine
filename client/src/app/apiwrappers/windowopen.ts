@@ -10,7 +10,7 @@ interface CreateWindowSettings {
 
 // if window with "targetWindowName" exists, this replaces it
 // Promise resolves once the page is fully loaded
-export async function CreateWindow(targetWindowName:string, settings: CreateWindowSettings): Promise<Window> {
+export async function CreateWindow(settings: CreateWindowSettings): Promise<Window> {
     // this isn't reliable --> screen.availHeight is just plain wrong in this case
     // so takes size of current window (assuming most people browse maximized)
     const max_width = window.innerWidth;
@@ -25,35 +25,35 @@ export async function CreateWindow(targetWindowName:string, settings: CreateWind
     // all default to "no" anyways
     const additional_features = "menubar=no,toolbar=no,location=no"; // scrollbars=no, status=no
 
-    // Url can be to an actual html page.
-    const new_window = window.open("debugger.html",targetWindowName,
+    // Forces a new open to open, and for the onload event to be ran
+    const targetName = "Window"+Math.random();
+
+    const new_window = window.open("debugger.html",targetName,
         `width=${width},height=${height},left=${left},top=${top},` + additional_features
-    )
+    );
 
-    new_window.document.title = "Game"
-
-    console.log(new_window.opener);
-
-    new_window.addEventListener("load", () => {
-        console.log("LOADED")
-        //@ts-ignore
-        new_window.test();
-    })
-
-    // assume the global window is the main one
-    window.onbeforeunload = () => {
+    // If global window closes, close all subwindows.
+    window.addEventListener("beforeunload", () => {
         new_window.close()
-    }
+    });
 
+    // Works!
+    return new Promise(resolve => {
+        
+        new_window.addEventListener("load", () => {
+            console.log("Popup window loaded")
+            //@ts-expect-error
+            console.log(new_window.test)
     
-    //TODO --> make get an actual CSS file
-    new_window.document.body.style.margin = 0 + "px";
-
-    // For some reason, there isn't a really good way to measure when the window has loaded!
-    // so, just make it this timer in hopes that it has initiliazed by then...
-    
-    return new Promise(resolve => setTimeout(() => {
-        resolve(new_window)
-    },100))
+            //@ts-ignore
+            new_window.test();
+            //@ts-expect-error
+            new_window.BOB.cheese.name = "sally";
+            //@ts-ignore
+            new_window.test();
+            
+            resolve(new_window)
+        });
+    });
 }
 

@@ -15,7 +15,7 @@ import { DummyLevel } from "./core-engine/gamelevel";
 import { FrameEditor } from "./gamelogic/testlevelentities";
 import { StringHash } from "shared/core/sharedlogic/versionhash";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
-import { CreateWindow } from "./apiwrappers/windowopen";
+
 
 
 const engine = new BearEngine();
@@ -33,11 +33,6 @@ engine.loadAssets().then(RESOURCES => {
 })
 
 
-
-window.onkeydown = (e: KeyboardEvent) => {
-    if(e.code === "KeyO")
-        CreateWindow("billy", { width: 200,height:200, center:true})
-}
 
 
 function JSMapToString(map: Map<any, any>): string {
