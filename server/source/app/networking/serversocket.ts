@@ -5,6 +5,7 @@ import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bu
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { LinkedQueue } from "shared/datastructures/queue";
 import { AssertUnreachable } from "shared/misc/assertstatements";
+import { IncomingMessage } from "http";
 
 export type ConnectionID = number;
 
@@ -54,8 +55,10 @@ export class ServerNetwork {
     }
 
     /** On client connection. Socket is unique to client */
-    private newClient(socket: WS){
+    private newClient(socket: WS, requestInfo: IncomingMessage){
         console.log("New connection");
+        //console.log(requestInfo.headers.origin)
+        //console.log(requestInfo.rawHeaders)
 
         socket.binaryType = "arraybuffer";
         this.sockets.push(socket);

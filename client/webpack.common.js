@@ -3,11 +3,20 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const BundleAnalyzerPlugin = require("webpack-bundle-analyzer").BundleAnalyzerPlugin
 
 module.exports = {
-    entry: "./src/index.ts",
+    entry: {
+        main:"./src/index.ts",
+        debugger: "./src/debugger/debugger.ts"
+    },
     plugins:[
         new HtmlWebpackPlugin({
             template:"./src/template.html",
-            favicon: "./src/favicon.png"
+            favicon: "./src/favicon.png",
+            chunks: ["main"]
+        }),
+        new HtmlWebpackPlugin({
+            filename: "debugger.html",
+            template:"./src/template.html",
+            chunks: ["debugger"]
         })
     ],
     resolve:{

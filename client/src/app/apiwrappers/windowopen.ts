@@ -8,8 +8,9 @@ interface CreateWindowSettings {
     fullscreen?: boolean;
 }
 
-
-export async function CreateWindow(id:string, settings: CreateWindowSettings): Promise<Window>{
+// if window with "targetWindowName" exists, this replaces it
+// Promise resolves once the page is fully loaded
+export async function CreateWindow(targetWindowName:string, settings: CreateWindowSettings): Promise<Window> {
     // this isn't reliable --> screen.availHeight is just plain wrong in this case
     // so takes size of current window (assuming most people browse maximized)
     const max_width = window.innerWidth;
@@ -21,12 +22,22 @@ export async function CreateWindow(id:string, settings: CreateWindowSettings): P
     const left = settings.fullscreen ? -10 : (settings.center ? max_width / 2 - width / 2  : settings.left);
     const top = settings.fullscreen ? -10 : (settings.center ?  max_height / 2 - height / 2  : settings.top);
 
-    const new_window = window.open("",id,
-        `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,scrollbars=no,status=no`
+    // all default to "no" anyways
+    const additional_features = "menubar=no,toolbar=no,location=no"; // scrollbars=no, status=no
+
+    // Url can be to an actual html page.
+    const new_window = window.open("debugger.html",targetWindowName,
+        `width=${width},height=${height},left=${left},top=${top},` + additional_features
     )
+
+    new_window.document.title = "Game"
+
+    console.log(new_window.opener);
 
     new_window.addEventListener("load", () => {
         console.log("LOADED")
+        //@ts-ignore
+        new_window.test();
     })
 
     // assume the global window is the main one
@@ -34,8 +45,7 @@ export async function CreateWindow(id:string, settings: CreateWindowSettings): P
         new_window.close()
     }
 
-    // id is not the same as the title!
-    new_window.document.title = "Game"
+    
     //TODO --> make get an actual CSS file
     new_window.document.body.style.margin = 0 + "px";
 
