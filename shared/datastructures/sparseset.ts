@@ -33,6 +33,7 @@ export class SparseSet<V> {
         return true;
     }
 
+    /** Ignores if doesn't contain */
     remove(id: number): void {
         if(!this.contains(id)) return;
 

@@ -4,7 +4,7 @@ import { ServerEntity } from "./entity";
 import "./networking/networkedentities";
 
 
-export class PlayerEntity extends ServerEntity {
+export class ServerPlayerEntity extends ServerEntity {
     dead = false
     health: number = 100;
     state: number = 0;

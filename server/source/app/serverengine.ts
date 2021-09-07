@@ -9,7 +9,7 @@ import { NULL_ENTITY_INDEX, EntitySystem, StreamWriteEntityID } from "shared/cor
 import { GamePacket, ServerBoundPacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
-import { PlayerEntity } from "./playerlogic";
+import { ServerPlayerEntity } from "./playerlogic";
 import { SharedEntityServerTable } from "./networking/serverentitydecorators";
 import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
@@ -47,7 +47,7 @@ export class PlayerInformation {
         this.connectionID = connectionID;
     }
 
-    playerEntity: PlayerEntity;
+    playerEntity: ServerPlayerEntity;
 
     
     readonly personalStream = new BufferStreamWriter(new ArrayBuffer(MAX_BYTES_PER_PACKET * 2));
@@ -83,7 +83,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
     public isStageActive: boolean = false;
 
-
     // Subsystems
     public currentLevelID: number = 0;
     public levelbbox: Rect;
@@ -99,18 +98,20 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 
     // Set of all packets that should be sent to any player joining mid-game
+    // savedPackets
     private lifetimeImportantPackets: Queue<PacketWriter> = new LinkedQueue<PacketWriter>();
 
 
     
     // connections = new SparseSet<PlayerInformation>();
 
-    public clients: ConnectionID[] = [];
-    public players = new Map<ConnectionID,PlayerInformation>();
+    private readonly clients: ConnectionID[] = [];
+    private readonly players = new Map<ConnectionID,PlayerInformation>();
     
+    // All entities that are ALIVE!
+    public readonly activePlayerEntities: SparseSet<ServerPlayerEntity> = new SparseSet(256);
 
     private serverShotID = 0;
-
     getServerShotID(){
         return this.serverShotID++;
     }
@@ -181,11 +182,15 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             const spawn_x = 150 + (i * 200);
             const spawn_y = 0;
 
-            const player = new PlayerEntity();
+            const player = new ServerPlayerEntity();
             p.playerEntity = player;
             this.entities.addEntity(player);
 
-            
+
+
+            this.activePlayerEntities.set(p.connectionID, player);
+
+
 
             p.personalPackets.enqueue(
                 new StartRoundPacket(spawn_x, spawn_y, levelID)
@@ -208,6 +213,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     endStage(){
         this.terrain.clear();
         this.entities.clear();
+
+        this.activePlayerEntities.clear();
 
 
         this.isStageActive = false;
@@ -301,6 +308,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         this.enqueueGlobalPacket(
                             new PlayerEntityDestroyPacket(clientID)
                         );
+
+                        this.activePlayerEntities.remove(clientID);
 
                         break;
                     }
@@ -564,6 +573,9 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                             this.enqueueGlobalPacket(
                                 new PlayerEntityDestroyPacket(player)
                             );
+
+                            this.entities.destroyEntity(p.playerEntity);
+                            this.activePlayerEntities.remove(p.connectionID);
                         }
                     }
                 }

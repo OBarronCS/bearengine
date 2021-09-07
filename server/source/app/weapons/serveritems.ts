@@ -69,12 +69,11 @@ class Hitscan extends Gun<GunItemData> {
 
 
         // Check in radius to see if any players are hurt
-        for(const client of game.clients){
+        for(const pEntity of game.activePlayerEntities.values()){
 
-            const p = game.players.get(client);
 
-            if(ray.pointDistance(p.playerEntity.position) < 30){
-                p.playerEntity.health -= 16;
+            if(ray.pointDistance(pEntity.position) < 30){
+                pEntity.health -= 16;
             }
         } 
     }
@@ -195,11 +194,10 @@ export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number,
             const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
 
             // Check in radius to see if any players are hurt
-            for(const client of this.game.clients){
-                const p = this.game.players.get(client);
+            for(const pEntity of this.game.activePlayerEntities.values()){
 
-                if(Vec2.distanceSquared(p.playerEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
-                    p.playerEntity.health -= 16;
+                if(Vec2.distanceSquared(pEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
+                    pEntity.health -= 16;
                 }
             } 
              
