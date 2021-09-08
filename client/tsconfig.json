@@ -3,6 +3,7 @@
 
     "compilerOptions": {
         // "extendedDiagnostics": true,
+        //"module": "ES2020", //allows for dynamic imports, import.meta
 
         "moduleResolution": "node",
         "esModuleInterop": true,

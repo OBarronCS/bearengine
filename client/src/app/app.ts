@@ -15,7 +15,11 @@ import { DummyLevel } from "./core-engine/gamelevel";
 import { FrameEditor } from "./gamelogic/testlevelentities";
 import { StringHash } from "shared/core/sharedlogic/versionhash";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
+import { RunTests } from "shared/testing/testrunner";
 
+
+import "shared/testing/entitysystemtest";
+RunTests();
 
 
 const engine = new BearEngine();

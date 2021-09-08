@@ -41,7 +41,8 @@ function importAll(r: any): [] {
 // This cannot take variable for path, webpack needs string literal for it to work ...
 const images = importAll(require.context('../../assets', true, /\.(json|png|jpe?g|gif)$/));
 const ALL_TEXTURES: string[] = images.slice(0);
-console.log("Assets: " + ALL_TEXTURES)
+
+// console.log("Assets: " + ALL_TEXTURES)
 
 const maxFPS = 60;
 const simulation_time = 1000 / maxFPS;
@@ -96,8 +97,8 @@ export class BearEngine {
             SHARED_LOADER.add(ALL_TEXTURES);
     
             SHARED_LOADER.load(() => {
-                console.log("ALL ASSETS DOWNLOADED");
-                console.log('PIXI.Loader.shared.resources :>> ', SHARED_RESOURCES);
+                // console.log("ALL ASSETS DOWNLOADED");
+                // console.log('PIXI.Loader.shared.resources :>> ', SHARED_RESOURCES);
                 resolve(SHARED_RESOURCES);
             });
         });

@@ -38,7 +38,7 @@ interface CommandArgumentParser<T> {
 }
 
 
-type CheckedResult<T, E> = IValidResult<T> | IErrorResult<E>;
+export type CheckedResult<T, E> = IValidResult<T> | IErrorResult<E>;
 
 interface IValidResult<T> {
     success: true,
@@ -50,7 +50,7 @@ interface IErrorResult<E> {
     error: E
 }
 
-function ValidResult<T>(value: T): IValidResult<T> {
+export function ValidResult<T>(value: T): IValidResult<T> {
     return {
         success: true,
         value: value,
@@ -58,7 +58,7 @@ function ValidResult<T>(value: T): IValidResult<T> {
 }
 
 
-function ErrorResult<E>(err: E): IErrorResult<E> {
+export function ErrorResult<E>(err: E): IErrorResult<E> {
     return {
         success: false,
         error: err

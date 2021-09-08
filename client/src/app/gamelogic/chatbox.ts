@@ -51,7 +51,7 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
         this.box.beginFill(0x9492a1);
         this.box.drawRect(0, 0, this.engine.renderer.getPercentWidth(1), this.height)
         
-        console.log(this.box.position)
+        // console.log(this.box.position)
 
 
         this.engine.renderer.addGUI(this.container);

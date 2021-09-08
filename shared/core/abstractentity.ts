@@ -33,13 +33,14 @@ export abstract class AbstractEntity<TGame extends BearGame<any> = BearGame<{}, 
     onAdd(): void {};
     onDestroy(): void {};
 
-    addPart<T extends Attribute>(part: T): T {
+    /** Only works before being added to scene */
+    protected addPart<T extends Attribute>(part: T): T {
         this.parts.push(part);
         part.owner = this;
         return part;
     }
 
-    hasAttribute<K extends new(...args: any[]) => Attribute>(part: K){
+    hasAttribute<K extends new(...args: any[]) => Attribute>(part: K): boolean {
         return this.scene.hasAttribute(this.entityID, part);
     }
 
@@ -47,7 +48,7 @@ export abstract class AbstractEntity<TGame extends BearGame<any> = BearGame<{}, 
         return this.scene.getAttribute(this.entityID, partConstructor);
     }
 
-    destroy(){
+    destroy(): void {
         this.scene.destroyEntity(this);
     }
 }
