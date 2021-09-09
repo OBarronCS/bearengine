@@ -30,10 +30,18 @@ module.exports = {
     },
     module:{
         rules:[
-            { 
+            // { 
+            //     test: /\.ts$/,
+            //     use:"ts-loader",
+            //     exclude: /node_modules/
+            // },
+            { // https://github.com/privatenumber/esbuild-loader This is so much faster!
                 test: /\.ts$/,
-                use:"ts-loader",
-                exclude: /node_modules/
+                loader: 'esbuild-loader',
+                options: {
+                    loader: 'ts',
+                    target: 'es2020'
+                }
             },
             { // making this seperate for some reason made Webpack not produce an error
                 test: /\.json$/,
