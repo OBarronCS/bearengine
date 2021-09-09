@@ -141,6 +141,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
     // Resets everything to prepare for a new level, sends data to clients
     beginStage(str: keyof typeof RemoteResources){
+        console.log("Begin level");
 
         this.lifetimeImportantPackets.clear();
         this.currentTickGlobalPackets = [];
@@ -159,7 +160,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             
             const bodies = levelData.bodies;
             this.terrain.setupGrid(width, height);
-            bodies.forEach( (body) => {
+            bodies.forEach(body => {
                 this.terrain.addTerrain(body.points, body.normals)
             });
 
@@ -182,7 +183,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             const spawn_x = 150 + (i * 200);
             const spawn_y = 0;
 
-            const player = new ServerPlayerEntity();
+            const player = new ServerPlayerEntity(clientID);
             p.playerEntity = player;
             this.entities.addEntity(player);
 
@@ -211,6 +212,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 
     endStage(){
+        console.log("End level");
+
         this.terrain.clear();
         this.entities.clear();
 
@@ -220,7 +223,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         this.isStageActive = false;
 
         this.enqueueGlobalPacket(
-            new EndRoundPacket()
+            new EndRoundPacket([])
         );
     }
     
@@ -546,39 +549,77 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
             // Check for dead players
             if(this.isStageActive){
-                for(const player of this.clients){
-                    const p = this.players.get(player);
+                for(const playerEntity of this.activePlayerEntities.values()){
 
-                    if(p.gamemode === Gamemode.ALIVE) {
+                    if(playerEntity.health <= 0){
+
+                        playerEntity.health = 0;
+                        playerEntity.dead = true;
+
+
+                        const playerID = playerEntity.connectionID;
+
+                        console.log(`Player ${playerID} died!`)
                         
-                        if(p.playerEntity.health <= 0 && p.playerEntity.dead === false){
-                            
-                            console.log(`Player ${player} died!`)
-                            
-                            p.playerEntity.health = 0;
-                            p.playerEntity.dead = true;
+                        const connection = this.players.get(playerID);
 
+                        connection.gamemode = Gamemode.SPECTATOR;
 
-                            p.gamemode = Gamemode.SPECTATOR;
+                        connection.personalPackets.enqueue(
+                            new SetGamemodePacket(Gamemode.SPECTATOR)
+                        )
 
-                            
-                            p.personalPackets.enqueue(
-                                new SetGamemodePacket(Gamemode.SPECTATOR)
-                            )
+                        this.enqueueGlobalPacket(
+                            new OtherPlayerInfoUpdateGamemodePacket(playerID, Gamemode.SPECTATOR)
+                        );
 
-                            this.enqueueGlobalPacket(
-                                new OtherPlayerInfoUpdateGamemodePacket(player, Gamemode.SPECTATOR)
-                            );
+                        this.enqueueGlobalPacket(
+                            new PlayerEntityDestroyPacket(playerID)
+                        );
 
-                            this.enqueueGlobalPacket(
-                                new PlayerEntityDestroyPacket(player)
-                            );
-
-                            this.entities.destroyEntity(p.playerEntity);
-                            this.activePlayerEntities.remove(p.connectionID);
-                        }
+                        this.entities.destroyEntity(playerEntity);
+                        this.activePlayerEntities.remove(playerID);
                     }
+
                 }
+
+                if(this.activePlayerEntities.size() === 1){
+                    this.endStage();
+                }
+
+                // for(const player of this.clients){
+                //     const p = this.players.get(player);
+
+                //     if(p.gamemode === Gamemode.ALIVE) {
+                        
+                //         if(p.playerEntity.health <= 0 && p.playerEntity.dead === false){
+                            
+                //             console.log(`Player ${player} died!`)
+                            
+                //             p.playerEntity.health = 0;
+                //             p.playerEntity.dead = true;
+
+
+                //             p.gamemode = Gamemode.SPECTATOR;
+
+                            
+                //             p.personalPackets.enqueue(
+                //                 new SetGamemodePacket(Gamemode.SPECTATOR)
+                //             )
+
+                //             this.enqueueGlobalPacket(
+                //                 new OtherPlayerInfoUpdateGamemodePacket(player, Gamemode.SPECTATOR)
+                //             );
+
+                //             this.enqueueGlobalPacket(
+                //                 new PlayerEntityDestroyPacket(player)
+                //             );
+
+                //             this.entities.destroyEntity(p.playerEntity);
+                //             this.activePlayerEntities.remove(p.connectionID);
+                //         }
+                //     }
+                // }
             }
 
 

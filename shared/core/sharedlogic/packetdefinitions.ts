@@ -30,7 +30,9 @@ export enum GamePacket {
     // Client sets gamemode to ALIVE, creates local player entity, and loads the terrain from level
     // If a player never receives this packet, its assumed they are still spectators
     START_ROUND, // [x:float32, y:float32, level_enum: uint8]
-    END_ROUND, // [] empty 
+    
+    // Array of players in order of winner, to last place
+    END_ROUND, // [ array_length: uint8, [clientID: uint8] * array_length] 
 
     // Personal Packet
     SET_GAMEMODE, // [gaemmode: Gamemode]

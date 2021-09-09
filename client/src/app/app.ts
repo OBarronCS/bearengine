@@ -18,8 +18,8 @@ import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { RunTests } from "shared/testing/testrunner";
 
 
-import "shared/testing/entitysystemtest";
-RunTests();
+// import "shared/testing/entitysystemtest";
+// RunTests();
 
 
 const engine = new BearEngine();

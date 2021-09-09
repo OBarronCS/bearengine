@@ -86,6 +86,10 @@ export class SparseSet<V> {
         return this.dense;
     }
 
+    size(): number {
+        return this.dense.length;
+    }
+
     clear(): this {
         this.sparse = [];
 
@@ -103,3 +107,4 @@ export class SparseSet<V> {
         return "Keys: " + this.keys().toString() + " Values: " + this.values().toString();
     }
 }
+

@@ -537,7 +537,16 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             break;
                         }
                         case GamePacket.END_ROUND: {
-                            console.log("Round ended")
+                            console.log("Round ended");
+
+                            const length = stream.getUint8();
+
+                            const order: number[] = [];
+                            for(let i = 0; i < length; i++){
+                                order.push(stream.getUint8());
+                            }
+
+                            
 
                             for(const e of this.remotePlayers.values()){
                                 e.destroy();
