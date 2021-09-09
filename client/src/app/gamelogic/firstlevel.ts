@@ -11,6 +11,8 @@ import { GameLevel } from "../core-engine/gamelevel";
 import { SpritePart } from "../core-engine/parts";
 import { Player } from "./player";
 import { Polygon } from "shared/shapes/polygon";
+import { Emitter } from "pixi-particles";
+import { PARTICLE_CONFIG } from "../core-engine/particles";
 
 
 
@@ -42,11 +44,23 @@ export class FirstLevel extends GameLevel {
     
     path: string | TiledMap = "assets/firsttest.json";
 
-    start(game: NetworkPlatformGame, scene: EntitySystem): void {
+
+    private emitter: Emitter;
+
+    update(dt: number): void {
+        this.emitter.updateSpawnPos(this.engine.mouse.x, this.engine.mouse.y);
+    }
+
+    start(): void {
+        this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["ROCKET"], this.engine.mouse.x, this.engine.mouse.y);
+
+
 
         // scene.addEntity(new PolygonExpandTest)
 
-        const p = scene.addEntity(new Player());
+        //const p = scene.addEntity(new Player());
+
+
 
         class Test7 extends Entity {
 
@@ -59,7 +73,7 @@ export class FirstLevel extends GameLevel {
 
         }
 
-        scene.addEntity(new Test7())
+        //scene.addEntity(new Test7())
 
         // class TestEntityForVideo extends Entity {
 
@@ -108,7 +122,7 @@ export class FirstLevel extends GameLevel {
             }
         }
 
-        scene.addEntity(new SuperTest());
+        //scene.addEntity(new SuperTest());
 
         class OtherTest extends GMEntity {
             constructor(){
@@ -119,7 +133,7 @@ export class FirstLevel extends GameLevel {
             }
         }
 
-        scene.addEntity(new OtherTest());
+        //scene.addEntity(new OtherTest());
 
         // Drawing the collision grid
         class Debug extends DrawableEntity {
@@ -135,17 +149,13 @@ export class FirstLevel extends GameLevel {
     }
 
 
-    end(engine: NetworkPlatformGame): void {
+    end(): void {
 
 
 
     }
 
 
-    update(dt: number): void {
-
-
-
-    }
+   
 
 }

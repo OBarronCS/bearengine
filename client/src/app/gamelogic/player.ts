@@ -185,8 +185,20 @@ export class Player extends DrawableEntity {
     private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
 
     dead = false;
-
     public health = 100;
+    itemInHand: ItemDrawer = new ItemDrawer();
+    weapon: Gun = null;
+
+    setItem(item: Item<ItemData>){
+        this.itemInHand.setItem(item.item_data);
+        if(item instanceof Gun){
+            this.weapon = item;
+        }
+    }
+
+    clearItem(){
+        this.itemInHand.clear();
+    }
 
     last_ground_xspd = 0;
     last_ground_yspd = 0;
@@ -235,7 +247,7 @@ export class Player extends DrawableEntity {
     
 
 
-    private timeToClimb = 26;
+    private readonly timeToClimb = 26;
     climbStateData: {
         // Climbing to the right? false means left
         right: boolean;
@@ -246,7 +258,7 @@ export class Player extends DrawableEntity {
         startY: number,
     }
 
-    private timeToSlide = 35; // How many ticks can hold in place until start falling
+    private readonly timeToSlide = 35; // How many ticks can hold in place until start falling
     slideStateData: {
         right: boolean; 
         timeSliding: number
@@ -267,20 +279,7 @@ export class Player extends DrawableEntity {
     private colliderPart: ColliderPart;
 
 
-    itemInHand: ItemDrawer = new ItemDrawer();
-
-    weapon: Gun = null;
-
-    setItem(item: Item<ItemData>){
-        this.itemInHand.setItem(item.item_data);
-        if(item instanceof Gun){
-            this.weapon = item;
-        }
-    }
-
-    clearItem(){
-        this.itemInHand.clear();
-    }
+  
 
     constructor(){
         super();
@@ -309,8 +308,6 @@ export class Player extends DrawableEntity {
         this.leftWallRay = new Line(new Vec2(x, y), new Vec2(-3 + x - this.player_width / 2, y));
     }
 
-    private emitter: Emitter;
-
     override onAdd(){
         this.healthbar = this.engine.renderer.createGUICanvas();
 
@@ -328,8 +325,6 @@ export class Player extends DrawableEntity {
         this.engine.renderer.addSprite(this.climbAnimation.container)
 
         this.setSprite("run");
-
-        this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["ROCKET"], this.x, this.y)
     }
 
     override onDestroy(){
@@ -340,6 +335,13 @@ export class Player extends DrawableEntity {
         this.engine.renderer.removeSprite(this.wallslideAnimation.container);
         this.engine.renderer.removeSprite(this.idleAnimation.container);
         this.engine.renderer.removeSprite(this.climbAnimation.container);
+    }
+
+    private setAlpha(a: number): void {
+        this.runAnimation.container.alpha = a;
+        this.wallslideAnimation.container.alpha = a;
+        this.idleAnimation.container.alpha = a;
+        this.climbAnimation.container.alpha = a;
     }
 
     private setSprite(sprite: "idle"|"run"|"wall"|"climb"|"none"){
@@ -561,6 +563,9 @@ export class Player extends DrawableEntity {
     private followCam = false;
 
     update(dt: number): void {
+    }
+
+    manualUpdate(dt: number): void {
         if(this.keyboard.wasPressed("KeyJ")){
             this.followCam = !this.followCam;
             if(this.followCam){
@@ -570,24 +575,22 @@ export class Player extends DrawableEntity {
             }
         }
 
-        this.healthbar.clear();
-
         const health_width = 500;
         const health_height = 40;
         const x = this.engine.renderer.getPercentWidth(.5) - (health_width / 2);
 
+        this.healthbar.clear();
+        
 
-        drawHealthBar(this.healthbar, x, 20, health_width, health_height, this.health / 100, 1);
+        if(this.dead) {
+            this.setAlpha(.2);
 
-
-        this.healthbar
-
-
-        if(this.dead) return;
+        } else {
+            drawHealthBar(this.healthbar, x, 20, health_width, health_height, this.health / 100, 1);
+        }
 
         
-        
-        this.emitter.updateSpawnPos(this.mouse.x, this.mouse.y);
+    
         if(this.y > this.level.bbox.height + 800) this.y = 0;
 
 
@@ -1154,8 +1157,8 @@ export class Player extends DrawableEntity {
 
         // this.leftClimbRay.draw(g,0x00000)
         // this.rightClimbRay.draw(g, 0xFFFFFF)
-        
-        drawHealthBar(g, this.x - 20, this.y - 40, 40, 7, this.health / 100, 1);
+        if(!this.dead)
+            drawHealthBar(g, this.x - 20, this.y - 40, 40, 7, this.health / 100, 1);
     }
 }
 

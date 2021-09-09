@@ -1,26 +1,31 @@
 import { Graphics, Sprite } from "pixi.js";
-import { EntitySystem } from "shared/core/entitysystem";
 
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { string2hex } from "shared/misc/mathutils";
 import { Rect } from "shared/shapes/rectangle";
 import { ASSET_FOLDER_NAME, BearEngine, NetworkPlatformGame } from "./bearengine"
-import { Entity } from "./entity";
 
 
 export abstract class GameLevel {
 
+    protected game: NetworkPlatformGame;
+    protected engine: BearEngine;
+    constructor(game: NetworkPlatformGame){
+        this.game = game;
+        this.engine = game.engine;
+    }
+    
     public bbox: Rect;
 
     /** Put null for path if want no data */
-    abstract path: string | TiledMap
+    abstract path: string | TiledMap;
     abstract update(dt: number): void;
-    protected abstract start(engine: NetworkPlatformGame, scene: EntitySystem): void;
-    protected abstract end(engine: NetworkPlatformGame): void;
+    protected abstract start(): void;
+    protected abstract end(): void;
 
 
-    internalStart(game: NetworkPlatformGame, scene: EntitySystem){
-        const engine = game.engine;
+    internalStart(){
+        const engine = this.game.engine;
 
         const tiled = typeof this.path === "string" ? 
             engine.getResource(this.path).data as TiledMap :
@@ -39,12 +44,12 @@ export abstract class GameLevel {
             this.bbox = new Rect(0,0,width,height);
             
             const bodies = mapdata.bodies;
-            game.terrain.setupGrid(width, height);
+            this.game.terrain.setupGrid(width, height);
             bodies.forEach( (body) => {
-                game.terrain.addTerrain(body.points, body.normals)
+                this.game.terrain.addTerrain(body.points, body.normals)
             });
 
-            game.collisionManager.setupGrid(width, height);
+            this.game.collisionManager.setupGrid(width, height);
 
             engine.renderer.renderer.backgroundColor = string2hex(mapdata.world.backgroundcolor);
             // Load sprites from map 
@@ -59,17 +64,18 @@ export abstract class GameLevel {
         }
 
         // const graphics = engine.renderer.createCanvas();
-        game.terrain.graphics = new Graphics();
-        engine.renderer.addSprite(game.terrain.graphics);
-        game.terrain.queueRedraw();
+        this.game.terrain.graphics = new Graphics();
+        engine.renderer.addSprite(this.game.terrain.graphics);
+        this.game.terrain.queueRedraw();
 
-        this.start(game, scene);
+        this.start();
     }
 
-    internalEnd(game: NetworkPlatformGame){
+    internalEnd(){
 
-        game.engine.renderer.removeSprite(game.terrain.graphics);
-        this.end(game);
+        this.game.engine.renderer.removeSprite(this.game.terrain.graphics);
+
+        this.end();
     }
 }
 
@@ -77,20 +83,19 @@ export class DummyLevel extends GameLevel {
 
     path: string | TiledMap;
 
-    constructor(path: string | TiledMap){
-        super();
+    constructor(game:NetworkPlatformGame, path: string | TiledMap){
+        super(game);
         this.path = path;
     }
 
-    start(engine: NetworkPlatformGame, scene: EntitySystem<Entity>): void {
+    start(): void {
         
     }
-    end(engine: NetworkPlatformGame): void {
+    end(): void {
 
     }
+
     update(dt: number): void {
 
     }
-
-
 }

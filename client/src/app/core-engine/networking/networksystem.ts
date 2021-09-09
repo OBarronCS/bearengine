@@ -1,6 +1,6 @@
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
-import { EntitySystem, StreamReadEntityID } from "shared/core/entitysystem";
+import { EntitySystem, NULL_ENTITY_INDEX, StreamReadEntityID } from "shared/core/entitysystem";
 import { NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker } from "shared/core/sharedlogic/networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
@@ -54,6 +54,8 @@ interface BufferedPacket {
 }
 
 
+const MS_PER_PING = 2500;
+
 export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
 
@@ -69,6 +71,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     private packets = new LinkedQueue<BufferedPacket>();
     private sendStream = new BufferStreamWriter(new ArrayBuffer(256));
 
+    private stagePacketsToSerialize: PacketWriter[] = [];
+    private generalPacketsToSerialize: PacketWriter[] = [];
+
 
     private scene: EntitySystem;
     public remotelocations = this.addQuery(RemoteLocations);
@@ -82,9 +87,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     private remoteEntities: Map<number, Entity> = new Map();
     private remotePlayers: Map<number, RemotePlayer> = new Map(); 
 
-
-
-    private packetsToSerialize: PacketWriter[] = [];
 
     private remoteFunctionCallMap = new Map<keyof RemoteFunction,keyof NetworkSystem>()
 
@@ -132,14 +134,14 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
     // Calculating bytes/second processed from network. Keeps only stuff from the last second.
     // Use priority queue to make sure nothing from more than a second ago is counted 
-    private byteAmountReceived: Deque<{bytes:number, time: number}> = new Deque();
+    private readonly byteAmountReceived: Deque<{bytes:number, time: number}> = new Deque();
     bytesPerSecond = 0;
     
     
 
-    private serverShotIDToEntity: Map<number,AbstractEntity> = new Map();
+    private readonly serverShotIDToEntity: Map<number,AbstractEntity> = new Map();
     // values exist here while shot awaiting acknowledgement from the server
-    public localShotIDToEntity: Map<number,AbstractEntity> = new Map();
+    public readonly localShotIDToEntity: Map<number,AbstractEntity> = new Map();
 
     
 
@@ -281,14 +283,14 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             this._serverTick = this.calculateCurrentServerTick();
 
 
-            if(now >= this.timeOfLastPing + 2000){
+            if(now >= this.timeOfLastPing + MS_PER_PING){
                 this.sendPing();
                 this.timeOfLastPing = now;
             }
 
 
             // Calculation bytes per second
-            while(!this.byteAmountReceived.isEmpty() && this.byteAmountReceived.peekLeft().time < now - 1025){
+            while(!this.byteAmountReceived.isEmpty() && this.byteAmountReceived.peekLeft().time < (now - 1000)){
                 this.byteAmountReceived.popLeft();
             }
 
@@ -305,7 +307,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                     // const dt = this.byteAmountReceived.peekRight().time - this.byteAmountReceived.peekLeft().time;
 
                     // Amount of bytes received in the last second
-                    this.bytesPerSecond = sum;;// / (dt / 1000);
+                    this.bytesPerSecond = sum;// / (dt / 1000);
                 }
             } else {
                 this.bytesPerSecond = 0;
@@ -511,7 +513,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const level = RemoteResourceLinker.getResourceFromID(stream.getUint8());
 
                             this.game.endCurrentLevel();
-                            this.game.loadLevel(new DummyLevel(level));
+                            this.game.loadLevel(new DummyLevel(this.game, level));
 
                             break;
                         }
@@ -522,7 +524,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const level = RemoteResourceLinker.getResourceFromID(stream.getUint8());
 
                             this.game.endCurrentLevel();
-                            this.game.loadLevel(new DummyLevel(level));
+                            this.game.loadLevel(new DummyLevel(this.game, level));
 
                             this.my_gamemode = Gamemode.ALIVE;
 
@@ -533,6 +535,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             p.y = y;
 
                             this.SERVER_ROUND_ACTIVE = true;
+
+                            this.stagePacketsToSerialize = [];
                             console.log("Round begun")
                             break;
                         }
@@ -546,6 +550,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 order.push(stream.getUint8());
                             }
 
+                            console.log(order);
                             
 
                             for(const e of this.remotePlayers.values()){
@@ -562,7 +567,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             // this.engine.player = null;
 
                             this.SERVER_ROUND_ACTIVE = false;
-
+                            this.stagePacketsToSerialize = [];
                             break;
                         }
 
@@ -662,6 +667,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             if(prediction !== undefined){
                                 this.serverShotIDToEntity.delete(serverShotID);
                                 
+                                console.log("PREDICTION DESTROYED");
                                 prediction.destroy();
                             }
 
@@ -680,6 +686,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             if(this.my_gamemode === Gamemode.ALIVE){
                                 this.game.player.setItem(item);
                             }
+                            
                             break;
                         }
 
@@ -743,9 +750,16 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 const bullet = this.localShotIDToEntity.get(localShotID);
                                 // May not exist, for some reason...
                                 if(bullet !== undefined){
+                                    if(bullet.entityID !== NULL_ENTITY_INDEX){
+                                        this.serverShotIDToEntity.set(serverShotID, bullet);
+                                        this.localShotIDToEntity.delete(localShotID);
+                                    } else {
+                                        // This entity has already been destroyed.
+                                        // This error shows why storing the entityID would be 
+                                        // more safe in this case
+                                    }
                                     
-                                    this.serverShotIDToEntity.set(serverShotID, bullet);
-                                    this.localShotIDToEntity.delete(localShotID);
+                                        
                                 }
                             }
 
@@ -824,8 +838,12 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
         return frameToGet;
     }
 
-    queuePacket(packet: PacketWriter){
-        this.packetsToSerialize.push(packet);
+    enqueueStagePacket(packet: PacketWriter){
+        this.stagePacketsToSerialize.push(packet);
+    }
+
+    enqueueGeneralPacket(packet: PacketWriter){
+        this.generalPacketsToSerialize.push(packet);
     }
     
     writePackets(){
@@ -852,11 +870,19 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                     stream.setBool(this.engine.keyboard.wasPressed("KeyQ"));
                 }
 
-                for(const packet of this.packetsToSerialize){
+                for(const packet of this.generalPacketsToSerialize){
                     packet.write(stream);
                 }
+                this.generalPacketsToSerialize = [];
 
-                this.packetsToSerialize = []
+                
+                for(const packet of this.stagePacketsToSerialize){
+                    packet.write(stream);
+                }
+                this.stagePacketsToSerialize = [];
+
+
+
 
                 this.network.send(stream.cutoff());
 

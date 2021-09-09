@@ -123,7 +123,7 @@ class ModularBullet extends Effect<ServerBearEngine> {
     
         this.onUpdate(function(dt: number){
             this.position.add(this.velocity)
-            if(!this.game.levelbbox.contains(this.position)){
+            if(!this.game.currentScene.levelbbox.contains(this.position)){
                 this.destroy();
             }
         });

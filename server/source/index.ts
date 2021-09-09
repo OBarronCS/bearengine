@@ -52,24 +52,28 @@ rl.on('line', (input: string) => {
 
     const first = allWords[0];
 
-    switch(first){
-        case "command": {
-            engine.dispatchCommand(allWords.slice(1).join(" "));
-            break
-        }
+    if(first.charAt(0) === "/"){
+        engine.dispatchCommand(input.slice(1));
+    } else {
+        switch(first){
+            case "command": {
+                engine.dispatchCommand(allWords.slice(1).join(" "));
+                break
+            }
 
-        case "s": {
-            engine.beginStage(allWords[1] as any);
-            break;
-        }
+            case "s": {
+                engine.beginStage(allWords[1] as any);
+                break;
+            }
 
-        case "end": {
-            engine.endStage()
-            break;
-        }
+            case "end": {
+                engine.endStage()
+                break;
+            }
 
-        default: {
-            console.log("You made a typo")
+            default: {
+                console.log("You made a typo")
+            }
         }
     }
 });

@@ -27,7 +27,7 @@ export class StartRoundPacket extends PacketWriter {
 export class EndRoundPacket extends PacketWriter {
 
     constructor(public winnerOrder: number[]){
-        super(true);
+        super(false);
     }
 
     write(stream: BufferStreamWriter): void {
@@ -91,7 +91,7 @@ export class InitPacket extends PacketWriter {
 export class ServerIsTickingPacket extends PacketWriter {
 
     constructor(public tick: number){
-        super(true);
+        super(false);
     }
 
     write(stream: BufferStreamWriter): void {
@@ -150,7 +150,7 @@ export class OtherPlayerInfoRemovePacket extends PacketWriter {
 export class PlayerEntityCreatePacket extends PacketWriter {
 
     constructor(public clientID: number, public x: number, public y: number){
-        super(true);
+        super(false);
     }
 
     write(stream: BufferStreamWriter): void {
@@ -164,7 +164,7 @@ export class PlayerEntityCreatePacket extends PacketWriter {
 export class PlayerEntityDestroyPacket extends PacketWriter {
 
     constructor(public clientID: number){
-        super(true);
+        super(false);
     }
 
     write(stream: BufferStreamWriter): void {

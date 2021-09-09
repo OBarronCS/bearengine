@@ -30,7 +30,7 @@ engine.loadAssets().then(RESOURCES => {
 
     const game = new NetworkPlatformGame(engine);
     engine.start(game);
-    game.loadLevel(new FirstLevel());
+    game.loadLevel(new FirstLevel(game));
     
 
     //engine.start(new FrameEditor(engine))
