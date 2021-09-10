@@ -83,7 +83,7 @@ export class DummyLevel extends GameLevel {
 
     path: string | TiledMap;
 
-    constructor(game:NetworkPlatformGame, path: string | TiledMap){
+    constructor(game: NetworkPlatformGame, path: string | TiledMap){
         super(game);
         this.path = path;
     }

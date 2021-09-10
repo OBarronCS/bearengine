@@ -3,7 +3,7 @@ import { ItemType } from "shared/core/sharedlogic/items";
 import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
-import { Gamemode } from "shared/core/sharedlogic/sharedenums";
+import { ClientPlayState } from "shared/core/sharedlogic/sharedenums";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { Vec2 } from "shared/shapes/vec2";
 import { ConnectionID } from "./serversocket";
@@ -43,7 +43,7 @@ export class EndRoundPacket extends PacketWriter {
 
 export class SetGamemodePacket extends PacketWriter {
 
-    constructor(public gamemode: Gamemode){
+    constructor(public gamemode: ClientPlayState){
         super(false);
     }
 
@@ -103,7 +103,7 @@ export class ServerIsTickingPacket extends PacketWriter {
 
 export class OtherPlayerInfoAddPacket extends PacketWriter {
     
-    constructor(public playerID: ConnectionID, public ping: number, public gamemode: Gamemode){
+    constructor(public playerID: ConnectionID, public ping: number, public gamemode: ClientPlayState){
         super(false)
     }
 
@@ -118,7 +118,7 @@ export class OtherPlayerInfoAddPacket extends PacketWriter {
 
 export class OtherPlayerInfoUpdateGamemodePacket extends PacketWriter {
     
-    constructor(public playerID: ConnectionID, public gamemode: Gamemode){
+    constructor(public playerID: ConnectionID, public gamemode: ClientPlayState){
         super(false)
     }
 
@@ -147,21 +147,21 @@ export class OtherPlayerInfoRemovePacket extends PacketWriter {
 
 
 
-export class PlayerEntityCreatePacket extends PacketWriter {
+export class PlayerEntitySpawnPacket extends PacketWriter {
 
     constructor(public clientID: number, public x: number, public y: number){
         super(false);
     }
 
     write(stream: BufferStreamWriter): void {
-        stream.setUint8(GamePacket.PLAYER_ENTITY_CREATE);
+        stream.setUint8(GamePacket.PLAYER_ENTITY_SPAWN);
         stream.setUint8(this.clientID);
         stream.setFloat32(this.x);
         stream.setFloat32(this.y);
     }
 }
 
-export class PlayerEntityDestroyPacket extends PacketWriter {
+export class PlayerEntityDeathPacket extends PacketWriter {
 
     constructor(public clientID: number){
         super(false);
@@ -169,7 +169,7 @@ export class PlayerEntityDestroyPacket extends PacketWriter {
 
     write(stream: BufferStreamWriter): void {
 
-        stream.setUint8(GamePacket.PLAYER_ENTITY_DESTROY);
+        stream.setUint8(GamePacket.PLAYER_ENTITY_DEATH);
         stream.setUint8(this.clientID);
     
     }

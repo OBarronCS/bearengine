@@ -1,11 +1,10 @@
 
 
-export enum Gamemode {
-    ALIVE,
-    SPECTATOR
+export enum ClientPlayState {
+    ACTIVE,
+    GHOST,
+    SPECTATING
 }
-
-
 
 
 

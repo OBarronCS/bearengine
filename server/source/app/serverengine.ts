@@ -21,15 +21,14 @@ import { Rect } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
-import { AcknowledgeShotPacket, EndRoundPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCreatePacket, PlayerEntityDestroyPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGamemodePacket, SetInvItemPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
-import { Gamemode } from "shared/core/sharedlogic/sharedenums"
+import { AcknowledgeShotPacket, EndRoundPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityDeathPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGamemodePacket, SetInvItemPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
+import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ALL_ITEMS, ItemType } from "shared/core/sharedlogic/items";
 
 
 import { ServerShootTerrainCarver } from "./weapons/serveritems";
 import { commandDispatcher } from "./servercommands";
-import { Subsystem } from "shared/core/subsystem";
 
 import "server/source/app/weapons/serveritems.ts"
 
@@ -43,7 +42,7 @@ export class PlayerInformation {
 
     /** milliseconds, one way trip, NOT two way */
     ping: number = 100;
-    gamemode: Gamemode = Gamemode.SPECTATOR;
+    gamemode: ClientPlayState = ClientPlayState.SPECTATING;
     playerEntity: ServerPlayerEntity;
 
     constructor(connectionID: ConnectionID){
@@ -64,6 +63,19 @@ export class PlayerInformation {
 }
 
 
+
+enum ServerGameState {
+    /** Lobby, waiting for players to join
+     *  Spawn player entities.
+     *  Players are in ACTIVE state if join now
+     *  Player share locations. 
+     *  No one can die
+     */
+    PRE_MATCH_LOBBY, 
+
+    ROUND_ACTIVE,
+}
+
 export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     update(dt: number): void {}
     protected onStart(): void {}
@@ -76,22 +88,19 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     public tick = 0;
     public totalTime = 0;
     private previousTickTime: number = 0;
+
+    // Websocket server
+    public network: ServerNetwork = null;
     
     // connections = new SparseSet<PlayerInformation>();
     private readonly clients: ConnectionID[] = [];
     private readonly players = new Map<ConnectionID,PlayerInformation>();
     
-    
-    public network: ServerNetwork = null;
 
 
-    public isStageActive: boolean = false;
-    public currentScene: ServerScene = null;
+    private serverState: ServerGameState = ServerGameState.PRE_MATCH_LOBBY;
+    public activeScene: ServerScene = null;
 
-    // All player entities that are ALIVE!
-    public readonly activePlayerEntities: SparseSet<ServerPlayerEntity> = new SparseSet(256);
-
-    public deadPlayers: ConnectionID[] = [];
 
     // Subsystems
     public terrain: TerrainManager;
@@ -139,15 +148,25 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         this.loop();
     }
 
+
+    beginMatch(){
+        console.log("Match begins");
+        this.serverState = ServerGameState.ROUND_ACTIVE;
+    }
+
     // Resets everything to prepare for a new level, sends data to clients
-    beginStage(str: keyof typeof RemoteResources){
-        console.log("Begin level");
+    // Everyone who is spectating is now active
+    beginRound(str: keyof typeof RemoteResources){
+        if(this.serverState !== ServerGameState.ROUND_ACTIVE){
+            this.beginMatch();
+        }
+
+        console.log("New round!");
 
         this.savedPackets.clear();
         this.currentTickGlobalPackets = [];
-        this.deadPlayers = [];
 
-
+        // #region Loading level data
         const levelPath = RemoteResources[str];
         const tiledData: TiledMap = JSON.parse(readFileSync(path.join(__dirname, "../../../client/dist/assets/" + levelPath), "utf-8"));
         const levelData = ParseTiledMapData(tiledData);
@@ -161,11 +180,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         const height = worldInfo.height;
 
 
-        this.currentScene = new ServerScene(levelID, new Rect(0,0,width,height));
-        
-
-
-
         const bodies = levelData.bodies;
         this.terrain.setupGrid(width, height);
         bodies.forEach(body => {
@@ -173,66 +187,91 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         });
 
         //  this.collisionManager.setupGrid(width, height);
-    
+        //#endregion
+
+        
+        this.activeScene = new ServerScene(levelID, new Rect(0,0,width,height));
 
         for(let i = 0; i < this.clients.length; i++){
             const clientID = this.clients[i];
  
             const p = this.players.get(clientID);
 
-            p.gamemode = Gamemode.ALIVE
+            // If someone waiting to join, allow them to spectate
+            if(p.gamemode === ClientPlayState.SPECTATING){
+                this.createPlayerEntity(p);
+            }
+
+            if(p.gamemode === ClientPlayState.GHOST){
+                p.gamemode = ClientPlayState.ACTIVE;
+            }
+
+
+            this.activeScene.activePlayerEntities.set(clientID, p.playerEntity);
+
 
             const spawn_x = 150 + (i * 200);
             const spawn_y = 0;
-
-            const player = new ServerPlayerEntity(clientID);
-            p.playerEntity = player;
-            this.entities.addEntity(player);
-
-
-
-            this.activePlayerEntities.set(p.connectionID, player);
-
 
 
             p.personalPackets.enqueue(
                 new StartRoundPacket(spawn_x, spawn_y, levelID)
             );
-
-            this.enqueueGlobalPacket(
-                new PlayerEntityCreatePacket(clientID, spawn_x, spawn_y)
-            );
-
-            this.enqueueGlobalPacket(
-                new OtherPlayerInfoUpdateGamemodePacket(clientID,Gamemode.ALIVE)
-            );
         }
-
-
-        this.isStageActive = true;
     }
 
-    endStage(){
-        console.log("End level");
+    // Tells clients to create the player entity.
+    // Sets gamemode to Active
+    createPlayerEntity(client: PlayerInformation){
+        const clientID = client.connectionID
 
-        this.savedPackets.clear();
+        const player = new ServerPlayerEntity(clientID);
 
-        this.currentScene = null;
-        this.isStageActive = false;
+        client.gamemode = ClientPlayState.ACTIVE;
+        client.playerEntity = player;
 
-        if(this.activePlayerEntities.size() > 0){
-            this.deadPlayers.push(this.activePlayerEntities.keys()[0]);
-        }
+        this.entities.addEntity(player);
 
-        this.enqueueGlobalPacket(
-            new EndRoundPacket([...this.deadPlayers].reverse())
+
+        // Tells them to spawn a local player and to start sharing position with other players
+        client.personalPackets.enqueue(
+            new SetGamemodePacket(ClientPlayState.ACTIVE)
         );
 
-        this.terrain.clear();
-        this.entities.clear();
+        // Tell others that this guy just spawned
+        this.enqueueGlobalPacket(
+            new PlayerEntitySpawnPacket(clientID, 0,0)
+        );
 
-        this.activePlayerEntities.clear();
+        // Tell others to update this clients Gamemode to ACTIVE
+        this.enqueueGlobalPacket(
+            new OtherPlayerInfoUpdateGamemodePacket(clientID,ClientPlayState.ACTIVE)
+        );
     }
+
+
+    // endStage(){
+    //     console.log("Clear level");
+
+    //     // this.serverState = ServerGameState.
+
+    //     this.savedPackets.clear();
+
+    //     this.currentScene = null;
+
+    //     if(this.activePlayerEntities.size() > 0){
+    //         this.deadPlayers.push(this.activePlayerEntities.keys()[0]);
+    //     }
+
+    //     this.enqueueGlobalPacket(
+    //         new EndRoundPacket([...this.deadPlayers].reverse())
+    //     );
+
+    //     this.terrain.clear();
+    //     this.entities.clear();
+
+    //     this.activePlayerEntities.clear();
+    // }
     
     //@ts-expect-error
     broadcastRemoteFunction<T extends keyof RemoteFunction>(name: T, ...args: NetCallbackTupleType<RemoteFunction[T]>){
@@ -268,10 +307,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             console.log(`Command failed: ${result.error}`)
         }
     }
-
-
-
-    
+  
     createRemoteEntity(e: ServerEntity){
         this.entities.addEntity(e);
         
@@ -279,7 +315,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         
         this.enqueueGlobalPacket(new RemoteEntityCreatePacket(e.constructor["SHARED_ID"], id));
     }
-
     
     destroyRemoteEntity(e: ServerEntity){
 
@@ -307,9 +342,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                 switch(type){
                     case ServerBoundPacket.JOIN_GAME: {
 
-                        // // Players cannot join MIDGAME!
-                        // if(this.isStageActive) continue;
-
                         console.log("Player joining: ", clientID)
                         if(this.players.get(clientID) !== undefined) throw new Error(`Client ${clientID} attempting to join twice`)
 
@@ -331,34 +363,42 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                             new ServerIsTickingPacket(this.tick)
                         );
 
-                        // Tell the player about the others
+                        // Tell the client about the other clients
                         for(const c of this.players.values()){
                             clientInfo.personalPackets.enqueue(
                                 new OtherPlayerInfoAddPacket(c.connectionID, c.ping, c.gamemode)
                             );
                         }
-                        
-                        if(this.isStageActive){
-                            clientInfo.personalPackets.enqueue(
-                                new JoinLatePacket(this.currentScene.levelID)
-                            );
 
-                            for(const p of this.activePlayerEntities.values()){
+                        // Tell the client to spawn entities for all other clients that are alive
+                        for(const p of this.players.values()){
+                            if(p.gamemode === ClientPlayState.ACTIVE){
                                 clientInfo.personalPackets.enqueue(
-                                    new PlayerEntityCreatePacket(p.connectionID, p.x, p.y)
+                                    new PlayerEntitySpawnPacket(p.connectionID, p.playerEntity.x, p.playerEntity.y)
                                 );
                             }
-
                         }
-                        
-
-                        // Gives the client all the data from the current level
-                        clientInfo.personalPackets.addAllQueue(this.savedPackets);
 
 
+                        // Tell other clients about the fact that a new client just joined!
                         this.enqueueGlobalPacket(
                             new OtherPlayerInfoAddPacket(clientID, clientInfo.ping, clientInfo.gamemode)
                         );
+
+
+                        // If the player is joining mid-match
+                        if(this.serverState === ServerGameState.ROUND_ACTIVE){
+                            clientInfo.personalPackets.enqueue(
+                                new JoinLatePacket(this.activeScene.levelID)
+                            );
+
+                            // Gives the client all the data from the current level
+                            clientInfo.personalPackets.addAllQueue(this.savedPackets);
+                        } else {
+
+                            this.createPlayerEntity(clientInfo);
+
+                        }
 
                         break;
                     }
@@ -380,10 +420,12 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         );
 
                         this.enqueueGlobalPacket(
-                            new PlayerEntityDestroyPacket(clientID)
+                            new PlayerEntityDeathPacket(clientID)
                         );
-
-                        this.activePlayerEntities.remove(clientID);
+                        
+                        if(this.serverState === ServerGameState.ROUND_ACTIVE){
+                            this.activeScene.activePlayerEntities.remove(clientID);
+                        }
 
                         break;
                     }
@@ -496,32 +538,32 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                 packet.write(stream);
             }
 
-            // Don't update players or entities when stage inactive
-            if(this.isStageActive){
+            // // Don't update players or entities when stage inactive
+            // if(this.serverState === ServerGameState.ROUND_ACTIVE){
 
-                // Write all player positions, health to packet
-                for(const connection of this.clients){
+            // Write all player positions, health to packet
+            for(const connection of this.clients){
 
-                    const c = this.players.get(connection);
+                const c = this.players.get(connection);
 
-                    if(c.gamemode === Gamemode.ALIVE){
-                        const player = c.playerEntity;
+                if(c.gamemode === ClientPlayState.ACTIVE){
+                    const player = c.playerEntity;
 
-                        stream.setUint8(GamePacket.PLAYER_ENTITY_POSITION);
-                        stream.setUint8(connection);
-                        stream.setFloat32(player.position.x);
-                        stream.setFloat32(player.position.y);
-                        stream.setUint8(player.state);
-                        stream.setBool(player.flipped);
-                        stream.setUint8(player.health);
-                    }
-                }
-                
-                for(const entity of entitiesToSerialize){
-                    stream.setUint8(GamePacket.REMOTE_ENTITY_VARIABLE_CHANGE);
-                    SharedEntityServerTable.serialize(stream, entity);
+                    stream.setUint8(GamePacket.PLAYER_ENTITY_POSITION);
+                    stream.setUint8(connection);
+                    stream.setFloat32(player.position.x);
+                    stream.setFloat32(player.position.y);
+                    stream.setUint8(player.state);
+                    stream.setBool(player.flipped);
+                    stream.setUint8(player.health);
                 }
             }
+            
+            // for(const entity of entitiesToSerialize){
+            //     stream.setUint8(GamePacket.REMOTE_ENTITY_VARIABLE_CHANGE);
+            //     SharedEntityServerTable.serialize(stream, entity);
+            // }
+            // }
                     
             this.network.send(client, stream.cutoff());
  
@@ -563,47 +605,43 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
 
             // Check for dead players
-            if(this.isStageActive){
-                for(const playerEntity of this.activePlayerEntities.values()){
+            if(this.serverState === ServerGameState.ROUND_ACTIVE){
+                for(const playerEntity of this.activeScene.activePlayerEntities.values()){
 
                     if(playerEntity.health <= 0){
                         
                         playerEntity.health = 0;
                         playerEntity.dead = true;
                         
-                        
-                        
                         const playerID = playerEntity.connectionID;
-                        
-                        this.deadPlayers.push(playerID);
-
-                        console.log(`Player ${playerID} died!`)
-                        
                         const connection = this.players.get(playerID);
 
-                        connection.gamemode = Gamemode.SPECTATOR;
+                        console.log(`Player ${playerID} died!`);
+
+                        this.activeScene.deadplayers.push(playerID);
+                        this.entities.destroyEntity(playerEntity);
+                        this.activeScene.activePlayerEntities.remove(playerID);
+                        
+                        
+                        connection.gamemode = ClientPlayState.GHOST;
 
                         connection.personalPackets.enqueue(
-                            new SetGamemodePacket(Gamemode.SPECTATOR)
+                            new SetGamemodePacket(ClientPlayState.GHOST)
                         )
 
                         this.enqueueGlobalPacket(
-                            new OtherPlayerInfoUpdateGamemodePacket(playerID, Gamemode.SPECTATOR)
+                            new OtherPlayerInfoUpdateGamemodePacket(playerID, ClientPlayState.GHOST)
                         );
 
                         this.enqueueGlobalPacket(
-                            new PlayerEntityDestroyPacket(playerID)
-                        );
-
-                        this.entities.destroyEntity(playerEntity);
-                        this.activePlayerEntities.remove(playerID);
+                            new PlayerEntityDeathPacket(playerID)
+                        );   
                     }
-
                 }
 
-                if(this.activePlayerEntities.size() === 1){
-                    this.endStage();
-                }
+                // if(this.activePlayerEntities.size() === 1){
+                //     this.endStage();
+                // }
             }
 
 
@@ -629,6 +667,10 @@ class ServerScene {
 
     public readonly levelID: number;
     public readonly levelbbox: Rect;
+    public readonly deadplayers: ConnectionID[] = [];
+    
+    // Set of player entities that are ALIVE!
+    public readonly activePlayerEntities: SparseSet<ServerPlayerEntity> = new SparseSet(256);
 
     constructor(levelID: number, levelbbox: Rect){
         this.levelID = levelID;

@@ -69,7 +69,7 @@ class Hitscan extends Gun<GunItemData> {
 
 
         // Check in radius to see if any players are hurt
-        for(const pEntity of game.activePlayerEntities.values()){
+        for(const pEntity of game.activeScene.activePlayerEntities.values()){
 
 
             if(ray.pointDistance(pEntity.position) < 30){
@@ -123,7 +123,7 @@ class ModularBullet extends Effect<ServerBearEngine> {
     
         this.onUpdate(function(dt: number){
             this.position.add(this.velocity)
-            if(!this.game.currentScene.levelbbox.contains(this.position)){
+            if(!this.game.activeScene.levelbbox.contains(this.position)){
                 this.destroy();
             }
         });
@@ -194,7 +194,7 @@ export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number,
             const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
 
             // Check in radius to see if any players are hurt
-            for(const pEntity of this.game.activePlayerEntities.values()){
+            for(const pEntity of this.game.activeScene.activePlayerEntities.values()){
 
                 if(Vec2.distanceSquared(pEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
                     pEntity.health -= 16;

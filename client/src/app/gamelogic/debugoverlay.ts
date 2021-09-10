@@ -1,5 +1,5 @@
 import { Container, Text } from "pixi.js";
-import { Gamemode } from "shared/core/sharedlogic/sharedenums";
+import { ClientPlayState } from "shared/core/sharedlogic/sharedenums";
 import { Subsystem } from "shared/core/subsystem";
 import { round } from "shared/misc/mathutils";
 import { randomChar } from "shared/misc/random";
@@ -33,7 +33,7 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
 
     update(delta: number): void {
         this.mouse_position.text = `${round(this.engine.mouse.position.x, 1)},${round( this.engine.mouse.position.y, 1)}`;
-        this.gamemode.text = "Gamemode: " + Gamemode[this.game.networksystem.my_gamemode];
+        this.gamemode.text = "Gamemode: " + ClientPlayState[this.game.networksystem.currentPlayState];
         this.bytesPerSecond.text = "B/s: " + this.game.networksystem.bytesPerSecond;
         this.ping.text = "Ping: " + this.game.networksystem["ping"]
         

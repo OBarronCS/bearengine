@@ -1,6 +1,36 @@
-import { EmitterConfig, OldEmitterConfig } from "pixi-particles";
+import { Emitter, EmitterConfig, OldEmitterConfig } from "pixi-particles";
+import { AbstractEntity } from "shared/core/abstractentity";
+import { NULL_ENTITY_INDEX } from "shared/core/entitysystem";
 import { DefineSchema } from "shared/core/sharedlogic/serialization";
+import { Entity } from "./entity";
 
+
+
+// Attaches an emitter to an entity
+// Destroys self if entity is destroyed, or once the emitter is finished
+export class EmitterAttach extends Entity {
+
+    private emitter: Emitter;
+
+    constructor(public targetEntity: AbstractEntity, part: keyof typeof PARTICLE_CONFIG, path: string){
+        super();
+        this.emitter = this.engine.renderer.addEmitter(path, PARTICLE_CONFIG[part], this.targetEntity.x, this.targetEntity.y);
+    }
+
+
+    update(dt: number): void {
+        if(this.targetEntity.entityID !== NULL_ENTITY_INDEX){
+            this.emitter.updateSpawnPos(this.targetEntity.x,this.targetEntity.y);
+        } else {
+            this.destroy();
+        }
+
+        if(!this.emitter.emit && !this.emitter["_activeParticlesFirst"]){
+            this.destroy();
+        }
+    }
+
+}
 
 export const PARTICLE_CONFIG = DefineSchema<{ [key:string]: EmitterConfig | OldEmitterConfig } >()({
     ROCKET:{
@@ -165,6 +195,60 @@ export const PARTICLE_CONFIG = DefineSchema<{ [key:string]: EmitterConfig | OldE
             x: 0,
             y: 0,
             r: 10
+        }
+    },
+    ROUND_WINNER:{
+        "alpha": {
+            "start": 0.93,
+            "end": 1
+        },
+        "scale": {
+            "start": 0.04,
+            "end": 0.26,
+            "minimumScaleMultiplier": 0.95
+        },
+        "color": {
+            "start": "#65c213",
+            "end": "#3ca32a"
+        },
+        "speed": {
+            "start": 300,
+            "end": 90,
+            "minimumSpeedMultiplier": 1
+        },
+        "acceleration": {
+            "x": 0,
+            "y": 0
+        },
+        "maxSpeed": 0,
+        "startRotation": {
+            "min": 0,
+            "max": 0
+        },
+        "noRotation": false,
+        "rotationSpeed": {
+            "min": 0,
+            "max": 0
+        },
+        "lifetime": {
+            "min": 0.2,
+            "max": 0.8
+        },
+        "blendMode": "normal",
+        "frequency": 0.001,
+        "emitterLifetime": 2.1,
+        "maxParticles": 750,
+        "pos": {
+            "x": 0,
+            "y": 0
+        },
+        "addAtBack": false,
+        "spawnType": "ring",
+        "spawnCircle": {
+            "x": 0,
+            "y": 0,
+            "r": 6,
+            "minR": 2
         }
     }
 });

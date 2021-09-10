@@ -18,21 +18,21 @@ import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { DummyLevel } from "../gamelevel";
 import { Vec2 } from "shared/shapes/vec2";
  
-import { Gamemode } from "shared/core/sharedlogic/sharedenums"
+import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
 import { CreateItemData, ItemType, ITEM_LINKER } from "shared/core/sharedlogic/items";
 import { CreateClientItemFromType, ShootHitscanWeapon, ShootModularWeapon, TerrainCarverAddons } from "../clientitems";
 import { Line } from "shared/shapes/line";
-import { PARTICLE_CONFIG } from "../particles";
+import { EmitterAttach, PARTICLE_CONFIG } from "../particles";
 
 class ClientInfo {
     uniqueID: number;
     ping: number;
     name: string;
-    gamemode: Gamemode;
+    gamemode: ClientPlayState;
 
-    constructor(uniqueID: number, ping: number, name: string, gamemode: Gamemode){
+    constructor(uniqueID: number, ping: number, name: string, gamemode: ClientPlayState){
         this.uniqueID = uniqueID;
         this.ping = ping;
         this.name = name;
@@ -40,11 +40,11 @@ class ClientInfo {
     }
 
     updateGamemodeString(): string {
-        return `Client ${this.uniqueID} updated gamemode to ${Gamemode[this.gamemode]}`;
+        return `Client ${this.uniqueID} updated gamemode to ${ClientPlayState[this.gamemode]}`;
     }
 
     toString(): string {
-        return `Client ${this.uniqueID}: [ping: ${this.ping}, gamemode: ${Gamemode[this.gamemode]}]`;
+        return `Client ${this.uniqueID}: [ping: ${this.ping}, gamemode: ${ClientPlayState[this.gamemode]}]`;
     }
 }
 
@@ -70,12 +70,13 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     /** Packets from the server are queued here */
     private packets = new LinkedQueue<BufferedPacket>();
     private sendStream = new BufferStreamWriter(new ArrayBuffer(256));
+    private remoteFunctionCallMap = new Map<keyof RemoteFunction,keyof NetworkSystem>();
+
 
     private stagePacketsToSerialize: PacketWriter[] = [];
     private generalPacketsToSerialize: PacketWriter[] = [];
 
 
-    private scene: EntitySystem;
     public remotelocations = this.addQuery(RemoteLocations);
 
     
@@ -85,21 +86,16 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
 
     private remoteEntities: Map<number, Entity> = new Map();
-    private remotePlayers: Map<number, RemotePlayer> = new Map(); 
-
-
-    private remoteFunctionCallMap = new Map<keyof RemoteFunction,keyof NetworkSystem>()
+    private remotePlayerEntities: Map<number, RemotePlayer> = new Map();
 
 
 
-    public SERVER_ROUND_ACTIVE = false;
 
 
-    // MY PLAYER ID
-    public PLAYER_ID = -1;
+    // Unique identifier. Set upon first connection to server
+    public MY_CLIENT_ID = -1;
 
-
-    public my_gamemode: Gamemode = Gamemode.SPECTATOR;
+    public currentPlayState: ClientPlayState = ClientPlayState.SPECTATING;
 
 
 
@@ -201,8 +197,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     }
 
     init(): void {
-        this.scene = this.game.entities;
-
         // Put it pretty far in the past so forces it to calculate
         this.timeOfLastPing = Date.now() - 1000000;
 
@@ -232,7 +226,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
         // Adds it to the scene
         this.remoteEntities.set(entityID, e);
-        this.scene.addEntity(e);
+        this.game.entities.addEntity(e);
 
         return e;
     }
@@ -269,6 +263,16 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     }
 
     private timeOfLastPing = Date.now(); 
+
+
+    private spawnLocalPlayer(x: number, y: number){
+        const p = (this.game.player = new Player());
+        this.game.entities.addEntity(p);
+
+        p.x = x;
+        p.y = y;
+    }
+
 
     /**  Read from network, apply packets */
     readPackets(): void {
@@ -342,9 +346,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             // These may desync over time. Maybe resend them every now and then if it becomes an issue?
                             this.REFERENCE_SERVER_TICK_TIME = stream.getBigUint64();
                             this.REFERENCE_SERVER_TICK_ID = stream.getUint16();
-                            this.PLAYER_ID = stream.getUint8();
+                            this.MY_CLIENT_ID = stream.getUint8();
 
-                            console.log("My player id is: " + this.PLAYER_ID);
+                            console.log("My client ID is: " + this.MY_CLIENT_ID);
                             break;
                         }
                         case GamePacket.SERVER_IS_TICKING: {
@@ -354,23 +358,16 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                         }
 
-                        case GamePacket.SET_GAMEMODE: {
-                            const gamemode: Gamemode = stream.getUint8();
-
-                            this.my_gamemode = gamemode;
-                            break;
-                        }
-
                         // Other player connected to server
                         case GamePacket.OTHER_PLAYER_INFO_ADD: {
                             const uniqueID = stream.getUint8();
                             const ping = stream.getUint16();
-                            const gamemode: Gamemode = stream.getUint8();
+                            const gamemode: ClientPlayState = stream.getUint8();
 
                             
 
                             // Don't add self
-                            if(this.PLAYER_ID !== uniqueID){
+                            if(this.MY_CLIENT_ID !== uniqueID){
                                 const newClient = new ClientInfo(uniqueID,ping,"",gamemode);
 
                                 console.log("Create other client: " + newClient.toString());
@@ -394,11 +391,11 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         }
                         case GamePacket.OTHER_PLAYER_INFO_GAMEMODE: {
                             const uniqueID = stream.getUint8();
-                            const gamemode: Gamemode = stream.getUint8();
+                            const gamemode: ClientPlayState = stream.getUint8();
 
                             const client = this.otherClients.get(uniqueID);
 
-                            if(uniqueID === this.PLAYER_ID){
+                            if(uniqueID === this.MY_CLIENT_ID){
                                 continue;
                             }
 
@@ -492,7 +489,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             if(entity !== undefined){
                                 this.remoteEntities.delete(entityID);
-                                this.scene.destroyEntity(entity);
+                                this.game.entities.destroyEntity(entity);
                             }
                             
                             break;
@@ -509,6 +506,17 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             break;
                         }
 
+                        case GamePacket.SET_GAMEMODE: {
+                            const gamemode: ClientPlayState = stream.getUint8();
+
+                            this.currentPlayState = gamemode;
+
+                            if(gamemode === ClientPlayState.ACTIVE){
+                                this.spawnLocalPlayer(0,0);
+                            }
+                            break;
+                        }
+
                         case GamePacket.JOIN_LATE_INFO: {
                             const level = RemoteResourceLinker.getResourceFromID(stream.getUint8());
 
@@ -519,29 +527,36 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         }
 
                         case GamePacket.START_ROUND: {
+                            console.log("Round begun");
+                            
                             const x = stream.getFloat32();
                             const y = stream.getFloat32();
                             const level = RemoteResourceLinker.getResourceFromID(stream.getUint8());
 
+
+                            this.stagePacketsToSerialize = [];
+
                             this.game.endCurrentLevel();
                             this.game.loadLevel(new DummyLevel(this.game, level));
 
-                            this.my_gamemode = Gamemode.ALIVE;
 
-                            const p = (this.game.player = new Player());
-                            this.scene.addEntity(p);
+                            // // They have been deleted, ADD THE BACK;
+                            // this.game.entities.addEntity(this.game.player);
 
-                            p.x = x;
-                            p.y = y;
+                            // for(const player of this.remotePlayerEntities.keys()){
+                            //     this.game.entities.addEntity(this.remotePlayerEntities.get(player));
+                            // }
 
-                            this.SERVER_ROUND_ACTIVE = true;
+                            if(this.currentPlayState === ClientPlayState.ACTIVE){
+                                this.game.player.position.set({x, y});
+                            }
 
-                            this.stagePacketsToSerialize = [];
-                            console.log("Round begun")
                             break;
                         }
                         case GamePacket.END_ROUND: {
                             console.log("Round ended");
+                            
+                            this.stagePacketsToSerialize = [];
 
                             const length = stream.getUint8();
 
@@ -549,72 +564,87 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             for(let i = 0; i < length; i++){
                                 order.push(stream.getUint8());
                             }
-
                             console.log(order);
                             
+                            if(order.length > 0){
+                                const winnerID = order[0];
 
-                            for(const e of this.remotePlayers.values()){
-                                e.destroy();
+                                const pEntity = this.MY_CLIENT_ID === winnerID ? this.game.player : this.remotePlayerEntities.get(winnerID);
+
+                                const emitter = new EmitterAttach(pEntity,"ROUND_WINNER", "particle.png");
+
+                                this.game.entities.addEntity(emitter);
                             }
 
-                            for(const e of this.remoteEntities.values()){
-                                e.destroy();
-                            }
+                            // Don't destroy everything
+                            // for(const e of this.remotePlayers.values()){
+                            //     e.destroy();
+                            // }
+                            // this.remotePlayers.clear();
 
-                            this.remotePlayers.clear();
-                            this.remoteEntities.clear();
+                            // for(const e of this.remoteEntities.values()){
+                            //     e.destroy();
+                            // }
+                            // this.remoteEntities.clear();
 
                             // this.engine.player = null;
 
-                            this.SERVER_ROUND_ACTIVE = false;
-                            this.stagePacketsToSerialize = [];
                             break;
                         }
 
-                        case GamePacket.PLAYER_ENTITY_CREATE : {
+                        case GamePacket.PLAYER_ENTITY_SPAWN : {
                             // [playerID: uint8, x: float32, y: float32]
 
                             const pID = stream.getUint8();
                             const x = stream.getFloat32();
                             const y = stream.getFloat32();
 
-                            if(pID === this.PLAYER_ID){
-                                console.log("Don't create self")
+                            if(pID === this.MY_CLIENT_ID){
+                                console.log("Ignore spawn player for self");
                                 continue;
                             }
-                            let checkIfExists = this.remotePlayers.get(pID);
+
+                            // TODO:
+                            // Perhaps override it?
+                            const checkIfExists = this.remotePlayerEntities.get(pID);
                             if(checkIfExists !== undefined){
                                 console.log("Trying to create player entity that already exists")
                                 continue;
                             }
 
-                            console.log("Creating other player, id: " + pID)
+                            console.log("Creating other player entity, id: " + pID)
 
                             const entity = new RemotePlayer(pID);
-                            this.remotePlayers.set(pID, entity);
-                            this.scene.addEntity(entity);
+                            entity.x = x;
+                            entity.y = y;
+
+                            this.remotePlayerEntities.set(pID, entity);
+                            this.game.entities.addEntity(entity);
                             
                             break;
                         }
-                        case GamePacket.PLAYER_ENTITY_DESTROY:{
+                        case GamePacket.PLAYER_ENTITY_DEATH:{
                             // Find correct entity
                            const pId = stream.getUint8();
 
-                            // Destroy my own player entity
-                           if(pId === this.PLAYER_ID){
-                               this.game.player.dead = true;
+                            // Set self to ghost // Destroy my own player entity
+                            if(pId === this.MY_CLIENT_ID){
+                                this.game.player.dead = true;
 
-                               continue;
-                           }
+                                continue;
+                            }
 
-                           let e = this.remotePlayers.get(pId);
-                           if(e !== undefined){
-                               console.log("Destroying player: " + pId);
 
-                               this.remotePlayers.delete(pId);
-                               this.scene.destroyEntity(e);
-                           }
-                           break;
+                            const e = this.remotePlayerEntities.get(pId);
+                            if(e !== undefined){
+                                console.log(`Player ${pId} is now a ghost!`);
+
+                                e.dead = true;
+
+                                // this.remotePlayerEntities.delete(pId);
+                                // this.game.entities.destroyEntity(e);
+                            }
+                            break;
                         }
                         case GamePacket.PLAYER_ENTITY_POSITION:{
                            
@@ -628,7 +658,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             
 
-                            if(playerID === this.PLAYER_ID){
+                            if(playerID === this.MY_CLIENT_ID){
                                 this.game.player.health = health;
 
                                 // console.log(health);
@@ -636,7 +666,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             }
 
                             // Find correct entity
-                            let e = this.remotePlayers.get(playerID);
+                            const e = this.remotePlayerEntities.get(playerID);
                             if(e === undefined){
                                 console.log("Unknown player entity data");
                                 continue;
@@ -683,7 +713,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             const item = CreateClientItemFromType(item_data);
 
-                            if(this.my_gamemode === Gamemode.ALIVE){
+                            if(this.currentPlayState === ClientPlayState.ACTIVE){
                                 this.game.player.setItem(item);
                             }
                             
@@ -718,7 +748,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 case ItemType.TERRAIN_CARVER:{
                                     const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
 
-                                    if(this.PLAYER_ID !== creatorID){
+                                    if(this.MY_CLIENT_ID !== creatorID){
                                         const b = ShootModularWeapon(this.game, TerrainCarverAddons, pos, velocity);
 
                                         this.serverShotIDToEntity.set(serverShotID, b);
@@ -728,7 +758,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 case ItemType.HITSCAN_WEAPON:{
                                     const end = new Vec2(stream.getFloat32(), stream.getFloat32());
                                     const ray = new Line(pos, end);
-                                    if(this.PLAYER_ID !== creatorID)
+                                    if(this.MY_CLIENT_ID !== creatorID)
                                         ShootHitscanWeapon(this.game, ray);
                                     break;
                                 }
@@ -847,9 +877,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     }
     
     writePackets(){
-        if(this.network.CONNECTED && this.SERVER_IS_TICKING && this.SERVER_ROUND_ACTIVE){
+        if(this.network.CONNECTED && this.SERVER_IS_TICKING){
 
-            if(this.my_gamemode === Gamemode.ALIVE){
+            // If I'm in the ACTIVE state, my player is still alive
+            if(this.currentPlayState === ClientPlayState.ACTIVE){
 
                 const player = this.game.player;
 

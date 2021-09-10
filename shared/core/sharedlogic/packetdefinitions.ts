@@ -22,20 +22,21 @@ export enum GamePacket {
 
     REMOTE_FUNCTION_CALL, // [shared function id: uint8, ...function argument data]
 
-    /*  
-        This packets makes it so you create your player entity, and load level data
-        x y and is your respawn point, level is value that points to level string
+    // Personal Packet
+    // If ClientPlayState.ACTIVE
+    // Spawn local player
+    SET_GAMEMODE, // [gamemode: ClientPlayState]
+
+
+    /*  Personal packet.
+        load level data, set personal x, y;
     */
-    // personal packet
-    // Client sets gamemode to ALIVE, creates local player entity, and loads the terrain from level
-    // If a player never receives this packet, its assumed they are still spectators
     START_ROUND, // [x:float32, y:float32, level_enum: uint8]
+    
     
     // Array of players in order of winner, to last place
     END_ROUND, // [ array_length: uint8, [clientID: uint8] * array_length] 
 
-    // Personal Packet
-    SET_GAMEMODE, // [gaemmode: Gamemode]
 
 
     // If client joins will game is active, this packet is sent to them
@@ -46,16 +47,17 @@ export enum GamePacket {
     SET_INV_ITEM, // [ItemID: uint8]
 
     // Notifying clients about other clients connected to the server
-    OTHER_PLAYER_INFO_ADD, //      [unique_client_id: uint8, ping: uint16, gamemode: Gamemode] // add string to this one day
+    OTHER_PLAYER_INFO_ADD, //      [unique_client_id: uint8, ping: uint16, gamemode: ClientPlayState] // add string to this one day
     OTHER_PLAYER_INFO_PING, //     [unique_client_id: uint8, ping: uint16]
-    OTHER_PLAYER_INFO_GAMEMODE, // [unique_client_id: uint8, gamemode: Gamemode]
+    OTHER_PLAYER_INFO_GAMEMODE, // [unique_client_id: uint8, gamemode: ClientPlayState]
     OTHER_PLAYER_INFO_REMOVE, //   [unique_client_id: uint8]
 
 
-    // command to create/change state of OTHER players. Ignore if ID === localID; 
-    PLAYER_ENTITY_CREATE, // [playerID: uint8, x: float32, y: float32]
+    // command to create/change state of OTHER players.
+    // Client must ignore if ID === localID; 
+    PLAYER_ENTITY_SPAWN, // [playerID: uint8, x: float32, y: float32]
     PLAYER_ENTITY_POSITION, // [playerID: uint8, x: float32, y: float32, uint8: animationstate, bool: flipped, health: uint8];
-    PLAYER_ENTITY_DESTROY, // [playerID: uint8]
+    PLAYER_ENTITY_DEATH, // [playerID: uint8]
 
     // TODO: EXPLOSION: [fromPlayer: uint8, x: float32, y: float32, strength: uint8] // handle knockback on clients
 

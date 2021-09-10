@@ -133,6 +133,11 @@ class PlayerAnimationState {
         this.container.scale.y = value;
     }
 
+    move(dx: number,dy: number){
+        this.container.position.x += dx;
+        this.container.position.y += dy;
+    }
+
     setPosition(pos: Coordinate){
         this.container.position.set(pos.x, pos.y);
     }
@@ -1171,6 +1176,8 @@ export class RemotePlayer extends Entity {
     readonly id: number;
     public health = 100;
 
+    dead = false;
+
     graphics = this.addPart(new GraphicsPart());
     locations = this.addPart(new RemoteLocations());
 
@@ -1178,12 +1185,34 @@ export class RemotePlayer extends Entity {
         super();
         this.id = id;
     }
-
     
     private readonly runAnimation = new PlayerAnimationState(this.engine.getResource("player/run.json").data as SavePlayerAnimation, 4, new Vec2(40,16));
     private readonly wallslideAnimation = new PlayerAnimationState(this.engine.getResource("player/wallslide.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
     private readonly idleAnimation = new PlayerAnimationState(this.engine.getResource("player/idle.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
     private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
+
+    update(dt: number): void {
+        if(this.dead){
+            // this.runAnimation.
+            // this.wallslideAnimation.
+            // this.idleAnimation.
+            // this.climbAnimation.
+
+            return;
+        }
+        this.runAnimation.setPosition(this.position);
+        this.wallslideAnimation.setPosition(this.position);
+        this.idleAnimation.setPosition(this.position);
+        this.climbAnimation.setPosition(this.position);
+
+        this.runAnimation.tick();
+        this.wallslideAnimation.tick();
+        this.idleAnimation.tick();
+        this.climbAnimation.tick();
+
+        this.graphics.graphics.clear();
+        drawHealthBar(this.graphics.graphics, this.x - 20, this.y - 40, 40, 7, this.health / 100);
+    }
 
     override onAdd(){
         // this.scene.addEntity(this.gun)
@@ -1247,20 +1276,7 @@ export class RemotePlayer extends Entity {
         
     }
 
-    update(dt: number): void {
-        this.runAnimation.setPosition(this.position);
-        this.wallslideAnimation.setPosition(this.position);
-        this.idleAnimation.setPosition(this.position);
-        this.climbAnimation.setPosition(this.position);
-
-        this.runAnimation.tick();
-        this.wallslideAnimation.tick();
-        this.idleAnimation.tick();
-        this.climbAnimation.tick();
-
-        this.graphics.graphics.clear();
-        drawHealthBar(this.graphics.graphics, this.x - 20, this.y - 40, 40, 7, this.health / 100);
-    }
+    
     
 }
 

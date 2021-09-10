@@ -268,7 +268,8 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         this.activeLevel.internalEnd();
 
 
-        this.entities.clear();
+        // this.entities.clear();
+        
         this.terrain.clear();
         this.collisionManager.clear()
 
