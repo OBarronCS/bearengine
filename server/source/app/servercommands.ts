@@ -1,5 +1,6 @@
 import { BindCommandCreator, CommandDatabase, comv } from "shared/core/commands"
 import { ALL_ITEMS } from "shared/core/sharedlogic/items";
+import { RemoteResources } from "shared/core/sharedlogic/networkschemas";
 import { SetInvItemPacket } from "./networking/gamepacketwriters";
 import type { PlayerInformation, ServerBearEngine } from "./serverengine";
 
@@ -32,6 +33,13 @@ database.add(
             context.engine.enqueueGlobalPacket(
                 new SetInvItemPacket(ALL_ITEMS[item_name].item_id)
             );
+        })
+    );
+
+database.add(
+    command("s").args(comv.string_options<keyof typeof RemoteResources>(Object.keys(RemoteResources)))
+        .run((context,arg) => {
+            context.engine.beginRound(arg);
         })
     );
 

@@ -23,16 +23,16 @@ export enum GamePacket {
     REMOTE_FUNCTION_CALL, // [shared function id: uint8, ...function argument data]
 
     // Personal Packet
-    // If ClientPlayState.ACTIVE
-    // Spawn local player
-    SET_GAMEMODE, // [gamemode: ClientPlayState]
+    // Sets client state to ACTIVE
+    // Allows client to send position packets for player
+    SPAWN_YOUR_PLAYER_ENTITY, // [x: float32, y: float32]
 
+    // If true, set client state to GHOST. If false set to active
+    SET_GHOST_STATUS, // [ghost: boolean]
 
-    /*  Personal packet.
-        load level data, set personal x, y;
-    */
+    //Personal packet.
+    //    load level data, set personal x, y;
     START_ROUND, // [x:float32, y:float32, level_enum: uint8]
-    
     
     // Array of players in order of winner, to last place
     END_ROUND, // [ array_length: uint8, [clientID: uint8] * array_length] 
@@ -53,11 +53,14 @@ export enum GamePacket {
     OTHER_PLAYER_INFO_REMOVE, //   [unique_client_id: uint8]
 
 
-    // command to create/change state of OTHER players.
+    // Commands to create/change state of OTHER players.
     // Client must ignore if ID === localID; 
+
+    // spawn creates an entity. Places it at given location --> Used to deghost
     PLAYER_ENTITY_SPAWN, // [playerID: uint8, x: float32, y: float32]
     PLAYER_ENTITY_POSITION, // [playerID: uint8, x: float32, y: float32, uint8: animationstate, bool: flipped, health: uint8];
-    PLAYER_ENTITY_DEATH, // [playerID: uint8]
+    PLAYER_ENTITY_GHOST, // [playerID: uint8]
+    PLAYER_ENTITY_COMPLETELY_DELETE, // [playerID: uint8]
 
     // TODO: EXPLOSION: [fromPlayer: uint8, x: float32, y: float32, strength: uint8] // handle knockback on clients
 

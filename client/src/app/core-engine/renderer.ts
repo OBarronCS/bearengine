@@ -173,7 +173,7 @@ export class RendererSystem {
         const window_width = this.targetWindow.innerWidth;
         const window_height = this.targetWindow.innerHeight;
 
-        console.log(window_width, window_height)
+        //console.log(window_width, window_height);
 
         // console.log(window_width, window_height)
 

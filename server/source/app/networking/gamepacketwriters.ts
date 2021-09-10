@@ -41,15 +41,28 @@ export class EndRoundPacket extends PacketWriter {
     }
 }
 
-export class SetGamemodePacket extends PacketWriter {
+export class SpawnYourPlayerEntityPacket extends PacketWriter {
 
-    constructor(public gamemode: ClientPlayState){
+    constructor(public x: number, public y: number){
         super(false);
     }
 
     write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.SET_GAMEMODE);
-        stream.setUint8(this.gamemode);
+        stream.setUint8(GamePacket.SPAWN_YOUR_PLAYER_ENTITY);
+        stream.setFloat32(this.x);
+        stream.setFloat32(this.y);
+    }
+}
+
+export class SetGhostStatusPacket extends PacketWriter {
+
+    constructor(public ghost: boolean){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.SET_GHOST_STATUS);
+        stream.setBool(this.ghost);
     }
 }
 
@@ -161,19 +174,28 @@ export class PlayerEntitySpawnPacket extends PacketWriter {
     }
 }
 
-export class PlayerEntityDeathPacket extends PacketWriter {
+export class PlayerEntityGhostPacket extends PacketWriter {
 
     constructor(public clientID: number){
         super(false);
     }
 
     write(stream: BufferStreamWriter): void {
-
-        stream.setUint8(GamePacket.PLAYER_ENTITY_DEATH);
+        stream.setUint8(GamePacket.PLAYER_ENTITY_GHOST);
         stream.setUint8(this.clientID);
-    
     }
-    
+}
+
+export class PlayerEntityCompletelyDeletePacket extends PacketWriter {
+
+    constructor(public clientID: number){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.PLAYER_ENTITY_COMPLETELY_DELETE);
+        stream.setUint8(this.clientID);
+    }
 }
 
 

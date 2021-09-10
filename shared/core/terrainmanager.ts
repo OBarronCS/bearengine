@@ -14,7 +14,7 @@ import { Subsystem } from "./subsystem";
 
 export class TerrainManager extends Subsystem {
 
-    private grid: SpatialGrid<TerrainMesh>;
+    private grid: SpatialGrid<TerrainMesh> = new SpatialGrid<TerrainMesh>(1,1,1,1,(t) => t.polygon.getAABB());
     
     width: number;
     height: number;

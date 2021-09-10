@@ -61,15 +61,10 @@ rl.on('line', (input: string) => {
                 break
             }
 
-            case "s": {
-                engine.beginRound(allWords[1] as any);
+            case "end": {
+                engine.endMatch()
                 break;
             }
-
-            // case "end": {
-            //     engine.endStage()
-            //     break;
-            // }
 
             default: {
                 console.log("You made a typo")

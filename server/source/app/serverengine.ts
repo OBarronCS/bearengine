@@ -21,7 +21,7 @@ import { Rect } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
-import { AcknowledgeShotPacket, EndRoundPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityDeathPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGamemodePacket, SetInvItemPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
+import { AcknowledgeShotPacket, EndRoundPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ALL_ITEMS, ItemType } from "shared/core/sharedlogic/items";
@@ -31,6 +31,7 @@ import { ServerShootTerrainCarver } from "./weapons/serveritems";
 import { commandDispatcher } from "./servercommands";
 
 import "server/source/app/weapons/serveritems.ts"
+import { random_range } from "shared/misc/random";
 
 const MAX_BYTES_PER_PACKET = 2048;
 
@@ -154,6 +155,15 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         this.serverState = ServerGameState.ROUND_ACTIVE;
     }
 
+    endMatch(){
+        console.log("Ending match");
+
+        if(this.serverState === ServerGameState.ROUND_ACTIVE){
+            this.endRound();
+        }
+
+        this.serverState = ServerGameState.PRE_MATCH_LOBBY;
+    }
     // Resets everything to prepare for a new level, sends data to clients
     // Everyone who is spectating is now active
     beginRound(str: keyof typeof RemoteResources){
@@ -162,6 +172,9 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         }
 
         console.log("New round!");
+        this.entities.clear();
+        this.terrain.clear();
+
 
         this.savedPackets.clear();
         this.currentTickGlobalPackets = [];
@@ -190,6 +203,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         //#endregion
 
         
+
+
         this.activeScene = new ServerScene(levelID, new Rect(0,0,width,height));
 
         for(let i = 0; i < this.clients.length; i++){
@@ -204,7 +219,22 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
             if(p.gamemode === ClientPlayState.GHOST){
                 p.gamemode = ClientPlayState.ACTIVE;
+
+                p.personalPackets.enqueue(
+                    new SetGhostStatusPacket(false)
+                );
+
+                this.enqueueGlobalPacket(
+                    new OtherPlayerInfoUpdateGamemodePacket(clientID,ClientPlayState.ACTIVE)
+                );
             }
+
+            
+
+            // Add back player entities to the game world
+            const player = new ServerPlayerEntity(clientID);
+            p.playerEntity = player;
+            this.entities.addEntity(player);
 
 
             this.activeScene.activePlayerEntities.set(clientID, p.playerEntity);
@@ -216,6 +246,10 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
             p.personalPackets.enqueue(
                 new StartRoundPacket(spawn_x, spawn_y, levelID)
+            );
+
+            this.enqueueGlobalPacket(
+                new PlayerEntitySpawnPacket(clientID, 0,0)
             );
         }
     }
@@ -235,7 +269,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         // Tells them to spawn a local player and to start sharing position with other players
         client.personalPackets.enqueue(
-            new SetGamemodePacket(ClientPlayState.ACTIVE)
+            new SpawnYourPlayerEntityPacket(random_range(100, 500), 0)
         );
 
         // Tell others that this guy just spawned
@@ -249,29 +283,24 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         );
     }
 
+    // Clear data for a round, send players data on who won, ect
+    endRound(){
+        console.log("Clear level");
 
-    // endStage(){
-    //     console.log("Clear level");
+        this.savedPackets.clear();
 
-    //     // this.serverState = ServerGameState.
+        
 
-    //     this.savedPackets.clear();
+        if(this.activeScene.activePlayerEntities.size() > 0){
+            this.activeScene.deadplayers.push(this.activeScene.activePlayerEntities.keys()[0]);
+        }
 
-    //     this.currentScene = null;
+        this.enqueueGlobalPacket(
+            new EndRoundPacket([...this.activeScene.deadplayers].reverse())
+        );
+    }
 
-    //     if(this.activePlayerEntities.size() > 0){
-    //         this.deadPlayers.push(this.activePlayerEntities.keys()[0]);
-    //     }
-
-    //     this.enqueueGlobalPacket(
-    //         new EndRoundPacket([...this.deadPlayers].reverse())
-    //     );
-
-    //     this.terrain.clear();
-    //     this.entities.clear();
-
-    //     this.activePlayerEntities.clear();
-    // }
+  
     
     //@ts-expect-error
     broadcastRemoteFunction<T extends keyof RemoteFunction>(name: T, ...args: NetCallbackTupleType<RemoteFunction[T]>){
@@ -420,7 +449,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         );
 
                         this.enqueueGlobalPacket(
-                            new PlayerEntityDeathPacket(clientID)
+                            new PlayerEntityCompletelyDeletePacket(clientID)
                         );
                         
                         if(this.serverState === ServerGameState.ROUND_ACTIVE){
@@ -603,7 +632,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                 this.entities.update(dt);
             }
 
-
+            // Round logic
             // Check for dead players
             if(this.serverState === ServerGameState.ROUND_ACTIVE){
                 for(const playerEntity of this.activeScene.activePlayerEntities.values()){
@@ -626,22 +655,31 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         connection.gamemode = ClientPlayState.GHOST;
 
                         connection.personalPackets.enqueue(
-                            new SetGamemodePacket(ClientPlayState.GHOST)
-                        )
+                            new SetGhostStatusPacket(true)
+                        );
 
                         this.enqueueGlobalPacket(
                             new OtherPlayerInfoUpdateGamemodePacket(playerID, ClientPlayState.GHOST)
                         );
 
                         this.enqueueGlobalPacket(
-                            new PlayerEntityDeathPacket(playerID)
+                            new PlayerEntityGhostPacket(playerID)
                         );   
                     }
                 }
 
-                // if(this.activePlayerEntities.size() === 1){
-                //     this.endStage();
-                // }
+                if(this.activeScene.activePlayerEntities.size() === 0){
+                    this.endMatch();
+                } else if(this.activeScene.activePlayerEntities.size() === 1){
+                    if(this.clients.length === 0 ){
+                        this.endMatch()
+                    } else {
+                        this.endRound();
+                        this.beginRound("LEVEL_ONE");
+                    }
+                }
+
+                
             }
 
 

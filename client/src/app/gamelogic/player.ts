@@ -189,8 +189,8 @@ export class Player extends DrawableEntity {
     private readonly idleAnimation = new PlayerAnimationState(this.engine.getResource("player/idle.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
     private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
 
-    dead = false;
-    public health = 100;
+    ghost = false;
+    health = 100;
     itemInHand: ItemDrawer = new ItemDrawer();
     weapon: Gun = null;
 
@@ -571,7 +571,7 @@ export class Player extends DrawableEntity {
     }
 
     manualUpdate(dt: number): void {
-        if(this.keyboard.wasPressed("KeyJ")){
+        if(this.keyboard.wasPressed("KeyL")){
             this.followCam = !this.followCam;
             if(this.followCam){
                 this.engine.camera.follow(this.position);
@@ -587,7 +587,7 @@ export class Player extends DrawableEntity {
         this.healthbar.clear();
         
 
-        if(this.dead) {
+        if(this.ghost) {
             this.setAlpha(.2);
 
         } else {
@@ -1162,7 +1162,7 @@ export class Player extends DrawableEntity {
 
         // this.leftClimbRay.draw(g,0x00000)
         // this.rightClimbRay.draw(g, 0xFFFFFF)
-        if(!this.dead)
+        if(!this.ghost)
             drawHealthBar(g, this.x - 20, this.y - 40, 40, 7, this.health / 100, 1);
     }
 }
@@ -1176,7 +1176,7 @@ export class RemotePlayer extends Entity {
     readonly id: number;
     public health = 100;
 
-    dead = false;
+    private ghost = false;
 
     graphics = this.addPart(new GraphicsPart());
     locations = this.addPart(new RemoteLocations());
@@ -1192,26 +1192,30 @@ export class RemotePlayer extends Entity {
     private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
 
     update(dt: number): void {
-        if(this.dead){
-            // this.runAnimation.
-            // this.wallslideAnimation.
-            // this.idleAnimation.
-            // this.climbAnimation.
-
-            return;
-        }
         this.runAnimation.setPosition(this.position);
         this.wallslideAnimation.setPosition(this.position);
         this.idleAnimation.setPosition(this.position);
         this.climbAnimation.setPosition(this.position);
 
-        this.runAnimation.tick();
-        this.wallslideAnimation.tick();
-        this.idleAnimation.tick();
-        this.climbAnimation.tick();
+        if(!this.ghost){
+            this.runAnimation.tick();
+            this.wallslideAnimation.tick();
+            this.idleAnimation.tick();
+            this.climbAnimation.tick();
 
-        this.graphics.graphics.clear();
-        drawHealthBar(this.graphics.graphics, this.x - 20, this.y - 40, 40, 7, this.health / 100);
+            this.graphics.graphics.clear();
+            drawHealthBar(this.graphics.graphics, this.x - 20, this.y - 40, 40, 7, this.health / 100);
+        }
+    }
+
+    setGhost(ghost: boolean){
+        this.ghost = ghost;
+
+        if(ghost){
+            
+        } else {
+
+        }
     }
 
     override onAdd(){

@@ -72,6 +72,7 @@ export class SparseSet<V> {
     }
 
 
+    /** Null if not found */
     get(id: number): V | null {
         if(!this.contains(id)) return null;
 
