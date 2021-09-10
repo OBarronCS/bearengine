@@ -32,6 +32,7 @@ import { commandDispatcher } from "./servercommands";
 
 import "server/source/app/weapons/serveritems.ts"
 import { random_range } from "shared/misc/random";
+import { Effect } from "shared/core/effects";
 
 const MAX_BYTES_PER_PACKET = 2048;
 
@@ -158,10 +159,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     endMatch(){
         console.log("Ending match");
 
-        if(this.serverState === ServerGameState.ROUND_ACTIVE){
-            this.endRound();
-        }
-
         this.serverState = ServerGameState.PRE_MATCH_LOBBY;
     }
     // Resets everything to prepare for a new level, sends data to clients
@@ -229,6 +226,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                 );
             }
 
+            // All players state should be Active at this point
             
 
             // Add back player entities to the game world
@@ -285,19 +283,15 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
     // Clear data for a round, send players data on who won, ect
     endRound(){
-        console.log("Clear level");
+        if(this.clients.length <= 1){
+            this.endMatch();
+        } else {
+            console.log("Clear level");
 
-        this.savedPackets.clear();
-
-        
-
-        if(this.activeScene.activePlayerEntities.size() > 0){
-            this.activeScene.deadplayers.push(this.activeScene.activePlayerEntities.keys()[0]);
+            this.savedPackets.clear();
+    
+            this.beginRound("LEVEL_ONE");
         }
-
-        this.enqueueGlobalPacket(
-            new EndRoundPacket([...this.activeScene.deadplayers].reverse())
-        );
     }
 
   
@@ -570,7 +564,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             // // Don't update players or entities when stage inactive
             // if(this.serverState === ServerGameState.ROUND_ACTIVE){
 
-            // Write all player positions, health to packet
+            // Write all active player positions, health to packet
             for(const connection of this.clients){
 
                 const c = this.players.get(connection);
@@ -668,18 +662,32 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                     }
                 }
 
-                if(this.activeScene.activePlayerEntities.size() === 0){
-                    this.endMatch();
-                } else if(this.activeScene.activePlayerEntities.size() === 1){
-                    if(this.clients.length === 0 ){
-                        this.endMatch()
-                    } else {
-                        this.endRound();
-                        this.beginRound("LEVEL_ONE");
+                if(this.activeScene.roundOver === false){
+                    if(this.activeScene.activePlayerEntities.size() === 0){
+                        this.endMatch();
+                        
+                    } else if(this.activeScene.activePlayerEntities.size() === 1){
+
+                        this.activeScene.roundOver = true;
+
+
+                        if(this.activeScene.activePlayerEntities.size() > 0){
+                            this.activeScene.deadplayers.push(this.activeScene.activePlayerEntities.keys()[0]);
+                        }
+                
+                        this.enqueueGlobalPacket(
+                            new EndRoundPacket([...this.activeScene.deadplayers].reverse())
+                        );
+
+                        const effect = new ServerEffect() ;
+                        effect.onDelay(60 * 3, () => {
+                            this.endRound();
+                        });
+                        effect.destroyAfter(60 * 3);
+
+                        this.entities.addEntity(effect);
                     }
                 }
-
-                
             }
 
 
@@ -703,6 +711,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
 class ServerScene {
 
+    public roundOver: boolean = false;
     public readonly levelID: number;
     public readonly levelbbox: Rect;
     public readonly deadplayers: ConnectionID[] = [];
@@ -719,3 +728,11 @@ class ServerScene {
 }
 
 
+//Band-aid fix 
+
+class ServerEffect extends Effect<ServerBearEngine> {
+    stateHasBeenChanged = false;
+    markDirty(): void {
+        this.stateHasBeenChanged = true;
+    }
+}

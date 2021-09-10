@@ -36,15 +36,15 @@ export class Effect<T extends BearGame<any> = BearGame<{}>> extends AbstractEnti
 	}
 
 	/// max_times = 0 does not work as of now... Just don't do that
-	onInterval(time: number, func: (this:this, lap: number) => void, max_times = -1): this {
+	onInterval(ticks: number, func: (this:this, lap: number) => void, max_times = -1): this {
 		const boundedFunc = func.bind(this);
-		this.intervalFunctions.push([time, boundedFunc, 0, max_times]);
+		this.intervalFunctions.push([ticks, boundedFunc, 0, max_times]);
 		return this;
 	}
 	
-	onDelay(time: number, func: (this:this) => void): this {
+	onDelay(ticks: number, func: (this:this) => void): this {
 		const boundedFunc = func.bind(this);
-		this.delayFunctions.push([time, boundedFunc]);
+		this.delayFunctions.push([ticks, boundedFunc]);
 		return this;
 	}
 

@@ -531,13 +531,16 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         case GamePacket.SET_GHOST_STATUS: {
                             const ghost = stream.getBool();
 
-                            if(ghost === true){
-                                this.game.player.ghost = true;
+                            if(ghost){
+                                this.currentPlayState = ClientPlayState.GHOST;
+                               
+                                this.game.player.clearItem();
                             } else {
-                                this.game.player.ghost = false;
+                                this.currentPlayState = ClientPlayState.ACTIVE;
                             }
-
-
+                            
+                            this.game.player.setGhost(ghost);
+                            
                             break;
                         }
 
@@ -565,7 +568,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             // }
 
                             if(this.currentPlayState === ClientPlayState.ACTIVE){
+                                console.log("AHAHAHHA");
                                 this.game.player.position.set({x, y});
+                                this.game.player.clearItem();
+                                this.game.player.setGhost(false);
                             }
 
                             break;
@@ -581,6 +587,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             for(let i = 0; i < length; i++){
                                 order.push(stream.getUint8());
                             }
+                            console.log(order);
                             
                             if(order.length > 0){
                                 const winnerID = order[0];
@@ -911,46 +918,45 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     writePackets(){
         if(this.network.CONNECTED && this.SERVER_IS_TICKING){
 
+            const stream = this.sendStream;
+            stream.setUint8(ServerPacketSubType.QUEUE);
+
             // If I'm in the ACTIVE state, my player is still alive
             if(this.currentPlayState === ClientPlayState.ACTIVE){
 
                 const player = this.game.player;
 
-                const stream = this.sendStream;
-                stream.setUint8(ServerPacketSubType.QUEUE);
+                stream.setUint8(ServerBoundPacket.PLAYER_POSITION);
+                stream.setFloat32(player.x);
+                stream.setFloat32(player.y);
+                stream.setFloat32(this.engine.mouse.x);
+                stream.setFloat32(this.engine.mouse.y);
+                stream.setUint8(player.state);
+                stream.setBool(player.xspd < 0);
+                stream.setBool(this.engine.mouse.isDown("left"));
+                stream.setBool(this.engine.keyboard.wasPressed("KeyF"));
+                stream.setBool(this.engine.keyboard.wasPressed("KeyQ"));       
+            }
 
-                if(this.currentPlayState === ClientPlayState.ACTIVE){  
-                    stream.setUint8(ServerBoundPacket.PLAYER_POSITION);
-                    stream.setFloat32(player.x);
-                    stream.setFloat32(player.y);
-                    stream.setFloat32(this.engine.mouse.x);
-                    stream.setFloat32(this.engine.mouse.y);
-                    stream.setUint8(player.state);
-                    stream.setBool(player.xspd < 0);
-                    stream.setBool(this.engine.mouse.isDown("left"));
-                    stream.setBool(this.engine.keyboard.wasPressed("KeyF"));
-                    stream.setBool(this.engine.keyboard.wasPressed("KeyQ"));
-                }
+            for(const packet of this.generalPacketsToSerialize){
+                packet.write(stream);
+            }
+            this.generalPacketsToSerialize = [];
 
-                for(const packet of this.generalPacketsToSerialize){
-                    packet.write(stream);
-                }
-                this.generalPacketsToSerialize = [];
-
-                
-                for(const packet of this.stagePacketsToSerialize){
-                    packet.write(stream);
-                }
-                this.stagePacketsToSerialize = [];
+            
+            for(const packet of this.stagePacketsToSerialize){
+                packet.write(stream);
+            }
+            this.stagePacketsToSerialize = [];
 
 
-
-
+            // Only send if we actually wrong something to the stream
+            if(stream.size() > 1){
                 this.network.send(stream.cutoff());
+            }
 
                 // Allow it to be re-used
-                stream.refresh()
-            }
+            stream.refresh()
         }
     }
 

@@ -189,10 +189,22 @@ export class Player extends DrawableEntity {
     private readonly idleAnimation = new PlayerAnimationState(this.engine.getResource("player/idle.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
     private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
 
-    ghost = false;
+    private ghost = false;
     health = 100;
+
+    // Item graphics
     itemInHand: ItemDrawer = new ItemDrawer();
     weapon: Gun = null;
+
+    setGhost(ghost: boolean){
+        this.ghost = ghost;
+
+        if(ghost){
+            this.setAlpha(.2);
+        } else {
+            this.setAlpha(1);
+        }
+    }
 
     setItem(item: Item<ItemData>){
         this.itemInHand.setItem(item.item_data);
@@ -202,6 +214,7 @@ export class Player extends DrawableEntity {
     }
 
     clearItem(){
+        this.weapon = null;
         this.itemInHand.clear();
     }
 
@@ -588,9 +601,6 @@ export class Player extends DrawableEntity {
         
 
         if(this.ghost) {
-            this.setAlpha(.2);
-
-        } else {
             drawHealthBar(this.healthbar, x, 20, health_width, health_height, this.health / 100, 1);
         }
 
