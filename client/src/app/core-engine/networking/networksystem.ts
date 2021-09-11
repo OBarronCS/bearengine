@@ -82,7 +82,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     
 
     /** Set of all other clients */
-    private otherClients = new SparseSet<ClientInfo>(256);
+    public otherClients = new SparseSet<ClientInfo>(256);
 
 
     private remoteEntities: Map<number, Entity> = new Map();

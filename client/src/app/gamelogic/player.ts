@@ -303,7 +303,8 @@ export class Player extends DrawableEntity {
         super();
 
         this.position.set({x : 500, y: 100});
-        this.keyboard.bind("r", ()=> {
+
+        this.keyboard.bind("p", ()=> {
             this.position.set({x : 600, y: 100});
         });
 
@@ -599,8 +600,7 @@ export class Player extends DrawableEntity {
 
         this.healthbar.clear();
         
-
-        if(this.ghost) {
+        if(!this.ghost) {
             drawHealthBar(this.healthbar, x, 20, health_width, health_height, this.health / 100, 1);
         }
 

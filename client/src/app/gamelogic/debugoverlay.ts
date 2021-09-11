@@ -1,4 +1,4 @@
-import { Container, Text } from "pixi.js";
+import { Container, Graphics, Text, TilingSprite } from "pixi.js";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums";
 import { Subsystem } from "shared/core/subsystem";
 import { round } from "shared/misc/mathutils";
@@ -8,6 +8,10 @@ import { NetworkPlatformGame } from "../core-engine/bearengine";
 
 export class DebugScreen extends Subsystem<NetworkPlatformGame> {
     
+
+    otherClientInfo = new Graphics();
+    otherClientText = new Text("");
+
 
     container = new Container();
 
@@ -28,6 +32,8 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
 
     init(): void {
         this.engine.renderer.addGUI(this.container);
+        this.engine.renderer.addGUI(this.otherClientInfo);
+        this.engine.renderer.addGUI(this.otherClientText);
     }
 
 
@@ -39,6 +45,27 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
         
         if(this.engine.keyboard.wasPressed("Digit3")){
             this.container.visible = !this.container.visible;
+        }
+
+        this.otherClientInfo.clear();
+        this.otherClientText.text = "";
+
+        if(this.engine.keyboard.isDown("KeyC")){
+            this.otherClientInfo.beginFill(0x0000FF,.1);
+
+            const width = 480;
+            const height = 300
+            const x = this.engine.renderer.getPercentWidth(.26) - (width / 2);
+            const y = 50;
+
+
+            this.otherClientText.position.set(x,y);
+
+            this.otherClientInfo.drawRect(x, y, width, height);
+
+            for(const client of this.game.networksystem.otherClients.values()){
+                this.otherClientText.text += client.toString() + "\n"
+            }
         }
     }
     

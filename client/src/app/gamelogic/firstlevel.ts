@@ -36,8 +36,6 @@ import { PARTICLE_CONFIG } from "../core-engine/particles";
 //             this.redraw()
 //         }
 //     }
-
-
 // }
 
 export class FirstLevel extends GameLevel {
@@ -54,13 +52,8 @@ export class FirstLevel extends GameLevel {
     start(): void {
         this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["ROCKET"], this.engine.mouse.x, this.engine.mouse.y);
 
-
-
         // scene.addEntity(new PolygonExpandTest)
-
         //const p = scene.addEntity(new Player());
-
-
 
         class Test7 extends Entity {
 
@@ -150,12 +143,7 @@ export class FirstLevel extends GameLevel {
 
 
     end(): void {
-
-
-
+        this.emitter.destroy();
     }
-
-
    
-
 }
