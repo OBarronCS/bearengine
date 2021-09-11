@@ -1,9 +1,28 @@
 import { Container, Graphics, Text, TextStyle, TextMetrics } from "pixi.js";
-import { StringIsPrintableASCII } from "shared/core/sharedlogic/serialization";
+import { PacketWriter } from "shared/core/sharedlogic/networkschemas";
+import { ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
+import { SerializeShortString, StringIsPrintableASCII } from "shared/core/sharedlogic/serialization";
 import { Subsystem } from "shared/core/subsystem";
+import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { NetworkPlatformGame } from "../core-engine/bearengine";
 
-const MAX_MESSAGE_SIZE = 128;
+const MAX_MESSAGE_SIZE = 255;
+
+export class ServerBoundChatRequestPacket extends PacketWriter {
+
+    constructor(public message: string){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(ServerBoundPacket.REQUEST_CHAT_MESSAGE);
+        
+        SerializeShortString(stream, this.message);
+    }
+}
+
+
+
 
 export class Chatbox extends Subsystem<NetworkPlatformGame> {
 
@@ -94,6 +113,14 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
                         break;
                     }
                     case "Enter": {
+                        const word = this.text_buffer.createString();
+
+                        if(word.length <= 255){
+                            this.game.networksystem.enqueueGeneralPacket(
+                                new ServerBoundChatRequestPacket(word)
+                            )
+                        }
+
                         this.text_buffer.clear();
 
                         break;

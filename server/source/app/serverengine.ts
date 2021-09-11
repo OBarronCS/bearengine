@@ -19,7 +19,7 @@ import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
-import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
+import { DeserializeShortString, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
 import { AcknowledgeShotPacket, EndRoundPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
@@ -330,6 +330,17 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             console.log(`Command failed: ${result.error}`)
         }
     }
+
+
+    dispatchClientCommand(command: string, clientID: ConnectionID){
+        const player = this.players.get(clientID);
+
+        const result = commandDispatcher.parse({engine:this, targetPlayer: player}, command);
+
+        if(result.success === false){
+            console.log(`Command failed: ${result.error}`)
+        }
+    }
   
     createRemoteEntity(e: ServerEntity){
         this.entities.addEntity(e);
@@ -468,6 +479,30 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         p.mousedown = stream.getBool();
                         const isFDown = stream.getBool();
                         const isQDown = stream.getBool();
+
+                        break;
+                    }
+
+                    case ServerBoundPacket.REQUEST_CHAT_MESSAGE: {
+                        
+                        const string = DeserializeShortString(stream);
+
+                        if(string.length > 0){
+                            // If a command 
+                            if(string.charAt(0) === "/") {
+
+                                this.dispatchClientCommand(string.substring(1), clientID);
+                                
+
+                            } else {
+                                // Forward it as a chat to other players
+                                // if(this.chatEnabled) {}
+                            }
+                        } else {
+                            console.log(`Client ${clientID} sent an empty string`)
+                        }
+
+
 
                         break;
                     }

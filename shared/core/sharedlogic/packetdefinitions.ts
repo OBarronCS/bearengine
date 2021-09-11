@@ -96,6 +96,8 @@ export enum ServerBoundPacket {
     PLAYER_POSITION, // [x: float32, y: float32, mouse_x: float32, mouse_y: float32, uint8: animationstate, bool: flipped, isMouseDown: bool, isFDown: bool, isQDown: bool]
 
     REQUEST_SHOOT_WEAPON, // [ITEM_ID_OF_WEAPON: uint8, localShootID: uint32, createServerTick: float32, x: float32, y: float32, ...data]
+
+    REQUEST_CHAT_MESSAGE, // [ShortString (255 chars max), ]
 }
 
 
