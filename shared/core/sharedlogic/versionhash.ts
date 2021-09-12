@@ -107,7 +107,7 @@ function CreateHash(manual: number): bigint {
     hash += ObjectHash(SharedNetworkedEntityDefinitions)
 
     // Approximate number of bits needed to represent it: 
-    console.log("Number of bits in hash:", Math.log2(Number(hash)))
+    // console.log("Number of bits in hash:", Math.log2(Number(hash)))
 
     return (manualMask) | (hash & HASH_MASK);
 }
@@ -118,5 +118,5 @@ const MANUAL_VERSION = 1;
 
 export const NETWORK_VERSION_HASH = CreateHash(MANUAL_VERSION);
 
-console.log("Network Protocol Hash: ", BigInt2BinaryString(NETWORK_VERSION_HASH));
+// console.log("Network Protocol Hash: ", BigInt2BinaryString(NETWORK_VERSION_HASH));
 

@@ -35,7 +35,7 @@ export class RendererSystem {
     private emitters: Emitter[] = [];
 
     addEmitter(path: string, settings: EmitterConfig | OldEmitterConfig, x: number, y: number): Emitter {
-        const e = new Emitter(this.mainContainer, path, settings);
+        const e = new Emitter(this.mainContainer, this.getTexture(path), settings);
         e.updateSpawnPos(x, y);
         this.emitters.push(e);
         return e;
@@ -173,7 +173,7 @@ export class RendererSystem {
         const window_width = this.targetWindow.innerWidth;
         const window_height = this.targetWindow.innerHeight;
 
-        console.log(window_width, window_height)
+        //console.log(window_width, window_height);
 
         // console.log(window_width, window_height)
 

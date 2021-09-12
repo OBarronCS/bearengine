@@ -1,10 +1,15 @@
 
 import { Vec2 } from "shared/shapes/vec2";
 import { ServerEntity } from "./entity";
+import { ConnectionID } from "./networking/serversocket";
+
 import "./networking/networkedentities";
 
-
 export class ServerPlayerEntity extends ServerEntity {
+
+    constructor(public connectionID: ConnectionID){
+        super();
+    }
     dead = false
     health: number = 100;
     state: number = 0;

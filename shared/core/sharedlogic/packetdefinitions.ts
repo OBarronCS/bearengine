@@ -22,18 +22,21 @@ export enum GamePacket {
 
     REMOTE_FUNCTION_CALL, // [shared function id: uint8, ...function argument data]
 
-    /*  
-        This packets makes it so you create your player entity, and load level data
-        x y and is your respawn point, level is value that points to level string
-    */
-    // personal packet
-    // Client sets gamemode to ALIVE, creates local player entity, and loads the terrain from level
-    // If a player never receives this packet, its assumed they are still spectators
-    START_ROUND, // [x:float32, y:float32, level_enum: uint8]
-    END_ROUND, // [] empty 
-
     // Personal Packet
-    SET_GAMEMODE, // [gaemmode: Gamemode]
+    // Sets client state to ACTIVE
+    // Allows client to send position packets for player
+    SPAWN_YOUR_PLAYER_ENTITY, // [x: float32, y: float32]
+
+    // If true, set client state to GHOST. If false set to active
+    SET_GHOST_STATUS, // [ghost: boolean]
+
+    //Personal packet.
+    //    load level data, set personal x, y;
+    START_ROUND, // [x:float32, y:float32, level_enum: uint8]
+    
+    // Array of players in order of winner, to last place
+    END_ROUND, // [ array_length: uint8, [clientID: uint8] * array_length] 
+
 
 
     // If client joins will game is active, this packet is sent to them
@@ -44,16 +47,20 @@ export enum GamePacket {
     SET_INV_ITEM, // [ItemID: uint8]
 
     // Notifying clients about other clients connected to the server
-    OTHER_PLAYER_INFO_ADD, //      [unique_client_id: uint8, ping: uint16, gamemode: Gamemode] // add string to this one day
+    OTHER_PLAYER_INFO_ADD, //      [unique_client_id: uint8, ping: uint16, gamemode: ClientPlayState] // add string to this one day
     OTHER_PLAYER_INFO_PING, //     [unique_client_id: uint8, ping: uint16]
-    OTHER_PLAYER_INFO_GAMEMODE, // [unique_client_id: uint8, gamemode: Gamemode]
+    OTHER_PLAYER_INFO_GAMEMODE, // [unique_client_id: uint8, gamemode: ClientPlayState]
     OTHER_PLAYER_INFO_REMOVE, //   [unique_client_id: uint8]
 
 
-    // command to create/change state of OTHER players. Ignore if ID === localID; 
-    PLAYER_ENTITY_CREATE, // [playerID: uint8, x: float32, y: float32]
+    // Commands to create/change state of OTHER players.
+    // Client must ignore if ID === localID; 
+
+    // spawn creates an entity. Places it at given location --> Used to deghost
+    PLAYER_ENTITY_SPAWN, // [playerID: uint8, x: float32, y: float32]
     PLAYER_ENTITY_POSITION, // [playerID: uint8, x: float32, y: float32, uint8: animationstate, bool: flipped, health: uint8];
-    PLAYER_ENTITY_DESTROY, // [playerID: uint8]
+    PLAYER_ENTITY_GHOST, // [playerID: uint8]
+    PLAYER_ENTITY_COMPLETELY_DELETE, // [playerID: uint8]
 
     // TODO: EXPLOSION: [fromPlayer: uint8, x: float32, y: float32, strength: uint8] // handle knockback on clients
 
@@ -89,6 +96,8 @@ export enum ServerBoundPacket {
     PLAYER_POSITION, // [x: float32, y: float32, mouse_x: float32, mouse_y: float32, uint8: animationstate, bool: flipped, isMouseDown: bool, isFDown: bool, isQDown: bool]
 
     REQUEST_SHOOT_WEAPON, // [ITEM_ID_OF_WEAPON: uint8, localShootID: uint32, createServerTick: float32, x: float32, y: float32, ...data]
+
+    REQUEST_CHAT_MESSAGE, // [ShortString (255 chars max), ]
 }
 
 

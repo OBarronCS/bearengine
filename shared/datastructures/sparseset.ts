@@ -72,6 +72,7 @@ export class SparseSet<V> {
     }
 
 
+    /** Null if not found */
     get(id: number): V | null {
         if(!this.contains(id)) return null;
 
@@ -84,6 +85,10 @@ export class SparseSet<V> {
 
     values(): readonly V[] {
         return this.dense;
+    }
+
+    size(): number {
+        return this.dense.length;
     }
 
     clear(): this {
@@ -103,3 +108,4 @@ export class SparseSet<V> {
         return "Keys: " + this.keys().toString() + " Values: " + this.values().toString();
     }
 }
+

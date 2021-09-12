@@ -17,7 +17,9 @@ import { SavePlayerAnimation } from "./testlevelentities";
 import { Emitter } from "pixi-particles";
 import { CreateItemData, ItemData } from "shared/core/sharedlogic/items"
 import { Gun, Hitscan, Item, ItemDrawer, TerrainCarverGun } from "../core-engine/clientitems";
-import { PARTICLE_CONFIG } from "../core-engine/particles";
+import { EmitterAttach, PARTICLE_CONFIG } from "../core-engine/particles";
+import { Effect } from "shared/core/effects";
+import { random_range } from "shared/misc/random";
 
 
 
@@ -133,6 +135,11 @@ class PlayerAnimationState {
         this.container.scale.y = value;
     }
 
+    move(dx: number,dy: number){
+        this.container.position.x += dx;
+        this.container.position.y += dy;
+    }
+
     setPosition(pos: Coordinate){
         this.container.position.set(pos.x, pos.y);
     }
@@ -184,9 +191,34 @@ export class Player extends DrawableEntity {
     private readonly idleAnimation = new PlayerAnimationState(this.engine.getResource("player/idle.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
     private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
 
-    dead = false;
+    private ghost = false;
+    health = 100;
 
-    public health = 100;
+    // Item graphics
+    itemInHand: ItemDrawer = new ItemDrawer();
+    weapon: Gun = null;
+
+    setGhost(ghost: boolean){
+        this.ghost = ghost;
+
+        if(ghost){
+            this.setAlpha(.2);
+        } else {
+            this.setAlpha(1);
+        }
+    }
+
+    setItem(item: Item<ItemData>){
+        this.itemInHand.setItem(item.item_data);
+        if(item instanceof Gun){
+            this.weapon = item;
+        }
+    }
+
+    clearItem(){
+        this.weapon = null;
+        this.itemInHand.clear();
+    }
 
     last_ground_xspd = 0;
     last_ground_yspd = 0;
@@ -235,7 +267,7 @@ export class Player extends DrawableEntity {
     
 
 
-    private timeToClimb = 26;
+    private readonly timeToClimb = 26;
     climbStateData: {
         // Climbing to the right? false means left
         right: boolean;
@@ -246,7 +278,7 @@ export class Player extends DrawableEntity {
         startY: number,
     }
 
-    private timeToSlide = 35; // How many ticks can hold in place until start falling
+    private readonly timeToSlide = 35; // How many ticks can hold in place until start falling
     slideStateData: {
         right: boolean; 
         timeSliding: number
@@ -267,26 +299,14 @@ export class Player extends DrawableEntity {
     private colliderPart: ColliderPart;
 
 
-    itemInHand: ItemDrawer = new ItemDrawer();
-
-    weapon: Gun = null;
-
-    setItem(item: Item<ItemData>){
-        this.itemInHand.setItem(item.item_data);
-        if(item instanceof Gun){
-            this.weapon = item;
-        }
-    }
-
-    clearItem(){
-        this.itemInHand.clear();
-    }
+  
 
     constructor(){
         super();
 
         this.position.set({x : 500, y: 100});
-        this.keyboard.bind("r", ()=> {
+
+        this.keyboard.bind("p", ()=> {
             this.position.set({x : 600, y: 100});
         });
 
@@ -309,8 +329,6 @@ export class Player extends DrawableEntity {
         this.leftWallRay = new Line(new Vec2(x, y), new Vec2(-3 + x - this.player_width / 2, y));
     }
 
-    private emitter: Emitter;
-
     override onAdd(){
         this.healthbar = this.engine.renderer.createGUICanvas();
 
@@ -328,8 +346,6 @@ export class Player extends DrawableEntity {
         this.engine.renderer.addSprite(this.climbAnimation.container)
 
         this.setSprite("run");
-
-        this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["ROCKET"], this.x, this.y)
     }
 
     override onDestroy(){
@@ -340,6 +356,13 @@ export class Player extends DrawableEntity {
         this.engine.renderer.removeSprite(this.wallslideAnimation.container);
         this.engine.renderer.removeSprite(this.idleAnimation.container);
         this.engine.renderer.removeSprite(this.climbAnimation.container);
+    }
+
+    private setAlpha(a: number): void {
+        this.runAnimation.container.alpha = a;
+        this.wallslideAnimation.container.alpha = a;
+        this.idleAnimation.container.alpha = a;
+        this.climbAnimation.container.alpha = a;
     }
 
     private setSprite(sprite: "idle"|"run"|"wall"|"climb"|"none"){
@@ -561,7 +584,10 @@ export class Player extends DrawableEntity {
     private followCam = false;
 
     update(dt: number): void {
-        if(this.keyboard.wasPressed("KeyJ")){
+    }
+
+    manualUpdate(dt: number): void {
+        if(this.keyboard.wasPressed("KeyL")){
             this.followCam = !this.followCam;
             if(this.followCam){
                 this.engine.camera.follow(this.position);
@@ -570,24 +596,18 @@ export class Player extends DrawableEntity {
             }
         }
 
-        this.healthbar.clear();
-
         const health_width = 500;
         const health_height = 40;
         const x = this.engine.renderer.getPercentWidth(.5) - (health_width / 2);
 
-
-        drawHealthBar(this.healthbar, x, 20, health_width, health_height, this.health / 100, 1);
-
-
-        this.healthbar
-
-
-        if(this.dead) return;
+        this.healthbar.clear();
+        
+        if(!this.ghost) {
+            drawHealthBar(this.healthbar, x, 20, health_width, health_height, this.health / 100, 1);
+        }
 
         
-        
-        this.emitter.updateSpawnPos(this.mouse.x, this.mouse.y);
+    
         if(this.y > this.level.bbox.height + 800) this.y = 0;
 
 
@@ -1154,8 +1174,8 @@ export class Player extends DrawableEntity {
 
         // this.leftClimbRay.draw(g,0x00000)
         // this.rightClimbRay.draw(g, 0xFFFFFF)
-        
-        drawHealthBar(g, this.x - 20, this.y - 40, 40, 7, this.health / 100, 1);
+        if(!this.ghost)
+            drawHealthBar(g, this.x - 20, this.y - 40, 40, 7, this.health / 100, 1);
     }
 }
 
@@ -1168,6 +1188,8 @@ export class RemotePlayer extends Entity {
     readonly id: number;
     public health = 100;
 
+    private ghost = false;
+
     graphics = this.addPart(new GraphicsPart());
     locations = this.addPart(new RemoteLocations());
 
@@ -1175,12 +1197,77 @@ export class RemotePlayer extends Entity {
         super();
         this.id = id;
     }
-
     
     private readonly runAnimation = new PlayerAnimationState(this.engine.getResource("player/run.json").data as SavePlayerAnimation, 4, new Vec2(40,16));
     private readonly wallslideAnimation = new PlayerAnimationState(this.engine.getResource("player/wallslide.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
     private readonly idleAnimation = new PlayerAnimationState(this.engine.getResource("player/idle.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
     private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
+
+    update(dt: number): void {
+        this.runAnimation.setPosition(this.position);
+        this.wallslideAnimation.setPosition(this.position);
+        this.idleAnimation.setPosition(this.position);
+        this.climbAnimation.setPosition(this.position);
+
+        if(!this.ghost){
+            this.runAnimation.tick();
+            this.wallslideAnimation.tick();
+            this.idleAnimation.tick();
+            this.climbAnimation.tick();
+
+            this.graphics.graphics.clear();
+            drawHealthBar(this.graphics.graphics, this.x - 20, this.y - 40, 40, 7, this.health / 100);
+        }
+    }
+
+    setGhost(ghost: boolean){
+        this.ghost = ghost;
+
+        if(ghost){
+            this.scene.addEntity(new EmitterAttach(this,"BOOM", "particle.png"));
+            // const {
+            //     headSprite,
+            //     bodySprite,
+            //     leftHandSprite,
+            //     rightHandSprite, 
+            //     leftFootSprite,
+            //     rightFootSprite
+            // } = this.idleAnimation;
+
+
+            // const iter = [headSprite,
+            //     bodySprite,
+            //     leftHandSprite,
+            //     rightHandSprite,
+            //     leftFootSprite,
+            //     rightFootSprite
+            // ]
+
+            // class E extends Entity {
+
+            //     constructor(s: Sprite, public initialVel: Vec2){
+            //         super();
+            //         const d = this.addPart(new SpritePart(s));
+            //         d.scale = new Vec2(2,2);
+            //     }
+
+            //     update(dt: number): void {
+            //         this.position.add(this.initialVel);
+            //     }
+
+            // }
+
+            // for(const i of iter){
+            //     const e = new E(i, new Vec2(random_range(-20, 20), random_range(-20, 20)));
+            //     e.position.set(this.position);
+            //     this.scene.addEntity(e);
+            // }
+            
+            
+        } else {
+
+        }
+    }
 
     override onAdd(){
         // this.scene.addEntity(this.gun)
@@ -1244,20 +1331,7 @@ export class RemotePlayer extends Entity {
         
     }
 
-    update(dt: number): void {
-        this.runAnimation.setPosition(this.position);
-        this.wallslideAnimation.setPosition(this.position);
-        this.idleAnimation.setPosition(this.position);
-        this.climbAnimation.setPosition(this.position);
-
-        this.runAnimation.tick();
-        this.wallslideAnimation.tick();
-        this.idleAnimation.tick();
-        this.climbAnimation.tick();
-
-        this.graphics.graphics.clear();
-        drawHealthBar(this.graphics.graphics, this.x - 20, this.y - 40, 40, 7, this.health / 100);
-    }
+    
     
 }
 

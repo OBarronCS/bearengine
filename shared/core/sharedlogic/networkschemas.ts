@@ -202,8 +202,9 @@ export const SharedEntityLinker = {
     validateNames(names: (keyof SharedNetworkedEntities)[]){
         assert(!containsDuplicates(names), "Duplicate entity definitions!");
 
-        console.log(names);
-        console.log(orderedSharedEntities);
+        // console.log(names);
+        // console.log(orderedSharedEntities);
+
         assert(areEqualSorted(orderedSharedEntities, names), "Entity amount mismatch");
     },
 

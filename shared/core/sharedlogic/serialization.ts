@@ -308,6 +308,7 @@ export function StringIsPrintableASCII(str: string): boolean {
     return PRINTABLE_ASCII_REGEX.test(str);
 }
 
+/** Max (2^16 - 1) characters */
 export function SerializeString(stream: BufferStreamWriter, str: string): void {
     
     const length = str.length;
@@ -327,6 +328,38 @@ export function DeserializeString(stream: BufferStreamReader): string {
     let str = "";
 
     const length = stream.getUint16();
+
+    for(let i = 0; i < length; i++){
+        str += String.fromCharCode(stream.getUint8());
+    }
+    
+    return str;
+}
+
+
+
+/** Max 255 characters */
+export function SerializeShortString(stream: BufferStreamWriter, str: string): void {
+    
+    const length = str.length;
+
+    assert(length <= ((1 << 8) - 1), "String must be less than 256 characters --> " + str);
+    assert(StringIsPrintableASCII(str), "String must be ascii encodable --> " + str);
+    
+
+    stream.setUint8(length);
+
+    for(const char of str){
+        stream.setUint8(char.charCodeAt(0));
+    }
+}
+
+
+/** Max 255 characters */
+export function DeserializeShortString(stream: BufferStreamReader): string {
+    let str = "";
+
+    const length = stream.getUint8();
 
     for(let i = 0; i < length; i++){
         str += String.fromCharCode(stream.getUint8());

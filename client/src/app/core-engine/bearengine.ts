@@ -41,7 +41,8 @@ function importAll(r: any): [] {
 // This cannot take variable for path, webpack needs string literal for it to work ...
 const images = importAll(require.context('../../assets', true, /\.(json|png|jpe?g|gif)$/));
 const ALL_TEXTURES: string[] = images.slice(0);
-console.log("Assets: " + ALL_TEXTURES)
+
+// console.log("Assets: " + ALL_TEXTURES)
 
 const maxFPS = 60;
 const simulation_time = 1000 / maxFPS;
@@ -96,8 +97,8 @@ export class BearEngine {
             SHARED_LOADER.add(ALL_TEXTURES);
     
             SHARED_LOADER.load(() => {
-                console.log("ALL ASSETS DOWNLOADED");
-                console.log('PIXI.Loader.shared.resources :>> ', SHARED_RESOURCES);
+                // console.log("ALL ASSETS DOWNLOADED");
+                // console.log('PIXI.Loader.shared.resources :>> ', SHARED_RESOURCES);
                 resolve(SHARED_RESOURCES);
             });
         });
@@ -223,10 +224,13 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
 
         this.mouseEventDispatcher.update(dt)
 
-        // if(this.levelLoaded){
-        //     this.activeLevel.update(dt);
-        // }
+        if(this.levelLoaded){
+            this.activeLevel.update(dt);
+        }
 
+        if(this.player !== null){
+            this.player.manualUpdate(dt);
+        }
 
         this.entities.update(dt);
 
@@ -241,7 +245,6 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         this.entityRenderer.update(dt);
     }
 
-   
 
     onEnd(): void {
 
@@ -250,26 +253,27 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
     
 
     loadLevel(level: GameLevel){
-        console.log("Starting level");
+        // console.log("Starting level");
         if(this.levelLoaded) throw new Error("TRYING TO LOAD A LEVEL WHEN ONE IS ALREADY LOADED");
 
         this.activeLevel = level;
-        level.internalStart(this, this.entities);
+        level.internalStart();
 
         this.levelLoaded = true;
     }
 
     endCurrentLevel(){
-        console.log("Ending level")
+        // console.log("Ending level")
 
-        this.activeLevel.internalEnd(this);
+        this.activeLevel.internalEnd();
 
 
-        this.entities.clear();
+    
         this.terrain.clear();
         this.collisionManager.clear()
 
-        this.entityRenderer.clear();
+        // this.entities.clear();
+        // this.entityRenderer.clear();
 
         this.levelLoaded = false;
     }   

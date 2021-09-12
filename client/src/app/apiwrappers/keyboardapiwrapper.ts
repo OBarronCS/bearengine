@@ -8,7 +8,7 @@
 // The official spec is really well written here:
 // https://wicg.github.io/keyboard-lock/
 
-// This only actually works in Fullscreen in chrome right now!
+// This only actually works in Fullscreen!
 
 // The Escape key is special --> in fullscreen usually click it to immediately leave fullscreen
 // But if it is locked you need to hold it to exit fullscreen
