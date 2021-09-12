@@ -17,7 +17,9 @@ import { SavePlayerAnimation } from "./testlevelentities";
 import { Emitter } from "pixi-particles";
 import { CreateItemData, ItemData } from "shared/core/sharedlogic/items"
 import { Gun, Hitscan, Item, ItemDrawer, TerrainCarverGun } from "../core-engine/clientitems";
-import { PARTICLE_CONFIG } from "../core-engine/particles";
+import { EmitterAttach, PARTICLE_CONFIG } from "../core-engine/particles";
+import { Effect } from "shared/core/effects";
+import { random_range } from "shared/misc/random";
 
 
 
@@ -1222,6 +1224,45 @@ export class RemotePlayer extends Entity {
         this.ghost = ghost;
 
         if(ghost){
+            this.scene.addEntity(new EmitterAttach(this,"BOOM", "particle.png"));
+            // const {
+            //     headSprite,
+            //     bodySprite,
+            //     leftHandSprite,
+            //     rightHandSprite, 
+            //     leftFootSprite,
+            //     rightFootSprite
+            // } = this.idleAnimation;
+
+
+            // const iter = [headSprite,
+            //     bodySprite,
+            //     leftHandSprite,
+            //     rightHandSprite,
+            //     leftFootSprite,
+            //     rightFootSprite
+            // ]
+
+            // class E extends Entity {
+
+            //     constructor(s: Sprite, public initialVel: Vec2){
+            //         super();
+            //         const d = this.addPart(new SpritePart(s));
+            //         d.scale = new Vec2(2,2);
+            //     }
+
+            //     update(dt: number): void {
+            //         this.position.add(this.initialVel);
+            //     }
+
+            // }
+
+            // for(const i of iter){
+            //     const e = new E(i, new Vec2(random_range(-20, 20), random_range(-20, 20)));
+            //     e.position.set(this.position);
+            //     this.scene.addEntity(e);
+            // }
+            
             
         } else {
 

@@ -4,7 +4,7 @@ import { bearevent } from "shared/core/bearevents";
 import { EntitySystem } from "shared/core/entitysystem";
 import { TiledMap } from "shared/core/tiledmapeditor";
 import { dimensions } from "shared/shapes/rectangle";
-import { Vec2 } from "shared/shapes/vec2";
+import { Coordinate, Vec2 } from "shared/shapes/vec2";
 import { BearEngine, NetworkPlatformGame } from "../core-engine/bearengine";
 import { DrawableEntity, Entity, GMEntity } from "../core-engine/entity";
 import { GameLevel } from "../core-engine/gamelevel";
@@ -13,6 +13,9 @@ import { Player } from "./player";
 import { Polygon } from "shared/shapes/polygon";
 import { Emitter } from "pixi-particles";
 import { PARTICLE_CONFIG } from "../core-engine/particles";
+import { TickTimer } from "shared/datastructures/ticktimer";
+import { Line } from "shared/shapes/line";
+import { drawVecAsArrow } from "shared/shapes/shapedrawing";
 
 
 
@@ -47,11 +50,20 @@ export class FirstLevel extends GameLevel {
 
     update(dt: number): void {
         this.emitter.updateSpawnPos(this.engine.mouse.x, this.engine.mouse.y);
+        if(this.engine.mouse.wasPressed("left")){
+
+            const e = new PhysicsDotEntity(this.engine.mouse);
+            e.velocity.set(this.engine.mouse.velocity.clone().scale(.2))
+            e.velocity.set({x:30,y:0})
+
+            this.game.entities.addEntity(e)
+        }
     }
 
     start(): void {
         this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["ROCKET"], this.engine.mouse.x, this.engine.mouse.y);
 
+        
         // scene.addEntity(new PolygonExpandTest)
         //const p = scene.addEntity(new Player());
 
@@ -147,3 +159,108 @@ export class FirstLevel extends GameLevel {
     }
    
 }
+
+
+
+class PhysicsDotEntity extends DrawableEntity {
+    
+    velocity = new Vec2(0,0);
+    private gravity = new Vec2(0,.4);
+
+    grounded = false;
+
+    private drawRadius = 10;
+
+    constructor(point: Coordinate){
+        super();
+        this.position.set(point);
+        this.redraw();
+    }
+
+
+
+    draw(g: Graphics): void {
+        g.beginFill(0x00FF00);
+        g.drawCircle(this.x, this.y, this.drawRadius);
+    }
+
+    
+
+    update(dt: number): void {
+
+        if(this.grounded) return;
+
+        // Gravity
+        this.velocity.add(this.gravity);
+
+
+        const destination = Vec2.add(this.velocity,this.position);
+
+        // If no terrain hit, proceed
+        const test = this.terrain.lineCollisionExt(this.position, destination);
+
+        if(test === null){
+            this.position.add(this.velocity);
+        } else {
+
+            if(this.velocity.length() <= 1){
+                this.grounded = true;
+            }
+            // Could potentially bounce multiple times;
+
+            let last_test = test;
+            let distanceToMove = this.velocity.length();
+
+            const max_iter = 20;
+            let i = 0;
+            while(distanceToMove > 0 && i++ < max_iter){
+
+
+                const distanceToPoint = Vec2.subtract(last_test.point,this.position).length();
+
+                const distanceAfterBounce = distanceToMove - distanceToPoint;
+
+                // Set my position to colliding point, then do more logic later
+                this.position.set(last_test.point);
+
+                // Bounce off of wall, set elocity
+                Vec2.bounce(this.velocity, last_test.normal, this.velocity);
+
+                const lastStretchVel = this.velocity.clone().normalize().scale(distanceAfterBounce);
+
+                const bounce_test = this.terrain.lineCollisionExt(this.position, Vec2.add(this.position, lastStretchVel));
+
+                distanceToMove *= .9;
+                this.velocity.scale(.9);
+
+                distanceToMove -= lastStretchVel.length();
+
+
+                if(bounce_test === null || bounce_test.normal.equals(last_test.normal) ){
+                    this.position.add(lastStretchVel);
+
+                    if(this.terrain.pointInTerrain(this.position)) this.grounded = true;
+                    break;
+                }
+
+                last_test = bounce_test
+
+                
+            }
+
+            
+        }
+
+        
+        this.redraw(true);
+    }
+
+
+}
+
+
+
+
+
+
+

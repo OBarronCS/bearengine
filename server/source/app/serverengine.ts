@@ -140,6 +140,11 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         this.terrain = this.registerSystem(new TerrainManager(this));
     }
 
+    // /** Remove all references to this client immediately */
+    // removeclient(clientID: ConnectionID){
+    //     const player = this.players.get(clientID);
+    // }
+
     start(socket: Server){
         this.initialize();
 

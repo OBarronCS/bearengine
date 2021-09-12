@@ -74,9 +74,17 @@ export class TerrainManager extends Subsystem {
         this.terrains.push(newTerrain);
         this.grid.insert(newTerrain)
     }
+
+    pointInTerrain(point: Coordinate): boolean {
+        for(const p of this.grid.region(Rect.fromPoints(point))) {
+            if(p.polygon.contains(point)) return true;
+        }
+        
+        return false;
+    }
     
     /** Terrain Raycast: return null if no collision, otherwise closest point of intersection */
-    lineCollision(A: Coordinate,B: Coordinate): {point:Vec2,normal:Vec2} {
+    lineCollision(A: Coordinate, B: Coordinate): {point:Vec2,normal:Vec2} {
         const box = (new Line(A,B)).getAABB();
         
         const possibleCollisions = this.grid.region(box);
@@ -104,7 +112,7 @@ export class TerrainManager extends Subsystem {
         return answer;
     }
 
-    lineCollisionExt(A: Coordinate, B: Coordinate): { point: Vec2, normal: Vec2, line: Line } {
+    lineCollisionExt(A: Coordinate, B: Coordinate): { point: Vec2, normal: Vec2, line: Line } | null {
         const box = Vec2.AABB(A,B);
         
         const possibleCollisions = this.grid.region(box);
