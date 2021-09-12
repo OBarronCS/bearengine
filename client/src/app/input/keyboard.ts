@@ -120,6 +120,7 @@ export class EngineKeyboard {
         Mousetrap.bind('command+shift+k'
     */
 
+    // GET RID OF THIS FUNCTION. CALLBACKS HERE GET CALLED WHENEVER the JS Engine is available. Should be at specific poitns
     // always keyup because down and press will repeatadly fire
     // this is why I want polling so I dont have to deal with this
     public bind(keys: string | string[], callback: (e: ExtendedKeyboardEvent, combo: string) => any){

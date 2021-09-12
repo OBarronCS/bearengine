@@ -3,7 +3,7 @@ import { ItemType } from "shared/core/sharedlogic/items";
 import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
-import { Gamemode } from "shared/core/sharedlogic/sharedenums";
+import { ClientPlayState } from "shared/core/sharedlogic/sharedenums";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { Vec2 } from "shared/shapes/vec2";
 import { ConnectionID } from "./serversocket";
@@ -27,7 +27,7 @@ export class StartRoundPacket extends PacketWriter {
 export class EndRoundPacket extends PacketWriter {
 
     constructor(public winnerOrder: number[]){
-        super(true);
+        super(false);
     }
 
     write(stream: BufferStreamWriter): void {
@@ -41,15 +41,28 @@ export class EndRoundPacket extends PacketWriter {
     }
 }
 
-export class SetGamemodePacket extends PacketWriter {
+export class SpawnYourPlayerEntityPacket extends PacketWriter {
 
-    constructor(public gamemode: Gamemode){
+    constructor(public x: number, public y: number){
         super(false);
     }
 
     write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.SET_GAMEMODE);
-        stream.setUint8(this.gamemode);
+        stream.setUint8(GamePacket.SPAWN_YOUR_PLAYER_ENTITY);
+        stream.setFloat32(this.x);
+        stream.setFloat32(this.y);
+    }
+}
+
+export class SetGhostStatusPacket extends PacketWriter {
+
+    constructor(public ghost: boolean){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.SET_GHOST_STATUS);
+        stream.setBool(this.ghost);
     }
 }
 
@@ -91,7 +104,7 @@ export class InitPacket extends PacketWriter {
 export class ServerIsTickingPacket extends PacketWriter {
 
     constructor(public tick: number){
-        super(true);
+        super(false);
     }
 
     write(stream: BufferStreamWriter): void {
@@ -103,7 +116,7 @@ export class ServerIsTickingPacket extends PacketWriter {
 
 export class OtherPlayerInfoAddPacket extends PacketWriter {
     
-    constructor(public playerID: ConnectionID, public ping: number, public gamemode: Gamemode){
+    constructor(public playerID: ConnectionID, public ping: number, public gamemode: ClientPlayState){
         super(false)
     }
 
@@ -118,7 +131,7 @@ export class OtherPlayerInfoAddPacket extends PacketWriter {
 
 export class OtherPlayerInfoUpdateGamemodePacket extends PacketWriter {
     
-    constructor(public playerID: ConnectionID, public gamemode: Gamemode){
+    constructor(public playerID: ConnectionID, public gamemode: ClientPlayState){
         super(false)
     }
 
@@ -147,33 +160,42 @@ export class OtherPlayerInfoRemovePacket extends PacketWriter {
 
 
 
-export class PlayerEntityCreatePacket extends PacketWriter {
+export class PlayerEntitySpawnPacket extends PacketWriter {
 
     constructor(public clientID: number, public x: number, public y: number){
-        super(true);
+        super(false);
     }
 
     write(stream: BufferStreamWriter): void {
-        stream.setUint8(GamePacket.PLAYER_ENTITY_CREATE);
+        stream.setUint8(GamePacket.PLAYER_ENTITY_SPAWN);
         stream.setUint8(this.clientID);
         stream.setFloat32(this.x);
         stream.setFloat32(this.y);
     }
 }
 
-export class PlayerEntityDestroyPacket extends PacketWriter {
+export class PlayerEntityGhostPacket extends PacketWriter {
 
     constructor(public clientID: number){
-        super(true);
+        super(false);
     }
 
     write(stream: BufferStreamWriter): void {
-
-        stream.setUint8(GamePacket.PLAYER_ENTITY_DESTROY);
+        stream.setUint8(GamePacket.PLAYER_ENTITY_GHOST);
         stream.setUint8(this.clientID);
-    
     }
-    
+}
+
+export class PlayerEntityCompletelyDeletePacket extends PacketWriter {
+
+    constructor(public clientID: number){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.PLAYER_ENTITY_COMPLETELY_DELETE);
+        stream.setUint8(this.clientID);
+    }
 }
 
 

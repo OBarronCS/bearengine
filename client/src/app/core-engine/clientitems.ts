@@ -85,7 +85,7 @@ export abstract class Gun<T extends GunItemData = GunItemData> extends Item<T> {
 export function ShootHitscanWeapon(game: NetworkPlatformGame, line: Line): void {
 
     const canvas = game.engine.renderer.createCanvas();
-    line.draw(canvas, 0xbeef00);
+    line.draw(canvas, 0x346eeb);
     const tween = new NumberTween(canvas, "alpha",.4).from(1).to(0).go().onFinish(() => canvas.destroy());
 
     game.entities.addEntity(tween);
@@ -121,7 +121,7 @@ export class Hitscan extends Gun {
 
         ShootHitscanWeapon(game, ray);
 
-        game.networksystem.queuePacket(
+        game.networksystem.enqueueStagePacket(
             new ServerBoundHitscanPacket(0,game.networksystem.getLocalShotID(), ray.A, ray.B)
         )
 
@@ -179,7 +179,7 @@ export class ModularGun<T extends GunItemData> extends Gun<T> {
         const localID = game.networksystem.getLocalShotID();
         game.networksystem.localShotIDToEntity.set(localID,b)
 
-        game.networksystem.queuePacket(
+        game.networksystem.enqueueStagePacket(
             new ServerBoundTerrainCarverPacket(0, localID, this.position.clone(), velocity)
         )
 
