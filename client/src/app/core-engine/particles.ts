@@ -1,8 +1,9 @@
-import { Emitter, EmitterConfig, OldEmitterConfig } from "pixi-particles";
+import { Emitter, EmitterConfigV1, EmitterConfigV2, EmitterConfigV3 } from "shared/graphics/particles";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { NULL_ENTITY_INDEX } from "shared/core/entitysystem";
 import { DefineSchema } from "shared/core/sharedlogic/serialization";
 import { Entity } from "./entity";
+import { Texture } from "shared/graphics/graphics";
 
 
 
@@ -32,56 +33,25 @@ export class EmitterAttach extends Entity {
 
 }
 
-export const PARTICLE_CONFIG = DefineSchema<{ [key:string]: EmitterConfig | OldEmitterConfig } >()({
+export const PARTICLE_CONFIG = DefineSchema<{ [key:string]: EmitterConfigV1 | EmitterConfigV3 } >()({
     ROCKET:{
         "alpha": {
-            list: [
-                {
-                    value: 1,
-                    time: 0,
-                },
-                {
-                    value:.82,
-                    time: 1,
-                }
-            ]
+            "start": 1,
+            "end": 0.82
         },
         "scale": {
-            list: [
-                {
-                    value: .2,
-                    time: 0,
-                },
-                {
-                    value:.01,
-                    time: 1,
-                }
-            ],
+            "start": 0.2,
+            "end": 0.01,
+            "minimumScaleMultiplier": 1
         },
         "color": {
-            list: [
-                {
-                    value: "#aecfd9",
-                    time: 0,
-                },
-                {
-                    value:"#000000",
-                    time: 1,
-                }
-            ],
+            "start": "#aecfd9",
+            "end": "#000000"
         },
         "speed": {
-
-            list: [
-                {
-                    value: 50,
-                    time: 0,
-                },
-                {
-                    value:50,
-                    time: 1,
-                }
-            ],
+            "start": 50,
+            "end": 50,
+            "minimumSpeedMultiplier": 1
         },
         "acceleration": {
             "x": 0,
@@ -94,8 +64,8 @@ export const PARTICLE_CONFIG = DefineSchema<{ [key:string]: EmitterConfig | OldE
         },
         "noRotation": false,
         "rotationSpeed": {
-            "min": 8,
-            "max": 0
+            "min": 0,
+            "max": 8
         },
         "lifetime": {
             "min": 0.2,
@@ -116,85 +86,56 @@ export const PARTICLE_CONFIG = DefineSchema<{ [key:string]: EmitterConfig | OldE
         "angleStart": 0
     },
     TERRAIN_EXPLOSION: {
-        alpha: {
-            list: [
-                {
-                    value: 0.8,
-                    time: 0
-                },
-                {
-                    value: 0.1,
-                    time: 1
-                }
-            ],
-            isStepped: false
+        "alpha": {
+            "start": 0.8,
+            "end": 0.1
         },
-        scale: {
-            list: [
-                {
-                    value: 1,
-                    time: 0
-                },
-                {
-                    value: 0.3,
-                    time: 1
-                }
-            ],
-            isStepped: false
+        "scale": {
+            "start": 1,
+            "end": 0.3,
+            "minimumScaleMultiplier": 1
         },
-        color: {
-            list: [
-                {
-                    value: "fb1010",
-                    time: 0
-                },
-                {
-                    value: "f5b830",
-                    time: 1
-                }
-            ],
-            isStepped: false
+        "color": {
+            "start": "#fb1010",
+            "end": "#f5b830"
         },
-        speed: {
-            list: [
-                {
-                    value: 200,
-                    time: 0
-                },
-                {
-                    value: 100,
-                    time: 1
-                }
-            ],
-            isStepped: false
+        "speed": {
+            "start": 200,
+            "end": 100,
+            "minimumSpeedMultiplier": 1
         },
-        startRotation: {
-            min: 0,
-            max: 360
+        "acceleration": {
+            "x": 0,
+            "y": 0
         },
-        rotationSpeed: {
-            min: 0,
-            max: 0
+        "maxSpeed": 0,
+        "startRotation": {
+            "min": 0,
+            "max": 360
         },
-        lifetime: {
-            min: 0.5,
-            max: 0.5
+        "noRotation": false,
+        "rotationSpeed": {
+            "min": 0,
+            "max": 0
         },
-        frequency: 0.008,
-        spawnChance: 1,
-        particlesPerWave: 1,
-        emitterLifetime: 0.31,
-        maxParticles: 1000,
-        pos: {
-            x: 0,
-            y: 0
+        "lifetime": {
+            "min": 0.5,
+            "max": 0.5
         },
-        addAtBack: false,
-        spawnType: "circle",
-        spawnCircle: {
-            x: 0,
-            y: 0,
-            r: 10
+        "blendMode": "normal",
+        "frequency": 0.008,
+        "emitterLifetime": 0.31,
+        "maxParticles": 1000,
+        "pos": {
+            "x": 0,
+            "y": 0
+        },
+        "addAtBack": false,
+        "spawnType": "circle",
+        "spawnCircle": {
+            "x": 0,
+            "y": 0,
+            "r": 10
         }
     },
     ROUND_WINNER:{
@@ -301,5 +242,5 @@ export const PARTICLE_CONFIG = DefineSchema<{ [key:string]: EmitterConfig | OldE
         "particlesPerWave": 9,
         "particleSpacing": 0,
         "angleStart": 0
-    }
+    },
 });

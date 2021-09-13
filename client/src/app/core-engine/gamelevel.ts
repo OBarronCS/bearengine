@@ -1,4 +1,4 @@
-import { Graphics, Sprite } from "pixi.js";
+import { Graphics, Sprite } from "shared/graphics/graphics";
 
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { string2hex } from "shared/misc/mathutils";

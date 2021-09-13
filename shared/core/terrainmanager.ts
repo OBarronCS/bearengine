@@ -1,4 +1,4 @@
-import type { Graphics } from "pixi.js";
+import type { Graphics } from "shared/graphics/graphics";
 
 import { SpatialGrid } from "shared/datastructures/spatialgrid";
 import { atan2, ceil, cos, floor, sin, TWO_PI } from "shared/misc/mathutils";

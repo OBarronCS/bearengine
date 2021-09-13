@@ -1,4 +1,4 @@
-import { Graphics } from "pixi.js";
+import { Graphics } from "shared/graphics/graphics";
 import { Coordinate, Vec2 } from "shared/shapes/vec2";
 import { min } from "shared/misc/mathutils"
 import { random } from "shared/misc/random";

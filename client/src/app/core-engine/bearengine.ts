@@ -1,5 +1,5 @@
 
-import { Graphics, Loader, Sprite, Texture } from "pixi.js";
+import { Graphics, Loader, Sprite, Texture } from "shared/graphics/graphics";
 import { GUI, GUIController } from "dat.gui";
 
 import { BearGame } from "shared/core/abstractengine";

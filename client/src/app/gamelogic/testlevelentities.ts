@@ -1,5 +1,5 @@
 
-import { BaseTexture, Graphics, Sprite, Texture } from "pixi.js";
+import { BaseTexture, Graphics, Sprite, Texture } from "shared/graphics/graphics";
 
 import { Tilemap } from "shared/datastructures/tilemap";
 import { rgb, Color } from "shared/datastructures/color";

@@ -1,4 +1,4 @@
-import { Graphics } from "pixi.js";
+import { Graphics } from "shared/graphics/graphics";
 import { ColliderPart } from "shared/core/entityattribute";
 import { bearevent } from "shared/core/bearevents";
 import { EntitySystem } from "shared/core/entitysystem";
@@ -11,7 +11,7 @@ import { GameLevel } from "../core-engine/gamelevel";
 import { SpritePart } from "../core-engine/parts";
 import { Player } from "./player";
 import { Polygon } from "shared/shapes/polygon";
-import { Emitter } from "pixi-particles";
+import { Emitter } from "shared/graphics/particles";
 import { PARTICLE_CONFIG } from "../core-engine/particles";
 import { TickTimer } from "shared/datastructures/ticktimer";
 import { Line } from "shared/shapes/line";
@@ -61,7 +61,7 @@ export class FirstLevel extends GameLevel {
     }
 
     start(): void {
-        this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["ROCKET"], this.engine.mouse.x, this.engine.mouse.y);
+        this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["BOOM"], 0,0);
 
         
         // scene.addEntity(new PolygonExpandTest)

@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TilingSprite } from "pixi.js";
+import { Container, Graphics, Text, TilingSprite } from "shared/graphics/graphics";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums";
 import { Subsystem } from "shared/core/subsystem";
 import { round } from "shared/misc/mathutils";

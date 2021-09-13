@@ -1,6 +1,6 @@
 import { Coordinate } from "./vec2";
 import { Rect } from "./rectangle";
-import type { Graphics } from "pixi.js";
+import type { Graphics } from "shared/graphics/graphics";
 import { Polygon } from "./polygon";
 
 

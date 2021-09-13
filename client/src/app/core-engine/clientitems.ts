@@ -1,5 +1,5 @@
-import { Emitter } from "pixi-particles";
-import { Sprite, Graphics } from "pixi.js";
+import { Emitter } from "shared/graphics/particles";
+import { Sprite, Graphics } from "shared/graphics/graphics";
 import { Effect } from "shared/core/effects";
 import { CreateItemData, GunItemData, ItemData, ItemType } from "shared/core/sharedlogic/items";
 import { PacketWriter } from "shared/core/sharedlogic/networkschemas";

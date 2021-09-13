@@ -3,7 +3,7 @@ import { Coordinate, Vec2, mix } from "./vec2";
 import { Rect } from "./rectangle";
 import { Polygon } from "./polygon";
 import { dcos, dsin, PI, sin, cos } from "../misc/mathutils";
-import type { Graphics } from "pixi.js";
+import type { Graphics } from "shared/graphics/graphics";
 
 
 export class Ellipse implements Shape<Ellipse>{

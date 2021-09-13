@@ -1,4 +1,4 @@
-import { Text, Container, Point, TextStyle } from "pixi.js";
+import { Text, Container, Point, TextStyle } from "shared/graphics/graphics";
 import { Coordinate, mix, Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
 

@@ -1,6 +1,5 @@
 import { BearEngine, NetworkPlatformGame } from "./core-engine/bearengine";
 import { DropTarget } from "./apiwrappers/draganddrop";
-import { Texture, BaseTexture, Sprite, Point, resources, Graphics } from "pixi.js";
 import { LockKeys } from "./apiwrappers/keyboardapiwrapper";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { Player } from "./gamelogic/player";

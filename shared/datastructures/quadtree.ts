@@ -1,7 +1,7 @@
 
 
 
-import type { Graphics } from "pixi.js";
+import type { Graphics } from "shared/graphics/graphics";
 import { rgb } from "./color";
 import { clamp, isPow2, string2hex } from "shared/misc/mathutils";
 import { ModifiablePQ } from "./priorityqueue";

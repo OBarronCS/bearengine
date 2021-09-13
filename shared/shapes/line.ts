@@ -1,6 +1,6 @@
 import { Vec2, Coordinate, mix } from "./vec2";
 import { Rect } from "./rectangle";
-import type { Graphics } from "pixi.js";
+import type { Graphics } from "shared/graphics/graphics";
 import { abs, clamp, sqrt } from "../misc/mathutils";
 import { drawLineBetweenPoints } from "shared/shapes/shapedrawing";
 import { Ellipse } from "./ellipse";

@@ -1,5 +1,5 @@
 
-import type { Graphics } from "pixi.js";
+import type { Graphics } from "shared/graphics/graphics";
 import { blend, rgb } from "./color";
 
 import { ModifiablePQ } from "./priorityqueue";
