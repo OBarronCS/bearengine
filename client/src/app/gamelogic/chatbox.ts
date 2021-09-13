@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TextStyle, TextMetrics } from "pixi.js";
+import { Container, Graphics, Text, TextStyle, TextMetrics } from "shared/graphics/graphics";
 import { PacketWriter } from "shared/core/sharedlogic/networkschemas";
 import { ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { SerializeShortString, StringIsPrintableASCII } from "shared/core/sharedlogic/serialization";

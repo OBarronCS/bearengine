@@ -1,7 +1,8 @@
 import { Vec2 } from "shared/shapes/vec2";
 import { sign } from "shared/misc/mathutils";
-import { Point } from "pixi.js";
+import { Point } from "shared/graphics/graphics";
 import { BearEngine } from "../core-engine/bearengine";
+import { InteractionManager } from "shared/node_modules/pixi.js";
 
 export type MouseButton = "left" | "middle" | "right" 
 
@@ -76,9 +77,8 @@ export class EngineMouse {
 
             // Transforms it into the space of 
             const canvasPoint = new Point();
-            renderer.renderer.plugins.interaction.mapPositionToPoint(canvasPoint,this.screenPosition.x,this.screenPosition.y);
+            (renderer.renderer.plugins.interaction as InteractionManager).mapPositionToPoint(canvasPoint,this.screenPosition.x,this.screenPosition.y);
             
-            // @ts-expect-error
             renderer.mainContainer.toLocal(canvasPoint,undefined,this.position);
         }
 
@@ -95,7 +95,7 @@ export class EngineMouse {
         targetWindow.addEventListener("wheel", (e) => {
             const canvasPoint = new Point();
             renderer.renderer.plugins.interaction.mapPositionToPoint(canvasPoint,this.screenPosition.x,this.screenPosition.y);
-            // @ts-expect-error
+            
             renderer.mainContainer.toLocal(canvasPoint,undefined,this.position);
 
             this.scroll = sign(e.deltaY);
@@ -143,8 +143,8 @@ export class EngineMouse {
         // Set position of mouse
         const canvasPoint = new Point();
         const renderer = this.engine.renderer;
-        renderer.renderer.plugins.interaction.mapPositionToPoint(canvasPoint,this.screenPosition.x,this.screenPosition.y);
-        // @ts-expect-error
+        (renderer.renderer.plugins.interaction as InteractionManager).mapPositionToPoint(canvasPoint,this.screenPosition.x,this.screenPosition.y);
+        
         renderer.mainContainer.toLocal(canvasPoint,undefined,this.position);
 
         this.velocity.set({x: this.position.x - this.lastPosition.x, y: this.position.y - this.lastPosition.y}) 

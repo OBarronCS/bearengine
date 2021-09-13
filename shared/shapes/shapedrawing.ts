@@ -1,4 +1,4 @@
-import type { Graphics } from "pixi.js";
+import type { Graphics } from "shared/graphics/graphics";
 import { Coordinate } from "./vec2";
 
 export function drawHealthBar(g: Graphics, x1: number, y1: number, width: number, height: number, percent: number, alpha = 1){

@@ -3,7 +3,7 @@ import { Coordinate, Vec2, mix, flattenVecArray, distanceSquared } from "./vec2"
 import { Rect } from "./rectangle";
 import { abs, atan2, cos, max, min, niceColor, PI, sign, sin, TWO_PI } from "../misc/mathutils";
 
-import type { Graphics, Point } from "pixi.js";
+import type { Graphics, Point } from "shared/graphics/graphics";
 
 import { default as earcut } from "earcut";
 

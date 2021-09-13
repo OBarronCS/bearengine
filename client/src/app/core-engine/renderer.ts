@@ -1,11 +1,11 @@
-import { autoDetectRenderer, Renderer, Container, DisplayObject, utils, InteractionManager, Graphics, Sprite, Texture } from "pixi.js";
+import { autoDetectRenderer, Renderer, Container, DisplayObject, utils, InteractionManager, Graphics, Sprite, Texture, AbstractRenderer } from "shared/graphics/graphics";
 import { clamp, E } from "shared/misc/mathutils";
 import { BearEngine } from "./bearengine";
 import { GraphicsPart, SpritePart } from "./parts";
 import { Subsystem } from "shared/core/subsystem";
 import { Color } from "shared/datastructures/color";
 
-import { Emitter, EmitterConfig, OldEmitterConfig } from "pixi-particles"
+import { Emitter, EmitterConfigV1, EmitterConfigV2, EmitterConfigV3, upgradeConfig } from "shared/graphics/particles";
 import { BearGame } from "shared/core/abstractengine";
 
 
@@ -22,7 +22,7 @@ const isMobile = utils.isMobile.any;
 export class RendererSystem {
 
 
-    public renderer: Renderer;
+    public renderer: AbstractRenderer;
 
     public stage = new Container();
     public guiContainer = new Container();
@@ -34,10 +34,20 @@ export class RendererSystem {
 
     private emitters: Emitter[] = [];
 
-    addEmitter(path: string, settings: EmitterConfig | OldEmitterConfig, x: number, y: number): Emitter {
-        const e = new Emitter(this.mainContainer, this.getTexture(path), settings);
+    addEmitter(path: string, settings: EmitterConfigV1 | EmitterConfigV3, x: number, y: number): Emitter {
+        const newVersionSettings = upgradeConfig(settings, this.getTexture(path));
+        const e = new Emitter(this.mainContainer, newVersionSettings);
+
+        e.emit = true;
+
+        console.log(e);
+
+        //e["_completeCallback"]
+
         e.updateSpawnPos(x, y);
+
         this.emitters.push(e);
+
         return e;
     }
 

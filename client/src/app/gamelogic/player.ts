@@ -1,4 +1,4 @@
-import { AnimatedSprite, Container, Graphics, Sprite, Texture } from "pixi.js";
+import { AnimatedSprite, Container, Graphics, Sprite, Texture } from "shared/graphics/graphics";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { ColliderPart } from "shared/core/entityattribute";
 import { clamp, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/misc/mathutils";
@@ -14,7 +14,6 @@ import { RemoteLocations } from "../core-engine/networking/remotecontrol";
 import { GraphicsPart, SpritePart } from "../core-engine/parts";
 import { SavePlayerAnimation } from "./testlevelentities";
 
-import { Emitter } from "pixi-particles";
 import { CreateItemData, ItemData } from "shared/core/sharedlogic/items"
 import { Gun, Hitscan, Item, ItemDrawer, TerrainCarverGun } from "../core-engine/clientitems";
 import { EmitterAttach, PARTICLE_CONFIG } from "../core-engine/particles";

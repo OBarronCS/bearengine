@@ -1,7 +1,7 @@
 
 // use Rect class for the bounding boxes
 
-import type { Graphics } from "pixi.js";
+import type { Graphics } from "shared/graphics/graphics";
 import { PQ } from "./priorityqueue";
 import { Ellipse } from "../shapes/ellipse";
 import { Rect } from "../shapes/rectangle";

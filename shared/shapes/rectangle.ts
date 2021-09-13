@@ -3,7 +3,7 @@ import { Shape } from "./shapesinterfaces";
 import { Polygon, minPoint, maxPoint } from "./polygon";
 import { min, max, clamp } from "shared/misc/mathutils";
 import { lines_intersect } from "./line";
-import type { Graphics } from "pixi.js";
+import type { Graphics } from "shared/graphics/graphics";
 
 export interface Dimension {
     width: number;

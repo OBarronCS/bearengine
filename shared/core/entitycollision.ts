@@ -9,7 +9,7 @@ Two uses:
 Only for collision detection for AABB's. No resolution.
 */
 
-import type { Graphics } from "pixi.js";
+import type { Graphics } from "shared/graphics/graphics";
 import { Line } from "shared/shapes/line";
 import { Rect } from "shared/shapes/rectangle";
 import { SpatialGrid } from "shared/datastructures/spatialgrid";
