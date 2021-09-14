@@ -31,12 +31,12 @@ const http_server = app.listen(80,() => {
     console.log("we are good to goo!")
 });
 
-const websocket = new Server({ server: http_server })
+const websocket_server = new Server({ server: http_server })
 
 const TICK_RATE = 10;
 const engine = new ServerBearEngine(TICK_RATE);
 
-engine.start(websocket);
+engine.start(websocket_server);
 
 
 

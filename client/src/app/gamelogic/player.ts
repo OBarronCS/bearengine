@@ -598,11 +598,12 @@ export class Player extends DrawableEntity {
         const health_width = 500;
         const health_height = 40;
         const x = this.engine.renderer.getPercentWidth(.5) - (health_width / 2);
+        const y = this.engine.renderer.getPercentHeight(0) + 20// - 60;
 
         this.healthbar.clear();
         
         if(!this.ghost) {
-            drawHealthBar(this.healthbar, x, 20, health_width, health_height, this.health / 100, 1);
+            drawHealthBar(this.healthbar, x, y, health_width, health_height, this.health / 100, 1);
         }
 
         

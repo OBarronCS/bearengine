@@ -267,6 +267,17 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         this.deleteEntityQueue.push(id);
     }
 
+    destroyAllExcept(entities: TEntity[]){
+
+        const eSet = new Set(entities.map(e => e.entityID));
+
+        for(const entity of this.entities){
+            if(!eSet.has(entity.entityID)){
+                this.destroyEntityID(entity.entityID);
+            }
+        }
+    }
+
     private destroyEntityImmediately(entityID: EntityID){
         const sparseIndex = getEntityIndex(entityID);
         const version = getEntityVersion(entityID); 
@@ -356,11 +367,11 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
 
         for(const e of entityCopy){
             this.destroyEntityImmediately(e.entityID);
-        }    
-
-        for(const id of this.deleteEntityQueue){
-            this.destroyEntityImmediately(id);
         }
+
+        // for(const id of this.deleteEntityQueue){
+        //     this.destroyEntityImmediately(id);
+        // }
         this.deleteEntityQueue = [];
         
         this.freeID = NULL_ENTITY_INDEX;

@@ -34,18 +34,24 @@ type PulseDefinition = {
     submode: "auto"|"semiauto"
 }
 
-export type SimpleWeaponControllerDefinition = AutoDefinition | SemiAutoDefinition | PulseDefinition;
+type ChargeDefinition = {
+    type: "charge",
+}
 
-export function CreateShootController(def: AutoDefinition | SemiAutoDefinition | PulseDefinition): GunshootController {
+export type SimpleWeaponControllerDefinition = AutoDefinition | SemiAutoDefinition | PulseDefinition | ChargeDefinition;
+
+export function CreateShootController(def: SimpleWeaponControllerDefinition): GunshootController {
     
     let trigger: GunshootController
     
     if(def.type === "semiauto"){
         trigger = new SemiAutoController(def.time_between_shots);
-    } else if(def.type == "auto"){
+    } else if(def.type === "auto"){
         trigger = new AutoController(def.time_between_shots);
-    } else if(def.type == "pulse"){
+    } else if(def.type === "pulse"){
         trigger = new PulseController(def.submode, def.time_between_shots, def.shots_per_burst,def.time_between_bullet);
+    } else if(def.type === "charge"){
+        trigger = new ChargeController();
     }
 
     return trigger;
@@ -55,11 +61,43 @@ export function CreateShootController(def: AutoDefinition | SemiAutoDefinition |
 
 export interface GunshootController {
     // returns if we can shoot!
-    holdTrigger: (hold: boolean) => boolean
+    holdTrigger: (hold: boolean) => boolean;
 }
 
 class ChargeController implements GunshootController {
-    holdTrigger: (hold: boolean) => boolean
+
+    public percent_per_tick = .02;
+    public percent_loss = .01;
+    public percent = 0;
+
+    public needToLift = false;
+    public lifted = true;
+
+    holdTrigger(hold: boolean): boolean {
+        if(hold){
+            console.log(this.percent)
+            if(this.lifted){
+                this.percent += this.percent_per_tick;
+
+                if(this.percent >= 1){
+                    this.percent = 0;
+
+                    if(this.needToLift) this.lifted = false;
+                    
+                    return true;
+                }
+            }
+        } else {
+            this.percent -= this.percent_loss;
+
+            this.lifted = true;
+        }
+
+        if(this.percent < 0) this.percent = 0;
+
+
+        return false;
+    }
 }
 
 // TODO: make this also have a max time, like .2 seconds or something

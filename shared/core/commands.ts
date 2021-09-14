@@ -105,7 +105,7 @@ class StringOptionsParser<TStringOptions extends string = string> implements Com
 
 
         if(!this.options.has(passedInString)){
-            return ErrorResult(`${passedInString} not valid, must be ${[...this.options].toString()}`);
+            return ErrorResult(`'${passedInString}' not valid, must be ${[...this.options].toString()}`);
         }
 
         return ValidResult(passedInString);
@@ -199,6 +199,46 @@ export function BindCommandCreator<TContext>(){
 export class CommandDatabase<TContext> {
 
     private commands: Map<string, CommandParser<any, TContext>> = new Map();
+
+    
+    /**
+     * Allows use of ; to seperate multiple commands in one string
+     * Stops at first failed command
+     * 
+     * Spaces allowed around semi-colon
+     */
+    parseMultiCommand(context: TContext, command: string): CheckedResult<null, string> {
+        const trimmedString = command.trim();
+
+        if(trimmedString.length === 0){
+            return ErrorResult("Empty command")
+        }
+
+        const commands = trimmedString.split(";");
+
+
+        console.log(commands);
+
+        for(const c of commands){
+            const trimmedC = c.trim();
+
+            console.log(trimmedC);
+
+            if(c.length === 0){
+                continue;                
+            }
+
+            const result = this.parse(context, c);
+
+            
+
+            if(result.success === false){
+                return ErrorResult(result.error);
+            }
+        }
+
+        return ValidResult(null);
+    }
 
     parse(context: TContext, command: string): CheckedResult<null, string> {
         const trimmedString = command.trim();

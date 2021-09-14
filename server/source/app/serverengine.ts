@@ -149,11 +149,23 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         this.initialize();
 
         this.network = new ServerNetwork(socket);
-        this.network.start();
+
+    
+        this.network.start(); // this.onClientJoin.bind(this),this.onClientLeave.bind(this)
         this.previousTickTime = Date.now();
 
         this.loop();
     }
+
+    // private onClientJoin(clientID: ConnectionID){
+
+    // }
+
+    // // Always called, whenever a client disconnects
+    // // This will get called after calling "clientkick" on websocket server
+    // private onClientLeave(clientID: ConnectionID){
+
+    // }
 
 
     beginMatch(){
@@ -298,9 +310,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             this.beginRound("LEVEL_ONE");
         }
     }
-
   
-    
     //@ts-expect-error
     broadcastRemoteFunction<T extends keyof RemoteFunction>(name: T, ...args: NetCallbackTupleType<RemoteFunction[T]>){
         
@@ -329,7 +339,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 
     dispatchCommand(command: string){
-        const result = commandDispatcher.parse({engine:this, targetPlayer: null}, command);
+        const result = commandDispatcher.parseMultiCommand({engine:this, targetPlayer: null}, command);
 
         if(result.success === false){
             console.log(`Command failed: ${result.error}`)
@@ -340,7 +350,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     dispatchClientCommand(command: string, clientID: ConnectionID){
         const player = this.players.get(clientID);
 
-        const result = commandDispatcher.parse({engine:this, targetPlayer: player}, command);
+        const result = commandDispatcher.parseMultiCommand({engine:this, targetPlayer: player}, command);
 
         if(result.success === false){
             console.log(`Command failed: ${result.error}`)

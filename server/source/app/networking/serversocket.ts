@@ -30,7 +30,7 @@ export class ServerNetwork {
 
     protected server: WS.Server;
 
-    private NEXT_CONNECTION_ID = 0;
+    private NEXT_CONNECTION_ID: ConnectionID = 0;
 
     // List of connections. WS also has a built into way to do this
     protected sockets: WS[] = [];
@@ -40,25 +40,33 @@ export class ServerNetwork {
 
     private packets = new LinkedQueue<BufferedPacket>();
     
+    // private onClientJoin: (clientID: ConnectionID) => void = null;
+    // private onClientDisconnect: (clientID: ConnectionID) => void = null;
     
     constructor(server: WS.Server){
         this.server = server;
     }
 
-    /** Start handling websocket connections */
-    public start(){
+    /** Start handling websocket connections 
+     *  Pass in callbacks to handle new connections, disconnections
+    */
+    public start(){ // onJoin: ServerNetwork["onClientJoin"], onDisconnect: ServerNetwork["onClientDisconnect"]
         this.server.on("connection", this.newClient.bind(this));
 
         this.server.on("close", () => {
             console.log("Server closed")
         });
+
+        // this.onClientJoin = onJoin;
+        // this.onClientDisconnect = onDisconnect;
     }
 
     /** On client connection. Socket is unique to client */
     private newClient(socket: WS, requestInfo: IncomingMessage){
         console.log("New connection");
-        //console.log(requestInfo.headers.origin)
-        //console.log(requestInfo.rawHeaders)
+        // console.log(requestInfo.headers.origin)
+        // console.log(requestInfo.rawHeaders)
+        // console.log(requestInfo.toString())
 
         socket.binaryType = "arraybuffer";
         this.sockets.push(socket);
@@ -97,6 +105,8 @@ export class ServerNetwork {
             
             const index = this.sockets.indexOf(socket);
             this.sockets.splice(index,1);
+
+            // this.onClientDisconnect(client);
         });
 
         socket.on("message", (data: ArrayBuffer) => {
@@ -141,6 +151,8 @@ export class ServerNetwork {
                 default: AssertUnreachable(type);
             }           
         });
+
+        // this.onClientJoin(connectionID);
     }
     
 
@@ -168,7 +180,7 @@ export class ServerNetwork {
     public kickclient(clientID: ConnectionID){
         const socket = this.reverseClientMap.get(clientID);
         socket.close();
-        // socket.terminate(); --> close is immediately
+        // socket.terminate(); --> closes immediately
     }
 
     public closeServer(){

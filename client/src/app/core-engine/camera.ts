@@ -60,7 +60,7 @@ export class CameraSystem  {
             this.top = -50;
         }
         space();
-        keyboard.bind("space", space);
+        // keyboard.bind("space", space);
 
         // DRAGGING 
 

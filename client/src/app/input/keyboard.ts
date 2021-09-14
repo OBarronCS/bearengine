@@ -2,6 +2,18 @@ import * as Mousetrap from "mousetrap"
 import { ExtendedKeyboardEvent, MousetrapInstance } from "mousetrap";
 import { KECode } from "../apiwrappers/keyboardapiwrapper";
 
+class KeyPressInfo {
+    constructor(public readonly code: KECode, public readonly char: string)
+    {
+
+    }
+
+    toString(): string {
+        return `code:'${this.code}', char:'${this.char}'`;
+    }
+
+}
+
 export class EngineKeyboard {
 
     // Things that were down last tick
@@ -14,8 +26,8 @@ export class EngineKeyboard {
     private keyPressedMap = new Map<KECode,boolean>();
 
     // Does not capture some keys, like backkey and forward
-    private _tempAllPressedKeys: { code: KECode, char: string}[] = [];
-    private allPressedKeys: { code: KECode, char: string}[] = [];
+    private _tempAllPressedKeys: KeyPressInfo[] = [];
+    private allPressedKeys: KeyPressInfo[] = [];
 
     // Was it released between this an last tick
     private keyReleasedMap = new Map<KECode,boolean>();
@@ -45,10 +57,7 @@ export class EngineKeyboard {
         form.addEventListener("keydown",(e) => {
             this.keyDownMap.set(e.code as KECode,true);
             
-            this._tempAllPressedKeys.push({
-                code: e.code as KECode,
-                char: e.key
-            });
+            this._tempAllPressedKeys.push(new KeyPressInfo(e.code as KECode, e.key));
         });
         
         form.addEventListener("keyup",(e) => {

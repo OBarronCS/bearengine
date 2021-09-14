@@ -50,19 +50,22 @@ export class FirstLevel extends GameLevel {
 
     update(dt: number): void {
         this.emitter.updateSpawnPos(this.engine.mouse.x, this.engine.mouse.y);
-        if(this.engine.mouse.wasPressed("left")){
+        if(this.engine.mouse.isDown("left")){
 
             const e = new PhysicsDotEntity(this.engine.mouse);
             e.velocity.set(this.engine.mouse.velocity.clone().scale(.2))
-            e.velocity.set({x:30,y:0})
-
+            e.velocity.set({x:30,y:10})
             this.game.entities.addEntity(e)
         }
+        this.p.manualUpdate(dt);
     }
+
+    private p;
 
     start(): void {
         this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["BOOM"], 0,0);
 
+        this.p = this.game.entities.addEntity(new Player())
         
         // scene.addEntity(new PolygonExpandTest)
         //const p = scene.addEntity(new Player());
@@ -230,8 +233,8 @@ class PhysicsDotEntity extends DrawableEntity {
 
                 const bounce_test = this.terrain.lineCollisionExt(this.position, Vec2.add(this.position, lastStretchVel));
 
-                distanceToMove *= .9;
-                this.velocity.scale(.9);
+                distanceToMove *= .7;
+                this.velocity.scale(.7);
 
                 distanceToMove -= lastStretchVel.length();
 

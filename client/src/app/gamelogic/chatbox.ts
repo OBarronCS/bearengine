@@ -27,7 +27,11 @@ export class ServerBoundChatRequestPacket extends PacketWriter {
 export class Chatbox extends Subsystem<NetworkPlatformGame> {
 
 
-    private text_buffer = new TextGapBuffer(MAX_MESSAGE_SIZE);
+    private complete_buffers: TextGapBuffer[] = [];
+    private selected_index = 0;
+
+    
+    private current_text_buffer = new TextGapBuffer(MAX_MESSAGE_SIZE);
 
 
     container = new Container();
@@ -78,6 +82,14 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
         //window.addEventListener("keydown", e => {console.log(e.code, e.key)})
     }
 
+    
+    private setSelectedBufferToCurrent(){
+        
+        if(this.selected_index !== this.complete_buffers.length){
+            this.current_text_buffer.copyFrom(this.complete_buffers[this.selected_index]);
+            this.selected_index = this.complete_buffers.length;
+        }
+    }
 
     update(delta: number): void {
         if(this.enabled){
@@ -86,34 +98,57 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
             
             for(const info of press_info){
                 switch(info.code){
+                    case "ArrowUp": {
+                        this.selected_index -= 1;
+                        if(this.selected_index < 0) this.selected_index = 0;
+
+
+                        break;
+                    }
+
+                    case "ArrowDown": {
+                        this.selected_index += 1;
+                        if(this.selected_index > this.complete_buffers.length) this.selected_index = this.complete_buffers.length;
+
+                        break;
+                    }
+
                     case "ArrowLeft": { 
+                        this.setSelectedBufferToCurrent();
+
                         if(this.engine.keyboard.isDown("ControlLeft")){
-                            this.text_buffer.wordLeft()
+                            this.current_text_buffer.wordLeft()
                         } else { 
-                            this.text_buffer.cursorLeft(); 
+                            this.current_text_buffer.cursorLeft(); 
                         }
 
                         break;
                     }
                     case "ArrowRight": {
+                        this.setSelectedBufferToCurrent();
+
                         if(this.engine.keyboard.isDown("ControlLeft")){
-                            this.text_buffer.wordRight()
+                            this.current_text_buffer.wordRight()
                         } else { 
-                            this.text_buffer.cursorRight(); 
+                            this.current_text_buffer.cursorRight(); 
                         }
 
                         break;
                     }
                     case "Backspace": {
+                        this.setSelectedBufferToCurrent();
+
                         if(this.engine.keyboard.isDown("ControlLeft")){
-                            this.text_buffer.deleteWord();
+                            this.current_text_buffer.deleteWord();
                         } else {
-                            this.text_buffer.deleteChar();
+                            this.current_text_buffer.deleteChar();
                         }
                         break;
                     }
                     case "Enter": {
-                        const word = this.text_buffer.createString();
+                        this.setSelectedBufferToCurrent();
+
+                        const word = this.current_text_buffer.createString();
 
                         if(word.length <= 255){
                             this.game.networksystem.enqueueGeneralPacket(
@@ -121,15 +156,27 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
                             )
                         }
 
-                        this.text_buffer.clear();
+                        this.complete_buffers.push(this.current_text_buffer);
+
+                        this.current_text_buffer = new TextGapBuffer(MAX_MESSAGE_SIZE);
+
+                        this.selected_index = this.complete_buffers.length;
+
+
+                        // for(const buffer of this.complete_buffers){
+                        //     console.log(buffer.createString())
+                        // }
 
                         break;
                     }
                     default: {
-                        // console.log(info.char, info.code);
+                        
+                        // console.log(info);
+
+                        this.setSelectedBufferToCurrent()
 
                         if(info.char.length === 1 && StringIsPrintableASCII(info.char)){
-                            this.text_buffer.insertChar(info.char.charCodeAt(0));
+                            this.current_text_buffer.insertChar(info.char.charCodeAt(0));
                         }
                     }
                 }
@@ -138,9 +185,13 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
 
             // Update text if something was pressed
             if(press_info.length !== 0){
-                this.text_field.text = this.text_buffer.createString();
 
-                this.text_metrics = TextMetrics.measureText(this.text_field.text.substring(0,this.text_buffer["endLeft"]), this.text_style);
+                
+                const buffer = this.selected_index === this.complete_buffers.length ? this.current_text_buffer : this.complete_buffers[this.selected_index];
+
+                this.text_field.text = buffer.createString();
+
+                this.text_metrics = TextMetrics.measureText(this.text_field.text.substring(0,buffer["endLeft"]), this.text_style);
             }
 
             // Draw cursors at correct spot 
@@ -190,6 +241,12 @@ class TextGapBuffer {
 
         this.endLeft = 0;
         this.startRight = this.max_size;
+    }
+
+    copyFrom(buffer: TextGapBuffer){
+        this.buffer.set(buffer.buffer);
+        this.endLeft = buffer.endLeft;
+        this.startRight = buffer.startRight;
     }
 
     cursorLeft(): void {
