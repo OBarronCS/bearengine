@@ -40,7 +40,7 @@ export class RendererSystem {
 
         e.emit = true;
 
-        console.log(e);
+        // console.log(e);
 
         //e["_completeCallback"]
 

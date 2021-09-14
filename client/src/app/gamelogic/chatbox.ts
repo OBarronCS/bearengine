@@ -92,6 +92,14 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
     }
 
     update(delta: number): void {
+
+        if(this.engine.keyboard.wasPressed("Slash")){
+            if(!this.enabled){
+                this.enabled = true;
+                this.container.visible = true;   
+            }
+        }
+
         if(this.enabled){
             const press_info = this.engine.keyboard.pressedKeyInfo();
 
@@ -166,6 +174,9 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
                         // for(const buffer of this.complete_buffers){
                         //     console.log(buffer.createString())
                         // }
+
+                        this.enabled = false;
+                        this.container.visible = false;
 
                         break;
                     }
