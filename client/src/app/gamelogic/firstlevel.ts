@@ -1,4 +1,4 @@
-import { Graphics } from "shared/graphics/graphics";
+import { Graphics, Sprite } from "shared/graphics/graphics";
 import { ColliderPart } from "shared/core/entityattribute";
 import { bearevent } from "shared/core/bearevents";
 import { EntitySystem } from "shared/core/entitysystem";
@@ -52,12 +52,12 @@ export class FirstLevel extends GameLevel {
         this.emitter.updateSpawnPos(this.engine.mouse.x, this.engine.mouse.y);
         if(this.engine.mouse.isDown("left")){
 
-            const e = new PhysicsDotEntity(this.engine.mouse);
+            const e = new PhysicsDotEntity(this.engine.mouse, "vector.jpg");
             e.velocity.set(this.engine.mouse.velocity.clone().scale(.2))
             e.velocity.set({x:30,y:10})
             this.game.entities.addEntity(e)
         }
-        this.p.manualUpdate(dt);
+        // this.p.manualUpdate(dt);
     }
 
     private p;
@@ -65,7 +65,7 @@ export class FirstLevel extends GameLevel {
     start(): void {
         this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["BOOM"], 0,0);
 
-        this.p = this.game.entities.addEntity(new Player())
+        // this.p = this.game.entities.addEntity(new Player())
         
         // scene.addEntity(new PolygonExpandTest)
         //const p = scene.addEntity(new Player());
@@ -165,8 +165,11 @@ export class FirstLevel extends GameLevel {
 
 
 
-class PhysicsDotEntity extends DrawableEntity {
+export class PhysicsDotEntity extends DrawableEntity {
     
+    private sprite: SpritePart;
+
+
     velocity = new Vec2(0,0);
     private gravity = new Vec2(0,.4);
 
@@ -174,17 +177,22 @@ class PhysicsDotEntity extends DrawableEntity {
 
     private drawRadius = 10;
 
-    constructor(point: Coordinate){
+    constructor(point: Coordinate, spr_source: string | Sprite){
         super();
         this.position.set(point);
         this.redraw();
+
+        this.sprite = this.addPart(new SpritePart(spr_source));
+
+
+        this.sprite.originPercent = new Vec2(.5, .5);
     }
 
 
 
     draw(g: Graphics): void {
-        g.beginFill(0x00FF00);
-        g.drawCircle(this.x, this.y, this.drawRadius);
+        //g.beginFill(0x00FF00);
+        //g.drawCircle(this.x, this.y, this.drawRadius);
     }
 
     

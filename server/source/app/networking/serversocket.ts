@@ -17,12 +17,9 @@ interface BufferedPacket {
 // class SocketWrapper {
 //     connectionID: ConnectionID;
 //     socket: WS;
-
 //     constructor(){
 //         // this.socket.
 //     }
-
-
 // }
 
 export class ServerNetwork {

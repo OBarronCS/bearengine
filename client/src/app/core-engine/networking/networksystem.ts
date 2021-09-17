@@ -568,7 +568,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             // }
 
                             if(this.currentPlayState === ClientPlayState.ACTIVE){
-                                console.log("AHAHAHHA");
+                                // console.log("AHAHAHHA");
                                 this.game.player.position.set({x, y});
                                 this.game.player.clearItem();
                                 this.game.player.setGhost(false);

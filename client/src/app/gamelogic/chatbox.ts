@@ -93,7 +93,7 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
 
     update(delta: number): void {
 
-        if(this.engine.keyboard.wasPressed("Slash")){
+        if(this.engine.keyboard.wasPressed("Slash") && !this.engine.keyboard.isDown("ShiftLeft")){
             if(!this.enabled){
                 this.enabled = true;
                 this.container.visible = true;   

@@ -19,6 +19,7 @@ import { Gun, Hitscan, Item, ItemDrawer, TerrainCarverGun } from "../core-engine
 import { EmitterAttach, PARTICLE_CONFIG } from "../core-engine/particles";
 import { Effect } from "shared/core/effects";
 import { random_range } from "shared/misc/random";
+import { PhysicsDotEntity } from "./firstlevel";
 
 
 
@@ -1224,48 +1225,55 @@ export class RemotePlayer extends Entity {
         this.ghost = ghost;
 
         if(ghost){
+            this.graphics.graphics.clear();
+
+            this.runAnimation.container.visible = false;
+            this.wallslideAnimation.container.visible = false;
+            this.idleAnimation.container.visible = false;
+            this.climbAnimation.container.visible = false;
+
             this.scene.addEntity(new EmitterAttach(this,"BOOM", "particle.png"));
-            // const {
-            //     headSprite,
-            //     bodySprite,
-            //     leftHandSprite,
-            //     rightHandSprite, 
-            //     leftFootSprite,
-            //     rightFootSprite
-            // } = this.idleAnimation;
+            const {
+                headSprite,
+                bodySprite,
+                leftHandSprite,
+                rightHandSprite, 
+                leftFootSprite,
+                rightFootSprite
+            } = this.idleAnimation;
 
 
-            // const iter = [headSprite,
-            //     bodySprite,
-            //     leftHandSprite,
-            //     rightHandSprite,
-            //     leftFootSprite,
-            //     rightFootSprite
-            // ]
+            const iter = [headSprite,
+                bodySprite,
+                leftHandSprite,
+                rightHandSprite,
+                leftFootSprite,
+                rightFootSprite
+            ]
 
-            // class E extends Entity {
+            
+            for(const i of iter){
+                const spr = new Sprite(i.texture);
+                spr.scale.set(2,2);
 
-            //     constructor(s: Sprite, public initialVel: Vec2){
-            //         super();
-            //         const d = this.addPart(new SpritePart(s));
-            //         d.scale = new Vec2(2,2);
-            //     }
+                const e = new PhysicsDotEntity(this.engine.mouse, spr);
 
-            //     update(dt: number): void {
-            //         this.position.add(this.initialVel);
-            //     }
+                e.position.set(this.position);
 
-            // }
-
-            // for(const i of iter){
-            //     const e = new E(i, new Vec2(random_range(-20, 20), random_range(-20, 20)));
-            //     e.position.set(this.position);
-            //     this.scene.addEntity(e);
-            // }
+                e.velocity.set(new Vec2(random_range(-20, 20), random_range(-20, 20)));
+                this.game.entities.addEntity(e);
+                
+                
+                
+                this.scene.addEntity(e);
+            }
             
             
         } else {
-
+            this.runAnimation.container.visible = true;
+            this.wallslideAnimation.container.visible = true;
+            this.idleAnimation.container.visible = true;
+            this.climbAnimation.container.visible = true;
         }
     }
 

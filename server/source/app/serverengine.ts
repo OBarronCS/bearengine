@@ -452,6 +452,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         break;
                     }
                     case ServerBoundPacket.LEAVE_GAME: {
+                        // Clear all data associated with this client
                         console.log(`Player leaving: ${clientID}`);
 
                         const index = this.clients.indexOf(clientID);
@@ -460,7 +461,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                             continue;
                         }
 
-                        
+
                         this.clients.splice(index,1);
                         this.players.delete(clientID);
 

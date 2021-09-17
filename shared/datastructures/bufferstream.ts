@@ -1,4 +1,4 @@
-import { assert } from "shared/misc/assertstatements";
+import { CheckedResult, ErrorResult, ValidResult } from "shared/core/commands";
 
 export class BufferStreamReader  {
     
@@ -21,8 +21,10 @@ export class BufferStreamReader  {
         this.byteOffset = toByte;
     }
 
-    /// PacketID === 0 is invalid
-    /// ASSUMES WE ARE READING GAME DATA 
+    hasNMoreBytes(n: number): boolean {
+        return (this.size - this.byteOffset) >= n; 
+    }
+
     hasMoreData(): boolean {
         return this.byteOffset !== this.size;
     }
@@ -99,6 +101,136 @@ export class BufferStreamReader  {
     }
 }
 
+enum ReadError {
+    RANGE_ERROR,
+    NO_MEMORY_LEFT
+}
+
+type ReadResult<T> = CheckedResult<T, ReadError>;
+
+// A wrapper for BufferStreamReader that allows error checking
+export class CheckedBufferStreamReader {
+
+    private stream: BufferStreamReader;
+
+    constructor(buffer: ArrayBufferLike){
+        this.stream = new BufferStreamReader(buffer);
+    }
+
+    getBuffer(){
+        return this.stream.getBuffer();
+    }
+
+    // seek(toByte: number){
+    //     this.stream.seek(toByte);
+    // }
+    hasMoreData(): boolean {
+        return this.stream.hasMoreData();
+    }
+
+    hasNMoreBytes(n: number): boolean {
+        return this.stream.hasNMoreBytes(n);
+    }
+
+    getBigInt64(): ReadResult<bigint> {
+        if(!this.hasNMoreBytes(8)){
+            return ErrorResult(ReadError.NO_MEMORY_LEFT);
+        }
+
+        const val = this.stream.getBigInt64();
+        return ValidResult(val);
+    }
+
+    getBigUint64(): ReadResult<bigint> {
+        if(!this.hasNMoreBytes(8)){
+            return ErrorResult(ReadError.NO_MEMORY_LEFT);
+        }
+
+        const val = this.stream.getBigUint64()
+        return ValidResult(val);
+    }
+
+    getFloat32(): ReadResult<number> {
+        if(!this.hasNMoreBytes(4)){
+            return ErrorResult(ReadError.NO_MEMORY_LEFT);
+        }
+
+        const val = this.stream.getFloat32();
+        return ValidResult(val);
+    }
+
+    getFloat64(): ReadResult<number> {
+        if(!this.hasNMoreBytes(8)){
+            return ErrorResult(ReadError.NO_MEMORY_LEFT);
+        }
+    
+        const val = this.stream.getFloat64();
+        return ValidResult(val);
+    }
+
+    getInt8(): ReadResult<number> {
+        if(!this.hasNMoreBytes(1)){
+            return ErrorResult(ReadError.NO_MEMORY_LEFT);
+        }
+
+        const val = this.stream.getInt8();
+        return ValidResult(val);
+    }
+
+    getInt16(): ReadResult<number> {
+        if(!this.hasNMoreBytes(2)){
+            return ErrorResult(ReadError.NO_MEMORY_LEFT);
+        }
+
+        const val = this.stream.getInt16();
+        return ValidResult(val);
+    }
+
+    getInt32(): ReadResult<number> {
+        if(!this.hasNMoreBytes(4)){
+            return ErrorResult(ReadError.NO_MEMORY_LEFT);
+        }
+
+        const val = this.stream.getInt32();
+        return ValidResult(val);
+    }
+
+    getUint8(): ReadResult<number> {
+        if(!this.hasNMoreBytes(1)){
+            return ErrorResult(ReadError.NO_MEMORY_LEFT);
+        }
+
+        const val = this.stream.getUint8();
+        return ValidResult(val);
+    }
+
+    getBool(): ReadResult<boolean> {
+        if(!this.hasNMoreBytes(1)){
+            return ErrorResult(ReadError.NO_MEMORY_LEFT);
+        }
+
+        const val = this.stream.getBool();
+        return ValidResult(val);
+    }
+
+    getUint16(): ReadResult<number> {
+        if(!this.hasNMoreBytes(2)){
+            return ErrorResult(ReadError.NO_MEMORY_LEFT);
+        }
+
+        const val = this.stream.getUint16();
+        return ValidResult(val);
+    }
+
+    getUint32(): ReadResult<number> {
+        if(!this.hasNMoreBytes(4)){
+            return ErrorResult(ReadError.NO_MEMORY_LEFT);
+        }
+
+        const val = this.stream.getUint32();
+        return ValidResult(val);
+    }
+}
 
 export class BufferStreamWriter {
 
