@@ -27,7 +27,7 @@ import { SparseSet } from "shared/datastructures/sparseset";
 import { ALL_ITEMS, ItemType } from "shared/core/sharedlogic/items";
 
 
-import { ServerShootTerrainCarver } from "./weapons/serveritems";
+import { ServerShootHitscanWeapon, ServerShootTerrainCarver } from "./weapons/serveritems";
 import { commandDispatcher } from "./servercommands";
 
 import "server/source/app/weapons/serveritems.ts"
@@ -564,10 +564,10 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
                                 this.enqueueGlobalPacket(
                                     new HitscanShotPacket(clientID, shotID, createServerTick, pos, end)
-                                )
+                                );
+                                
+                                ServerShootHitscanWeapon(this, shotID, pos, end, clientID);
 
-                                // const ray = new Line(pos, Vec2.add(pos, end));
-                                // ShootHitscanWeapon(this.game, ray)
                                 break;
                             }
                             default: AssertUnreachable(item_type);

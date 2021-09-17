@@ -10,6 +10,7 @@ import { networkedclass_server, sync } from "../networking/serverentitydecorator
 import { ServerBearEngine } from "../serverengine";
 
 import { CreateItemData, GunItemData, ItemData } from "shared/core/sharedlogic/items";
+import { ConnectionID } from "../networking/serversocket";
 
 export class ServerItem<T extends ItemData> {
     item_data: T;
@@ -52,31 +53,19 @@ abstract class Gun<T extends ItemData> extends ServerItem<T> {
     abstract shoot(game: ServerBearEngine): void;
 }
 
-class Hitscan extends Gun<GunItemData> {
+export function ServerShootHitscanWeapon(game: ServerBearEngine, shotID: number, position: Vec2, end: Vec2, owner: ConnectionID){
+    
+    const ray = new Line(position, end);
 
-    readonly shootController: GunshootController;
-    // readonly clip: Clip;
+    // Check each players distance to the line.
+    for(const pEntity of game.activeScene.activePlayerEntities.values()){
+        if(pEntity.connectionID === owner) continue;
 
+        if(ray.pointDistance(pEntity.position) < 30){
+            pEntity.health -= 16;
+        }
+    } 
 
-    constructor(item_data: GunItemData){
-        super(item_data);
-        this.shootController = CreateShootController(item_data.shoot_controller);
-    }
-
-
-    shoot(game: ServerBearEngine): void {
-        const ray = new Line(this.position, Vec2.add(this.position, this.direction.extend(1000)));
-
-
-        // Check in radius to see if any players are hurt
-        for(const pEntity of game.activeScene.activePlayerEntities.values()){
-
-
-            if(ray.pointDistance(pEntity.position) < 30){
-                pEntity.health -= 16;
-            }
-        } 
-    }
 }
 
 interface GunAddon {
@@ -135,42 +124,6 @@ class ModularBullet extends Effect<ServerBearEngine> {
 } 
 
 
-
-
-// const ServerTerrainHitAddon: GunAddon = {
-
-//     modifyShot(bullet: ModularBullet){
-//         bullet.onUpdate(function(){
-//             const testTerrain = this.game.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)));
-            
-//             const RADIUS = 40;
-//             const DMG_RADIUS = 80;
-
-//             if(testTerrain){
-//                 this.game.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
-
-//                 this.game.enqueueGlobalPacket(
-//                     new TerrainCarveCirclePacket(testTerrain.point.x, testTerrain.point.y, RADIUS)
-//                 );
-
-//                 const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
-
-//                 // Check in radius to see if any players are hurt
-//                 for(const client of this.game.clients){
-//                     const p = this.game.players.get(client);
-
-//                     if(Vec2.distanceSquared(p.playerEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
-//                         p.playerEntity.health -= 16;
-//                     }
-//                 } 
-                 
-//                 this.destroy();
-//             }
-//         })
-//     }
-// }
-
-
 export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number, position: Vec2, velocity: Vec2){
 
     const bullet = new ModularBullet();
@@ -213,39 +166,6 @@ export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number,
 
     game.entities.addEntity(bullet);
 }
-
-
-
-// class TerrainCarverGun extends ModularGun<GunItemData> {
-
-//     constructor(){
-//         super(
-//             CreateItemData("terrain_carver"),
-//             [
-//             new TerrainHitAddon(),
-//             {
-//                 modifyShot(bullet){
-//                     bullet.onInterval(2, function(times){
-//                         this.velocity.drotate(random_range(-6,6))
-//                     })
-//                 }
-//             },
-//             {
-//                 gravity: new Vec2(0,.35),
-//                 modifyShot(effect){
-        
-//                     const self = this;
-        
-//                     effect.onUpdate(function(){
-//                         this.velocity.add(self.gravity);
-//                     })
-//                 }
-//             },
-//         ])
-//     }
-// }
-
-
 
 
 
