@@ -27,7 +27,7 @@ import { SparseSet } from "shared/datastructures/sparseset";
 import { ALL_ITEMS, ItemType } from "shared/core/sharedlogic/items";
 
 
-import { ServerShootHitscanWeapon, ServerShootTerrainCarver } from "./weapons/serveritems";
+import { ServerBullet, ServerShootHitscanWeapon, ServerShootTerrainCarver } from "./weapons/serveritems";
 import { commandDispatcher } from "./servercommands";
 
 import "server/source/app/weapons/serveritems.ts"
@@ -633,11 +633,11 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                 }
             }
             
-            // for(const entity of entitiesToSerialize){
-            //     stream.setUint8(GamePacket.REMOTE_ENTITY_VARIABLE_CHANGE);
-            //     SharedEntityServerTable.serialize(stream, entity);
-            // }
-            // }
+            for(const entity of entitiesToSerialize){
+                stream.setUint8(GamePacket.REMOTE_ENTITY_VARIABLE_CHANGE);
+                SharedEntityServerTable.serialize(stream, entity);
+            }
+            
                     
             this.network.send(client, stream.cutoff());
  

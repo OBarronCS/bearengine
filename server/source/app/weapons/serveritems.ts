@@ -109,6 +109,8 @@ class ModularBullet extends Effect<ServerBearEngine> {
 
     constructor(){
         super();
+
+        this.position.add({x:1,y:1});
     
         this.onUpdate(function(dt: number){
             this.position.add(this.velocity)
@@ -173,10 +175,15 @@ export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number,
 export class ServerBullet extends ModularBullet {
     
     @sync("bullet").var("_pos")
-    _pos = new Vec2(0,0);
+    _pos = new Vec2(1,1);
 
     @sync("bullet").var("test", true)
     test = 1;
+
+    constructor(){
+        super();
+        this.velocity.set({x:1,y:1})
+    }
 
     private t = new TickTimer(10, false);
 

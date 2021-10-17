@@ -10,8 +10,24 @@ export class ServerPlayerEntity extends ServerEntity {
     constructor(public connectionID: ConnectionID){
         super();
     }
+
+
+    healthIsDirty = false;
+
+    public health: number = 100;
+
+    
+
+    loseHealth(amount: number){
+        this.health -= amount;
+        this.healthIsDirty = true;
+    }
+
+    
+
+
     dead = false
-    health: number = 100;
+    
     state: number = 0;
     flipped = false;
 
