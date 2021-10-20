@@ -152,23 +152,23 @@ type AllNetworkedVariablesWithTypes = {
 
 
 
-function __GetSharedEntityVariables(name: keyof SharedNetworkedEntities): { name: string, type: NetworkVariableTypes }[] {
+function __GetSharedEntityVariables(name: keyof SharedNetworkedEntities): { variableName: string, type: NetworkVariableTypes }[] {
 
     const allvarnames: string[] = [...Object.keys(SharedNetworkedEntityDefinitions[name]["variables"])];
 
-    const allvars_withtypes: { name: string, type: NetworkVariableTypes }[] = allvarnames.map(e => { 
-        return { name: e, type: SharedNetworkedEntityDefinitions[name]["variables"][e] }
+    const allvars_withtypes: { variableName: string, type: NetworkVariableTypes }[] = allvarnames.map(e => { 
+        return { variableName: e, type: SharedNetworkedEntityDefinitions[name]["variables"][e] }
     });
 
     const parent = SharedNetworkedEntityDefinitions[name]["extends"];
     if(parent !== null && parent !== ""){
 
         allvars_withtypes.push(...__GetSharedEntityVariables(parent));
-        
+
     }
 
     // Sorts all variables alphabetically
-    allvars_withtypes.sort((a,b) => a.name.localeCompare(b.name));
+    allvars_withtypes.sort((a,b) => a.variableName.localeCompare(b.variableName));
 
     return allvars_withtypes;
 }
@@ -196,6 +196,7 @@ const orderedSharedEntityVariables: {variableName: keyof AllNetworkedVariablesWi
 for(let i = 0; i < orderedSharedEntities.length; i++){
 
     const sharedName = sharedIDToNameLookup[i];
+
     const variableStruct = SharedNetworkedEntityDefinitions[sharedName]["variables"]
     
     const orderedVariables: (keyof AllNetworkedVariablesWithTypes)[] = Object.keys(variableStruct).sort() as any;
@@ -211,6 +212,21 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
 
     orderedSharedEntityVariables[i] = arr;
 }
+
+
+
+// Includes all inherited variables as well. Index is shared index
+const AllOrderedSharedEntityVariables: {variableName: keyof AllNetworkedVariablesWithTypes, type: NetworkVariableTypes}[][] = [];
+for(let i = 0; i < orderedSharedEntities.length; i++){
+
+    const sharedName = sharedIDToNameLookup[i];
+    const vars = __GetSharedEntityVariables(sharedName);
+    //@ts-expect-error
+    AllOrderedSharedEntityVariables[i] = vars;
+   
+}
+    
+
 
 
 const orderedSharedEntityEvents: {eventName: string, argtypes: NetworkVariableTypes[]}[][] = [];
@@ -325,7 +341,7 @@ export const SharedEntityLinker = {
         return sharedNameToIDLookup.get(name);
     },
     sharedIDToVariables(id: number){
-        return orderedSharedEntityVariables[id];
+        return AllOrderedSharedEntityVariables[id];
     }
 }
 

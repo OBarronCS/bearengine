@@ -409,8 +409,15 @@ export const SharedEntityClientTable = {
 @networkedclass_client("test_super")
 class Test_Super extends Entity {
 
-    @net("test_super").variable("supervar")
+    @net("test_super").variable("supervar", (e) => {
+        console.log(e)
+    })
     supervar = 1;
+
+    constructor(){
+        super();
+        console.log("Test super constructor called!")
+    }
 
     update(dt: number): void {
     }
@@ -421,8 +428,15 @@ class Test_Super extends Entity {
 @networkedclass_client("test_sub")
 class Test_Sub extends Test_Super {
 
-    @net("test_sub").variable("subvar")
+    @net("test_sub").variable("subvar", (e) => {
+        console.log(e)
+    })
     subvar = "Hello";
+
+    constructor(){
+        super();
+        console.log("Test sub constructor called!")
+    }
     
 
     override update(dt: number): void {

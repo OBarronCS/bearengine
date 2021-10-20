@@ -10,7 +10,7 @@ import { GamePacket, ServerBoundPacket, ServerPacketSubType } from "shared/core/
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
 import { ServerPlayerEntity } from "./playerlogic";
-import { SharedEntityServerTable } from "./networking/serverentitydecorators";
+import { SharedEntityServerTable, S_T_Sub } from "./networking/serverentitydecorators";
 import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
@@ -267,6 +267,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                 new PlayerEntitySpawnPacket(clientID, 0,0)
             );
         }
+
+        this.createRemoteEntity(new S_T_Sub())
     }
 
     // Tells clients to create the player entity.
