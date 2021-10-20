@@ -1,8 +1,8 @@
 import { assert } from "shared/misc/assertstatements";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { GamePacket } from "./packetdefinitions";
-import { areEqualSorted, containsDuplicates } from "shared/datastructures/arrayutils";
-import { DefineSchema, DeserializeTypedVar, NetworkVariableTypes, SerializeTypedVar, SharedTemplates, TypescriptTypeOfNetVar } from "./serialization";
+import { areEqualSorted, arrayDifference, arrayDuplicates, containsDuplicates } from "shared/datastructures/arrayutils";
+import { DefineSchema, DeserializeTypedVar, netv, NetworkVariableTypes, SerializeTypedVar, SharedTemplates, TypescriptTypeOfNetVar } from "./serialization";
 
 
 export abstract class PacketWriter {
@@ -21,6 +21,7 @@ export abstract class PacketWriter {
 interface SharedNetworkEntityFormat {
     [key: string] : {
         // create: (...args: any[]) => void;
+        extends: string | null
         events: {
             [key: string] : {
                 argTypes: readonly [...NetworkVariableTypes[]],
@@ -36,7 +37,8 @@ interface SharedNetworkEntityFormat {
 /** Linking networked entity classes */
 export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntityFormat>()({    
     "bullet": {
-        create: () => void 0,
+        // create: () => void 0,
+        extends: "",
         variables: {
             _pos: { type:"vec2", subtype: "float" },
             test: { type: "number", subtype: "float"},
@@ -50,7 +52,7 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
         }
     },
     "ogre": {
-        create: () => void 0,
+        extends: "",
         variables: {
             _x: {type:"number", subtype: "float"},
             asdasd: {type:"number", subtype: "float"},
@@ -60,6 +62,25 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
 
         }
     },
+    
+    "test_super": {
+        extends: "",
+        variables: {
+            "supervar":netv.uint32()
+        },
+        events: {
+
+        }
+    },
+    "test_sub": {
+        extends: "test_super",
+        variables: {
+            "subvar":netv.string()
+        },
+        events: {
+
+        }
+    }
 } as const);
 
 export type SharedNetworkedEntities = typeof SharedNetworkedEntityDefinitions;
@@ -123,6 +144,36 @@ type AllNetworkedVariablesWithTypes = {
 }
 
 
+/***
+ * Code to do with serialization shared entities
+ */
+
+/** Takes into account inheritance. Returns all variables for a given entity */
+
+
+
+function __GetSharedEntityVariables(name: keyof SharedNetworkedEntities): { name: string, type: NetworkVariableTypes }[] {
+
+    const allvarnames: string[] = [...Object.keys(SharedNetworkedEntityDefinitions[name]["variables"])];
+
+    const allvars_withtypes: { name: string, type: NetworkVariableTypes }[] = allvarnames.map(e => { 
+        return { name: e, type: SharedNetworkedEntityDefinitions[name]["variables"][e] }
+    });
+
+    const parent = SharedNetworkedEntityDefinitions[name]["extends"];
+    if(parent !== null && parent !== ""){
+
+        allvars_withtypes.push(...__GetSharedEntityVariables(parent));
+        
+    }
+
+    // Sorts all variables alphabetically
+    allvars_withtypes.sort((a,b) => a.name.localeCompare(b.name));
+
+    return allvars_withtypes;
+}
+
+
 const orderedSharedEntities: (keyof typeof SharedNetworkedEntityDefinitions)[] = Object.keys(SharedNetworkedEntityDefinitions).sort() as any;
 
 const sharedNameToIDLookup = new Map<keyof typeof SharedNetworkedEntityDefinitions, number>();
@@ -135,8 +186,12 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
     sharedIDToNameLookup[i] = orderedSharedEntities[i];
 }
 
-// Index is shared index
 
+
+
+
+
+// Index is shared index
 const orderedSharedEntityVariables: {variableName: keyof AllNetworkedVariablesWithTypes, type: NetworkVariableTypes}[][] = [];
 for(let i = 0; i < orderedSharedEntities.length; i++){
 
@@ -197,15 +252,18 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
 
 
 
+
+
+
 export const SharedEntityLinker = {
 
     validateNames(names: (keyof SharedNetworkedEntities)[]){
-        assert(!containsDuplicates(names), "Duplicate entity definitions!");
+        assert(!containsDuplicates(names),`Duplicate entity definitions: ${arrayDuplicates(names)}`);
 
         // console.log(names);
         // console.log(orderedSharedEntities);
 
-        assert(areEqualSorted(orderedSharedEntities, names), "Entity amount mismatch");
+        assert(areEqualSorted(orderedSharedEntities, names), `Entity amount mismatch: ${arrayDifference(orderedSharedEntities,names)}`);
     },
 
     // Makes sure all the variables are present

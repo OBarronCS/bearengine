@@ -146,10 +146,11 @@ export function net<SharedName extends keyof SharedNetworkedEntities>(name: Shar
         variable<VarName extends keyof SharedNetworkedEntities[SharedName]["variables"], OuterEntityType extends BaseEntityType>(varName: VarName, receiveFunc: (this: OuterEntityType, value: GetTypeScriptType<SharedNetworkedEntities[SharedName]["variables"][VarName]>) => void = undefined){
             return function<R extends BaseEntityType & Record<VarName,GetTypeScriptType<SharedNetworkedEntities[SharedName]["variables"][VarName]>>>(target: R, key: VarName & string){
                 
-                        // Target is prototype of class
+                // Target is prototype of class
                 const constructorOfClass = target.constructor;
 
-                if(constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] === undefined){
+                // Ensure it doesn't get list from super class
+                if(!constructorOfClass.hasOwnProperty("NETWORKED_VARIABLE_REGISTRY")){
                     constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] = [];
                 }
 
@@ -225,17 +226,22 @@ export function networkedclass_client<T extends keyof SharedNetworkedEntities>(c
     return function<U extends EntityClassType>(targetConstructor: U){
 
         targetConstructor["SHARED_ID"] = -1;
+        targetConstructor["SHARED_NAME"] = classname;
 
         // Validates variables
         const registeredVariables = targetConstructor["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList || [];
         
         const orderedVariables = registeredVariables.sort( (a,b) => a.variablename.localeCompare(b.variablename) );
 
+        
+        SharedEntityLinker.validateVariables(classname, orderedVariables.map(a => a.variablename) as any);
+
+
+
         const orderedVariablesWithType: NetworkedVariablesList = orderedVariables.map( (a) => ({...a,
             variabletype : SharedNetworkedEntityDefinitions[classname]["variables"][a.variablename] as NetworkVariableTypes,
         }));
 
-        SharedEntityLinker.validateVariables(classname, orderedVariables.map(a => a.variablename) as any);
 
         //Interpolation
         targetConstructor["INTERP_LIST"] = [];
@@ -255,8 +261,7 @@ export function networkedclass_client<T extends keyof SharedNetworkedEntities>(c
             argumenttypes : SharedNetworkedEntityDefinitions[classname]["events"][a.eventname]["argTypes"] as NetworkVariableTypes[],
         }));
 
-        SharedEntityLinker.validateEvents(classname, orderedEvents.map(a => a.eventname) as any);
-
+        SharedEntityLinker.validateEvents(classname, orderedEvents.map(a => a.eventname));
 
 
 
@@ -276,7 +281,7 @@ type EntityConstructor = abstract new(...args:any[]) => BaseEntityType;
 
 export const SharedEntityClientTable = {
 
-    // List of all the classes registered using the decorator
+    // List of all the classes registered using the decorator 
     REGISTERED_NETWORKED_ENTITIES: [] as {
         create: EntityConstructor, 
         name: keyof SharedNetworkedEntities,
@@ -284,14 +289,34 @@ export const SharedEntityClientTable = {
         eventDefinition: NetworkedEventList,
     }[],
 
+    GetParentSharedEntityVariables(con: EntityConstructor): NetworkedVariablesList {
+
+        const vars: NetworkedVariablesList = [];
+
+        // If the type for this class inherits from something, make sure this does too
+        if(SharedNetworkedEntityDefinitions[con["SHARED_NAME"]]["extends"]) {
+            const shouldBe = SharedNetworkedEntityDefinitions[con["SHARED_NAME"]]["extends"];
+            // The super class of this class
+            const parentConstructor = Object.getPrototypeOf(con);
+            
+            if(parentConstructor["SHARED_NAME"] !== shouldBe){
+                throw new Error(`Class '${con}' should extend class '${parentConstructor}'`);
+            }
+
+            const parentRegistration = this.REGISTERED_NETWORKED_ENTITIES[parentConstructor["SHARED_ID"]];
+
+            vars.push(...parentRegistration.varDefinition, ...this.GetParentSharedEntityVariables(parentRegistration.create));
+        }
+
+        return vars;
+    },
 
     init(){
         
         // Order the list, index is SHARED_ID'
-
         this.REGISTERED_NETWORKED_ENTITIES.sort( (a,b) => a.name.localeCompare(b.name) );
 
-
+        //Makes sure I have all shared types registered
         SharedEntityLinker.validateNames(this.REGISTERED_NETWORKED_ENTITIES.map(e => e.name));
 
 
@@ -307,6 +332,29 @@ export const SharedEntityClientTable = {
 
             registry.create["SHARED_ID"] = SHARED_ID;
         }
+
+        //  At this point, all classes have all the correct variables and events registered
+        //  This is a second pass making sure inheritance rules are followed;
+        for(const data of this.REGISTERED_NETWORKED_ENTITIES){
+
+
+            // If the type for this class inherits from something, make sure this does too
+            // Adds all the needed types to the variable definition, and sorts the list
+            if(SharedNetworkedEntityDefinitions[data.name]["extends"]) {
+                const shouldBe = SharedNetworkedEntityDefinitions[data.name]["extends"];
+                // The super class of this class
+                const parentConstructor = Object.getPrototypeOf(data.create);
+
+                
+                if(!parentConstructor.hasOwnProperty("SHARED_NAME") || parentConstructor["SHARED_NAME"]!== shouldBe){
+                    throw new Error(`Class '${data.create.name}' should extend the class that implements shared type '${shouldBe}'`);
+                }
+
+                data.varDefinition.push(...this.GetParentSharedEntityVariables(data.create));
+
+                data.varDefinition.sort((a,b) => a.variablename.localeCompare(b.variablename));
+            }
+        }        
     },
 
     getEntityClass(sharedID: number): EntityConstructor {
@@ -358,3 +406,27 @@ export const SharedEntityClientTable = {
 }
 
 
+@networkedclass_client("test_super")
+class Test_Super extends Entity {
+
+    @net("test_super").variable("supervar")
+    supervar = 1;
+
+    update(dt: number): void {
+    }
+
+}
+
+
+@networkedclass_client("test_sub")
+class Test_Sub extends Test_Super {
+
+    @net("test_sub").variable("subvar")
+    subvar = "Hello";
+    
+
+    override update(dt: number): void {
+
+    }
+
+}

@@ -487,6 +487,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const SHARED_ID = stream.getUint8();
                             const entityID = StreamReadEntityID(stream);
 
+                            console.log("Deleting remote entity")
+
                             const entity = this.remoteEntities.get(entityID);
 
                             if(entity !== undefined){

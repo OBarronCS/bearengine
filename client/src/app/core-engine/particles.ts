@@ -243,4 +243,55 @@ export const PARTICLE_CONFIG = DefineSchema<{ [key:string]: EmitterConfigV1 | Em
         "particleSpacing": 0,
         "angleStart": 0
     },
+    HIT_SPLAT: {
+        "alpha": {
+            "start": 1,
+            "end": 0.82
+        },
+        "scale": {
+            "start": 0.2,
+            "end": 0.01,
+            "minimumScaleMultiplier": 1
+        },
+        "color": {
+            "start": "#e3033e",
+            "end": "#331614"
+        },
+        "speed": {
+            "start": 45,
+            "end": 10,
+            "minimumSpeedMultiplier": 1
+        },
+        "acceleration": {
+            "x": 0,
+            "y": 0
+        },
+        "maxSpeed": 0,
+        "startRotation": {
+            "min": 180,
+            "max": 360
+        },
+        "noRotation": false,
+        "rotationSpeed": {
+            "min": 0,
+            "max": 8
+        },
+        "lifetime": {
+            "min": 0.2,
+            "max": 0.8
+        },
+        "blendMode": "normal",
+        "frequency": 0.001,
+        "emitterLifetime": 0.4,
+        "maxParticles": 20,
+        "pos": {
+            "x": 0,
+            "y": 0
+        },
+        "addAtBack": false,
+        "spawnType": "burst",
+        "particlesPerWave": 2,
+        "particleSpacing": 0,
+        "angleStart": 0
+    }
 });
