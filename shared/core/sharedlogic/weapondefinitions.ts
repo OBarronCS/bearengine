@@ -1,9 +1,16 @@
 
-// export enum ItemEnum {
-//     EMPTY,
-//     HIT_SCAN,
-//     TERRAIN_CARVER,
-// }
+
+
+export enum ShotType {
+    HIT_SCAN,
+    TERRAIN_CARVER,
+}
+
+
+
+
+
+
 
 export class Clip {
     constructor(

@@ -14,8 +14,7 @@ import { RemoteLocations } from "../core-engine/networking/remotecontrol";
 import { GraphicsPart, SpritePart } from "../core-engine/parts";
 import { SavePlayerAnimation } from "./testlevelentities";
 
-import { CreateItemData, ItemData } from "shared/core/sharedlogic/items"
-import { Gun, Hitscan, Item, ItemDrawer, TerrainCarverGun } from "../core-engine/clientitems";
+import { WeaponItem, ItemDrawer } from "../core-engine/clientitems";
 import { EmitterAttach, PARTICLE_CONFIG } from "../core-engine/particles";
 import { Effect } from "shared/core/effects";
 import { random_range } from "shared/misc/random";
@@ -196,7 +195,7 @@ export class Player extends DrawableEntity {
 
     // Item graphics
     itemInHand: ItemDrawer = new ItemDrawer();
-    weapon: Gun = null;
+    weapon: WeaponItem = null;
 
     setGhost(ghost: boolean){
         this.ghost = ghost;
@@ -208,9 +207,9 @@ export class Player extends DrawableEntity {
         }
     }
 
-    setItem(item: Item<ItemData>){
-        this.itemInHand.setItem(item.item_data);
-        if(item instanceof Gun){
+    setItem(item: WeaponItem, path: string){
+        this.itemInHand.setItem(path);
+        if(item instanceof WeaponItem){
             this.weapon = item;
         }
     }
@@ -627,7 +626,7 @@ export class Player extends DrawableEntity {
         }
         
         if(this.weapon !== null){
-            this.weapon.update(dt,this.position, difference.normalize(), this.mouse.isDown("left"), this.game);
+            this.weapon.handle(dt,this.position, difference.normalize(), this.mouse.isDown("left"), this.game);
         }
         // if(this.itemInHand.operate(this.mouse.isDown("left"))){
         //     if(this.state === PlayerState.GROUND) this.state = PlayerState.AIR;

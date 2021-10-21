@@ -1,7 +1,7 @@
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { EntitySystem, NULL_ENTITY_INDEX, StreamReadEntityID } from "shared/core/entitysystem";
-import { NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker } from "shared/core/sharedlogic/networkschemas";
+import { NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker, SharedEntityLinker } from "shared/core/sharedlogic/networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { SharedEntityClientTable } from "./cliententitydecorators";
@@ -21,10 +21,11 @@ import { Vec2 } from "shared/shapes/vec2";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
-import { CreateItemData, ItemType, ITEM_LINKER } from "shared/core/sharedlogic/items";
-import { CreateClientItemFromType, ShootHitscanWeapon, ShootModularWeapon, TerrainCarverAddons } from "../clientitems";
+import { ITEM_LINKER } from "shared/core/sharedlogic/items";
+import { ShootHitscanWeapon, ShootModularWeapon, TerrainCarverAddons } from "../clientitems";
 import { Line } from "shared/shapes/line";
 import { EmitterAttach, PARTICLE_CONFIG } from "../particles";
+import { ShotType } from "shared/core/sharedlogic/weapondefinitions";
 
 class ClientInfo {
     uniqueID: number;
@@ -750,12 +751,23 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         case GamePacket.SET_INV_ITEM: {
                             const item_id = stream.getUint8();
 
-                            const item_data = CreateItemData(ITEM_LINKER.IDToName(item_id));
+                            const item_data = ITEM_LINKER.ItemData(item_id);
+                            
+                            const item_class = SharedEntityClientTable.getEntityClass(SharedEntityLinker.nameToSharedID(item_data.type));
 
-                            const item = CreateClientItemFromType(item_data);
+                            console.log(item_class)
+
+                            //@ts-expect-error
+                            const item_instance = (new item_class(item_id));
+
+                            console.log(item_instance)
+
+                            // const item_data = CreateItemData(ITEM_LINKER.IDToName(item_id));
+
+                            // const item = CreateClientItemFromType(item_data);
 
                             if(this.currentPlayState === ClientPlayState.ACTIVE){
-                                this.game.player.setItem(item);
+                                this.game.player.setItem(item_instance, item_data.item_sprite);
                             }
                             
                             break;
@@ -771,7 +783,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         case GamePacket.SHOOT_WEAPON: {
 
                             const creatorID = stream.getUint8();
-                            const item_type: ItemType = stream.getUint8();
+                            const item_type: ShotType = stream.getUint8();
 
                             const serverShotID = stream.getUint32();
 
@@ -781,12 +793,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
 
                             switch(item_type){
-                                // fallthrough all non-weapons
-                                case ItemType.SIMPLE:{
-                                    console.log("How did this happen?")
-                                    break;
-                                }
-                                case ItemType.TERRAIN_CARVER:{
+                                case ShotType.TERRAIN_CARVER:{
                                     const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
 
                                     if(this.MY_CLIENT_ID !== creatorID){
@@ -796,7 +803,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     }
                                     break;
                                 }
-                                case ItemType.HITSCAN_WEAPON:{
+                                case ShotType.HIT_SCAN:{
                                     const end = new Vec2(stream.getFloat32(), stream.getFloat32());
                                     const ray = new Line(pos, end);
                                     if(this.MY_CLIENT_ID !== creatorID)

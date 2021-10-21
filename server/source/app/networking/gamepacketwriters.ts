@@ -1,9 +1,9 @@
 import { StreamWriteEntityID } from "shared/core/entitysystem";
-import { ItemType } from "shared/core/sharedlogic/items";
 import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums";
+import { ShotType } from "shared/core/sharedlogic/weapondefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { Vec2 } from "shared/shapes/vec2";
 import { ConnectionID } from "./serversocket";
@@ -316,7 +316,8 @@ export class HitscanShotPacket extends PacketWriter {
     write(stream: BufferStreamWriter){
         stream.setUint8(GamePacket.SHOOT_WEAPON);
         stream.setUint8(this.playerID);
-        stream.setUint8(ItemType.HITSCAN_WEAPON);
+
+        stream.setUint8(ShotType.HIT_SCAN);
 
 
         stream.setUint32(this.serverShotID);
@@ -342,7 +343,7 @@ export class TerrainCarverShotPacket extends PacketWriter {
     write(stream: BufferStreamWriter){
         stream.setUint8(GamePacket.SHOOT_WEAPON);
         stream.setUint8(this.playerID);
-        stream.setUint8(ItemType.TERRAIN_CARVER);
+        stream.setUint8(ShotType.TERRAIN_CARVER);
 
         stream.setUint32(this.serverShotID);
         

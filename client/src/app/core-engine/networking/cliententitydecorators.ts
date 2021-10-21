@@ -229,7 +229,7 @@ export function networkedclass_client<T extends keyof SharedNetworkedEntities>(c
         targetConstructor["SHARED_NAME"] = classname;
 
         // Validates variables
-        const registeredVariables = targetConstructor["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList || [];
+        const registeredVariables = targetConstructor.hasOwnProperty("NETWORKED_VARIABLE_REGISTRY") ? targetConstructor["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList : [];
         
         const orderedVariables = registeredVariables.sort( (a,b) => a.variablename.localeCompare(b.variablename) );
 

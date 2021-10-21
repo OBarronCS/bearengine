@@ -22,7 +22,7 @@ export function networkedclass_server<T extends keyof SharedNetworkedEntities>(c
         targetConstructor["SHARED_NAME"] = classname;
 
         // Validates that it has all the correct variables
-        const variableslist = targetConstructor["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList || [];
+        const variableslist = targetConstructor.hasOwnProperty("NETWORKED_VARIABLE_REGISTRY") ? targetConstructor["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList : [];
 
         const myVariables = variableslist.map(e => e.variablename);
 
@@ -189,5 +189,4 @@ export class S_T_Sub extends S_T_Super {
             this.supervar = randomInt(0,100000)
         }
     }
-
 }
