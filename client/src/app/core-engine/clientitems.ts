@@ -17,35 +17,20 @@ import { SpritePart } from "./parts";
 import { net, networkedclass_client } from "./networking/cliententitydecorators";
 import { ITEM_LINKER, MIGRATED_ITEMS, Test } from "shared/core/sharedlogic/items";
 
-// export function CreateClientItemFromType(item_data: ItemData){
-    
-//     const type = item_data.item_type;
 
-//     switch(type){
-//         case ItemType.TERRAIN_CARVER: {
-//             return new TerrainCarverGun();
-//             break;
-//         }
-//         case ItemType.HITSCAN_WEAPON: {
-//             //@ts-expect-error
-//             return new Hitscan(item_data);
-//             break;
-//         }
-//         case ItemType.SIMPLE: {
-//             return new Item(item_data);
-//             break;
-//         }
-//         default: AssertUnreachable(type);
+
+// export class Item<T extends ItemData> {
+//     item_data: T;
+
+//     constructor(item_data: T){
+//         this.item_data = item_data;
 //     }
+
+//     get item_type(){ return this.item_data.item_type; }
+//     get item_name(){ return this.item_data.item_name; }
+//     get item_id(){ return this.item_data.item_id; }
+//     get item_sprite(){ return this.item_data.item_sprite; }
 // }
-
-
-// export class Item {
-
-// }
-
-// Have to remake this entire file
-
 
 class BaseItem<T extends keyof SharedNetworkedEntities> extends Entity {
 
@@ -63,6 +48,8 @@ class BaseItem<T extends keyof SharedNetworkedEntities> extends Entity {
     update(dt: number): void {}
 
 }
+
+
 
 //@ts-expect-error
 @networkedclass_client("weapon_item")
@@ -192,48 +179,6 @@ export class ServerBoundHitscanPacket extends PacketWriter {
 
 
 
-// export class Item<T extends ItemData> {
-//     item_data: T;
-
-//     constructor(item_data: T){
-//         this.item_data = item_data;
-//     }
-
-//     get item_type(){ return this.item_data.item_type; }
-//     get item_name(){ return this.item_data.item_name; }
-//     get item_id(){ return this.item_data.item_id; }
-//     get item_sprite(){ return this.item_data.item_sprite; }
-// }
-
-// WEAPONS
-// export abstract class Gun<T extends GunItemData = GunItemData> extends Item<T> {
-
-//     readonly position = new Vec2();
-//     readonly direction = new Vec2();
-//     readonly shootController: GunshootController;
-
-//     constructor(item_data: T){
-//         super(item_data);
-//         this.shootController = CreateShootController(item_data.shoot_controller);
-//     }
-
-//     update(dt: number, position: Vec2, direction: Vec2, holdTrigger: boolean, game: NetworkPlatformGame): void {
-//         this.position.set(position);
-//         this.direction.set(direction);
-//         if(this.shootController.holdTrigger(holdTrigger)){
-//             if(this.item_data.ammo > 0){
-//                 this.item_data.ammo -= 1;
-
-//                 console.log()
-
-//                 this.shoot(game);
-//             }
-//         }
-//     }
-
-//     protected abstract shoot(game: NetworkPlatformGame): void;
-// }
-
 
 
 export function ShootHitscanWeapon(game: NetworkPlatformGame, line: Line): void {
@@ -343,6 +288,8 @@ class TerrainHitAddon implements GunAddon {
 
     modifyShot(bullet: ModularBullet){
         bullet.onUpdate(function(){
+            // Client side prediction of terrain hit?
+
             // const testTerrain = this.game.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)));
             
             // const RADIUS = 40;
@@ -350,22 +297,6 @@ class TerrainHitAddon implements GunAddon {
 
             // if(testTerrain){
             //     this.game.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
-
-            //     this.game.enqueueGlobalPacket(
-            //         new TerrainCarveCirclePacket(testTerrain.point.x, testTerrain.point.y, RADIUS)
-            //     );
-
-            //     const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
-
-            //     // Check in radius to see if any players are hurt
-            //     for(const client of this.game.clients){
-            //         const p = this.game.players.get(client);
-
-            //         if(Vec2.distanceSquared(p.playerEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
-            //             p.playerEntity.health -= 16;
-            //         }
-            //     } 
-                 
             //     this.destroy();
             // }
         })
@@ -393,18 +324,6 @@ export const TerrainCarverAddons: GunAddon[] = [
         }
     },
 ]
-
-// export class TerrainCarverGun extends ModularGun<GunItemData> {
-
-//     constructor(){
-//         super(
-//             CreateItemData("terrain_carver"),
-//             TerrainCarverAddons
-//         )
-//     }
-// }
-
-
 
 
 
