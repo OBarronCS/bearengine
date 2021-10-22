@@ -19,6 +19,7 @@ import { EmitterAttach, PARTICLE_CONFIG } from "../core-engine/particles";
 import { Effect } from "shared/core/effects";
 import { random_range } from "shared/misc/random";
 import { PhysicsDotEntity } from "./firstlevel";
+import { NumberTween } from "shared/core/tween";
 
 
 
@@ -1263,8 +1264,18 @@ export class RemotePlayer extends Entity {
                 this.game.entities.addEntity(e);
                 
                 
-                
                 this.scene.addEntity(e);
+
+                const tween = new NumberTween(e["sprite"],"alpha",6).from(1).to(.1).go();
+
+                // tween.easingfunction
+                tween.delay(2)
+
+                tween.onFinish(() => {
+                    e.destroy();
+                });
+
+                this.scene.addEntity(tween);
             }
             
             

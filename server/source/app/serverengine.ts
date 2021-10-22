@@ -470,6 +470,12 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             const clientID = packet.client;
             const stream = packet.buffer;
 
+            if(!this.players.has(clientID)){
+                console.log(`Ignoring a packet from a disconnected client, ${clientID}`)
+                continue;
+            }
+
+
             while(stream.hasMoreData()){
                 const type: ServerBoundPacket = stream.getUint8();
 

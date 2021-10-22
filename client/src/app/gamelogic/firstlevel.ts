@@ -206,7 +206,6 @@ export class PhysicsDotEntity extends DrawableEntity {
     }
 
 
-
     draw(g: Graphics): void {
         //g.beginFill(0x00FF00);
         //g.drawCircle(this.x, this.y, this.drawRadius);

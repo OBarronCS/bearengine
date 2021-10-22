@@ -75,14 +75,7 @@ export class ServerNetwork {
 
         // Tell engine that a player joined 
         this.onClientConnect(connectionID);
-
-        // const stream = new BufferStreamWriter(new ArrayBuffer(1))
-        // stream.setUint8(ServerBoundPacket.JOIN_GAME);
-
-        // this.packets.enqueue({
-        //     client:connectionID,
-        //     buffer:new BufferStreamReader(stream.cutoff()),
-        // });
+        
 
         socket.on("close", () => {
             const client = this.clientMap.get(socket);
@@ -94,13 +87,6 @@ export class ServerNetwork {
             // Tell engine that player left
             this.onClientDisconnect(client)
 
-            // // Sends this info to the engine as a packet;
-            // const stream = new BufferStreamWriter(new ArrayBuffer(1))
-            // stream.setUint8(ServerBoundPacket.LEAVE_GAME);
-            // this.packets.enqueue({
-            //     client:client,
-            //     buffer:new BufferStreamReader(stream.cutoff()),
-            // });
 
             // This is the last message associated with this socket
             this.clientMap.delete(socket);
@@ -108,8 +94,6 @@ export class ServerNetwork {
             
             const index = this.sockets.indexOf(socket);
             this.sockets.splice(index,1);
-
-            // this.onClientDisconnect(client);
         });
 
         socket.on("message", (data: ArrayBuffer) => {

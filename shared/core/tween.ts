@@ -17,6 +17,7 @@ abstract class Tween<T> extends Effect  {
     public seconds: number;
     // How far into the tween we are, [0,1]
     public t = 0;
+    public seconds_alive = 0;
 
     /** Seconds after GO that we wait until do anything.  */ 
     waitTime = 0;
@@ -48,16 +49,18 @@ abstract class Tween<T> extends Effect  {
 
         this.onUpdate(function(this: Tween<any>, dt){
             if(this.active){
+                this.seconds_alive += dt;
+
                 
-                this.t += dt / this.seconds;
 
-                if(this.t >= this.waitTime){
+                if(this.seconds_alive >= this.waitTime){
 
-                    const appliedTime = this.t - this.waitTime;
+                    this.t += dt / this.seconds;  
+                    // this.t = (this.seconds_alive - this.waitTime) /  this.seconds;
 
-                    this.setValueAt(this.easingfunction(clamp(appliedTime,0,1)));
+                    this.setValueAt(this.easingfunction(clamp(this.t,0,1)));
     
-                    if(appliedTime >= 1){
+                    if(this.t >= 1){
 
                         if(this.nextChain){
                             this.scene.addEntity(this.nextChain)
