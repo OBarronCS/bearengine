@@ -1,10 +1,9 @@
 import { Emitter } from "shared/graphics/particles";
 import { Sprite, Graphics } from "shared/graphics/graphics";
 import { Effect } from "shared/core/effects";
-import { CreateItemData, GunItemData, ItemData, ItemType } from "shared/core/sharedlogic/items";
-import { PacketWriter } from "shared/core/sharedlogic/networkschemas";
+import { PacketWriter, SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
-import { CreateShootController, GunshootController } from "shared/core/sharedlogic/weapondefinitions";
+import { CreateShootController, GunshootController, ShotType } from "shared/core/sharedlogic/weapondefinitions";
 import { NumberTween } from "shared/core/tween";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable } from "shared/misc/assertstatements";
@@ -15,60 +14,70 @@ import { BearEngine, NetworkPlatformGame } from "./bearengine";
 import { Entity } from "./entity";
 import { PARTICLE_CONFIG } from "./particles";
 import { SpritePart } from "./parts";
+import { net, networkedclass_client } from "./networking/cliententitydecorators";
+import { ITEM_LINKER, MIGRATED_ITEMS, Test } from "shared/core/sharedlogic/items";
 
-export function CreateClientItemFromType(item_data: ItemData){
-    
-    const type = item_data.item_type;
 
-    switch(type){
-        case ItemType.TERRAIN_CARVER: {
-            return new TerrainCarverGun();
-            break;
-        }
-        case ItemType.HITSCAN_WEAPON: {
-            //@ts-expect-error
-            return new Hitscan(item_data);
-            break;
-        }
-        case ItemType.SIMPLE: {
-            return new Item(item_data);
-            break;
-        }
-        default: AssertUnreachable(type);
-    }
-}
 
-export class Item<T extends ItemData> {
-    item_data: T;
+// export class Item<T extends ItemData> {
+//     item_data: T;
 
-    constructor(item_data: T){
-        this.item_data = item_data;
+//     constructor(item_data: T){
+//         this.item_data = item_data;
+//     }
+
+//     get item_type(){ return this.item_data.item_type; }
+//     get item_name(){ return this.item_data.item_name; }
+//     get item_id(){ return this.item_data.item_id; }
+//     get item_sprite(){ return this.item_data.item_sprite; }
+// }
+
+class BaseItem<T extends keyof SharedNetworkedEntities> extends Entity {
+
+    constructor(public item_id: number){
+        super();
+
     }
 
-    get item_type(){ return this.item_data.item_type; }
-    get item_name(){ return this.item_data.item_name; }
-    get item_id(){ return this.item_data.item_id; }
-    get item_sprite(){ return this.item_data.item_sprite; }
+
+    GetStaticValue(key: keyof Test<T>) {
+        //@ts-expect-error
+        return MIGRATED_ITEMS[ITEM_LINKER.IDToName(this.item_id)][key]
+    }
+
+    update(dt: number): void {}
+
 }
 
-// WEAPONS
-export abstract class Gun<T extends GunItemData = GunItemData> extends Item<T> {
 
-    readonly position = new Vec2();
+
+//@ts-expect-error
+@networkedclass_client("weapon_item")
+export abstract class WeaponItem extends BaseItem<"weapon_item"> {
+
     readonly direction = new Vec2();
-    readonly shootController: GunshootController;
+    readonly shootController: GunshootController = CreateShootController(this.GetStaticValue("shoot_controller"))
 
-    constructor(item_data: T){
-        super(item_data);
-        this.shootController = CreateShootController(item_data.shoot_controller);
+    @net("weapon_item").variable("ammo")
+    ammo: number = this.GetStaticValue("ammo")
+
+    @net("weapon_item").variable("capacity")
+    capacity: number = this.GetStaticValue("capacity")
+
+    @net("weapon_item").variable("reload_time")
+    reload_time: number = this.GetStaticValue("reload_time")
+
+    constructor(item_id: number){
+        super(item_id);
+        // this.shootController = CreateShootController(item_data.shoot_controller);
     }
 
-    update(dt: number, position: Vec2, direction: Vec2, holdTrigger: boolean, game: NetworkPlatformGame): void {
+    handle(dt: number, position: Vec2, direction: Vec2, holdTrigger: boolean, game: NetworkPlatformGame): void {
         this.position.set(position);
         this.direction.set(direction);
         if(this.shootController.holdTrigger(holdTrigger)){
-            if(this.item_data.ammo > 0){
-                this.item_data.ammo -= 1;
+            if(this.ammo > 0){
+                this.ammo -= 1;
 
                 console.log()
 
@@ -78,17 +87,67 @@ export abstract class Gun<T extends GunItemData = GunItemData> extends Item<T> {
     }
 
     protected abstract shoot(game: NetworkPlatformGame): void;
+
+}
+
+//@ts-expect-error
+@networkedclass_client("terrain_carver_weapon")
+export class TerrainCarverWeapon extends WeaponItem {
+
+    private addons = TerrainCarverAddons
+
+    protected shoot(game: NetworkPlatformGame): void {
+        const velocity = this.direction.clone().extend(25);
+        const b = ShootModularWeapon(game,this.addons,this.position,velocity);
+
+        const localID = game.networksystem.getLocalShotID();
+        game.networksystem.localShotIDToEntity.set(localID,b)
+
+        game.networksystem.enqueueStagePacket(
+            new ServerBoundTerrainCarverPacket(0, localID, this.position.clone(), velocity)
+        )
+    }
+}
+
+export class ServerBoundTerrainCarverPacket extends PacketWriter {
+
+    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public velocity: Vec2){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(ServerBoundPacket.REQUEST_SHOOT_WEAPON);
+        stream.setUint8(ShotType.TERRAIN_CARVER);
+        stream.setUint32(this.localShotID);
+
+        stream.setFloat32(this.createServerTick);
+
+        stream.setFloat32(this.start.x);
+        stream.setFloat32(this.start.y);
+
+        stream.setFloat32(this.velocity.x);
+        stream.setFloat32(this.velocity.y);
+
+    }
 }
 
 
+//@ts-expect-error
+@networkedclass_client("hitscan_weapon")
+export class Hitscan extends WeaponItem {
 
-export function ShootHitscanWeapon(game: NetworkPlatformGame, line: Line): void {
 
-    const canvas = game.engine.renderer.createCanvas();
-    line.draw(canvas, 0x346eeb);
-    const tween = new NumberTween(canvas, "alpha",.4).from(1).to(0).go().onFinish(() => canvas.destroy());
 
-    game.entities.addEntity(tween);
+    shoot(game: NetworkPlatformGame): void {
+        const ray = new Line(this.position, Vec2.add(this.position, this.direction.extend(1000)));
+
+        ShootHitscanWeapon(game, ray);
+
+        game.networksystem.enqueueStagePacket(
+            new ServerBoundHitscanPacket(0,game.networksystem.getLocalShotID(), ray.A, ray.B)
+        )
+    }
+
 }
 
 export class ServerBoundHitscanPacket extends PacketWriter {
@@ -99,7 +158,7 @@ export class ServerBoundHitscanPacket extends PacketWriter {
 
     write(stream: BufferStreamWriter){
         stream.setUint8(ServerBoundPacket.REQUEST_SHOOT_WEAPON);
-        stream.setUint8(ItemType.HITSCAN_WEAPON);
+        stream.setUint8(ShotType.HIT_SCAN);
 
         stream.setUint32(this.localShotID);
         
@@ -114,29 +173,24 @@ export class ServerBoundHitscanPacket extends PacketWriter {
     }
 }
 
-export class Hitscan extends Gun {
 
-    shoot(game: NetworkPlatformGame): void {
-        const ray = new Line(this.position, Vec2.add(this.position, this.direction.extend(1000)));
 
-        ShootHitscanWeapon(game, ray);
 
-        game.networksystem.enqueueStagePacket(
-            new ServerBoundHitscanPacket(0,game.networksystem.getLocalShotID(), ray.A, ray.B)
-        )
 
-        // // Check in radius to see if any players are hurt
-        // for(const client of game.clients){
 
-        //     const p = game.players.get(client);
 
-        //     if(ray.pointDistance(p.playerEntity.position) < 30){
-        //         p.playerEntity.health -= 16;
-        //     }
-        // } 
-    }
 
+
+export function ShootHitscanWeapon(game: NetworkPlatformGame, line: Line): void {
+
+    const canvas = game.engine.renderer.createCanvas();
+    line.draw(canvas, 0x346eeb);
+    const tween = new NumberTween(canvas, "alpha",.4).from(1).to(0).go().onFinish(() => canvas.destroy());
+
+    game.entities.addEntity(tween);
 }
+
+
 
 interface GunAddon {
     modifyShot: (bullet: ModularBullet) => void,
@@ -163,40 +217,40 @@ export function ShootModularWeapon(game: NetworkPlatformGame, addons: GunAddon[]
 
 
 
-export class ModularGun<T extends GunItemData> extends Gun<T> {
+// export class ModularGun<T extends GunItemData> extends Gun<T> {
 
-    addons: GunAddon[] = [];
+//     addons: GunAddon[] = [];
 
-    constructor(data: T, addons: GunAddon[]){
-        super(data);
-        this.addons.push(...addons);
-    }
+//     constructor(data: T, addons: GunAddon[]){
+//         super(data);
+//         this.addons.push(...addons);
+//     }
 
-    shoot(game: NetworkPlatformGame){
-        const velocity = this.direction.clone().extend(25);
-        const b = ShootModularWeapon(game,this.addons,this.position,velocity);
+//     shoot(game: NetworkPlatformGame){
+//         const velocity = this.direction.clone().extend(25);
+//         const b = ShootModularWeapon(game,this.addons,this.position,velocity);
 
-        const localID = game.networksystem.getLocalShotID();
-        game.networksystem.localShotIDToEntity.set(localID,b)
+//         const localID = game.networksystem.getLocalShotID();
+//         game.networksystem.localShotIDToEntity.set(localID,b)
 
-        game.networksystem.enqueueStagePacket(
-            new ServerBoundTerrainCarverPacket(0, localID, this.position.clone(), velocity)
-        )
+//         game.networksystem.enqueueStagePacket(
+//             new ServerBoundTerrainCarverPacket(0, localID, this.position.clone(), velocity)
+//         )
 
-        // const bullet = new ModularBullet();
+//         // const bullet = new ModularBullet();
             
-        // bullet.position.set(this.position);
+//         // bullet.position.set(this.position);
 
-        // bullet.velocity.set(this.direction.clone().extend(25));
+//         // bullet.velocity.set(this.direction.clone().extend(25));
 
 
-        // for(const addon of this.addons){
-        //     addon.modifyShot(bullet);
-        // }
+//         // for(const addon of this.addons){
+//         //     addon.modifyShot(bullet);
+//         // }
     
-        // game.entities.addEntity(bullet);
-    }
-}
+//         // game.entities.addEntity(bullet);
+//     }
+// }
 
 export class ModularBullet extends Effect<NetworkPlatformGame> {
     
@@ -227,33 +281,15 @@ export class ModularBullet extends Effect<NetworkPlatformGame> {
 
 }
 
-export class ServerBoundTerrainCarverPacket extends PacketWriter {
 
-    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public velocity: Vec2){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(ServerBoundPacket.REQUEST_SHOOT_WEAPON);
-        stream.setUint8(ItemType.TERRAIN_CARVER);
-        stream.setUint32(this.localShotID);
-
-        stream.setFloat32(this.createServerTick);
-
-        stream.setFloat32(this.start.x);
-        stream.setFloat32(this.start.y);
-
-        stream.setFloat32(this.velocity.x);
-        stream.setFloat32(this.velocity.y);
-
-    }
-}
 
 
 class TerrainHitAddon implements GunAddon {
 
     modifyShot(bullet: ModularBullet){
         bullet.onUpdate(function(){
+            // Client side prediction of terrain hit?
+
             // const testTerrain = this.game.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)));
             
             // const RADIUS = 40;
@@ -261,22 +297,6 @@ class TerrainHitAddon implements GunAddon {
 
             // if(testTerrain){
             //     this.game.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
-
-            //     this.game.enqueueGlobalPacket(
-            //         new TerrainCarveCirclePacket(testTerrain.point.x, testTerrain.point.y, RADIUS)
-            //     );
-
-            //     const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
-
-            //     // Check in radius to see if any players are hurt
-            //     for(const client of this.game.clients){
-            //         const p = this.game.players.get(client);
-
-            //         if(Vec2.distanceSquared(p.playerEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
-            //             p.playerEntity.health -= 16;
-            //         }
-            //     } 
-                 
             //     this.destroy();
             // }
         })
@@ -305,18 +325,6 @@ export const TerrainCarverAddons: GunAddon[] = [
     },
 ]
 
-export class TerrainCarverGun extends ModularGun<GunItemData> {
-
-    constructor(){
-        super(
-            CreateItemData("terrain_carver"),
-            TerrainCarverAddons
-        )
-    }
-}
-
-
-
 
 
 // Simple entity to draw an item as a sprite in the world
@@ -328,8 +336,8 @@ export class ItemDrawer extends Entity {
         this.image.sprite.visible = false;
     }
 
-    setItem(item: ItemData){
-        this.setSprite(item.item_sprite);
+    setItem(item: string){
+        this.setSprite(item);
     }
 
     clear(){

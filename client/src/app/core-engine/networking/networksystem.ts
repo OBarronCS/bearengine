@@ -1,7 +1,7 @@
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { EntitySystem, NULL_ENTITY_INDEX, StreamReadEntityID } from "shared/core/entitysystem";
-import { NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker } from "shared/core/sharedlogic/networkschemas";
+import { NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker, SharedEntityLinker } from "shared/core/sharedlogic/networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { SharedEntityClientTable } from "./cliententitydecorators";
@@ -21,10 +21,11 @@ import { Vec2 } from "shared/shapes/vec2";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
-import { CreateItemData, ItemType, ITEM_LINKER } from "shared/core/sharedlogic/items";
-import { CreateClientItemFromType, ShootHitscanWeapon, ShootModularWeapon, TerrainCarverAddons } from "../clientitems";
+import { ITEM_LINKER } from "shared/core/sharedlogic/items";
+import { ShootHitscanWeapon, ShootModularWeapon, TerrainCarverAddons } from "../clientitems";
 import { Line } from "shared/shapes/line";
 import { EmitterAttach, PARTICLE_CONFIG } from "../particles";
+import { ShotType } from "shared/core/sharedlogic/weapondefinitions";
 
 class ClientInfo {
     uniqueID: number;
@@ -85,7 +86,12 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     public otherClients = new SparseSet<ClientInfo>(256);
 
 
+
     private remoteEntities: Map<number, Entity> = new Map();
+    private networked_entity_subset = this.game.entities.createSubset();
+
+
+
     private remotePlayerEntities: Map<number, RemotePlayer> = new Map();
 
 
@@ -226,7 +232,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
         // Adds it to the scene
         this.remoteEntities.set(entityID, e);
-        this.game.entities.addEntity(e);
+        this.networked_entity_subset.addEntity(e);
 
         return e;
     }
@@ -267,6 +273,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
     private spawnLocalPlayer(x: number, y: number){
         const p = (this.game.player = new Player());
+
         this.game.entities.addEntity(p);
 
         p.x = x;
@@ -435,7 +442,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             console.log("CREATE: ", sharedClassID, " ", entityID);
 
                             const check = this.remoteEntities.get(entityID);
-                            if(check !== undefined) throw new Error("Entity already exists");
+
+
+                            if(check !== undefined) throw new Error("Entity already exists, " + SharedEntityClientTable.getEntityClass(sharedClassID).name + ".... alive entity " + check.toString() + "exists");
 
                             this.createAutoRemoteEntity(sharedClassID,entityID);
 
@@ -493,7 +502,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             if(entity !== undefined){
                                 this.remoteEntities.delete(entityID);
-                                this.game.entities.destroyEntity(entity);
+                                this.networked_entity_subset.destroyEntity(entity);
                             }
                             
                             break;
@@ -548,6 +557,12 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                         case GamePacket.START_ROUND: {
                             console.log("Round begun");
+
+                            // maybe force deletion immediately?
+                            // Doesn't really matter as I clear the remoteEntity map which breaks all links between network and the local entity
+                            this.networked_entity_subset.clear();
+                            this.remoteEntities.clear();
+
                             
                             const x = stream.getFloat32();
                             const y = stream.getFloat32();
@@ -561,13 +576,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             this.game.endCurrentLevel();
                             this.game.loadLevel(new DummyLevel(this.game, level));
 
-
-                            // // They have been deleted, ADD THE BACK;
-                            // this.game.entities.addEntity(this.game.player);
-
-                            // for(const player of this.remotePlayerEntities.keys()){
-                            //     this.game.entities.addEntity(this.remotePlayerEntities.get(player));
-                            // }
 
                             if(this.currentPlayState === ClientPlayState.ACTIVE){
                                 // console.log("AHAHAHHA");
@@ -600,12 +608,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                                 this.game.entities.addEntity(emitter);
                             }
-
-
-                            // for(const e of this.remoteEntities.values()){
-                            //     e.destroy();
-                            // }
-                            // this.remoteEntities.clear();
 
                             break;
                         }
@@ -750,12 +752,23 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         case GamePacket.SET_INV_ITEM: {
                             const item_id = stream.getUint8();
 
-                            const item_data = CreateItemData(ITEM_LINKER.IDToName(item_id));
+                            const item_data = ITEM_LINKER.ItemData(item_id);
+                            
+                            const item_class = SharedEntityClientTable.getEntityClass(SharedEntityLinker.nameToSharedID(item_data.type));
 
-                            const item = CreateClientItemFromType(item_data);
+                            console.log(item_class)
+
+                            //@ts-expect-error
+                            const item_instance = (new item_class(item_id));
+
+                            console.log(item_instance)
+
+                            // const item_data = CreateItemData(ITEM_LINKER.IDToName(item_id));
+
+                            // const item = CreateClientItemFromType(item_data);
 
                             if(this.currentPlayState === ClientPlayState.ACTIVE){
-                                this.game.player.setItem(item);
+                                this.game.player.setItem(item_instance, item_data.item_sprite);
                             }
                             
                             break;
@@ -771,7 +784,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         case GamePacket.SHOOT_WEAPON: {
 
                             const creatorID = stream.getUint8();
-                            const item_type: ItemType = stream.getUint8();
+                            const item_type: ShotType = stream.getUint8();
 
                             const serverShotID = stream.getUint32();
 
@@ -781,12 +794,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
 
                             switch(item_type){
-                                // fallthrough all non-weapons
-                                case ItemType.SIMPLE:{
-                                    console.log("How did this happen?")
-                                    break;
-                                }
-                                case ItemType.TERRAIN_CARVER:{
+                                case ShotType.TERRAIN_CARVER:{
                                     const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
 
                                     if(this.MY_CLIENT_ID !== creatorID){
@@ -796,7 +804,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     }
                                     break;
                                 }
-                                case ItemType.HITSCAN_WEAPON:{
+                                case ShotType.HIT_SCAN:{
                                     const end = new Vec2(stream.getFloat32(), stream.getFloat32());
                                     const ray = new Line(pos, end);
                                     if(this.MY_CLIENT_ID !== creatorID)

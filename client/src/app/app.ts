@@ -32,6 +32,8 @@ engine.loadAssets().then(RESOURCES => {
     game.loadLevel(new FirstLevel(game));
     
 
+
+    
     //engine.start(new FrameEditor(engine))
 })
 

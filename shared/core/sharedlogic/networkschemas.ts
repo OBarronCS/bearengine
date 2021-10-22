@@ -3,6 +3,8 @@ import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bu
 import { GamePacket } from "./packetdefinitions";
 import { areEqualSorted, arrayDifference, arrayDuplicates, containsDuplicates } from "shared/datastructures/arrayutils";
 import { DefineSchema, DeserializeTypedVar, netv, NetworkVariableTypes, SerializeTypedVar, SharedTemplates, TypescriptTypeOfNetVar } from "./serialization";
+import { SimpleWeaponControllerDefinition } from "./weapondefinitions";
+
 
 
 export abstract class PacketWriter {
@@ -36,6 +38,32 @@ interface SharedNetworkEntityFormat {
 
 /** Linking networked entity classes */
 export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntityFormat>()({    
+    "weapon_item": {
+        extends: null,
+        static: {
+            shoot_controller: null as SimpleWeaponControllerDefinition,
+        },
+        variables: {
+            capacity: netv.uint32(),
+            reload_time: netv.uint32(),
+            ammo: netv.uint32()
+        },
+        events: {}
+    },
+    "terrain_carver_weapon": {
+        extends: "weapon_item",
+        variables: {
+            
+        },
+        events: {},
+    },
+    "hitscan_weapon": {
+        extends: "weapon_item",
+        variables: {
+            
+        },
+        events: {},
+    },
     "bullet": {
         // create: () => void 0,
         extends: "",

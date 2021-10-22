@@ -9,49 +9,90 @@ import { TerrainCarveCirclePacket } from "../networking/gamepacketwriters";
 import { networkedclass_server, sync } from "../networking/serverentitydecorators";
 import { ServerBearEngine } from "../serverengine";
 
-import { CreateItemData, GunItemData, ItemData } from "shared/core/sharedlogic/items";
+// import { ItemData } from "shared/core/sharedlogic/items";
 import { ConnectionID } from "../networking/serversocket";
+import { ServerEntity } from "../entity";
 
-export class ServerItem<T extends ItemData> {
-    item_data: T;
+@networkedclass_server("weapon_item")
+export abstract class SWeaponItem extends ServerEntity {
 
-    constructor(item_data: T){
-        this.item_data = item_data;
+    readonly direction = new Vec2();
+    readonly shootController: GunshootController;
+
+    @sync("weapon_item").var("ammo")
+    ammo: number;
+
+    @sync("weapon_item").var("capacity")
+    capacity: number;
+
+    @sync("weapon_item").var("reload_time")
+    reload_time: number;
+
+    constructor(){
+        super();
+        // this.shootController = CreateShootController(item_data.shoot_controller);
     }
 
-    get item_type(){ return this.item_data.item_type; }
-    get item_name(){ return this.item_data.item_name; }
-    get item_id(){ return this.item_data.item_id; }
-    get item_sprite(){ return this.item_data.item_sprite; }
+    update(dt: number){}
+
 }
 
-abstract class Gun<T extends ItemData> extends ServerItem<T> {
+@networkedclass_server("terrain_carver_weapon")
+export class STerrainCarverWeapon extends SWeaponItem {
 
-    readonly position = new Vec2();
-    readonly direction = new Vec2();
 
-    reloading = false;
-
-    triggerHeldThisTick = false;
-
-    // holdTrigger(){
-    //     this.triggerHeldThisTick = true;
-    // }
-
-    // update(dt: number): void {
-    //     if(this.shootController.holdTrigger(this.triggerHeldThisTick)){
-    //         if(this.clip.ammo > 0){
-    //             this.clip.ammo -= 1;
-
-    //             this.shoot();
-    //         }
-    //     }
-
-    //     this.triggerHeldThisTick = false;
-    // }
-
-    abstract shoot(game: ServerBearEngine): void;
 }
+
+@networkedclass_server("hitscan_weapon")
+export class SHitscanWeapon extends SWeaponItem {
+
+
+}
+
+
+
+
+
+// export class ServerItem<T extends ItemData> {
+//     item_data: T;
+
+//     constructor(item_data: T){
+//         this.item_data = item_data;
+//     }
+
+//     get item_type(){ return this.item_data.item_type; }
+//     get item_name(){ return this.item_data.item_name; }
+//     get item_id(){ return this.item_data.item_id; }
+//     get item_sprite(){ return this.item_data.item_sprite; }
+// }
+
+// abstract class Gun<T extends ItemData> extends ServerItem<T> {
+
+//     readonly position = new Vec2();
+//     readonly direction = new Vec2();
+
+//     reloading = false;
+
+//     triggerHeldThisTick = false;
+
+//     // holdTrigger(){
+//     //     this.triggerHeldThisTick = true;
+//     // }
+
+//     // update(dt: number): void {
+//     //     if(this.shootController.holdTrigger(this.triggerHeldThisTick)){
+//     //         if(this.clip.ammo > 0){
+//     //             this.clip.ammo -= 1;
+
+//     //             this.shoot();
+//     //         }
+//     //     }
+
+//     //     this.triggerHeldThisTick = false;
+//     // }
+
+//     abstract shoot(game: ServerBearEngine): void;
+// }
 
 export function ServerShootHitscanWeapon(game: ServerBearEngine, shotID: number, position: Vec2, end: Vec2, owner: ConnectionID){
     
@@ -73,30 +114,30 @@ interface GunAddon {
     [key: string]: any; // allow for random data
 }
 
-class ModularGun<T extends ItemData> extends Gun<T> {
+// class ModularGun<T extends ItemData> extends Gun<T> {
 
-    addons: GunAddon[] = [];
+//     addons: GunAddon[] = [];
 
-    constructor(data: T, addons: GunAddon[]){
-        super(data);
-        this.addons.push(...addons);
-    }
+//     constructor(data: T, addons: GunAddon[]){
+//         super(data);
+//         this.addons.push(...addons);
+//     }
 
-    shoot(game: ServerBearEngine){
-        const bullet = new ServerBullet();
+//     shoot(game: ServerBearEngine){
+//         const bullet = new ServerBullet();
             
-        bullet.position.set(this.position);
+//         bullet.position.set(this.position);
 
-        bullet.velocity = this.direction.clone().extend(25);
+//         bullet.velocity = this.direction.clone().extend(25);
 
 
-        for(const addon of this.addons){
-            addon.modifyShot(bullet);
-        }
+//         for(const addon of this.addons){
+//             addon.modifyShot(bullet);
+//         }
     
-        game.createRemoteEntity(bullet);
-    }
-}
+//         game.createRemoteEntity(bullet);
+//     }
+// }
 
 class ModularBullet extends Effect<ServerBearEngine> {
     

@@ -24,7 +24,7 @@ import { BearGame } from "shared/core/abstractengine";
 import { AcknowledgeShotPacket, EndRoundPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
-import { ALL_ITEMS, ItemType } from "shared/core/sharedlogic/items";
+import {  } from "shared/core/sharedlogic/items";
 
 
 import { ServerBullet, ServerShootHitscanWeapon, ServerShootTerrainCarver } from "./weapons/serveritems";
@@ -33,6 +33,7 @@ import { commandDispatcher } from "./servercommands";
 import "server/source/app/weapons/serveritems.ts"
 import { random_range } from "shared/misc/random";
 import { Effect } from "shared/core/effects";
+import { ShotType } from "shared/core/sharedlogic/weapondefinitions";
 
 const MAX_BYTES_PER_PACKET = 2048;
 
@@ -527,7 +528,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
                     case ServerBoundPacket.REQUEST_SHOOT_WEAPON: {
                         
-                        const item_type: ItemType = stream.getUint8();
+                        const item_type: ShotType = stream.getUint8();
 
                         const clientShotID = stream.getUint32();
 
@@ -535,12 +536,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         const pos = new Vec2(stream.getFloat32(), stream.getFloat32());
 
                         switch(item_type){
-                            // fallthrough all non-weapons
-                            case ItemType.SIMPLE:{
-                                console.log("How did this happen?")
-                                break;
-                            }
-                            case ItemType.TERRAIN_CARVER:{
+                            case ShotType.TERRAIN_CARVER:{
                                 const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
 
                                 const shotID = this.getServerShotID();
@@ -559,7 +555,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
                                 break;
                             }
-                            case ItemType.HITSCAN_WEAPON:{
+                            case ShotType.HIT_SCAN:{
                                 const end = new Vec2(stream.getFloat32(), stream.getFloat32());
 
                                 const shotID = this.getServerShotID();
@@ -573,9 +569,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                                 break;
                             }
                             default: AssertUnreachable(item_type);
-
                         }
-                        
                         
                         break;
                     }

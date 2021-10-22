@@ -1,5 +1,5 @@
 import { BindCommandCreator, CommandDatabase, comv } from "shared/core/commands"
-import { ALL_ITEMS } from "shared/core/sharedlogic/items";
+import { ITEM_LINKER, MIGRATED_ITEMS } from "shared/core/sharedlogic/items";
 import { RemoteResources } from "shared/core/sharedlogic/networkschemas";
 import { SetInvItemPacket } from "./networking/gamepacketwriters";
 import type { PlayerInformation, ServerBearEngine } from "./serverengine";
@@ -27,11 +27,11 @@ const database = commandDispatcher;
 
 // Some of these assume they are being called by a player
 database.add(
-    command("item").args(comv.string_options<keyof typeof ALL_ITEMS>(Object.keys(ALL_ITEMS)))
-        .run((context, item_name: keyof typeof ALL_ITEMS) => {
+    command("item").args(comv.string_options<keyof typeof MIGRATED_ITEMS>(Object.keys(MIGRATED_ITEMS)))
+        .run((context, item_name: keyof typeof MIGRATED_ITEMS) => {
 
             context.engine.enqueueGlobalPacket(
-                new SetInvItemPacket(ALL_ITEMS[item_name].item_id)
+                new SetInvItemPacket(ITEM_LINKER.NameToID(item_name))
             );
         })
     );

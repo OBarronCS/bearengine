@@ -16,6 +16,9 @@ import { PARTICLE_CONFIG } from "../core-engine/particles";
 import { TickTimer } from "shared/datastructures/ticktimer";
 import { Line } from "shared/shapes/line";
 import { drawVecAsArrow } from "shared/shapes/shapedrawing";
+import { ItemDrawer } from "../core-engine/clientitems";
+
+
 
 
 
@@ -45,7 +48,9 @@ export class FirstLevel extends GameLevel {
     
     path: string | TiledMap = "assets/firsttest.json";
 
+    subset = this.game.entities.createSubset();
 
+            
     private emitter: Emitter;
 
     update(dt: number): void {
@@ -56,6 +61,8 @@ export class FirstLevel extends GameLevel {
             e.velocity.set(this.engine.mouse.velocity.clone().scale(.2))
             e.velocity.set({x:30,y:10})
             this.game.entities.addEntity(e)
+
+            this.subset.clear()
         }
         // this.p.manualUpdate(dt);
     }
@@ -63,6 +70,16 @@ export class FirstLevel extends GameLevel {
     private p;
 
     start(): void {
+
+
+        const drawer = new ItemDrawer();
+        drawer.setItem("weapon1.png")
+
+        this.subset.addEntity(drawer);
+
+
+
+
         this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["BOOM"], 0,0);
 
         // this.p = this.game.entities.addEntity(new Player())
