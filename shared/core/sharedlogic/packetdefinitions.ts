@@ -88,10 +88,6 @@ export enum ServerImmediatePacket {
 }
 
 export enum ServerBoundPacket {
-    JOIN_GAME, // [empty packet]
-    LEAVE_GAME, // [empty packet]
-
-
     PLAYER_POSITION, // [x: float32, y: float32, mouse_x: float32, mouse_y: float32, uint8: animationstate, bool: flipped, isMouseDown: bool, isFDown: bool, isQDown: bool]
 
 

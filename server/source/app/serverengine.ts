@@ -152,21 +152,103 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         this.network = new ServerNetwork(socket);
 
     
-        this.network.start(); // this.onClientJoin.bind(this),this.onClientLeave.bind(this)
+        this.network.start(
+            this.onClientConnect.bind(this),
+            this.onClientLeave.bind(this)
+        );
         this.previousTickTime = Date.now();
 
         this.loop();
     }
 
-    // private onClientJoin(clientID: ConnectionID){
+    private onClientConnect(clientID: ConnectionID){
+        console.log("Player joining: ", clientID)
+        if(this.players.get(clientID) !== undefined) throw new Error(`Client ${clientID} attempting to join twice`)
 
-    // }
 
-    // // Always called, whenever a client disconnects
-    // // This will get called after calling "clientkick" on websocket server
-    // private onClientLeave(clientID: ConnectionID){
+        const clientInfo = new PlayerInformation(clientID);
+        
+        this.clients.push(clientID);
+        this.players.set(clientID, clientInfo);
+        
 
-    // }
+        // INIT DATA, tick rate, current time and tick
+        clientInfo.personalPackets.enqueue(
+            new InitPacket(NETWORK_VERSION_HASH,this.TICK_RATE, this.referenceTime, this.referenceTick, clientID)
+        )
+
+        // START TICKING
+        clientInfo.personalPackets.enqueue(
+            new ServerIsTickingPacket(this.tick)
+        );
+
+        // Tell the client about the other clients
+        for(const c of this.players.values()){
+            clientInfo.personalPackets.enqueue(
+                new OtherPlayerInfoAddPacket(c.connectionID, c.ping, c.gamemode)
+            );
+        }
+
+        // Tell the client to spawn entities for all other clients that are alive
+        for(const p of this.players.values()){
+            if(p.gamemode === ClientPlayState.ACTIVE){
+                clientInfo.personalPackets.enqueue(
+                    new PlayerEntitySpawnPacket(p.connectionID, p.playerEntity.x, p.playerEntity.y)
+                );
+            }
+        }
+
+
+        // Tell other clients about the fact that a new client just joined!
+        this.enqueueGlobalPacket(
+            new OtherPlayerInfoAddPacket(clientID, clientInfo.ping, clientInfo.gamemode)
+        );
+
+
+        // If the player is joining mid-match
+        if(this.serverState === ServerGameState.ROUND_ACTIVE){
+            clientInfo.personalPackets.enqueue(
+                new JoinLatePacket(this.activeScene.levelID)
+            );
+
+            // Gives the client all the data from the current level
+            clientInfo.personalPackets.addAllQueue(this.savedPackets);
+        } else {
+
+            this.createPlayerEntity(clientInfo);
+
+        }
+
+    }
+
+    // Always called, whenever a client disconnects
+    // This will get called after calling "clientkick" on websocket server
+    private onClientLeave(clientID: ConnectionID): void {
+        // Clear all data associated with this client
+        console.log(`Player leaving: ${clientID}`);
+
+        const index = this.clients.indexOf(clientID);
+        if(index === -1) {
+            console.log(`Trying to delete a client, ${clientID}, we don't have.`)
+            return;
+        }
+
+
+        this.clients.splice(index,1);
+        this.players.delete(clientID);
+
+        this.enqueueGlobalPacket(
+            new OtherPlayerInfoRemovePacket(clientID)
+        );
+
+        this.enqueueGlobalPacket(
+            new PlayerEntityCompletelyDeletePacket(clientID)
+        );
+        
+        if(this.serverState === ServerGameState.ROUND_ACTIVE){
+            this.activeScene.activePlayerEntities.remove(clientID);
+        }    
+    }
 
 
     beginMatch(){
@@ -392,97 +474,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                 const type: ServerBoundPacket = stream.getUint8();
 
                 switch(type){
-                    case ServerBoundPacket.JOIN_GAME: {
-
-                        console.log("Player joining: ", clientID)
-                        if(this.players.get(clientID) !== undefined) throw new Error(`Client ${clientID} attempting to join twice`)
-
-
-
-                        const clientInfo = new PlayerInformation(clientID);
-                        
-                        this.clients.push(clientID);
-                        this.players.set(clientID, clientInfo);
-                        
-
-                        // INIT DATA, tick rate, current time and tick
-                        clientInfo.personalPackets.enqueue(
-                            new InitPacket(NETWORK_VERSION_HASH,this.TICK_RATE, this.referenceTime, this.referenceTick, clientID)
-                        )
-
-                        // START TICKING
-                        clientInfo.personalPackets.enqueue(
-                            new ServerIsTickingPacket(this.tick)
-                        );
-
-                        // Tell the client about the other clients
-                        for(const c of this.players.values()){
-                            clientInfo.personalPackets.enqueue(
-                                new OtherPlayerInfoAddPacket(c.connectionID, c.ping, c.gamemode)
-                            );
-                        }
-
-                        // Tell the client to spawn entities for all other clients that are alive
-                        for(const p of this.players.values()){
-                            if(p.gamemode === ClientPlayState.ACTIVE){
-                                clientInfo.personalPackets.enqueue(
-                                    new PlayerEntitySpawnPacket(p.connectionID, p.playerEntity.x, p.playerEntity.y)
-                                );
-                            }
-                        }
-
-
-                        // Tell other clients about the fact that a new client just joined!
-                        this.enqueueGlobalPacket(
-                            new OtherPlayerInfoAddPacket(clientID, clientInfo.ping, clientInfo.gamemode)
-                        );
-
-
-                        // If the player is joining mid-match
-                        if(this.serverState === ServerGameState.ROUND_ACTIVE){
-                            clientInfo.personalPackets.enqueue(
-                                new JoinLatePacket(this.activeScene.levelID)
-                            );
-
-                            // Gives the client all the data from the current level
-                            clientInfo.personalPackets.addAllQueue(this.savedPackets);
-                        } else {
-
-                            this.createPlayerEntity(clientInfo);
-
-                        }
-
-                        break;
-                    }
-                    case ServerBoundPacket.LEAVE_GAME: {
-                        // Clear all data associated with this client
-                        console.log(`Player leaving: ${clientID}`);
-
-                        const index = this.clients.indexOf(clientID);
-                        if(index === -1) {
-                            console.log("Trying to delete a client we don't have.")
-                            continue;
-                        }
-
-
-                        this.clients.splice(index,1);
-                        this.players.delete(clientID);
-
-                        this.enqueueGlobalPacket(
-                            new OtherPlayerInfoRemovePacket(clientID)
-                        );
-
-                        this.enqueueGlobalPacket(
-                            new PlayerEntityCompletelyDeletePacket(clientID)
-                        );
-                        
-                        if(this.serverState === ServerGameState.ROUND_ACTIVE){
-                            this.activeScene.activePlayerEntities.remove(clientID);
-                        }
-
-                        break;
-                    }
-                    
                     case ServerBoundPacket.PLAYER_POSITION: {
                         const p = this.players.get(clientID).playerEntity;
                         p.position.x = stream.getFloat32();

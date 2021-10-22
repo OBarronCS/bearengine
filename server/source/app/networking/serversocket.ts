@@ -37,8 +37,8 @@ export class ServerNetwork {
 
     private packets = new LinkedQueue<BufferedPacket>();
     
-    // private onClientJoin: (clientID: ConnectionID) => void = null;
-    // private onClientDisconnect: (clientID: ConnectionID) => void = null;
+    private onClientConnect: (clientID: ConnectionID) => void;
+    private onClientDisconnect: (clientID: ConnectionID) => void;
     
     constructor(server: WS.Server){
         this.server = server;
@@ -47,15 +47,15 @@ export class ServerNetwork {
     /** Start handling websocket connections 
      *  Pass in callbacks to handle new connections, disconnections
     */
-    public start(){ // onJoin: ServerNetwork["onClientJoin"], onDisconnect: ServerNetwork["onClientDisconnect"]
+    public start(onConnect: ServerNetwork["onClientConnect"], onDisconnect: ServerNetwork["onClientDisconnect"]){
         this.server.on("connection", this.newClient.bind(this));
 
         this.server.on("close", () => {
             console.log("Server closed")
         });
 
-        // this.onClientJoin = onJoin;
-        // this.onClientDisconnect = onDisconnect;
+        this.onClientConnect = onConnect;
+        this.onClientDisconnect = onDisconnect;
     }
 
     /** On client connection. Socket is unique to client */
@@ -73,14 +73,16 @@ export class ServerNetwork {
         this.clientMap.set(socket,connectionID);
         this.reverseClientMap.set(connectionID, socket);
 
-        // Join message to engine
-        const stream = new BufferStreamWriter(new ArrayBuffer(1))
-        stream.setUint8(ServerBoundPacket.JOIN_GAME);
+        // Tell engine that a player joined 
+        this.onClientConnect(connectionID);
 
-        this.packets.enqueue({
-            client:connectionID,
-            buffer:new BufferStreamReader(stream.cutoff()),
-        });
+        // const stream = new BufferStreamWriter(new ArrayBuffer(1))
+        // stream.setUint8(ServerBoundPacket.JOIN_GAME);
+
+        // this.packets.enqueue({
+        //     client:connectionID,
+        //     buffer:new BufferStreamReader(stream.cutoff()),
+        // });
 
         socket.on("close", () => {
             const client = this.clientMap.get(socket);
@@ -88,13 +90,17 @@ export class ServerNetwork {
             if(client === undefined) throw new Error("Closing socket from unknown client. If this error goes off then there is something deeply wrong");
             console.log("Client disconnected, ", client);
 
-            // Sends this info to the engine as a packet;
-            const stream = new BufferStreamWriter(new ArrayBuffer(1))
-            stream.setUint8(ServerBoundPacket.LEAVE_GAME);
-            this.packets.enqueue({
-                client:client,
-                buffer:new BufferStreamReader(stream.cutoff()),
-            });
+
+            // Tell engine that player left
+            this.onClientDisconnect(client)
+
+            // // Sends this info to the engine as a packet;
+            // const stream = new BufferStreamWriter(new ArrayBuffer(1))
+            // stream.setUint8(ServerBoundPacket.LEAVE_GAME);
+            // this.packets.enqueue({
+            //     client:client,
+            //     buffer:new BufferStreamReader(stream.cutoff()),
+            // });
 
             // This is the last message associated with this socket
             this.clientMap.delete(socket);
@@ -149,7 +155,7 @@ export class ServerNetwork {
             }           
         });
 
-        // this.onClientJoin(connectionID);
+
     }
     
 
