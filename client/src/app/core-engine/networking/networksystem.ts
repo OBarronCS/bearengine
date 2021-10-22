@@ -86,7 +86,12 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     public otherClients = new SparseSet<ClientInfo>(256);
 
 
+
     private remoteEntities: Map<number, Entity> = new Map();
+    private networked_entity_subset = this.game.entities.createSubset();
+
+
+
     private remotePlayerEntities: Map<number, RemotePlayer> = new Map();
 
 
@@ -227,7 +232,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
         // Adds it to the scene
         this.remoteEntities.set(entityID, e);
-        this.game.entities.addEntity(e);
+        this.networked_entity_subset.addEntity(e);
 
         return e;
     }
@@ -268,6 +273,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
     private spawnLocalPlayer(x: number, y: number){
         const p = (this.game.player = new Player());
+
         this.game.entities.addEntity(p);
 
         p.x = x;
@@ -436,7 +442,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             console.log("CREATE: ", sharedClassID, " ", entityID);
 
                             const check = this.remoteEntities.get(entityID);
-                            if(check !== undefined) throw new Error("Entity already exists");
+
+
+                            if(check !== undefined) throw new Error("Entity already exists, " + SharedEntityClientTable.getEntityClass(sharedClassID).name + ".... alive entity " + check.toString() + "exists");
 
                             this.createAutoRemoteEntity(sharedClassID,entityID);
 
@@ -494,7 +502,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             if(entity !== undefined){
                                 this.remoteEntities.delete(entityID);
-                                this.game.entities.destroyEntity(entity);
+                                this.networked_entity_subset.destroyEntity(entity);
                             }
                             
                             break;
@@ -549,6 +557,12 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                         case GamePacket.START_ROUND: {
                             console.log("Round begun");
+
+                            // maybe force deletion immediately?
+                            // Doesn't really matter as I clear the remoteEntity map which breaks all links between network and the local entity
+                            this.networked_entity_subset.clear();
+                            this.remoteEntities.clear();
+
                             
                             const x = stream.getFloat32();
                             const y = stream.getFloat32();
@@ -562,13 +576,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             this.game.endCurrentLevel();
                             this.game.loadLevel(new DummyLevel(this.game, level));
 
-
-                            // // They have been deleted, ADD THE BACK;
-                            // this.game.entities.addEntity(this.game.player);
-
-                            // for(const player of this.remotePlayerEntities.keys()){
-                            //     this.game.entities.addEntity(this.remotePlayerEntities.get(player));
-                            // }
 
                             if(this.currentPlayState === ClientPlayState.ACTIVE){
                                 // console.log("AHAHAHHA");
@@ -601,12 +608,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                                 this.game.entities.addEntity(emitter);
                             }
-
-
-                            // for(const e of this.remoteEntities.values()){
-                            //     e.destroy();
-                            // }
-                            // this.remoteEntities.clear();
 
                             break;
                         }

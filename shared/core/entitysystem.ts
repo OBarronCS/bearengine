@@ -378,6 +378,7 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
     
     //  Does not clear queries
     clear(){
+
         const entityCopy = this.entities.slice(0);
 
         for(const e of entityCopy){
@@ -392,6 +393,11 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         this.freeID = NULL_ENTITY_INDEX;
         this.sparse = [];
         this.entities = [];
+
+        // Does it afterwards to clear all internally held entities
+        for(const sub of this.subsets){
+            sub.clear();
+        }
     }
 
     createSubset<T extends TEntity>(): EntitySystemSubset<this> {
