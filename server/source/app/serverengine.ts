@@ -24,16 +24,17 @@ import { BearGame } from "shared/core/abstractengine";
 import { AcknowledgeShotPacket, EndRoundPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
-import {  } from "shared/core/sharedlogic/items";
+import { RandomItemID } from "shared/core/sharedlogic/items";
 
 
 import { ServerBullet, ServerShootHitscanWeapon, ServerShootTerrainCarver } from "./weapons/serveritems";
 import { commandDispatcher } from "./servercommands";
 
 import "server/source/app/weapons/serveritems.ts"
-import { random_range } from "shared/misc/random";
+import { random, random_range } from "shared/misc/random";
 import { Effect } from "shared/core/effects";
 import { ShotType } from "shared/core/sharedlogic/weapondefinitions";
+import { ItemEntity } from "./networking/networkedentities";
 
 const MAX_BYTES_PER_PACKET = 2048;
 
@@ -309,7 +310,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
  
             const p = this.players.get(clientID);
 
-            // If someone waiting to join, allow them to spectate
+            // If someone waiting to join, allow them to join
             if(p.gamemode === ClientPlayState.SPECTATING){
                 this.createPlayerEntity(p);
             }
@@ -496,6 +497,25 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         const isFDown = stream.getBool();
                         const isQDown = stream.getBool();
 
+                        if(isFDown){
+                            for(const pEntity of this.entities.entities){
+                                if(pEntity instanceof ItemEntity){
+                                    if(Vec2.distanceSquared(p.position, pEntity.pos) < 1000){
+                                        
+
+                                        this.destroyRemoteEntity(pEntity)
+
+                                        this.players.get(clientID).personalPackets.enqueue(
+                                            new SetInvItemPacket(pEntity.item_id)
+                                        );
+                                        
+
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
                         break;
                     }
 
@@ -670,9 +690,19 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                 this.entities.update(dt);
             }
 
+
             // Round logic
-            // Check for dead players
             if(this.serverState === ServerGameState.ROUND_ACTIVE){
+                
+                if(random() > .97){
+                    console.log("Random item");
+                    const item = new ItemEntity();
+                    item.item_id = RandomItemID();
+                    item.pos.x = 250;
+                    this.createRemoteEntity(item);
+                }
+
+                // Check for dead players
                 for(const playerEntity of this.activeScene.activePlayerEntities.values()){
 
                     if(playerEntity.health <= 0){

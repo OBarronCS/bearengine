@@ -38,6 +38,15 @@ interface SharedNetworkEntityFormat {
 
 /** Linking networked entity classes */
 export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntityFormat>()({    
+    "item_entity": {
+        extends: null,
+        variables: {
+            item_id: netv.uint8(),
+            pos: netv.vec2("float")
+        },
+        events: {}
+    },
+    
     "weapon_item": {
         extends: null,
         static: {
@@ -66,7 +75,7 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
     },
     "bullet": {
         // create: () => void 0,
-        extends: "",
+        extends: null,
         variables: {
             _pos: { type:"vec2", subtype: "float" },
             test: { type: "number", subtype: "float"},
@@ -80,7 +89,7 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
         }
     },
     "ogre": {
-        extends: "",
+        extends: null,
         variables: {
             _x: {type:"number", subtype: "float"},
             asdasd: {type:"number", subtype: "float"},
@@ -92,7 +101,7 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
     },
     
     "test_super": {
-        extends: "",
+        extends: null,
         variables: {
             "supervar":netv.uint32()
         },

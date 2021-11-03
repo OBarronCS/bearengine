@@ -1,5 +1,6 @@
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable } from "shared/misc/assertstatements";
+import { randomInt, random_hash } from "shared/misc/random";
 import { Vec2 } from "shared/shapes/vec2";
 import { SharedNetworkedEntities } from "./networkschemas";
 import { DefineSchema, TypescriptTypeOfNetVar } from "./serialization";
@@ -77,7 +78,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
     first_hitscan: CreateItem({
         type:"hitscan_weapon",
         item_name:"Simple Hitscan",
-        item_sprite:"weapon1.png",
+        item_sprite:"tree.gif",
         capacity: 10,
         ammo: 1000,
         reload_time: 10,
@@ -94,9 +95,12 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
 const idToNameMap: Map<number, keyof typeof MIGRATED_ITEMS> = new Map();
 const nameToIdMap: Map<keyof typeof MIGRATED_ITEMS, number> = new Map();
 
+
 // Allows for items to be linked across the network
 
-(function(){
+
+
+const NUMBER_OF_ITEMS = (function(){
     const shared_item_names = Object.keys(MIGRATED_ITEMS).sort() as (keyof typeof MIGRATED_ITEMS)[];
 
     let max_id: number = 0;
@@ -112,8 +116,13 @@ const nameToIdMap: Map<keyof typeof MIGRATED_ITEMS, number> = new Map();
         nameToIdMap.set(name, item_id);
     }
 
+    return max_id;
     //return items;
 })();
+
+export function RandomItemID(): number {
+    return randomInt(0,NUMBER_OF_ITEMS);
+}
 
 // Assigns ID's to all the items
 export const ITEM_LINKER = {

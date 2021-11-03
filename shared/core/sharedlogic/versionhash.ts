@@ -1,3 +1,4 @@
+import { MIGRATED_ITEMS } from "./items";
 import { RemoteFunctionStruct, RemoteResources, SharedNetworkedEntityDefinitions } from "./networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "./packetdefinitions";
 
@@ -104,7 +105,9 @@ function CreateHash(manual: number): bigint {
 
     hash += ObjectHash(RemoteResources);
     hash += ObjectHash(RemoteFunctionStruct);
-    hash += ObjectHash(SharedNetworkedEntityDefinitions)
+    hash += ObjectHash(SharedNetworkedEntityDefinitions);
+    
+    hash += ObjectHash(MIGRATED_ITEMS);
 
     // Approximate number of bits needed to represent it: 
     // console.log("Number of bits in hash:", Math.log2(Number(hash)))

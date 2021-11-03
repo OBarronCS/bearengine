@@ -33,6 +33,7 @@ export class ServerPlayerEntity extends ServerEntity {
 
     mouse: Vec2 = new Vec2(0,0);
     mousedown = false;
+
     
     // item: Gun<any> = null;
 

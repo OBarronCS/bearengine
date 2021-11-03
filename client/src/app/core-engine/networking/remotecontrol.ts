@@ -1,10 +1,12 @@
 import { Attribute } from "shared/core/entityattribute";
+import { ITEM_LINKER } from "shared/core/sharedlogic/items";
 import { NetArg } from "shared/core/sharedlogic/networkschemas";
+import { Sprite } from "shared/graphics/graphics";
 import { ceil, floor } from "shared/misc/mathutils";
 import { randomInt } from "shared/misc/random";
 import { mix, Vec2 } from "shared/shapes/vec2";
 import { Entity } from "../entity";
-import { SpritePart } from "../parts";
+import { GraphicsPart, SpritePart } from "../parts";
 import { InterpolatedVar, net, networkedclass_client } from "./cliententitydecorators";
 
 
@@ -72,6 +74,35 @@ export class Ogre extends Entity {
         this.position.x = this._x;
 
     }
+}
+
+
+@networkedclass_client("item_entity")
+export class CItemEntity extends Entity {
+
+    g = this.addPart(new GraphicsPart());
+    spritepart = this.addPart(new SpritePart(new Sprite()));
+
+    @net("item_entity").interpolatedvariable("pos")
+    pos = InterpolatedVar(new Vec2(0,0))
+
+    @net("item_entity").variable("item_id", function(this: CItemEntity, i) {
+        this.spritepart.sprite.texture = this.engine.renderer.getTexture(ITEM_LINKER.ItemData(i).item_sprite);
+    })
+    item_id: number = 0;
+
+    constructor(){
+        super();
+        this.g.graphics.beginFill(0xFF0000);
+        this.g.graphics.drawCircle(0, 0, 4);
+    }
+
+
+    update(dt: number): void {
+        this.position.set(this.pos.value);
+        this.g.graphics.position.set(this.pos.value.x, this.pos.value.y);
+    }
+
 }
 
 // @networkedclass_client("auto")

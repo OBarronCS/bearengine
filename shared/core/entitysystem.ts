@@ -294,6 +294,11 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
     }
 
     private destroyEntityImmediately(entityID: EntityID){
+        if(entityID === NULL_ENTITY_INDEX){
+            console.log("TRYING TO DELETE NULL ENTITY");
+            return;
+        }
+
         const sparseIndex = getEntityIndex(entityID);
         const version = getEntityVersion(entityID); 
         
@@ -482,7 +487,7 @@ class EntitySystemSubset<TSystem extends EntitySystem<AbstractEntity>, TEntity e
 
 
     clear(){
-        for(const e of this.entities){
+        for(const e of this.subset.values()){
             this.parentEntitySystem.destroyEntityID(e.entityID);
         }
 

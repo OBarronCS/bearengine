@@ -85,14 +85,12 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     /** Set of all other clients */
     public otherClients = new SparseSet<ClientInfo>(256);
 
+    private remotePlayerEntities: Map<number, RemotePlayer> = new Map();
 
 
     private remoteEntities: Map<number, Entity> = new Map();
     private networked_entity_subset = this.game.entities.createSubset();
 
-
-
-    private remotePlayerEntities: Map<number, RemotePlayer> = new Map();
 
 
 
@@ -462,7 +460,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             if(entity === undefined){
                                 // Will try to create the entity for now, but we missed the REMOTE_ENTITY_CREATE packet clearly
                                 console.log(`Cannot find entity ${entityID}, will create`);
-                                entity = this.createAutoRemoteEntity(SHARED_ID,entityID)
+                                entity = this.createAutoRemoteEntity(SHARED_ID,entityID);
+
                             }
 
                             //console.log("CHANGING VAR: " + entityID + " at frame " + frame);
