@@ -15,11 +15,16 @@ import { FrameEditor } from "./gamelogic/testlevelentities";
 import { StringHash } from "shared/core/sharedlogic/versionhash";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { RunTests } from "shared/testing/testrunner";
-
+import { Trie } from "shared/datastructures/trie";
 
 // import "shared/testing/entitysystemtest";
 // RunTests();
 
+
+const t = new Trie();
+t.insertAll(["Banana", "Billy", "Baaaaa", "Bam", "Baam"]);
+console.log(t.autocomplete(""))
+console.log(t.autocomplete("b"))
 
 const engine = new BearEngine();
 

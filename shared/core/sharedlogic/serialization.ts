@@ -1,6 +1,7 @@
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable, assert } from "shared/misc/assertstatements";
 import { Vec2 } from "shared/shapes/vec2";
+import { CommandHintFormat } from "../commands";
 
 
 export function DefineSchema<Format>(){
@@ -89,6 +90,10 @@ export const SharedTemplates = DefineSchema<{ [key:string]: TemplateDecoder<any>
         arr: {type:"array", subtype : {type : "string"}}
     }),
 
+    COMMANDS: Template({
+        name: { type:"string" },
+        args: { type:"array", subtype: {type:"array", subtype: {type: "string"}}}
+    })
 
 } as const);
 

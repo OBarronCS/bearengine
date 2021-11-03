@@ -26,6 +26,8 @@ import { ShootHitscanWeapon, ShootModularWeapon, TerrainCarverAddons } from "../
 import { Line } from "shared/shapes/line";
 import { EmitterAttach, PARTICLE_CONFIG } from "../particles";
 import { ShotType } from "shared/core/sharedlogic/weapondefinitions";
+import { DeserializeTypedArray, netv, SharedTemplates } from "shared/core/sharedlogic/serialization";
+import { Trie } from "shared/datastructures/trie";
 
 class ClientInfo {
     uniqueID: number;
@@ -92,7 +94,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     private networked_entity_subset = this.game.entities.createSubset();
 
 
-
+    public readonly command_autocomplete = {
+        all_commands: new Trie(),
+        command_arguments: new Map<string, Trie[]>()
+    }
 
 
 
@@ -606,6 +611,17 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 const emitter = new EmitterAttach(pEntity,"ROUND_WINNER", "particle.png");
 
                                 this.game.entities.addEntity(emitter);
+                            }
+
+                            break;
+                        }
+
+                        case GamePacket.DECLARE_COMMANDS: {
+                            const command_array = DeserializeTypedArray(stream, netv.template(SharedTemplates.COMMANDS.format))
+
+                            for(const command of command_array){
+                                this.command_autocomplete.all_commands.insert(command.name);
+                                this.command_autocomplete.command_arguments.set(command.name, command.args.map(c => (new Trie()).insertAll(c)))
                             }
 
                             break;

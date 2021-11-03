@@ -37,7 +37,7 @@ export enum GamePacket {
     // Array of players in order of winner, to last place
     END_ROUND, // [ array_length: uint8, [clientID: uint8] * array_length] 
 
-
+    DECLARE_COMMANDS, // [Array<CommandHintFormat>]
 
     // If client joins will game is active, this packet is sent to them
     JOIN_LATE_INFO, // [level_enum: uint8]

@@ -21,7 +21,7 @@ import { Rect } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { DeserializeShortString, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
-import { AcknowledgeShotPacket, EndRoundPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
+import { AcknowledgeShotPacket, DeclareCommandsPacket, EndRoundPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { RandomItemID } from "shared/core/sharedlogic/items";
@@ -183,6 +183,10 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             new ServerIsTickingPacket(this.tick)
         );
 
+        clientInfo.personalPackets.enqueue(
+            new DeclareCommandsPacket(commandDispatcher.autocomplete_hints())
+        )
+
         // Tell the client about the other clients
         for(const c of this.players.values()){
             clientInfo.personalPackets.enqueue(
@@ -219,6 +223,9 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             this.createPlayerEntity(clientInfo);
 
         }
+
+
+
 
     }
 

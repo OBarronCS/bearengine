@@ -80,7 +80,7 @@ export class FirstLevel extends GameLevel {
 
 
 
-        this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["BOOM"], 0,0);
+        // this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["BOOM"], 0,0);
 
         // this.p = this.game.entities.addEntity(new Player())
         

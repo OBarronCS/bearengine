@@ -1,7 +1,7 @@
 import { StreamWriteEntityID } from "shared/core/entitysystem";
 import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
-import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
+import { GetTemplateRealType, netv, SerializeTypedArray, SerializeTypedVar, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums";
 import { ShotType } from "shared/core/sharedlogic/weapondefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
@@ -98,7 +98,17 @@ export class InitPacket extends PacketWriter {
 }
 
 
+export class DeclareCommandsPacket extends PacketWriter {
 
+    constructor(public struct: GetTemplateRealType<typeof SharedTemplates["COMMANDS"]>[]){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.DECLARE_COMMANDS);
+        SerializeTypedArray(stream, netv.template(SharedTemplates["COMMANDS"].format), this.struct)
+    }
+}
 
 
 export class ServerIsTickingPacket extends PacketWriter {
