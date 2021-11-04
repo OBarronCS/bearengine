@@ -73,7 +73,8 @@ export enum GamePacket {
 
 /*
 SHOT EXTRA DATA DEFINITIONS:
-    HITSCAN_WEAPON: [end_x: float32, end_y: float32];
+    HITSCAN_WEAPON: [end_x: float32, end_y: float32, shot_prefab_id: uint8];
+
     TERRAIN_CARVER: [velocity_x: float32, vel_y: float32];
 */
 

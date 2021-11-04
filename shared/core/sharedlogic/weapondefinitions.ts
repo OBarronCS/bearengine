@@ -1,3 +1,7 @@
+import { Vec2 } from "shared/shapes/vec2";
+import { Test } from "./items"
+import type { SharedNetworkedEntities } from "./networkschemas"
+import { DefineSchema } from "./serialization"
 
 
 
@@ -6,7 +10,79 @@ export enum ShotType {
     TERRAIN_CARVER,
 }
 
+export type OnProjectileHitTerrain = {
+    type:"boom",
+    radius: number
+}
 
+
+
+
+
+
+// Hack to make typescript autocomplete work for item types
+function CreateShot<T extends keyof SharedNetworkedEntities, K extends Test<T>>(i: Test<T>){
+    return i;
+}
+
+export const SHOT_DATA = DefineSchema< {[k: string] : Test<keyof SharedNetworkedEntities>} >()({
+
+    SIMPLE_TERRAIN_HIT: CreateShot({
+        type:"projectile_bullet",
+        item_name:"First example bullet",
+        item_sprite:"tree.gif",
+        pos: new Vec2(0,0),
+        velocity: new Vec2(0,0),
+        on_terrain:[
+            {
+                type:"boom",
+                radius:70
+            }
+        ]
+    })
+})
+
+
+
+// Linking objects
+const idToNameMap: Map<number, keyof typeof SHOT_DATA> = new Map();
+const nameToIdMap: Map<keyof typeof SHOT_DATA, number> = new Map();
+
+
+// Allows for items to be linked across the network
+const NUMBER_OF_SHOTS = (function(){
+    const shared_item_names = Object.keys(SHOT_DATA).sort() as (keyof typeof SHOT_DATA)[];
+
+    let max_id: number = 0;
+
+    // const items: {[key in keyof typeof MIGRATED_ITEMS]: typeof MIGRATED_ITEMS[key]} = {} as any;
+
+    for(const name of shared_item_names){
+        // const item_name = name;
+        const item_id = max_id++;
+        // items[name] = {...ITEM_DEFINITIONS[name], item_id, item_name};
+
+        idToNameMap.set(item_id, name);
+        nameToIdMap.set(name, item_id);
+    }
+
+    return max_id;
+    //return items;
+})();
+
+
+// Assigns ID's to all the items
+export const SHOT_LINKER = {
+    ItemData(id: number){
+        return SHOT_DATA[this.IDToName(id)];
+    },
+    IDToName(id: number){
+        return idToNameMap.get(id);
+    },
+    NameToID(name: keyof typeof SHOT_DATA){
+        return nameToIdMap.get(name);
+    }
+}
 
 
 

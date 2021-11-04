@@ -346,7 +346,7 @@ export class HitscanShotPacket extends PacketWriter {
 
 export class TerrainCarverShotPacket extends PacketWriter {
 
-    constructor(public playerID: number, public serverShotID: number, public createServerTick: number, public start: Vec2, public velocity: Vec2){
+    constructor(public playerID: number, public serverShotID: number, public createServerTick: number, public start: Vec2, public velocity: Vec2, public shot_prefab_id: number){
         super(false);
     }
 
@@ -364,6 +364,8 @@ export class TerrainCarverShotPacket extends PacketWriter {
 
         stream.setFloat32(this.velocity.x);
         stream.setFloat32(this.velocity.y);
+
+        stream.setUint8(this.shot_prefab_id);
     }
 }
 

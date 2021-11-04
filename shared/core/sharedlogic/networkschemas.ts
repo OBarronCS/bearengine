@@ -3,7 +3,7 @@ import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bu
 import { GamePacket } from "./packetdefinitions";
 import { areEqualSorted, arrayDifference, arrayDuplicates, containsDuplicates } from "shared/datastructures/arrayutils";
 import { DefineSchema, DeserializeTypedVar, netv, NetworkVariableTypes, SerializeTypedVar, SharedTemplates, TypescriptTypeOfNetVar } from "./serialization";
-import { SimpleWeaponControllerDefinition } from "./weapondefinitions";
+import { OnProjectileHitTerrain, SimpleWeaponControllerDefinition } from "./weapondefinitions";
 
 
 
@@ -73,6 +73,18 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
         },
         events: {},
     },
+    "projectile_bullet":{
+        static:{
+            on_terrain: null as OnProjectileHitTerrain[],
+        },
+        variables:{
+            pos: netv.vec2("float"),
+            velocity: netv.vec2("float"),
+        },
+        extends:null,
+        events: {}
+    },
+
     "bullet": {
         // create: () => void 0,
         extends: null,

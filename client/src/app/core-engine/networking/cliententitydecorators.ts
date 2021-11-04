@@ -1,3 +1,4 @@
+import { AbstractEntity } from "shared/core/abstractentity";
 import { SharedNetworkedEntities, SharedEntityLinker, SharedNetworkedEntityDefinitions, NetCallbackTypeV1 } from "shared/core/sharedlogic/networkschemas";
 import { DeserializeTypedVar, NetworkVariableTypes, TypescriptTypeOfNetVar } from "shared/core/sharedlogic/serialization";
 import { areEqualSorted } from "shared/datastructures/arrayutils";
@@ -102,8 +103,8 @@ class InterpVecVariable implements InterpVariableBuffer<Vec2> {
 }
 
 
-type BaseEntityType = Entity;
-type EntityClassType = typeof Entity;
+type BaseEntityType = AbstractEntity<any>; // Entity;
+type EntityClassType = new() => AbstractEntity<any>;
 
 // This helper types makes an error go away
 type GetTypeScriptType<Var> = Var extends NetworkVariableTypes ? TypescriptTypeOfNetVar<Var> : never;

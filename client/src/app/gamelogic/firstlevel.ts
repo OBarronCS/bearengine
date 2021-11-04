@@ -65,8 +65,8 @@ export class FirstLevel extends GameLevel {
 
         //     // this.subset.clear()
         // }
-        this.p.manualUpdate(dt);
-        this.h.position.set(this.engine.mouse);
+        // this.p.manualUpdate(dt);
+        // this.h.position.set(this.engine.mouse);
 
     }
 
@@ -77,9 +77,9 @@ export class FirstLevel extends GameLevel {
     start(): void {
         const scene = this.game.entities;
 
-        this.p = scene.addEntity(new Player());
+        // this.p = scene.addEntity(new Player());
 
-        this.h = scene.addEntity(new BoostZone());
+        //this.h = scene.addEntity(new BoostZone());
         
         
         const drawer = new ItemDrawer();

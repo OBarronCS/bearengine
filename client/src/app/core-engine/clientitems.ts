@@ -3,7 +3,7 @@ import { Sprite, Graphics } from "shared/graphics/graphics";
 import { Effect } from "shared/core/effects";
 import { PacketWriter, SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
-import { CreateShootController, GunshootController, ShotType } from "shared/core/sharedlogic/weapondefinitions";
+import { CreateShootController, GunshootController, ShotType, SHOT_DATA, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { NumberTween } from "shared/core/tween";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable } from "shared/misc/assertstatements";
@@ -95,23 +95,99 @@ export abstract class WeaponItem extends BaseItem<"weapon_item"> {
 export class TerrainCarverWeapon extends WeaponItem {
 
     private addons = TerrainCarverAddons
+    private readonly shot_name = "SIMPLE_TERRAIN_HIT";
+    private readonly shot_id = SHOT_LINKER.NameToID(this.shot_name);
 
     protected shoot(game: NetworkPlatformGame): void {
         const velocity = this.direction.clone().extend(25);
-        const b = ShootModularWeapon(game,this.addons,this.position,velocity);
+        
+        //const b = ShootModularWeapon(game,this.addons,this.position,velocity);
+        const b = ShootProjectileWeapon(game, this.addons, this.position, velocity, this.shot_name)
+
 
         const localID = game.networksystem.getLocalShotID();
         game.networksystem.localShotIDToEntity.set(localID,b)
 
         game.networksystem.enqueueStagePacket(
-            new ServerBoundTerrainCarverPacket(0, localID, this.position.clone(), velocity)
+            new ServerBoundTerrainCarverPacket(0, localID, this.position.clone(), velocity, this.shot_id)
         )
     }
 }
 
+export function ShootProjectileWeapon(game: NetworkPlatformGame, addons: GunAddon[], position: Vec2, velocity: Vec2, shot_name: keyof typeof SHOT_DATA): ModularProjectileBullet {
+    const bullet = new ModularProjectileBullet();
+            
+    bullet.position.set(position);
+
+    bullet.velocity.set(velocity);
+
+
+    for(const addon of addons){
+        addon.modifyShot(bullet);
+    }
+
+    game.entities.addEntity(bullet);
+
+    return bullet
+}
+
+
+@networkedclass_client("projectile_bullet")
+export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
+    @net("projectile_bullet").variable("velocity")
+    readonly velocity = new Vec2();
+
+    @net("projectile_bullet").variable("pos")
+    pos = new Vec2()
+
+    private sprite = this.addPart(new SpritePart("test2.png"));
+
+    private emitter: Emitter
+
+    constructor(){
+        super();
+
+        this.onUpdate(function(dt: number){
+            this.position.add(this.velocity);
+            this.emitter.updateSpawnPos(this.x, this.y);
+            if(!this.game.activeLevel.bbox.contains(this.position)){
+                this.destroy();
+            }
+        });
+
+        this.onStart(function(){
+            this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["ROCKET"], this.x, this.y)
+        });
+
+        this.onFinish(function(){
+            this.emitter.emit = false;
+        });
+    }
+
+}
+
+
+
+// export function ShootModularWeapon(game: NetworkPlatformGame, addons: GunAddon[], position: Vec2, velocity: Vec2): ModularBullet {
+//     const bullet = new ModularBullet();
+            
+//     bullet.position.set(position);
+
+//     bullet.velocity.set(velocity);
+
+
+//     for(const addon of addons){
+//         addon.modifyShot(bullet);
+//     }
+
+//     game.entities.addEntity(bullet);
+
+//     return bullet;
+// }
+
 export class ServerBoundTerrainCarverPacket extends PacketWriter {
 
-    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public velocity: Vec2){
+    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public velocity: Vec2, public shot_prefab_id: number){
         super(false);
     }
 
@@ -128,8 +204,12 @@ export class ServerBoundTerrainCarverPacket extends PacketWriter {
         stream.setFloat32(this.velocity.x);
         stream.setFloat32(this.velocity.y);
 
+        stream.setUint8(this.shot_prefab_id)
+
     }
 }
+
+
 
 
 //@ts-expect-error
@@ -193,27 +273,12 @@ export function ShootHitscanWeapon(game: NetworkPlatformGame, line: Line): void 
 
 
 interface GunAddon {
-    modifyShot: (bullet: ModularBullet) => void,
+    modifyShot: (bullet: ModularProjectileBullet) => void,
     [key: string]: any; // allow for random data
 }
 
 
-export function ShootModularWeapon(game: NetworkPlatformGame, addons: GunAddon[], position: Vec2, velocity: Vec2): ModularBullet {
-    const bullet = new ModularBullet();
-            
-    bullet.position.set(position);
 
-    bullet.velocity.set(velocity);
-
-
-    for(const addon of addons){
-        addon.modifyShot(bullet);
-    }
-
-    game.entities.addEntity(bullet);
-
-    return bullet;
-}
 
 
 
@@ -252,41 +317,17 @@ export function ShootModularWeapon(game: NetworkPlatformGame, addons: GunAddon[]
 //     }
 // }
 
-export class ModularBullet extends Effect<NetworkPlatformGame> {
-    
-    readonly velocity = new Vec2();
-    private sprite = this.addPart(new SpritePart("test2.png"));
 
-    private emitter: Emitter
 
-    constructor(){
-        super();
 
-        this.onUpdate(function(dt: number){
-            this.position.add(this.velocity);
-            this.emitter.updateSpawnPos(this.x, this.y);
-            if(!this.game.activeLevel.bbox.contains(this.position)){
-                this.destroy();
-            }
-        });
 
-        this.onStart(function(){
-            this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["ROCKET"], this.x, this.y)
-        });
-
-        this.onFinish(function(){
-            this.emitter.emit = false;
-        });
-    }
-
-}
 
 
 
 
 class TerrainHitAddon implements GunAddon {
 
-    modifyShot(bullet: ModularBullet){
+    modifyShot(bullet: ModularProjectileBullet){
         bullet.onUpdate(function(){
             // Client side prediction of terrain hit?
 

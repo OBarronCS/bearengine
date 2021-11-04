@@ -563,6 +563,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                             case ShotType.TERRAIN_CARVER:{
                                 const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
 
+                                const shot_prefab_id = stream.getUint8();
+
                                 const shotID = this.getServerShotID();
 
                                 this.players.get(clientID).personalPackets.enqueue(
@@ -570,12 +572,10 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                                 )
 
                                 this.enqueueGlobalPacket(
-                                    new TerrainCarverShotPacket(clientID, shotID, createServerTick, pos, velocity)
+                                    new TerrainCarverShotPacket(clientID, shotID, createServerTick, pos, velocity, shot_prefab_id)
                                 );
 
-                                ServerShootTerrainCarver(this, shotID, pos, velocity);
-
-                                
+                                ServerShootTerrainCarver(this, shotID, pos, velocity, shot_prefab_id);
 
                                 break;
                             }

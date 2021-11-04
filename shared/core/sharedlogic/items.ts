@@ -97,9 +97,6 @@ const nameToIdMap: Map<keyof typeof MIGRATED_ITEMS, number> = new Map();
 
 
 // Allows for items to be linked across the network
-
-
-
 const NUMBER_OF_ITEMS = (function(){
     const shared_item_names = Object.keys(MIGRATED_ITEMS).sort() as (keyof typeof MIGRATED_ITEMS)[];
 

@@ -1,5 +1,5 @@
 import { Effect } from "shared/core/effects";
-import { Clip, CreateShootController, GunshootController, SimpleWeaponControllerDefinition } from "shared/core/sharedlogic/weapondefinitions";
+import { Clip, CreateShootController, GunshootController, SHOT_LINKER, SimpleWeaponControllerDefinition } from "shared/core/sharedlogic/weapondefinitions";
 import { TickTimer } from "shared/datastructures/ticktimer";
 import { random_range } from "shared/misc/random";
 import { Line } from "shared/shapes/line";
@@ -12,6 +12,7 @@ import { ServerBearEngine } from "../serverengine";
 // import { ItemData } from "shared/core/sharedlogic/items";
 import { ConnectionID } from "../networking/serversocket";
 import { ServerEntity } from "../entity";
+import { AssertUnreachable } from "shared/misc/assertstatements";
 
 @networkedclass_server("weapon_item")
 export abstract class SWeaponItem extends ServerEntity {
@@ -139,6 +140,7 @@ interface GunAddon {
 //     }
 // }
 
+@networkedclass_server("projectile_bullet")
 class ModularBullet extends Effect<ServerBearEngine> {
     
     stateHasBeenChanged = false;
@@ -146,6 +148,10 @@ class ModularBullet extends Effect<ServerBearEngine> {
         this.stateHasBeenChanged = true;
     }
 
+    @sync("projectile_bullet").var("pos")
+    pos = new Vec2(0,0)
+
+    @sync("projectile_bullet").var("velocity")
     velocity = new Vec2(0,0);
 
     constructor(){
@@ -167,39 +173,54 @@ class ModularBullet extends Effect<ServerBearEngine> {
 } 
 
 
-export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number, position: Vec2, velocity: Vec2){
+export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number, position: Vec2, velocity: Vec2, shot_prefab_id: number): void {
 
     const bullet = new ModularBullet();
 
     bullet.position.set(position);
     bullet.velocity.set(velocity);
     
-    bullet.onUpdate(function(){
-        const testTerrain = this.game.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)));
-        
-        const RADIUS = 40;
-        const DMG_RADIUS = 80;
 
-        if(testTerrain){
-            this.game.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
+    const shot_data = SHOT_LINKER.ItemData(shot_prefab_id);
 
-            this.game.enqueueGlobalPacket(
-                new TerrainCarveCirclePacket(testTerrain.point.x, testTerrain.point.y, RADIUS, shotID)
-            );
+    const on_hit_terrain_effects = shot_data.on_terrain;
 
-            const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
-
-            // Check in radius to see if any players are hurt
-            for(const pEntity of this.game.activeScene.activePlayerEntities.values()){
-
-                if(Vec2.distanceSquared(pEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
-                    pEntity.health -= 16;
-                }
-            } 
-             
-            this.destroy();
-        }
-    });
+    for(const effect of on_hit_terrain_effects){
+        // Only add terrain hitting ability if have boom effect
+        const type = effect.type;
+        switch(type){
+            case "boom": {
+                bullet.onUpdate(function(){
+                    const testTerrain = this.game.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)));
+                    
+                    const RADIUS = effect.radius;
+                    const DMG_RADIUS = effect.radius * 1.5;
+            
+                    if(testTerrain){
+                        this.game.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
+            
+                        this.game.enqueueGlobalPacket(
+                            new TerrainCarveCirclePacket(testTerrain.point.x, testTerrain.point.y, RADIUS, shotID)
+                        );
+            
+                        const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
+            
+                        // Check in radius to see if any players are hurt
+                        for(const pEntity of this.game.activeScene.activePlayerEntities.values()){
+            
+                            if(Vec2.distanceSquared(pEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
+                                pEntity.health -= 16;
+                            }
+                        } 
+                         
+                        this.destroy();
+                    }
+                });
+                break;
+            }
+            default: AssertUnreachable(type)
+        }  
+    }
 
     const grav = new Vec2(0,.35);
 
