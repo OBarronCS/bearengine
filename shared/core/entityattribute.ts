@@ -105,35 +105,5 @@ export class AttributeQuery<T extends Attribute>{
 }
 
 
-// Add tag here to maintain type safety.
-const collidernames = [
-    "Unnamed",
-    "Player",
-] as const
-
-export type ColliderName = typeof collidernames[number]
-
-
-export class ColliderPart extends Attribute {
-
-    public name: ColliderName;
-
-    public rect: Rect;
-
-    /* Where on the rectangle is the position */
-    public offset: Vec2;
-
-    constructor(dimensions: Dimension, offset: Coordinate, name: ColliderName = "Unnamed"){
-        super();
-        this.rect = new Rect(0,0,dimensions.width, dimensions.height);
-        this.offset = new Vec2(-offset.x,-offset.y);
-        this.name = name;
-    }
-
-    setPosition(spot: Coordinate){
-        this.rect.moveTo(spot);
-        this.rect.translate(this.offset);
-    }
-}
 
 

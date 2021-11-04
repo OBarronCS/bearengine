@@ -25,6 +25,13 @@ export function drawPoint(g: Graphics, point: Coordinate, color = 0x00FFF0){
     g.endFill();
 }
 
+export function drawCircleOutline(g: Graphics, point: Coordinate, r: number, color = 0x00FFF0, alpha = 1){
+    // g.beginFill(color, alpha);
+    g.lineStyle(2,color,alpha)
+    g.drawCircle(point.x, point.y, r);
+    g.endFill();
+}
+
 export function drawCircle(g: Graphics, point: Coordinate, r: number, color = 0x00FFF0, alpha = 1){
     g.beginFill(color, alpha);
     g.drawCircle(point.x, point.y, r);

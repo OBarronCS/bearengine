@@ -44,7 +44,7 @@ export abstract class AbstractEntity<TGame extends BearGame<any> = BearGame<{}, 
         return this.scene.hasAttribute(this.entityID, part);
     }
 
-    getAttribute<T extends Attribute, K extends new(...args: any[]) => T>(partConstructor: K): T | null {
+    getAttribute<K extends new(...args: any[]) => Attribute, T extends InstanceType<K>>(partConstructor: K): T | null {
         return this.scene.getAttribute(this.entityID, partConstructor);
     }
 

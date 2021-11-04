@@ -12,7 +12,7 @@ import { SparseSet } from "shared/datastructures/sparseset";
 export interface IEntityScene<TEntity extends AbstractEntity = AbstractEntity> {
     entities: readonly TEntity[],
     hasAttribute<K extends new(...args: any[]) => Attribute>(e: EntityID, partConstructor: K): boolean,
-    getAttribute<T extends Attribute, K extends new(...args: any[]) => T>(e: EntityID, partConstructor: K): T | null,
+    getAttribute<K extends new(...args: any[]) => Attribute, T extends InstanceType<K>>(e: EntityID, partConstructor: K): T | null
     addEntity<T extends TEntity>(e: T): T,
     getEntity<T extends TEntity = TEntity>(entityID: EntityID): T | null,
     destroyEntity<T extends TEntity>(e: T): void,
@@ -149,7 +149,7 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         return container.contains(e);
     }
 
-    getAttribute<T extends Attribute, K extends new(...args: any[]) => T>(e: EntityID, partConstructor: K): T | null {
+    getAttribute<K extends new(...args: any[]) => Attribute, T extends InstanceType<K>>(e: EntityID, partConstructor: K): T | null {
 
         if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
         
@@ -446,7 +446,7 @@ class EntitySystemSubset<TSystem extends EntitySystem<AbstractEntity>, TEntity e
         return this.parentEntitySystem.hasAttribute(e, partConstructor);
     }
 
-    getAttribute<T extends Attribute, K extends new(...args: any[]) => T>(e: EntityID, partConstructor: K): T | null {
+    getAttribute<K extends new(...args: any[]) => Attribute, T extends InstanceType<K>>(e: EntityID, partConstructor: K): T | null {
         return this.parentEntitySystem.getAttribute(e, partConstructor);
     }
 

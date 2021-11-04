@@ -5,7 +5,6 @@ import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { Player } from "./gamelogic/player";
 import { DrawableEntity, Entity, GMEntity } from "./core-engine/entity";
 import { SpritePart } from "./core-engine/parts";
-import { ColliderPart } from "shared/core/entityattribute";
 import { dimensions } from "shared/shapes/rectangle";
 import { bearevent } from "shared/core/bearevents";
 import { Vec2 } from "shared/shapes/vec2";

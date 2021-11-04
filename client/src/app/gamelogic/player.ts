@@ -1,10 +1,10 @@
 import { AnimatedSprite, Container, Graphics, Sprite, Texture } from "shared/graphics/graphics";
 import { AssertUnreachable } from "shared/misc/assertstatements";
-import { ColliderPart } from "shared/core/entityattribute";
+import { ColliderPart } from "shared/core/entitycollision";
 import { clamp, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/misc/mathutils";
 import { Line } from "shared/shapes/line";
 import { dimensions } from "shared/shapes/rectangle";
-import { drawHealthBar, drawPoint } from "shared/shapes/shapedrawing";
+import { drawCircle, drawCircleOutline, drawHealthBar, drawPoint } from "shared/shapes/shapedrawing";
 import { angleBetween, Coordinate, rotatePoint, Vec2 } from "shared/shapes/vec2";
 import { TickTimer } from "shared/datastructures/ticktimer";
 
@@ -20,6 +20,7 @@ import { Effect } from "shared/core/effects";
 import { random_range } from "shared/misc/random";
 import { PhysicsDotEntity } from "./firstlevel";
 import { NumberTween } from "shared/core/tween";
+import { BoostDirection } from "./boostzone";
 
 
 
@@ -644,6 +645,15 @@ export class Player extends DrawableEntity {
 
         if(this.keyboard.wasPressed("KeyW")) this.timeSincePressedJumpedButton = 0;
 
+        const zone = this.game.collisionManager.first_tagged_collider_on_point(this.position, "BoostZone");
+        if(zone){
+            console.log("MOVE")
+            const dir = zone.owner.getAttribute(BoostDirection).dir;
+            this.xspd += dir.x;
+            this.yspd += dir.y;
+
+        }
+
         
         switch(this.state){
             case PlayerState.AIR: this.Air_State(); break;
@@ -1157,6 +1167,7 @@ export class Player extends DrawableEntity {
     }
 
     draw(g: Graphics) {
+        drawCircleOutline(g, this.position, 50)
         // drawPoint(g,this.position);
 
         // g.beginFill(0xFF00FF,.4)

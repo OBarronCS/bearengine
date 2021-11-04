@@ -507,7 +507,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         if(isFDown){
                             for(const pEntity of this.entities.entities){
                                 if(pEntity instanceof ItemEntity){
-                                    if(Vec2.distanceSquared(p.position, pEntity.pos) < 1000){
+                                    if(Vec2.distanceSquared(p.position, pEntity.pos) < 50**2){
                                         
 
                                         this.destroyRemoteEntity(pEntity)

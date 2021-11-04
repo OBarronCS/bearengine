@@ -1,5 +1,5 @@
 import { Graphics, Sprite } from "shared/graphics/graphics";
-import { ColliderPart } from "shared/core/entityattribute";
+import { ColliderPart } from "shared/core/entitycollision";
 import { bearevent } from "shared/core/bearevents";
 import { EntitySystem } from "shared/core/entitysystem";
 import { TiledMap } from "shared/core/tiledmapeditor";
@@ -17,6 +17,7 @@ import { TickTimer } from "shared/datastructures/ticktimer";
 import { Line } from "shared/shapes/line";
 import { drawVecAsArrow } from "shared/shapes/shapedrawing";
 import { ItemDrawer } from "../core-engine/clientitems";
+import { BoostZone } from "./boostzone";
 
 
 
@@ -64,14 +65,23 @@ export class FirstLevel extends GameLevel {
 
         //     // this.subset.clear()
         // }
-        // this.p.manualUpdate(dt);
+        this.p.manualUpdate(dt);
+        this.h.position.set(this.engine.mouse);
+
     }
 
     private p;
 
+    private h: BoostZone;
+
     start(): void {
+        const scene = this.game.entities;
 
+        this.p = scene.addEntity(new Player());
 
+        this.h = scene.addEntity(new BoostZone());
+        
+        
         const drawer = new ItemDrawer();
         drawer.setItem("weapon1.png")
 
@@ -85,7 +95,7 @@ export class FirstLevel extends GameLevel {
         // this.p = this.game.entities.addEntity(new Player())
         
         // scene.addEntity(new PolygonExpandTest)
-        //const p = scene.addEntity(new Player());
+        
 
         class Test7 extends Entity {
 
@@ -170,7 +180,7 @@ export class FirstLevel extends GameLevel {
                 this.game.collisionManager.draw(g);
             }
         }
-        // scene.addEntity(new Debug())
+        scene.addEntity(new Debug())
     }
 
 
