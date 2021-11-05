@@ -24,7 +24,8 @@ import { Deque } from "shared/datastructures/deque";
 import { ITEM_LINKER } from "shared/core/sharedlogic/items";
 import { ShootHitscanWeapon, ShootProjectileWeapon, TerrainCarverAddons } from "../clientitems";
 import { Line } from "shared/shapes/line";
-import { EmitterAttach, PARTICLE_CONFIG } from "../particles";
+import { EmitterAttach } from "../particles";
+import { PARTICLE_CONFIG } from "../../../../../shared/core/sharedlogic/sharedparticles";
 import { ShotType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { DeserializeTypedArray, netv, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { Trie } from "shared/datastructures/trie";
@@ -767,7 +768,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         case GamePacket.SET_INV_ITEM: {
                             const item_id = stream.getUint8();
 
-                            const item_data = ITEM_LINKER.ItemData(item_id);
+                            const item_data = ITEM_LINKER.IDToData(item_id);
                             
                             const item_class = SharedEntityClientTable.getEntityClass(SharedEntityLinker.nameToSharedID(item_data.type));
 

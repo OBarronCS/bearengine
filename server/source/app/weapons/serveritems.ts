@@ -181,7 +181,7 @@ export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number,
     bullet.velocity.set(velocity);
     
 
-    const shot_data = SHOT_LINKER.ItemData(shot_prefab_id);
+    const shot_data = SHOT_LINKER.IDToData(shot_prefab_id);
 
     const on_hit_terrain_effects = shot_data.on_terrain;
 
@@ -189,6 +189,11 @@ export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number,
         // Only add terrain hitting ability if have boom effect
         const type = effect.type;
         switch(type){
+
+            case "particle": {
+                // Not relevent to the server
+                break;
+            }
             case "boom": {
                 bullet.onUpdate(function(){
                     const testTerrain = this.game.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)));

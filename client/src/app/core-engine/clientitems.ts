@@ -12,7 +12,7 @@ import { Line } from "shared/shapes/line";
 import { Vec2 } from "shared/shapes/vec2";
 import { BearEngine, NetworkPlatformGame } from "./bearengine";
 import { Entity } from "./entity";
-import { PARTICLE_CONFIG } from "./particles";
+import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparticles";
 import { SpritePart } from "./parts";
 import { net, networkedclass_client } from "./networking/cliententitydecorators";
 import { ITEM_LINKER, MIGRATED_ITEMS, Test } from "shared/core/sharedlogic/items";
@@ -116,10 +116,12 @@ export class TerrainCarverWeapon extends WeaponItem {
 
 export function ShootProjectileWeapon(game: NetworkPlatformGame, addons: GunAddon[], position: Vec2, velocity: Vec2, shot_name: keyof typeof SHOT_DATA): ModularProjectileBullet {
     const bullet = new ModularProjectileBullet();
-            
-    bullet.position.set(position);
 
+    bullet.position.set(position);
     bullet.velocity.set(velocity);
+
+
+    // const shot_info = SHOT_LINKER.ItemData(SHOT_LINKER.NameToID(shot_name));
 
 
     for(const addon of addons){

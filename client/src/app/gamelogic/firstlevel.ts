@@ -12,7 +12,7 @@ import { SpritePart } from "../core-engine/parts";
 import { Player } from "./player";
 import { Polygon } from "shared/shapes/polygon";
 import { Emitter } from "shared/graphics/particles";
-import { PARTICLE_CONFIG } from "../core-engine/particles";
+import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparticles";
 import { TickTimer } from "shared/datastructures/ticktimer";
 import { Line } from "shared/shapes/line";
 import { drawVecAsArrow } from "shared/shapes/shapedrawing";

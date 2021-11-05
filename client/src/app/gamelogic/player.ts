@@ -15,7 +15,8 @@ import { GraphicsPart, SpritePart } from "../core-engine/parts";
 import { SavePlayerAnimation } from "./testlevelentities";
 
 import { WeaponItem, ItemDrawer } from "../core-engine/clientitems";
-import { EmitterAttach, PARTICLE_CONFIG } from "../core-engine/particles";
+import { EmitterAttach } from "../core-engine/particles";
+import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparticles";
 import { Effect } from "shared/core/effects";
 import { random_range } from "shared/misc/random";
 import { PhysicsDotEntity } from "./firstlevel";

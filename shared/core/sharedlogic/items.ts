@@ -3,7 +3,7 @@ import { AssertUnreachable } from "shared/misc/assertstatements";
 import { randomInt, random_hash } from "shared/misc/random";
 import { Vec2 } from "shared/shapes/vec2";
 import { SharedNetworkedEntities } from "./networkschemas";
-import { DefineSchema, TypescriptTypeOfNetVar } from "./serialization";
+import { DefineSchema, GenerateLinker, TypescriptTypeOfNetVar } from "./serialization";
 import { CreateShootController, SimpleWeaponControllerDefinition } from "./weapondefinitions";
 
 // This model means that everything that is defined in shared data must be defined for everysingle item of that type
@@ -89,48 +89,10 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
 
 } as const);
 
-
-
-// Linking objects
-const idToNameMap: Map<number, keyof typeof MIGRATED_ITEMS> = new Map();
-const nameToIdMap: Map<keyof typeof MIGRATED_ITEMS, number> = new Map();
-
-
-// Allows for items to be linked across the network
-const NUMBER_OF_ITEMS = (function(){
-    const shared_item_names = Object.keys(MIGRATED_ITEMS).sort() as (keyof typeof MIGRATED_ITEMS)[];
-
-    let max_id: number = 0;
-
-    // const items: {[key in keyof typeof MIGRATED_ITEMS]: typeof MIGRATED_ITEMS[key]} = {} as any;
-
-    for(const name of shared_item_names){
-        // const item_name = name;
-        const item_id = max_id++;
-        // items[name] = {...ITEM_DEFINITIONS[name], item_id, item_name};
-
-        idToNameMap.set(item_id, name);
-        nameToIdMap.set(name, item_id);
-    }
-
-    return max_id;
-    //return items;
-})();
+export const ITEM_LINKER = GenerateLinker(MIGRATED_ITEMS);
 
 export function RandomItemID(): number {
-    return randomInt(0,NUMBER_OF_ITEMS);
+    return randomInt(0,ITEM_LINKER.count);
 }
 
-// Assigns ID's to all the items
-export const ITEM_LINKER = {
-    ItemData(id: number){
-        return MIGRATED_ITEMS[this.IDToName(id)];
-    },
-    IDToName(id: number){
-        return idToNameMap.get(id);
-    },
-    NameToID(name: keyof typeof MIGRATED_ITEMS){
-        return nameToIdMap.get(name);
-    }
-}
 
