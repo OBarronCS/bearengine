@@ -17,6 +17,7 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
 
     y = 5;
     private mouse_position = this.addTextField();
+    private connected_to_network = this.addTextField();
     private gamemode = this.addTextField();
     private bytesPerSecond = this.addTextField();
     private ping = this.addTextField();
@@ -39,6 +40,7 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
 
     update(delta: number): void {
         this.mouse_position.text = `${round(this.engine.mouse.position.x, 1)},${round( this.engine.mouse.position.y, 1)}`;
+        this.connected_to_network.text = "Connected: " + (this.game.networksystem["network"].CONNECTED ? "True" : "False");
         this.gamemode.text = "Gamemode: " + ClientPlayState[this.game.networksystem.currentPlayState];
         this.bytesPerSecond.text = "B/s: " + this.game.networksystem.bytesPerSecond;
         this.ping.text = "Ping: " + this.game.networksystem["ping"]

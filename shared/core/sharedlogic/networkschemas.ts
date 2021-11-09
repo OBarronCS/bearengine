@@ -84,7 +84,16 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
         extends:null,
         events: {}
     },
-
+    "forcefield_item": {
+        extends: null,
+        static: {
+            radius:null as number
+        },
+        variables: {
+            
+        },
+        events: {},
+    },
     "bullet": {
         // create: () => void 0,
         extends: null,

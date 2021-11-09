@@ -36,9 +36,7 @@ class BaseItem<T extends keyof SharedNetworkedEntities> extends Entity {
 
     constructor(public item_id: number){
         super();
-
     }
-
 
     GetStaticValue(key: keyof Test<T>) {
         //@ts-expect-error
@@ -257,12 +255,6 @@ export class ServerBoundHitscanPacket extends PacketWriter {
 
 
 
-
-
-
-
-
-
 export function ShootHitscanWeapon(game: NetworkPlatformGame, line: Line): void {
 
     const canvas = game.engine.renderer.createCanvas();
@@ -318,14 +310,6 @@ interface GunAddon {
 //         // game.entities.addEntity(bullet);
 //     }
 // }
-
-
-
-
-
-
-
-
 
 class TerrainHitAddon implements GunAddon {
 
@@ -389,7 +373,7 @@ export class ItemDrawer extends Entity {
 
     private setSprite(path: string){
         this.image.sprite.visible = true;
-        this.image.sprite.texture = this.engine.getResource(path).texture;
+        this.image.sprite.texture = this.engine.renderer.getTexture(path);
     }
 
 
@@ -400,5 +384,40 @@ export class ItemDrawer extends Entity {
 
     }
 }
+
+
+
+// Assumes that items are one time things..
+export abstract class UsableItem<T extends keyof SharedNetworkedEntities> extends BaseItem<T> {
+
+    abstract consume(): void;
+
+
+}
+
+//@ts-expect-error
+@networkedclass_client("forcefield_item")
+export class ForceFieldItem_C extends UsableItem<"forcefield_item"> {
+    
+    radius = this.GetStaticValue("radius")
+    
+    consume(): void {
+        
+    }
+
+} 
+
+// export class ForceFieldItemActionPacket extends PacketWriter {
+
+//     constructor(){
+//         super(false);
+//     }
+
+//     write(stream: BufferStreamWriter){
+//         stream.setUint8(GamePacket.);
+//     }
+// }
+
+
 
 

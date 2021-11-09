@@ -14,7 +14,7 @@ import { RemoteLocations } from "../core-engine/networking/remotecontrol";
 import { GraphicsPart, SpritePart } from "../core-engine/parts";
 import { SavePlayerAnimation } from "./testlevelentities";
 
-import { WeaponItem, ItemDrawer } from "../core-engine/clientitems";
+import { WeaponItem, ItemDrawer, UsableItem } from "../core-engine/clientitems";
 import { EmitterAttach } from "../core-engine/particles";
 import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparticles";
 import { Effect } from "shared/core/effects";
@@ -199,6 +199,7 @@ export class Player extends DrawableEntity {
     // Item graphics
     itemInHand: ItemDrawer = new ItemDrawer();
     weapon: WeaponItem = null;
+    usable: UsableItem<any> = null
 
     setGhost(ghost: boolean){
         this.ghost = ghost;
@@ -212,7 +213,13 @@ export class Player extends DrawableEntity {
 
     setItem(item: WeaponItem, path: string){
         this.itemInHand.setItem(path);
-        if(item instanceof WeaponItem){
+        
+        this.weapon = null;
+        this.usable = null;
+
+        if(item instanceof UsableItem){
+            this.usable = item
+        } else if(item instanceof WeaponItem){
             this.weapon = item;
         }
     }

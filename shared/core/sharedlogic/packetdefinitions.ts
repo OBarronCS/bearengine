@@ -95,6 +95,8 @@ export enum ServerBoundPacket {
     REQUEST_SHOOT_WEAPON, // [ShotType: enum, localShootID: uint32, createServerTick: float32, x: float32, y: float32, ...data]
 
     REQUEST_CHAT_MESSAGE, // [ShortString (255 chars max), ]
+
+    // REQUEST_ITEM_ACTION
 }
 
 

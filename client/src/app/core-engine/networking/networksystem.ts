@@ -735,6 +735,11 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             e.locations.addPosition(frame, x,y);
                             e.setState(state,flipped);
+                            if(e.health !== health){
+                                const emitter = new EmitterAttach(e,"HIT_SPLAT", "particle.png", Vec2.random(10));
+                                this.game.entities.addEntity(emitter);
+                            }
+
                             e.health = health;
                             
                             break;

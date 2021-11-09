@@ -47,10 +47,14 @@ export class STerrainCarverWeapon extends SWeaponItem {
 @networkedclass_server("hitscan_weapon")
 export class SHitscanWeapon extends SWeaponItem {
 
-
 }
 
-
+@networkedclass_server("forcefield_item")
+export class ForceFieldItem_S extends ServerEntity {
+    
+    update(dt: number): void {}
+    
+} 
 
 
 

@@ -23,6 +23,7 @@ import { CreateShootController, SimpleWeaponControllerDefinition } from "./weapo
 // Add [k:string]: any
 // Migrating items to new system
 
+// This limits the depth of inheritance allowed
 export type deep = [1,2,3,4,5,6,7,8,never];
 
 export type SubVars<T extends keyof SharedNetworkedEntities, M extends number> = deep[M] extends never ? {} : { 
@@ -83,7 +84,14 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         ammo: 1000,
         reload_time: 10,
         shoot_controller: { type: "auto", time_between_shots: 6 }
-    })
+    }),
+
+    forcefield: CreateItem({
+        type:"forcefield_item",
+        item_name:"Force Field",
+        item_sprite:"",
+        radius: 10,
+    }),
 
 
 

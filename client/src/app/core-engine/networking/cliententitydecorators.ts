@@ -48,9 +48,58 @@ interface InterpolatedVarType<T> {
     buffer: InterpVariableBuffer<any>
 }
 
+
 interface InterpVariableBuffer<T> {
     addValue(frame: number, value: T): void,
     getValue(frame: number): T
+}
+
+abstract class AbstractInterpolatedVariable<T> implements InterpVariableBuffer<T> {
+
+    protected abstract default_value: T;
+    
+    private values = new Map<number, T>();
+
+    private latest_value: {
+        frame:number,
+        value:T
+    }
+
+    addValue(frame: number, value: T): void {
+        this.latest_value = {frame, value};
+
+        this.values.set(frame, value);
+    }
+
+    getValue(frame: number): T {
+        if(this.values.size > 0){
+            if(frame > this.latest_value.frame){
+                return this.latest_value.value;
+            }
+        }
+
+        const first = this.values.get(floor(frame));
+        const second = this.values.get(ceil(frame));
+
+        if(first !== undefined && second === undefined) {
+            console.log("Cannot lerp");
+            
+            // Only have first value
+            return first;
+        }
+
+        if(first === undefined || second === undefined){
+            console.log("Cannot lerp 2");
+
+            if(this.latest_value) return this.latest_value.value;
+            return this.default_value;
+        } 
+
+        return this.getInterpolatedValue(first, second, frame);
+    }
+
+    abstract getInterpolatedValue(a: T, b: T, frame: number): T;
+
 }
 
 export function InterpolatedVar<T>(value: T): InterpolatedVarType<T> {
@@ -60,46 +109,24 @@ export function InterpolatedVar<T>(value: T): InterpolatedVarType<T> {
     }
 }
 
-class InterpNumberVariable implements InterpVariableBuffer<number> {
-
-    private values = new Map<number, number>();
-
-    addValue(frame: number, value: number){
-        this.values.set(frame, value);
+class InterpNumberVariable extends AbstractInterpolatedVariable<number> {
+    protected default_value: number = 0;
+    
+    getInterpolatedValue(a: number, b: number, frame: number): number {
+        return lerp(a, b, frame % 1)
     }
 
-    getValue(frame: number){
-        const first = this.values.get(floor(frame));
-        const second = this.values.get(ceil(frame));
 
-        if(first === undefined || second === undefined) {
-            console.log("Cannot lerp");
-            return 0;
-        }
-
-        return lerp(first, second, frame % 1)
-    }
 }
 
-class InterpVecVariable implements InterpVariableBuffer<Vec2> {
+class InterpVecVariable extends AbstractInterpolatedVariable<Vec2> {
+    protected default_value: Vec2 = new Vec2(0,0);
 
-    private values = new Map<number, Vec2>();
-
-    addValue(frame: number, value: Vec2){
-        this.values.set(frame, value);
+    getInterpolatedValue(a: Vec2, b: Vec2, frame: number): Vec2 {
+        return mix(a,b,frame % 1);
     }
 
-    getValue(frame: number){
-        const first = this.values.get(floor(frame));
-        const second = this.values.get(ceil(frame));
-
-        if(first === undefined || second === undefined) {
-            console.log("Cannot lerp");
-            return new Vec2(0,0);
-        }
-
-        return mix(first, second, frame % 1)
-    }
+  
 }
 
 

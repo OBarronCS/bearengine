@@ -247,7 +247,14 @@ export class RendererSystem {
 
     getTexture(_name: string){
         const _str = _name;
-        return this.engine.getResource(_str).texture;
+
+        const tex_data = this.engine.getResource(_str);
+
+        if(tex_data === undefined){
+            return this.engine.getResource("missing_texture.png").texture;
+        }
+
+        return tex_data.texture;
     }
     
     getPercentWidth(percent: number){
