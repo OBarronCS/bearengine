@@ -3,7 +3,7 @@ import { Sprite, Graphics } from "shared/graphics/graphics";
 import { Effect } from "shared/core/effects";
 import { PacketWriter, SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
-import { CreateShootController, GunshootController, ShotType, SHOT_DATA, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
+import { CreateShootController, GunshootController, ItemActionType, PROJECTILE_SHOT_DATA, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { NumberTween } from "shared/core/tween";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable } from "shared/misc/assertstatements";
@@ -112,7 +112,7 @@ export class TerrainCarverWeapon extends WeaponItem {
     }
 }
 
-export function ShootProjectileWeapon(game: NetworkPlatformGame, addons: GunAddon[], position: Vec2, velocity: Vec2, shot_name: keyof typeof SHOT_DATA): ModularProjectileBullet {
+export function ShootProjectileWeapon(game: NetworkPlatformGame, addons: GunAddon[], position: Vec2, velocity: Vec2, shot_name: keyof typeof PROJECTILE_SHOT_DATA): ModularProjectileBullet {
     const bullet = new ModularProjectileBullet();
 
     bullet.position.set(position);
@@ -192,8 +192,8 @@ export class ServerBoundTerrainCarverPacket extends PacketWriter {
     }
 
     write(stream: BufferStreamWriter){
-        stream.setUint8(ServerBoundPacket.REQUEST_SHOOT_WEAPON);
-        stream.setUint8(ShotType.TERRAIN_CARVER);
+        stream.setUint8(ServerBoundPacket.REQUEST_ITEM_ACTION);
+        stream.setUint8(ItemActionType.TERRAIN_CARVER);
         stream.setUint32(this.localShotID);
 
         stream.setFloat32(this.createServerTick);
@@ -237,8 +237,8 @@ export class ServerBoundHitscanPacket extends PacketWriter {
     }
 
     write(stream: BufferStreamWriter){
-        stream.setUint8(ServerBoundPacket.REQUEST_SHOOT_WEAPON);
-        stream.setUint8(ShotType.HIT_SCAN);
+        stream.setUint8(ServerBoundPacket.REQUEST_ITEM_ACTION);
+        stream.setUint8(ItemActionType.HIT_SCAN);
 
         stream.setUint32(this.localShotID);
         
@@ -402,21 +402,32 @@ export class ForceFieldItem_C extends UsableItem<"forcefield_item"> {
     radius = this.GetStaticValue("radius")
     
     consume(): void {
-        
+
+        this.game.networksystem.enqueueStagePacket(
+            new ForceFieldItemActionPacket(0,this.game.networksystem.getLocalShotID(), this.position)
+        )
     }
 
 } 
 
-// export class ForceFieldItemActionPacket extends PacketWriter {
+export class ForceFieldItemActionPacket extends PacketWriter {
 
-//     constructor(){
-//         super(false);
-//     }
+    constructor(public createServerTick: number, public localShotID: number, public start: Vec2){
+        super(false);
+    }
 
-//     write(stream: BufferStreamWriter){
-//         stream.setUint8(GamePacket.);
-//     }
-// }
+    write(stream: BufferStreamWriter){
+        stream.setUint8(ServerBoundPacket.REQUEST_ITEM_ACTION);
+        stream.setUint8(ItemActionType.FORCE_FIELD_ACTION);
+
+        stream.setUint32(this.localShotID);
+        
+        stream.setFloat32(this.createServerTick);
+
+        stream.setFloat32(this.start.x);
+        stream.setFloat32(this.start.y);
+    }
+}
 
 
 

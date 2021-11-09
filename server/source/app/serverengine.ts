@@ -21,19 +21,19 @@ import { Rect } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { DeserializeShortString, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
-import { AcknowledgeShotPacket, DeclareCommandsPacket, EndRoundPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
+import { AcknowledgeShotPacket, DeclareCommandsPacket, EndRoundPacket, ForceFieldEffectPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
-import { RandomItemID } from "shared/core/sharedlogic/items";
+import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
 
 
-import { ServerBullet, ServerShootHitscanWeapon, ServerShootTerrainCarver } from "./weapons/serveritems";
+import { ForceFieldItem_S, ServerShootHitscanWeapon, ServerShootTerrainCarver } from "./weapons/serveritems";
 import { commandDispatcher } from "./servercommands";
 
 import "server/source/app/weapons/serveritems.ts"
 import { random, random_range } from "shared/misc/random";
 import { Effect } from "shared/core/effects";
-import { ShotType } from "shared/core/sharedlogic/weapondefinitions";
+import { ItemActionType } from "shared/core/sharedlogic/weapondefinitions";
 import { ItemEntity } from "./networking/networkedentities";
 
 const MAX_BYTES_PER_PACKET = 2048;
@@ -550,9 +550,9 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         break;
                     }
 
-                    case ServerBoundPacket.REQUEST_SHOOT_WEAPON: {
+                    case ServerBoundPacket.REQUEST_ITEM_ACTION: {
                         
-                        const item_type: ShotType = stream.getUint8();
+                        const item_type: ItemActionType = stream.getUint8();
 
                         const clientShotID = stream.getUint32();
 
@@ -560,7 +560,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         const pos = new Vec2(stream.getFloat32(), stream.getFloat32());
 
                         switch(item_type){
-                            case ShotType.TERRAIN_CARVER:{
+                            case ItemActionType.TERRAIN_CARVER:{
                                 const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
 
                                 const shot_prefab_id = stream.getUint8();
@@ -579,7 +579,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
                                 break;
                             }
-                            case ShotType.HIT_SCAN:{
+                            case ItemActionType.HIT_SCAN:{
                                 const end = new Vec2(stream.getFloat32(), stream.getFloat32());
 
                                 const shotID = this.getServerShotID();
@@ -589,6 +589,17 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                                 );
                                 
                                 ServerShootHitscanWeapon(this, shotID, pos, end, clientID);
+
+                                break;
+                            }
+                            case ItemActionType.FORCE_FIELD_ACTION: {
+
+                                console.log("Player forcefield!")
+                                this.entities.addEntity(new ForceFieldItem_S(this.players.get(clientID).playerEntity,50));
+
+                                this.enqueueGlobalPacket(
+                                    new ForceFieldEffectPacket(clientID, 0, createServerTick, pos)
+                                );
 
                                 break;
                             }

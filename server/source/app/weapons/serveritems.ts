@@ -5,7 +5,7 @@ import { random_range } from "shared/misc/random";
 import { Line } from "shared/shapes/line";
 import { Vec2 } from "shared/shapes/vec2";
 
-import { TerrainCarveCirclePacket } from "../networking/gamepacketwriters";
+import { TerrainCarveCirclePacket, TerrainCarverShotPacket } from "../networking/gamepacketwriters";
 import { networkedclass_server, sync } from "../networking/serverentitydecorators";
 import { ServerBearEngine } from "../serverengine";
 
@@ -13,6 +13,9 @@ import { ServerBearEngine } from "../serverengine";
 import { ConnectionID } from "../networking/serversocket";
 import { ServerEntity } from "../entity";
 import { AssertUnreachable } from "shared/misc/assertstatements";
+import { ServerPlayerEntity } from "../playerlogic";
+import { Ellipse } from "shared/node_modules/pixi.js";
+import { NULL_ENTITY_INDEX } from "shared/core/entitysystem";
 
 @networkedclass_server("weapon_item")
 export abstract class SWeaponItem extends ServerEntity {
@@ -49,10 +52,19 @@ export class SHitscanWeapon extends SWeaponItem {
 
 }
 
+//@ts-expect-error
 @networkedclass_server("forcefield_item")
 export class ForceFieldItem_S extends ServerEntity {
     
-    update(dt: number): void {}
+    constructor(public targetPlayer: ServerPlayerEntity, public radius: number){super()};
+
+    update(dt: number): void {
+        if(this.targetPlayer.entityID !== NULL_ENTITY_INDEX){
+            this.position.set(this.targetPlayer.position);
+        } else {
+            this.destroy();
+        }
+    }
     
 } 
 
@@ -200,7 +212,41 @@ export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number,
             }
             case "boom": {
                 bullet.onUpdate(function(){
-                    const testTerrain = this.game.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)));
+                    
+                    const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone().extend(50)));
+
+
+
+                    for(const entity of this.game.entities.entities){
+                        if(entity instanceof ForceFieldItem_S){
+                            const test = Line.CircleLineIntersection(line.A, line.B, entity.x, entity.x, entity.radius);
+
+                            console.log(JSON.stringify(test));
+                            
+                            if(test.points.length > 0){
+                                console.log("WE HAVE A HIT")
+                                const bounceOffOf = test.points[0];
+                                const normal = Vec2.subtract(bounceOffOf, entity.position);
+
+                                const len = this.velocity.length();
+                                Vec2.bounce(this.velocity.clone().normalize(),normal.clone().normalize(),this.velocity);
+
+                                this.velocity.extend(len);
+                                
+                                console.log(this.velocity.toString())
+                                this.position.set(bounceOffOf);
+
+                                this.game.enqueueGlobalPacket(
+                                    new TerrainCarverShotPacket(-1, shotID, 0, this.position.clone(), this.velocity.clone(), shot_prefab_id)
+                                );
+
+                                break;
+                            }
+                        }
+                    }
+                
+
+                    const testTerrain = this.game.terrain.lineCollision(line.A, line.B);
                     
                     const RADIUS = effect.radius;
                     const DMG_RADIUS = effect.radius * 1.5;
@@ -240,39 +286,4 @@ export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number,
     game.entities.addEntity(bullet);
 }
 
-
-
-@networkedclass_server("bullet")
-export class ServerBullet extends ModularBullet {
-    
-    @sync("bullet").var("_pos")
-    _pos = new Vec2(1,1);
-
-    @sync("bullet").var("test", true)
-    test = 1;
-
-    constructor(){
-        super();
-        this.velocity.set({x:1,y:1})
-    }
-
-    private t = new TickTimer(10, false);
-
-    override update(dt: number): void {
-        super.update(dt);
-
-        this.position.add(this.velocity);
-        
-        this._pos.set(this.position);
-
-        this.markDirty();
-
-
-        if(this.t.tick()){
-           this.game.callEntityEvent(this, "bullet", "testEvent7", {arr: ["asd"], otherValue: new Vec2(23,31), x : 1}, 123);
-        }
-
-        // this.test += 1;
-    }
-}
 

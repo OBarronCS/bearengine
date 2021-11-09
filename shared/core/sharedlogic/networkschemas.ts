@@ -94,21 +94,6 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
         },
         events: {},
     },
-    "bullet": {
-        // create: () => void 0,
-        extends: null,
-        variables: {
-            _pos: { type:"vec2", subtype: "float" },
-            test: { type: "number", subtype: "float"},
-            // _x: {type:"string"},
-        },
-        events: {
-            testEvent7: {
-                argTypes: [{ type: "template", subtype: SharedTemplates.ONE}, {type:"number", subtype:"uint8"}],
-                callback: (point, testNumber) => void 0,
-            },
-        }
-    },
     "ogre": {
         extends: null,
         variables: {

@@ -3,7 +3,7 @@ import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, 
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { GetTemplateRealType, netv, SerializeTypedArray, SerializeTypedVar, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums";
-import { ShotType } from "shared/core/sharedlogic/weapondefinitions";
+import { ItemActionType } from "shared/core/sharedlogic/weapondefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { Vec2 } from "shared/shapes/vec2";
 import { ConnectionID } from "./serversocket";
@@ -316,6 +316,27 @@ export class TerrainCarveCirclePacket extends PacketWriter {
     }
 }
 
+export class ForceFieldEffectPacket extends PacketWriter {
+
+    constructor(public playerID: number, public serverShotID: number, public createServerTick: number,  public start: Vec2){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.SHOOT_WEAPON);
+        stream.setUint8(this.playerID);
+
+        stream.setUint8(ItemActionType.FORCE_FIELD_ACTION);
+
+
+        stream.setUint32(this.serverShotID);
+        
+        stream.setFloat32(this.createServerTick);
+
+        stream.setFloat32(this.start.x);
+        stream.setFloat32(this.start.y);
+    }
+}
 
 export class HitscanShotPacket extends PacketWriter {
 
@@ -327,7 +348,7 @@ export class HitscanShotPacket extends PacketWriter {
         stream.setUint8(GamePacket.SHOOT_WEAPON);
         stream.setUint8(this.playerID);
 
-        stream.setUint8(ShotType.HIT_SCAN);
+        stream.setUint8(ItemActionType.HIT_SCAN);
 
 
         stream.setUint32(this.serverShotID);
@@ -353,7 +374,7 @@ export class TerrainCarverShotPacket extends PacketWriter {
     write(stream: BufferStreamWriter){
         stream.setUint8(GamePacket.SHOOT_WEAPON);
         stream.setUint8(this.playerID);
-        stream.setUint8(ShotType.TERRAIN_CARVER);
+        stream.setUint8(ItemActionType.TERRAIN_CARVER);
 
         stream.setUint32(this.serverShotID);
         

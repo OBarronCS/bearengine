@@ -226,6 +226,7 @@ export class Player extends DrawableEntity {
 
     clearItem(){
         this.weapon = null;
+        this.usable = null;
         this.itemInHand.clear();
     }
 
@@ -637,6 +638,10 @@ export class Player extends DrawableEntity {
         
         if(this.weapon !== null){
             this.weapon.handle(dt,this.position, difference.normalize(), this.mouse.isDown("left"), this.game);
+        } else if(this.usable !== null){
+            this.usable.position.set(this.position);
+            this.usable.consume();
+            this.usable = null;
         }
         // if(this.itemInHand.operate(this.mouse.isDown("left"))){
         //     if(this.state === PlayerState.GROUND) this.state = PlayerState.AIR;

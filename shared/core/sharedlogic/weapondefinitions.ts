@@ -5,9 +5,10 @@ import { DefineSchema } from "./serialization"
 import { GenerateLinker } from "shared/core/sharedlogic/serialization";
 
 
-export enum ShotType {
+export enum ItemActionType {
     HIT_SCAN,
     TERRAIN_CARVER,
+    FORCE_FIELD_ACTION,
 }
 
 // Should This be more generic?
@@ -31,7 +32,7 @@ function CreateShot<T extends keyof SharedNetworkedEntities, K extends Test<T>>(
     return i;
 }
 
-export const SHOT_DATA = DefineSchema< {[k: string] : Test<keyof SharedNetworkedEntities>} >()({
+export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<keyof SharedNetworkedEntities>} >()({
 
     SIMPLE_TERRAIN_HIT: CreateShot({
         type:"projectile_bullet",
@@ -48,7 +49,7 @@ export const SHOT_DATA = DefineSchema< {[k: string] : Test<keyof SharedNetworked
     })
 })
 
-export const SHOT_LINKER = GenerateLinker(SHOT_DATA);
+export const SHOT_LINKER = GenerateLinker(PROJECTILE_SHOT_DATA);
 
 
 

@@ -30,34 +30,6 @@ export class RemoteLocations extends Attribute {
 
 
 
-@networkedclass_client("bullet")
-export class ClientBullet extends Entity {
-
-    public sprite = this.addPart(new SpritePart("test2.png"));
-
-
-    @net("bullet").interpolatedvariable("test")
-    test = InterpolatedVar(1);
-
-    @net("bullet").interpolatedvariable("_pos")
-    _pos = InterpolatedVar(new Vec2(0,0));
-
-
-
-    @net("bullet").event("testEvent7")
-    callback(data: NetArg<"bullet","testEvent7",0>, testNumber: number){
-        console.log(JSON.stringify(data), testNumber);
-    }
-
-    update(dt: number): void {
-        this.position.set(this._pos.value);
-        // this.position.x = this._x.value;
-        // this.position.y = this._y.value;
-
-        // this.redraw();
-    }
-}
-
 @networkedclass_client("ogre")
 export class Ogre extends Entity {
 

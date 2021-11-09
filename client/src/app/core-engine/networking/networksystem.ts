@@ -26,7 +26,7 @@ import { ShootHitscanWeapon, ShootProjectileWeapon, TerrainCarverAddons } from "
 import { Line } from "shared/shapes/line";
 import { EmitterAttach } from "../particles";
 import { PARTICLE_CONFIG } from "../../../../../shared/core/sharedlogic/sharedparticles";
-import { ShotType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
+import { ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { DeserializeTypedArray, netv, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { Trie } from "shared/datastructures/trie";
 
@@ -805,7 +805,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         case GamePacket.SHOOT_WEAPON: {
 
                             const creatorID = stream.getUint8();
-                            const item_type: ShotType = stream.getUint8();
+                            const item_type: ItemActionType = stream.getUint8();
 
                             const serverShotID = stream.getUint32();
 
@@ -815,11 +815,12 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
 
                             switch(item_type){
-                                case ShotType.TERRAIN_CARVER:{
+                                case ItemActionType.TERRAIN_CARVER:{
                                     const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
 
                                     const shot_prefab_id = stream.getUint8();
 
+                                    // Only create it if someone else shot it
                                     if(this.MY_CLIENT_ID !== creatorID){
                                         const b = ShootProjectileWeapon(this.game, TerrainCarverAddons, pos, velocity, SHOT_LINKER.IDToName(shot_prefab_id));
 
@@ -827,11 +828,22 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     }
                                     break;
                                 }
-                                case ShotType.HIT_SCAN:{
+                                case ItemActionType.HIT_SCAN:{
                                     const end = new Vec2(stream.getFloat32(), stream.getFloat32());
                                     const ray = new Line(pos, end);
                                     if(this.MY_CLIENT_ID !== creatorID)
                                         ShootHitscanWeapon(this.game, ray);
+                                    break;
+                                }
+                                case ItemActionType.FORCE_FIELD_ACTION: {
+
+                                    if(this.MY_CLIENT_ID === creatorID){
+                                        
+                                    } else {
+                                        const p = this.remotePlayerEntities.get(creatorID)
+                                    }
+
+                                    
                                     break;
                                 }
                                 default: AssertUnreachable(item_type);
