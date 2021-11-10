@@ -4,6 +4,7 @@ import { ServerEntity } from "./entity";
 import { ConnectionID } from "./networking/serversocket";
 
 import "./networking/networkedentities";
+import { SBaseItem } from "./weapons/serveritems";
 
 export class ServerPlayerEntity extends ServerEntity {
 
@@ -11,21 +12,27 @@ export class ServerPlayerEntity extends ServerEntity {
         super();
     }
 
+    item_in_hand: SBaseItem<any> = null;
+    
+    setItem(item: SBaseItem<any>){
+        this.item_in_hand = item;
+    }
 
-    healthIsDirty = false;
+    clearItem(){
+        this.item_in_hand = null;
+    }
+
 
     public health: number = 100;
 
-    
-
+    // not in use rn
+    healthIsDirty = false;
     loseHealth(amount: number){
         this.health -= amount;
         this.healthIsDirty = true;
     }
 
     
-
-
     dead = false
     
     state: number = 0;
@@ -34,8 +41,7 @@ export class ServerPlayerEntity extends ServerEntity {
     mouse: Vec2 = new Vec2(0,0);
     mousedown = false;
 
-    
-    // item: Gun<any> = null;
+
 
     update(dt: number): void {
         // if(this.item !== null){
@@ -47,13 +53,7 @@ export class ServerPlayerEntity extends ServerEntity {
         // }
     }
 
-    // // setWeapon(gun: Gun<any>){
-    // //     this.item = gun;
-    // // }
 
-    // clearItem(){
-    //     this.item = null;
-    // }
 }
 
 

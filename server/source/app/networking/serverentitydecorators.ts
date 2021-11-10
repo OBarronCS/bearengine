@@ -103,8 +103,12 @@ export class SharedEntityServerTable {
         name: keyof SharedNetworkedEntities
     }[] = [];
 
-    // Not in use on server side as of now 
+
     private static readonly networkedEntityIndexMap = new Map<number,EntityConstructor>();
+
+    static getEntityClass(sharedID: number): EntityConstructor {
+        return SharedEntityServerTable.networkedEntityIndexMap.get(sharedID);
+    }
 
     static init(){
 

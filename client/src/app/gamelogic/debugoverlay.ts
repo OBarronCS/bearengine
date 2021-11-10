@@ -4,6 +4,7 @@ import { Subsystem } from "shared/core/subsystem";
 import { round } from "shared/misc/mathutils";
 import { randomChar } from "shared/misc/random";
 import { NetworkPlatformGame } from "../core-engine/bearengine";
+import { Coordinate } from "shared/shapes/vec2";
 
 
 export class DebugScreen extends Subsystem<NetworkPlatformGame> {
@@ -71,4 +72,54 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
         }
     }
     
+
+
+
+
+    dump_state(): GameStateDump {
+
+        return {
+            log:[
+
+            ],
+            entity_state: {
+
+            },
+            keyboard_state:{
+                
+            },
+            mouse_state: {
+                position: this.engine.mouse.position.toCoordinate(),
+                velocity: this.engine.mouse.velocity.toCoordinate(),
+                cursor_sprite: "",
+            }
+        }
+    }
 } 
+
+interface GameStateDump {
+    log: string[];
+
+    entity_state: object;
+
+    keyboard_state: object;
+
+    mouse_state: {
+        position: Coordinate,
+        velocity: Coordinate,
+        cursor_sprite: string
+    }
+}
+
+const ALL_BEAR_LOGS: string[] = []
+
+
+export function BEAR_LOG(log: string): void {
+    ALL_BEAR_LOGS.push(log);
+}
+
+// Allow it to take in any type, and just figure it out
+// BEAR_LOG.info();
+// BEAR_LOG.error();
+// BEAR_LOG.warn();
+

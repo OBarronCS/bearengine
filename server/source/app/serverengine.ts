@@ -21,20 +21,19 @@ import { Rect } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { DeserializeShortString, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
-import { AcknowledgeShotPacket, DeclareCommandsPacket, EndRoundPacket, ForceFieldEffectPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
+import { AcknowledgeShotPacket, ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, ForceFieldEffectPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
 
 
-import { ForceFieldItem_S, ServerShootHitscanWeapon, ServerShootTerrainCarver } from "./weapons/serveritems";
+import { ForceFieldItem_S, ItemEntity, SBaseItem, ServerShootHitscanWeapon, ServerShootTerrainCarver } from "./weapons/serveritems";
 import { commandDispatcher } from "./servercommands";
 
 import "server/source/app/weapons/serveritems.ts"
 import { random, random_range } from "shared/misc/random";
 import { Effect } from "shared/core/effects";
 import { ItemActionType } from "shared/core/sharedlogic/weapondefinitions";
-import { ItemEntity } from "./networking/networkedentities";
 
 const MAX_BYTES_PER_PACKET = 2048;
 
@@ -504,18 +503,39 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         const isFDown = stream.getBool();
                         const isQDown = stream.getBool();
 
+                        //Drop item
+                        if(isQDown){
+                            if(p.item_in_hand !== null){
+                                console.log("Dropping item")
+                                const item = new ItemEntity(p.item_in_hand);
+
+                                item.pos.set(p.position);
+
+                                this.createRemoteEntity(item);
+
+                                this.players.get(clientID).personalPackets.enqueue(
+                                    new ClearInvItemPacket()
+                                );
+
+                                p.clearItem();
+                            }
+                        }
+                        
+                        //Pick up item
                         if(isFDown){
                             for(const pEntity of this.entities.entities){
                                 if(pEntity instanceof ItemEntity){
                                     if(Vec2.distanceSquared(p.position, pEntity.pos) < 50**2){
                                         
+                                        p.setItem(pEntity.item);
 
-                                        this.destroyRemoteEntity(pEntity)
 
                                         this.players.get(clientID).personalPackets.enqueue(
                                             new SetInvItemPacket(pEntity.item_id)
                                         );
                                         
+                                        this.destroyRemoteEntity(pEntity);
+
 
                                         break;
                                     }
@@ -544,8 +564,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         } else {
                             console.log(`Client ${clientID} sent an empty string`)
                         }
-
-
 
                         break;
                     }
@@ -713,10 +731,29 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             if(this.serverState === ServerGameState.ROUND_ACTIVE){
                 
                 if(random() > .97){
-                    console.log("Random item");
-                    const item = new ItemEntity();
-                    item.item_id = RandomItemID();
-                    item.pos.x = 250;
+
+
+                    const random_itemprefab_id = RandomItemID();
+
+                    const raw_item_data = ITEM_LINKER.IDToData(random_itemprefab_id);
+                            
+                    const item_class = SharedEntityServerTable.getEntityClass(SharedEntityLinker.nameToSharedID(raw_item_data.type));
+
+
+                    // console.log("Creating item: ", item_class);
+
+                    //@ts-expect-error
+                    const item_instance = (new item_class(random_itemprefab_id));
+
+                    /**** 
+                        If this is ever wrong, that means we 
+                    
+                    */
+                    assert(item_instance instanceof SBaseItem, "Error! Trying to create item of class " + item_class + ". This is not a subtype of SBaseItem, which means you implemented it wrong");
+
+                    const item = new ItemEntity(item_instance);
+
+                    item.pos.x = 350;
                     this.createRemoteEntity(item);
                 }
 

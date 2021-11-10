@@ -48,7 +48,7 @@ export type Test<T extends keyof SharedNetworkedEntities> = CommonItemData & Ite
 
 
 // Hack to make typescript autocomplete work for item types
-function CreateItem<T extends keyof SharedNetworkedEntities, K extends Test<T>>(i: Test<T>){
+function CreateItem<T extends keyof SharedNetworkedEntities, K extends Test<T>>(i: Test<T>){ // Readonly<>
     return i;
 }
 /**
@@ -71,7 +71,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         item_name:"Circle Carver",
         item_sprite:"weapon1.png",
         capacity: 10,
-        ammo: 100,
+        ammo: 10,
         reload_time: 12,
         shoot_controller: { type:"auto", time_between_shots: 15 }
     }),

@@ -222,6 +222,17 @@ export class SetInvItemPacket extends PacketWriter {
     }
 }
 
+export class ClearInvItemPacket extends PacketWriter {
+
+    constructor(){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.CLEAR_INV_ITEM);
+    }
+}
+
 
 
 export class RemoteFunctionPacket<T extends keyof RemoteFunction> extends PacketWriter {

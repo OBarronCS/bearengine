@@ -223,6 +223,10 @@ export class Vec2 {
         return this.x + "," + this.y
     }
 
+    toCoordinate(): Coordinate {
+        return { x:this.x, y: this.y };
+    }
+
     equals(vec: Coordinate){
         return this.x === vec.x && this.y === vec.y;
     }

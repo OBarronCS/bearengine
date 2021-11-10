@@ -14,12 +14,31 @@ import { ServerEntity } from "../entity";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { ServerPlayerEntity } from "../playerlogic";
 import { NULL_ENTITY_INDEX } from "shared/core/entitysystem";
+import { ITEM_LINKER, Test } from "shared/core/sharedlogic/items";
+import { SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 
+export class SBaseItem<T extends keyof SharedNetworkedEntities> extends ServerEntity {
+
+    constructor(public item_id: number){
+        super();
+    }
+
+    GetStaticValue(key: keyof Test<T>) {
+        //@ts-expect-error
+        return MIGRATED_ITEMS[ITEM_LINKER.IDToName(this.item_id)][key]
+    }
+
+    update(dt: number): void {}
+
+}
+
+
+//@ts-expect-error
 @networkedclass_server("weapon_item")
-export abstract class SWeaponItem extends ServerEntity {
+export abstract class SWeaponItem extends SBaseItem<"weapon_item"> {
 
     readonly direction = new Vec2();
-    readonly shootController: GunshootController;
+    readonly shootController: GunshootController; // this.shootController = CreateShootController(item_data.shoot_controller);
 
     @sync("weapon_item").var("ammo")
     ammo: number;
@@ -30,21 +49,15 @@ export abstract class SWeaponItem extends ServerEntity {
     @sync("weapon_item").var("reload_time")
     reload_time: number;
 
-    constructor(){
-        super();
-        // this.shootController = CreateShootController(item_data.shoot_controller);
-    }
-
-    update(dt: number){}
-
 }
 
+//@ts-expect-error
 @networkedclass_server("terrain_carver_weapon")
 export class STerrainCarverWeapon extends SWeaponItem {
 
-
 }
 
+//@ts-expect-error
 @networkedclass_server("hitscan_weapon")
 export class SHitscanWeapon extends SWeaponItem {
 
@@ -52,11 +65,13 @@ export class SHitscanWeapon extends SWeaponItem {
 
 //@ts-expect-error
 @networkedclass_server("forcefield_item")
-export class ForceFieldItem_S extends ServerEntity {
+export class ForceFieldItem_S extends SBaseItem<"forcefield_item"> {
     
-    constructor(public targetPlayer: ServerPlayerEntity, public radius: number){super()};
+    constructor(public targetPlayer: ServerPlayerEntity, public radius: number){
+        super(ITEM_LINKER.NameToID("forcefield"));
+    }
 
-    update(dt: number): void {
+    override update(dt: number): void {
         if(this.targetPlayer.entityID !== NULL_ENTITY_INDEX){
             this.position.set(this.targetPlayer.position);
         } else {
@@ -210,7 +225,7 @@ export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number,
 
                             
                             if(test.points.length > 0){
-                                console.log("WE HAVE A HIT")
+                                // console.log("WE HAVE A HIT")
                                 const bounceOffOf = test.points[0];
                                 const normal = Vec2.subtract(bounceOffOf, entity.position);
 
@@ -270,4 +285,44 @@ export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number,
     game.entities.addEntity(bullet);
 }
 
+
+const item_gravity = new Vec2(0,3);
+
+//@ts-expect-error
+@networkedclass_server("item_entity")
+export class ItemEntity extends ServerEntity {
+
+    item: SBaseItem<any>
+
+    @sync("item_entity").var("item_id")
+    item_id = 0;
+
+    @sync("item_entity").var("pos")
+    pos = new Vec2(0,0)
+
+
+    private active = true;
+
+    constructor(item: SBaseItem<any>){
+        super();
+        this.item = item;
+        this.item_id = item.item_id;
+
+        this.markDirty();
+    }
+
+    update(dt: number): void {
+        if(this.active){
+            if(this.game.terrain.lineCollision(this.pos, Vec2.add(this.pos, item_gravity)) !== null){
+                this.active = false;
+                // console.log("hit")
+            } else {
+                this.pos.add(item_gravity);
+                this.markDirty()
+            }
+        }
+        
+    }
+
+}
 
