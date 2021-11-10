@@ -15,7 +15,7 @@ import { Emitter } from "shared/graphics/particles";
 import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparticles";
 import { TickTimer } from "shared/datastructures/ticktimer";
 import { Line } from "shared/shapes/line";
-import { drawVecAsArrow } from "shared/shapes/shapedrawing";
+import { drawCircle, drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "shared/shapes/shapedrawing";
 import { ItemDrawer } from "../core-engine/clientitems";
 import { BoostZone } from "./boostzone";
 
@@ -76,6 +76,39 @@ export class FirstLevel extends GameLevel {
 
     start(): void {
         const scene = this.game.entities;
+
+        class CircleLineIntersectionTest extends DrawableEntity {
+        
+            private circle = new Vec2(0,0);
+            
+            private point = new Vec2(0,0);
+    
+            draw(g: Graphics): void {
+                drawCircle(g, this.circle, 50)
+    
+                if(this.mouse.wasPressed("right")) { 
+                    this.circle.x = this.mouse.x;
+                    this.circle.y = this.mouse.y;
+                }
+                if(this.mouse.wasPressed("left")) this.point = this.mouse.position.clone();
+    
+                const otherPoint = this.mouse.position.clone();
+    
+                drawLineBetweenPoints(g,this.point,otherPoint);
+    
+                const points = Line.CircleLineIntersection(this.point, otherPoint, this.circle.x, this.circle.y, 50);
+                
+                for(const point of points.points){
+                    drawPoint(g,point);
+                }
+            }
+            update(dt: number): void {
+                this.redraw()
+            }
+    
+        }
+    
+        // scene.addEntity(new CircleLineIntersectionTest);
 
         // this.p = scene.addEntity(new Player());
 

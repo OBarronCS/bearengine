@@ -198,8 +198,8 @@ export class Player extends DrawableEntity {
 
     // Item graphics
     itemInHand: ItemDrawer = new ItemDrawer();
-    weapon: WeaponItem = null;
-    usable: UsableItem<any> = null
+    
+    usable_item: UsableItem<any> = null;
 
     setGhost(ghost: boolean){
         this.ghost = ghost;
@@ -211,22 +211,19 @@ export class Player extends DrawableEntity {
         }
     }
 
-    setItem(item: WeaponItem, path: string){
+    // What should the type that is taken in here be? hmm
+    setItem(item: UsableItem<any>, path: string){
         this.itemInHand.setItem(path);
         
-        this.weapon = null;
-        this.usable = null;
+        this.usable_item = null;
 
         if(item instanceof UsableItem){
-            this.usable = item
-        } else if(item instanceof WeaponItem){
-            this.weapon = item;
-        }
+            this.usable_item = item
+        } 
     }
 
     clearItem(){
-        this.weapon = null;
-        this.usable = null;
+        this.usable_item = null;
         this.itemInHand.clear();
     }
 
@@ -626,8 +623,10 @@ export class Player extends DrawableEntity {
         this.itemInHand.position.set({x: this.x, y: this.y});
         rotatePoint(this.itemInHand.position,this.position,this.slope_normal);
 
-        const angleToMouse = angleBetween(this.itemInHand.position, this.mouse.position)
+        const angleToMouse = angleBetween(this.itemInHand.position, this.mouse.position);
+        
         const difference = Vec2.subtract(this.mouse.position, this.itemInHand.position);
+
         if(difference.x > 0){
             this.itemInHand.image.sprite.scale.x = 1;
             this.itemInHand.image.angle = angleToMouse;
@@ -636,13 +635,13 @@ export class Player extends DrawableEntity {
             this.itemInHand.image.angle = angleToMouse + PI;
         }
         
-        if(this.weapon !== null){
-            this.weapon.handle(dt,this.position, difference.normalize(), this.mouse.isDown("left"), this.game);
-        } else if(this.usable !== null){
-            this.usable.position.set(this.position);
-            this.usable.consume();
-            this.usable = null;
-        }
+        if(this.usable_item !== null){
+            const consume = this.usable_item.operate(dt, this.position, this.mouse.position, this.mouse.isDown("left"), this.game);
+            if(consume){
+                this.clearItem();
+            }
+        } 
+
         // if(this.itemInHand.operate(this.mouse.isDown("left"))){
         //     if(this.state === PlayerState.GROUND) this.state = PlayerState.AIR;
 

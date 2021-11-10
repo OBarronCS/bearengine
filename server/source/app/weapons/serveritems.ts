@@ -9,12 +9,10 @@ import { TerrainCarveCirclePacket, TerrainCarverShotPacket } from "../networking
 import { networkedclass_server, sync } from "../networking/serverentitydecorators";
 import { ServerBearEngine } from "../serverengine";
 
-// import { ItemData } from "shared/core/sharedlogic/items";
 import { ConnectionID } from "../networking/serversocket";
 import { ServerEntity } from "../entity";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { ServerPlayerEntity } from "../playerlogic";
-import { Ellipse } from "shared/node_modules/pixi.js";
 import { NULL_ENTITY_INDEX } from "shared/core/entitysystem";
 
 @networkedclass_server("weapon_item")
@@ -70,18 +68,6 @@ export class ForceFieldItem_S extends ServerEntity {
 
 
 
-// export class ServerItem<T extends ItemData> {
-//     item_data: T;
-
-//     constructor(item_data: T){
-//         this.item_data = item_data;
-//     }
-
-//     get item_type(){ return this.item_data.item_type; }
-//     get item_name(){ return this.item_data.item_name; }
-//     get item_id(){ return this.item_data.item_id; }
-//     get item_sprite(){ return this.item_data.item_sprite; }
-// }
 
 // abstract class Gun<T extends ItemData> extends ServerItem<T> {
 
@@ -111,20 +97,7 @@ export class ForceFieldItem_S extends ServerEntity {
 //     abstract shoot(game: ServerBearEngine): void;
 // }
 
-export function ServerShootHitscanWeapon(game: ServerBearEngine, shotID: number, position: Vec2, end: Vec2, owner: ConnectionID){
-    
-    const ray = new Line(position, end);
 
-    // Check each players distance to the line.
-    for(const pEntity of game.activeScene.activePlayerEntities.values()){
-        if(pEntity.connectionID === owner) continue;
-
-        if(ray.pointDistance(pEntity.position) < 30){
-            pEntity.health -= 16;
-        }
-    } 
-
-}
 
 interface GunAddon {
     modifyShot: (bullet: ModularBullet) => void,
@@ -155,6 +128,22 @@ interface GunAddon {
 //         game.createRemoteEntity(bullet);
 //     }
 // }
+
+
+export function ServerShootHitscanWeapon(game: ServerBearEngine, shotID: number, position: Vec2, end: Vec2, owner: ConnectionID){
+    
+    const ray = new Line(position, end);
+
+    // Check each players distance to the line.
+    for(const pEntity of game.activeScene.activePlayerEntities.values()){
+        if(pEntity.connectionID === owner) continue;
+
+        if(ray.pointDistance(pEntity.position) < 30){
+            pEntity.health -= 16;
+        }
+    } 
+
+}
 
 @networkedclass_server("projectile_bullet")
 class ModularBullet extends Effect<ServerBearEngine> {
@@ -215,13 +204,10 @@ export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number,
                     
                     const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone().extend(50)));
 
-
-
                     for(const entity of this.game.entities.entities){
                         if(entity instanceof ForceFieldItem_S){
-                            const test = Line.CircleLineIntersection(line.A, line.B, entity.x, entity.x, entity.radius);
+                            const test = Line.CircleLineIntersection(line.A, line.B, entity.x, entity.y, entity.radius);
 
-                            console.log(JSON.stringify(test));
                             
                             if(test.points.length > 0){
                                 console.log("WE HAVE A HIT")
@@ -230,10 +216,8 @@ export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number,
 
                                 const len = this.velocity.length();
                                 Vec2.bounce(this.velocity.clone().normalize(),normal.clone().normalize(),this.velocity);
-
                                 this.velocity.extend(len);
                                 
-                                console.log(this.velocity.toString())
                                 this.position.set(bounceOffOf);
 
                                 this.game.enqueueGlobalPacket(

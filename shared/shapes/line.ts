@@ -70,6 +70,7 @@ export class Line {
         }
         else {
             // This case means the line is tangential 
+            // This should be equivalent to h === 0
             if(u1 === u2 && u1 >= 0 && u1 <= 1 && u2 >= 0 && u2 <= 1){
                 return {tangent: true, points: [mix(p1,p2, abs(u1))]};
             }

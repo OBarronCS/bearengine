@@ -1723,34 +1723,7 @@ export function loadTestLevel(engine: BearEngine): void {
 
     //this.addEntity(new ConvexHullTest());
 
-    class CircleLineIntersectionTest extends DrawableEntity {
-        
-        private circle = new Vec2(0,0);
-        
-        private point = new Vec2(0,0);
-
-        draw(g: Graphics): void {
-            drawCircle(g, this.circle, 50)
-
-            if(this.mouse.wasPressed("left")) this.point = this.mouse.position.clone();
-
-            const otherPoint = this.mouse.position.clone();
-
-            drawLineBetweenPoints(g,this.point,otherPoint);
-
-            const points = Line.CircleLineIntersection(this.point, otherPoint, this.circle.x, this.circle.y, 50);
-            
-            for(const point of points.points){
-                drawPoint(g,point);
-            }
-        }
-        update(dt: number): void {
-            this.redraw()
-        }
-
-    }
-
-    //this.addEntity(new CircleLineIntersectionTest);
+    
 
 
     class MouseRectCollider extends DrawableEntity {

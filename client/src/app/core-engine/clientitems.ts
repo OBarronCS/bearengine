@@ -19,18 +19,6 @@ import { ITEM_LINKER, MIGRATED_ITEMS, Test } from "shared/core/sharedlogic/items
 
 
 
-// export class Item<T extends ItemData> {
-//     item_data: T;
-
-//     constructor(item_data: T){
-//         this.item_data = item_data;
-//     }
-
-//     get item_type(){ return this.item_data.item_type; }
-//     get item_name(){ return this.item_data.item_name; }
-//     get item_id(){ return this.item_data.item_id; }
-//     get item_sprite(){ return this.item_data.item_sprite; }
-// }
 
 class BaseItem<T extends keyof SharedNetworkedEntities> extends Entity {
 
@@ -47,11 +35,16 @@ class BaseItem<T extends keyof SharedNetworkedEntities> extends Entity {
 
 }
 
+export abstract class UsableItem<T extends keyof SharedNetworkedEntities> extends BaseItem<T> {
+
+    abstract operate(dt: number, position: Vec2, mouse: Vec2, mouse_down: boolean, game: NetworkPlatformGame): boolean;
+
+}
 
 
 //@ts-expect-error
 @networkedclass_client("weapon_item")
-export abstract class WeaponItem extends BaseItem<"weapon_item"> {
+export abstract class WeaponItem extends UsableItem<"weapon_item"> {
 
     readonly direction = new Vec2();
     readonly shootController: GunshootController = CreateShootController(this.GetStaticValue("shoot_controller"))
@@ -70,10 +63,12 @@ export abstract class WeaponItem extends BaseItem<"weapon_item"> {
         // this.shootController = CreateShootController(item_data.shoot_controller);
     }
 
-    handle(dt: number, position: Vec2, direction: Vec2, holdTrigger: boolean, game: NetworkPlatformGame): void {
+    override operate(dt: number, position: Vec2, mouse: Vec2, mouse_down: boolean, game: NetworkPlatformGame): boolean {
+        
         this.position.set(position);
-        this.direction.set(direction);
-        if(this.shootController.holdTrigger(holdTrigger)){
+        this.direction.set(Vec2.subtract(mouse, this.position).normalize()); 
+
+        if(this.shootController.holdTrigger(mouse_down)){
             if(this.ammo > 0){
                 this.ammo -= 1;
 
@@ -82,6 +77,8 @@ export abstract class WeaponItem extends BaseItem<"weapon_item"> {
                 this.shoot(game);
             }
         }
+
+        return false;
     }
 
     protected abstract shoot(game: NetworkPlatformGame): void;
@@ -387,13 +384,7 @@ export class ItemDrawer extends Entity {
 
 
 
-// Assumes that items are one time things..
-export abstract class UsableItem<T extends keyof SharedNetworkedEntities> extends BaseItem<T> {
 
-    abstract consume(): void;
-
-
-}
 
 //@ts-expect-error
 @networkedclass_client("forcefield_item")
@@ -401,13 +392,19 @@ export class ForceFieldItem_C extends UsableItem<"forcefield_item"> {
     
     radius = this.GetStaticValue("radius")
     
-    consume(): void {
+    operate(dt: number, position: Vec2, mouse: Vec2, mouse_down: boolean, game: NetworkPlatformGame): boolean {
 
-        this.game.networksystem.enqueueStagePacket(
-            new ForceFieldItemActionPacket(0,this.game.networksystem.getLocalShotID(), this.position)
-        )
+        if(mouse_down){
+            game.networksystem.enqueueStagePacket(
+                new ForceFieldItemActionPacket(0,this.game.networksystem.getLocalShotID(), this.position)
+            );
+
+            return true;
+        }
+
+        return false;
     }
-
+    
 } 
 
 export class ForceFieldItemActionPacket extends PacketWriter {

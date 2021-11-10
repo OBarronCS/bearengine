@@ -15,7 +15,7 @@ import type { PlayerInformation, ServerBearEngine } from "./serverengine";
 
 export interface CommandContext {
     engine: ServerBearEngine,
-    targetPlayer: PlayerInformation
+    targetPlayer: PlayerInformation | null
 }
 
 const command = BindCommandCreator<CommandContext>();
@@ -30,9 +30,20 @@ database.add(
     command("item").args(comv.string_options<keyof typeof MIGRATED_ITEMS>(Object.keys(MIGRATED_ITEMS)))
         .run((context, item_name: keyof typeof MIGRATED_ITEMS) => {
 
-            context.engine.enqueueGlobalPacket(
-                new SetInvItemPacket(ITEM_LINKER.NameToID(item_name))
-            );
+            // Only give the item to the player that ran the command
+            
+            if(context.targetPlayer === null){
+                // aka if the source of the command is the command line, give the item to all players
+                context.engine.enqueueGlobalPacket(
+                    new SetInvItemPacket(ITEM_LINKER.NameToID(item_name)) 
+                    );
+            } else {
+                //Only give it to the player that made this command
+                context.targetPlayer.personalPackets.enqueue(
+                    new SetInvItemPacket(ITEM_LINKER.NameToID(item_name)) 
+                )
+            }
+            
         })
     );
 
