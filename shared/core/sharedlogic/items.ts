@@ -90,7 +90,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         type:"forcefield_item",
         item_name:"Force Field",
         item_sprite:"missing_texture.png",
-        radius: 10,
+        radius: 50,
     }),
 
 

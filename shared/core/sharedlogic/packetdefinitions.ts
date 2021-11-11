@@ -44,7 +44,7 @@ export enum GamePacket {
 
 
     CLEAR_INV_ITEM, // []
-    SET_INV_ITEM, // [ItemID: uint8]
+    SET_INV_ITEM, // [ItemID: uint8,...data]
 
     // Notifying clients about other clients connected to the server
     OTHER_PLAYER_INFO_ADD, //      [unique_client_id: uint8, ping: uint16, gamemode: ClientPlayState] // add string to this one day

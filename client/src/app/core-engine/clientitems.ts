@@ -37,6 +37,8 @@ class BaseItem<T extends keyof SharedNetworkedEntities> extends Entity {
 
 export abstract class UsableItem<T extends keyof SharedNetworkedEntities> extends BaseItem<T> {
 
+    consumed: boolean = false;
+
     abstract operate(dt: number, position: Vec2, mouse: Vec2, mouse_down: boolean, game: NetworkPlatformGame): boolean;
 
 }

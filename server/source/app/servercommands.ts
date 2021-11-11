@@ -1,7 +1,6 @@
 import { BindCommandCreator, CommandDatabase, comv } from "shared/core/commands"
-import { ITEM_LINKER, MIGRATED_ITEMS } from "shared/core/sharedlogic/items";
+import { ITEM_LINKER, MIGRATED_ITEMS, RandomItemID } from "shared/core/sharedlogic/items";
 import { RemoteResources } from "shared/core/sharedlogic/networkschemas";
-import { SetInvItemPacket } from "./networking/gamepacketwriters";
 import type { PlayerInformation, ServerBearEngine } from "./serverengine";
 
 // What if commands are initiated from a NON player?
@@ -34,14 +33,13 @@ database.add(
             
             if(context.targetPlayer === null){
                 // aka if the source of the command is the command line, give the item to all players
-                context.engine.enqueueGlobalPacket(
-                    new SetInvItemPacket(ITEM_LINKER.NameToID(item_name)) 
-                    );
+                console.log("CANNOT GIVE ALL PLAYERS ITEM")
+                return;
             } else {
                 //Only give it to the player that made this command
-                context.targetPlayer.personalPackets.enqueue(
-                    new SetInvItemPacket(ITEM_LINKER.NameToID(item_name)) 
-                )
+                const p = context.targetPlayer;
+
+                context.engine.givePlayerItem(p,context.engine.createItemFromPrefab(ITEM_LINKER.NameToID(item_name)));
             }
             
         })

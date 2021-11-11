@@ -27,7 +27,7 @@ import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
 
 
-import { ForceFieldItem_S, ItemEntity, SBaseItem, ServerShootHitscanWeapon, ServerShootTerrainCarver } from "./weapons/serveritems";
+import { ForceFieldEffect, ItemEntity, SBaseItem, ServerShootHitscanWeapon, ServerShootTerrainCarver, STerrainCarverWeapon } from "./weapons/serveritems";
 import { commandDispatcher } from "./servercommands";
 
 import "server/source/app/weapons/serveritems.ts"
@@ -357,8 +357,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                 new PlayerEntitySpawnPacket(clientID, 0,0)
             );
         }
-
-        this.createRemoteEntity(new S_T_Sub())
     }
 
     // Tells clients to create the player entity.
@@ -466,6 +464,55 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         this.entities.destroyEntity(e);
     }
 
+    createItemFromPrefab(item_id: number): SBaseItem<any> {
+        const raw_item_data = ITEM_LINKER.IDToData(item_id);
+                
+        const item_class = SharedEntityServerTable.getEntityClass(SharedEntityLinker.nameToSharedID(raw_item_data.type));
+        // console.log("Creating item: ", item_class);
+
+        //@ts-expect-error
+        const item_instance = (new item_class(item_id));
+        
+        assert(item_instance instanceof SBaseItem, "Error! Trying to create item of class " + item_class + ". This is not a subtype of SBaseItem, which means you implemented it wrong");
+
+        return item_instance;
+    }
+
+    givePlayerItemEntityAndDropIfHave(p: PlayerInformation, item_entity: ItemEntity){
+        this.givePlayerItem(p, item_entity.item);
+
+        
+        this.destroyRemoteEntity(item_entity);
+    }
+
+    /** When no ItemEntity ever existed. Direct to player spawn */
+    givePlayerItem(p: PlayerInformation, raw_item: SBaseItem<any>){
+        if(p.playerEntity.item_in_hand !== null){
+            this.dropPlayerItem(p)
+        }
+
+        p.playerEntity.setItem(raw_item);
+
+        p.personalPackets.enqueue(
+            new SetInvItemPacket(raw_item.item_id, raw_item)
+        );
+    }
+
+    dropPlayerItem(p: PlayerInformation): void {
+        console.log("Dropping item")
+        const item = new ItemEntity(p.playerEntity.item_in_hand);
+
+        item.pos.set(p.playerEntity.position);
+
+        this.createRemoteEntity(item);
+
+        p.personalPackets.enqueue(
+            new ClearInvItemPacket()
+        );
+
+        p.playerEntity.clearItem();
+    }
+
 
     // Reads from queue of data since last tick
     private readNetwork(){
@@ -488,7 +535,10 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
                 switch(type){
                     case ServerBoundPacket.PLAYER_POSITION: {
-                        const p = this.players.get(clientID).playerEntity;
+
+                        const player_info = this.players.get(clientID);
+
+                        const p = player_info.playerEntity;
                         p.position.x = stream.getFloat32();
                         p.position.y = stream.getFloat32();
 
@@ -506,36 +556,17 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         //Drop item
                         if(isQDown){
                             if(p.item_in_hand !== null){
-                                console.log("Dropping item")
-                                const item = new ItemEntity(p.item_in_hand);
-
-                                item.pos.set(p.position);
-
-                                this.createRemoteEntity(item);
-
-                                this.players.get(clientID).personalPackets.enqueue(
-                                    new ClearInvItemPacket()
-                                );
-
-                                p.clearItem();
+                                this.dropPlayerItem(player_info);
                             }
                         }
                         
                         //Pick up item
                         if(isFDown){
-                            for(const pEntity of this.entities.entities){
-                                if(pEntity instanceof ItemEntity){
-                                    if(Vec2.distanceSquared(p.position, pEntity.pos) < 50**2){
+                            for(const itemEntity of this.entities.entities){
+                                if(itemEntity instanceof ItemEntity){
+                                    if(Vec2.distanceSquared(p.position, itemEntity.pos) < 50**2){
                                         
-                                        p.setItem(pEntity.item);
-
-
-                                        this.players.get(clientID).personalPackets.enqueue(
-                                            new SetInvItemPacket(pEntity.item_id)
-                                        );
-                                        
-                                        this.destroyRemoteEntity(pEntity);
-
+                                        this.givePlayerItemEntityAndDropIfHave(player_info,itemEntity);
 
                                         break;
                                     }
@@ -580,21 +611,31 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         switch(item_type){
                             case ItemActionType.TERRAIN_CARVER:{
                                 const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
-
                                 const shot_prefab_id = stream.getUint8();
 
-                                const shotID = this.getServerShotID();
+                                const player_info = this.players.get(clientID);
 
-                                this.players.get(clientID).personalPackets.enqueue(
-                                    new AcknowledgeShotPacket(true,clientShotID, shotID)
-                                )
+                                // Ensure player is indeed holding the item that allows this
+                                if(player_info.playerEntity.item_in_hand instanceof STerrainCarverWeapon){
+                                    const item = player_info.playerEntity.item_in_hand;
 
-                                this.enqueueGlobalPacket(
-                                    new TerrainCarverShotPacket(clientID, shotID, createServerTick, pos, velocity, shot_prefab_id)
-                                );
+                                    if(item.ammo > 0){
+                                        item.ammo -= 1;
 
-                                ServerShootTerrainCarver(this, shotID, pos, velocity, shot_prefab_id);
+                                        const shotID = this.getServerShotID();
 
+                                        player_info.personalPackets.enqueue(
+                                            new AcknowledgeShotPacket(true,clientShotID, shotID)
+                                        )
+    
+                                        this.enqueueGlobalPacket(
+                                            new TerrainCarverShotPacket(clientID, shotID, createServerTick, pos, velocity, shot_prefab_id)
+                                        );
+    
+                                        ServerShootTerrainCarver(this, shotID, pos, velocity, shot_prefab_id);
+                                    }
+                                }
+                                
                                 break;
                             }
                             case ItemActionType.HIT_SCAN:{
@@ -612,12 +653,25 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                             }
                             case ItemActionType.FORCE_FIELD_ACTION: {
 
-                                console.log("Player forcefield!")
-                                this.entities.addEntity(new ForceFieldItem_S(this.players.get(clientID).playerEntity,50));
+                                console.log("Player forcefield!");
+                                const player_info = this.players.get(clientID);
+
+                                // Only one exists
+                                const radius = ITEM_LINKER.NameToData("forcefield").radius;
+                                
+                                this.entities.addEntity(new ForceFieldEffect(player_info.playerEntity,radius));
 
                                 this.enqueueGlobalPacket(
                                     new ForceFieldEffectPacket(clientID, 0, createServerTick, pos)
                                 );
+
+
+                                //Tell client to get rid of the item
+                                player_info.personalPackets.enqueue(
+                                    new ClearInvItemPacket()
+                                );
+                        
+                                player_info.playerEntity.clearItem();
 
                                 break;
                             }
@@ -735,21 +789,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
                     const random_itemprefab_id = RandomItemID();
 
-                    const raw_item_data = ITEM_LINKER.IDToData(random_itemprefab_id);
-                            
-                    const item_class = SharedEntityServerTable.getEntityClass(SharedEntityLinker.nameToSharedID(raw_item_data.type));
-
-
-                    // console.log("Creating item: ", item_class);
-
-                    //@ts-expect-error
-                    const item_instance = (new item_class(random_itemprefab_id));
-
-                    /**** 
-                        If this is ever wrong, that means we 
-                    
-                    */
-                    assert(item_instance instanceof SBaseItem, "Error! Trying to create item of class " + item_class + ". This is not a subtype of SBaseItem, which means you implemented it wrong");
+                    const item_instance = this.createItemFromPrefab(random_itemprefab_id);
 
                     const item = new ItemEntity(item_instance);
 

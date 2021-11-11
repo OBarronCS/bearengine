@@ -27,7 +27,7 @@ import { Line } from "shared/shapes/line";
 import { EmitterAttach } from "../particles";
 import { PARTICLE_CONFIG } from "../../../../../shared/core/sharedlogic/sharedparticles";
 import { ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
-import { DeserializeTypedArray, netv, SharedTemplates } from "shared/core/sharedlogic/serialization";
+import { DeserializeTypedArray, DeserializeTypedVar, netv, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { Trie } from "shared/datastructures/trie";
 
 class ClientInfo {
@@ -784,9 +784,22 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             console.log(item_instance)
 
-                            // const item_data = CreateItemData(ITEM_LINKER.IDToName(item_id));
+        
+                            const shared_id = SharedEntityLinker.nameToSharedID(item_data.type);
 
-                            // const item = CreateClientItemFromType(item_data);
+                             
+                            const variableslist = SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES[shared_id].varDefinition;
+
+                            for(const variableinfo of variableslist){
+                                const value = DeserializeTypedVar(stream, variableinfo.variabletype);
+
+                                item_instance[variableinfo.variablename] = value
+                                
+                                if(variableinfo.recieveFuncName !== null){
+                                    item_instance[variableinfo.recieveFuncName](value);
+                                }
+                            }
+
 
                             if(this.currentPlayState === ClientPlayState.ACTIVE){
                                 this.game.player.setItem(item_instance, item_data.item_sprite);

@@ -14,7 +14,7 @@ import { ServerEntity } from "../entity";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { ServerPlayerEntity } from "../playerlogic";
 import { NULL_ENTITY_INDEX } from "shared/core/entitysystem";
-import { ITEM_LINKER, Test } from "shared/core/sharedlogic/items";
+import { ITEM_LINKER, MIGRATED_ITEMS, Test } from "shared/core/sharedlogic/items";
 import { SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 
 export class SBaseItem<T extends keyof SharedNetworkedEntities> extends ServerEntity {
@@ -23,7 +23,7 @@ export class SBaseItem<T extends keyof SharedNetworkedEntities> extends ServerEn
         super();
     }
 
-    GetStaticValue(key: keyof Test<T>) {
+    GetStaticValue<K extends keyof Test<T>>(key: K): Test<T>[K] {
         //@ts-expect-error
         return MIGRATED_ITEMS[ITEM_LINKER.IDToName(this.item_id)][key]
     }
@@ -41,13 +41,13 @@ export abstract class SWeaponItem extends SBaseItem<"weapon_item"> {
     readonly shootController: GunshootController; // this.shootController = CreateShootController(item_data.shoot_controller);
 
     @sync("weapon_item").var("ammo")
-    ammo: number;
+    ammo: number = this.GetStaticValue("ammo");
 
     @sync("weapon_item").var("capacity")
-    capacity: number;
+    capacity: number = this.GetStaticValue("capacity");
 
     @sync("weapon_item").var("reload_time")
-    reload_time: number;
+    reload_time: number = this.GetStaticValue("reload_time")
 
 }
 
@@ -63,23 +63,29 @@ export class SHitscanWeapon extends SWeaponItem {
 
 }
 
-//@ts-expect-error
+// @ts-expect-error
 @networkedclass_server("forcefield_item")
 export class ForceFieldItem_S extends SBaseItem<"forcefield_item"> {
     
+    radius = this.GetStaticValue("radius");
+
+} 
+
+export class ForceFieldEffect extends ServerEntity {
+
     constructor(public targetPlayer: ServerPlayerEntity, public radius: number){
-        super(ITEM_LINKER.NameToID("forcefield"));
+        super();
     }
 
-    override update(dt: number): void {
+    update(dt: number): void {
         if(this.targetPlayer.entityID !== NULL_ENTITY_INDEX){
             this.position.set(this.targetPlayer.position);
         } else {
             this.destroy();
         }
     }
-    
-} 
+
+}
 
 
 
@@ -168,6 +174,9 @@ class ModularBullet extends Effect<ServerBearEngine> {
         this.stateHasBeenChanged = true;
     }
 
+
+    last_force_field_id = NULL_ENTITY_INDEX;
+
     @sync("projectile_bullet").var("pos")
     pos = new Vec2(0,0)
 
@@ -220,11 +229,14 @@ export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number,
                     const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone().extend(50)));
 
                     for(const entity of this.game.entities.entities){
-                        if(entity instanceof ForceFieldItem_S){
+                        if(entity instanceof ForceFieldEffect){
+                            if(entity.entityID === this.last_force_field_id) continue;
+
                             const test = Line.CircleLineIntersection(line.A, line.B, entity.x, entity.y, entity.radius);
 
-                            
                             if(test.points.length > 0){
+                                this.last_force_field_id = entity.entityID;
+
                                 // console.log("WE HAVE A HIT")
                                 const bounceOffOf = test.points[0];
                                 const normal = Vec2.subtract(bounceOffOf, entity.position);

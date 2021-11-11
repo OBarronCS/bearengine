@@ -6,6 +6,7 @@ import { ClientPlayState } from "shared/core/sharedlogic/sharedenums";
 import { ItemActionType } from "shared/core/sharedlogic/weapondefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { Vec2 } from "shared/shapes/vec2";
+import { SBaseItem } from "../weapons/serveritems";
 import { ConnectionID } from "./serversocket";
 
 
@@ -209,15 +210,27 @@ export class PlayerEntityCompletelyDeletePacket extends PacketWriter {
 }
 
 
+// This has a potential for an error, because the data could have changed
+// while the game logic assumes the data does not change after the item is passed int
 export class SetInvItemPacket extends PacketWriter {
 
-    constructor(public itemID: number){
+    constructor(public itemID: number, public item: SBaseItem<any>){
         super(false);
     }
 
     write(stream: BufferStreamWriter){
         stream.setUint8(GamePacket.SET_INV_ITEM);
         stream.setUint8(this.itemID);
+
+        const SHARED_ID = this.item.constructor["SHARED_ID"];
+
+        const variableslist = SharedEntityLinker.sharedIDToVariables(SHARED_ID);
+
+        for(const variable of variableslist){
+
+            //@ts-expect-error
+            SerializeTypedVar(stream, variable.type, this.item[variable.variableName]);
+        }
 
     }
 }

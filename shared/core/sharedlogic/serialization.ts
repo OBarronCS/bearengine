@@ -1,7 +1,6 @@
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable, assert } from "shared/misc/assertstatements";
 import { Vec2 } from "shared/shapes/vec2";
-import { CommandHintFormat } from "../commands";
 
 /** Assigns ID's to keys of an object. Helpful for serialization of reference to a key of a shared object */
 export function GenerateLinker<T extends {}>(obj: Readonly<T>){
@@ -32,7 +31,8 @@ export function GenerateLinker<T extends {}>(obj: Readonly<T>){
         IDToData(id: number){
             return obj[this.IDToName(id)];
         },
-        NameToData(name: keyof T){
+        NameToData<K extends keyof T>(name: K): T[K] {
+            //@ts-expect-error
             return this.IDToData(this.NameToID(name));
         },
         IDToName(id: number){
