@@ -22,7 +22,7 @@ import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
 import { ITEM_LINKER } from "shared/core/sharedlogic/items";
-import { ShootHitscanWeapon, ShootProjectileWeapon, TerrainCarverAddons } from "../clientitems";
+import { ShootHitscanWeapon, ShootProjectileWeapon } from "../clientitems";
 import { Line } from "shared/shapes/line";
 import { EmitterAttach } from "../particles";
 import { PARTICLE_CONFIG } from "../../../../../shared/core/sharedlogic/sharedparticles";
@@ -828,14 +828,17 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
 
                             switch(item_type){
-                                case ItemActionType.TERRAIN_CARVER:{
+                                case ItemActionType.PROJECTILE_SHOT:{
                                     const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
 
                                     const shot_prefab_id = stream.getUint8();
 
                                     // Only create it if someone else shot it
                                     if(this.MY_CLIENT_ID !== creatorID){
-                                        const b = ShootProjectileWeapon(this.game, TerrainCarverAddons, pos, velocity, SHOT_LINKER.IDToName(shot_prefab_id));
+
+                                        const bullet_effects = SHOT_LINKER.IDToData(shot_prefab_id).on_terrain;
+
+                                        const b = ShootProjectileWeapon(this.game, bullet_effects, pos, velocity);
 
                                         this.serverShotIDToEntity.set(serverShotID, b);
                                     }

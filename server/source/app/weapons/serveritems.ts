@@ -5,7 +5,7 @@ import { random_range } from "shared/misc/random";
 import { Line } from "shared/shapes/line";
 import { Vec2 } from "shared/shapes/vec2";
 
-import { TerrainCarveCirclePacket, TerrainCarverShotPacket } from "../networking/gamepacketwriters";
+import { TerrainCarveCirclePacket, ProjectileShotPacket } from "../networking/gamepacketwriters";
 import { networkedclass_server, sync } from "../networking/serverentitydecorators";
 import { ServerBearEngine } from "../serverengine";
 
@@ -52,9 +52,17 @@ export abstract class SWeaponItem extends SBaseItem<"weapon_item"> {
 }
 
 //@ts-expect-error
-@networkedclass_server("terrain_carver_weapon")
-export class STerrainCarverWeapon extends SWeaponItem {
+@networkedclass_server("projectile_weapon")
+export class SProjectileWeaponItem extends SWeaponItem {
 
+    //@ts-expect-error
+    initial_speed: number = this.GetStaticValue("initial_speed");
+
+    //@ts-expect-error
+    shot_name = this.GetStaticValue("shot_name");
+
+    //@ts-expect-error
+    shot_id = SHOT_LINKER.NameToID(this.shot_name);
 }
 
 //@ts-expect-error
@@ -202,7 +210,7 @@ class ModularBullet extends Effect<ServerBearEngine> {
 } 
 
 
-export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number, position: Vec2, velocity: Vec2, shot_prefab_id: number): void {
+export function ServerShootProjectileWeapon(game: ServerBearEngine, shotID: number, position: Vec2, velocity: Vec2, shot_prefab_id: number): void {
 
     const bullet = new ModularBullet();
 
@@ -223,6 +231,18 @@ export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number,
                 // Not relevent to the server
                 break;
             }
+
+            case "gravity": {
+
+                const grav = new Vec2().set(effect.force);
+
+                bullet.onUpdate(function(){
+                    this.velocity.add(grav);
+                });
+
+                break;
+            }
+
             case "boom": {
                 bullet.onUpdate(function(){
                     
@@ -248,7 +268,7 @@ export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number,
                                 this.position.set(bounceOffOf);
 
                                 this.game.enqueueGlobalPacket(
-                                    new TerrainCarverShotPacket(-1, shotID, 0, this.position.clone(), this.velocity.clone(), shot_prefab_id)
+                                    new ProjectileShotPacket(-1, shotID, 0, this.position.clone(), this.velocity.clone(), shot_prefab_id)
                                 );
 
                                 break;
@@ -288,11 +308,7 @@ export function ServerShootTerrainCarver(game: ServerBearEngine, shotID: number,
         }  
     }
 
-    const grav = new Vec2(0,.35);
-
-    bullet.onUpdate(function(){
-        this.velocity.add(grav);
-    });
+    
 
     game.entities.addEntity(bullet);
 }

@@ -3,7 +3,7 @@ import { Sprite, Graphics } from "shared/graphics/graphics";
 import { Effect } from "shared/core/effects";
 import { PacketWriter, SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
-import { CreateShootController, GunshootController, ItemActionType, PROJECTILE_SHOT_DATA, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
+import { CreateShootController, GunshootController, ItemActionType, OnProjectileHitTerrain, PROJECTILE_SHOT_DATA, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { NumberTween } from "shared/core/tween";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable } from "shared/misc/assertstatements";
@@ -46,7 +46,7 @@ export abstract class UsableItem<T extends keyof SharedNetworkedEntities> extend
 
 //@ts-expect-error
 @networkedclass_client("weapon_item")
-export abstract class WeaponItem extends UsableItem<"weapon_item"> {
+export abstract class WeaponItem<T extends "weapon_item" = "weapon_item"> extends UsableItem<T> {
 
     readonly direction = new Vec2();
     readonly shootController: GunshootController = CreateShootController(this.GetStaticValue("shoot_controller"))
@@ -74,8 +74,6 @@ export abstract class WeaponItem extends UsableItem<"weapon_item"> {
             if(this.ammo > 0){
                 this.ammo -= 1;
 
-                console.log()
-
                 this.shoot(game);
             }
         }
@@ -88,42 +86,75 @@ export abstract class WeaponItem extends UsableItem<"weapon_item"> {
 }
 
 //@ts-expect-error
-@networkedclass_client("terrain_carver_weapon")
-export class TerrainCarverWeapon extends WeaponItem {
+@networkedclass_client("projectile_weapon") //@ts-expect-error
+export class ProjectileWeapon extends WeaponItem<"projectile_weapon"> {
 
-    private addons = TerrainCarverAddons
-    private readonly shot_name = "SIMPLE_TERRAIN_HIT";
+
+    // private addons: GunAddon[] = TerrainCarverAddons;
+
+    private readonly shot_name = this.GetStaticValue("shot_name");
     private readonly shot_id = SHOT_LINKER.NameToID(this.shot_name);
 
-    protected shoot(game: NetworkPlatformGame): void {
-        const velocity = this.direction.clone().extend(25);
-        
-        //const b = ShootModularWeapon(game,this.addons,this.position,velocity);
-        const b = ShootProjectileWeapon(game, this.addons, this.position, velocity, this.shot_name)
+    
+    private readonly on_terrain_effects = SHOT_LINKER.IDToData(this.shot_id).on_terrain;
+    
 
+    protected shoot(game: NetworkPlatformGame): void {
+        const dir = this.direction.normalize();
+        
+        const b = ShootProjectileWeapon(game, this.on_terrain_effects, this.position, dir.clone().extend(this.GetStaticValue("initial_speed")));
 
         const localID = game.networksystem.getLocalShotID();
         game.networksystem.localShotIDToEntity.set(localID,b)
 
         game.networksystem.enqueueStagePacket(
-            new ServerBoundTerrainCarverPacket(0, localID, this.position.clone(), velocity, this.shot_id)
+            new ServerBoundProjectileShotPacket(0, localID, this.position.clone(), dir)
         )
     }
 }
 
-export function ShootProjectileWeapon(game: NetworkPlatformGame, addons: GunAddon[], position: Vec2, velocity: Vec2, shot_name: keyof typeof PROJECTILE_SHOT_DATA): ModularProjectileBullet {
+export function ShootProjectileWeapon(game: NetworkPlatformGame, on_terrain_hit_effects: OnProjectileHitTerrain[], position: Vec2, velocity: Vec2): ModularProjectileBullet {
     const bullet = new ModularProjectileBullet();
 
     bullet.position.set(position);
+
     bullet.velocity.set(velocity);
 
 
-    // const shot_info = SHOT_LINKER.ItemData(SHOT_LINKER.NameToID(shot_name));
+    for(const effect of on_terrain_hit_effects){
+        
+        const type = effect.type;
 
+        switch(type){
+            case "particle": {
 
-    for(const addon of addons){
-        addon.modifyShot(bullet);
+                break;
+            }
+            case "gravity": {
+
+                const grav = new Vec2().set(effect.force);
+
+                bullet.onUpdate(function(){
+                    this.velocity.add(grav);
+                });
+
+                break;
+            }
+            case "boom": {
+                
+                break;
+            }
+
+            default: AssertUnreachable(type);
+        }
     }
+
+
+
+
+    // for(const addon of addons){
+    //     addon.modifyShot(bullet);
+    // }
 
     game.entities.addEntity(bullet);
 
@@ -166,33 +197,15 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
 }
 
 
+export class ServerBoundProjectileShotPacket extends PacketWriter {
 
-// export function ShootModularWeapon(game: NetworkPlatformGame, addons: GunAddon[], position: Vec2, velocity: Vec2): ModularBullet {
-//     const bullet = new ModularBullet();
-            
-//     bullet.position.set(position);
-
-//     bullet.velocity.set(velocity);
-
-
-//     for(const addon of addons){
-//         addon.modifyShot(bullet);
-//     }
-
-//     game.entities.addEntity(bullet);
-
-//     return bullet;
-// }
-
-export class ServerBoundTerrainCarverPacket extends PacketWriter {
-
-    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public velocity: Vec2, public shot_prefab_id: number){
+    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public direction: Vec2){
         super(false);
     }
 
     write(stream: BufferStreamWriter){
         stream.setUint8(ServerBoundPacket.REQUEST_ITEM_ACTION);
-        stream.setUint8(ItemActionType.TERRAIN_CARVER);
+        stream.setUint8(ItemActionType.PROJECTILE_SHOT);
         stream.setUint32(this.localShotID);
 
         stream.setFloat32(this.createServerTick);
@@ -200,11 +213,8 @@ export class ServerBoundTerrainCarverPacket extends PacketWriter {
         stream.setFloat32(this.start.x);
         stream.setFloat32(this.start.y);
 
-        stream.setFloat32(this.velocity.x);
-        stream.setFloat32(this.velocity.y);
-
-        stream.setUint8(this.shot_prefab_id)
-
+        stream.setFloat32(this.direction.x);
+        stream.setFloat32(this.direction.y);
     }
 }
 
@@ -252,8 +262,6 @@ export class ServerBoundHitscanPacket extends PacketWriter {
     }
 }
 
-
-
 export function ShootHitscanWeapon(game: NetworkPlatformGame, line: Line): void {
 
     const canvas = game.engine.renderer.createCanvas();
@@ -271,45 +279,6 @@ interface GunAddon {
 }
 
 
-
-
-
-
-// export class ModularGun<T extends GunItemData> extends Gun<T> {
-
-//     addons: GunAddon[] = [];
-
-//     constructor(data: T, addons: GunAddon[]){
-//         super(data);
-//         this.addons.push(...addons);
-//     }
-
-//     shoot(game: NetworkPlatformGame){
-//         const velocity = this.direction.clone().extend(25);
-//         const b = ShootModularWeapon(game,this.addons,this.position,velocity);
-
-//         const localID = game.networksystem.getLocalShotID();
-//         game.networksystem.localShotIDToEntity.set(localID,b)
-
-//         game.networksystem.enqueueStagePacket(
-//             new ServerBoundTerrainCarverPacket(0, localID, this.position.clone(), velocity)
-//         )
-
-//         // const bullet = new ModularBullet();
-            
-//         // bullet.position.set(this.position);
-
-//         // bullet.velocity.set(this.direction.clone().extend(25));
-
-
-//         // for(const addon of this.addons){
-//         //     addon.modifyShot(bullet);
-//         // }
-    
-//         // game.entities.addEntity(bullet);
-//     }
-// }
-
 class TerrainHitAddon implements GunAddon {
 
     modifyShot(bullet: ModularProjectileBullet){
@@ -317,9 +286,7 @@ class TerrainHitAddon implements GunAddon {
             // Client side prediction of terrain hit?
 
             // const testTerrain = this.game.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)));
-            
             // const RADIUS = 40;
-            // const DMG_RADIUS = 80;
 
             // if(testTerrain){
             //     this.game.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
@@ -331,24 +298,6 @@ class TerrainHitAddon implements GunAddon {
 
 export const TerrainCarverAddons: GunAddon[] = [
     new TerrainHitAddon(),
-    {
-        modifyShot(bullet){
-            // bullet.onInterval(2, function(times){
-            //     this.velocity.drotate(random_range(-6,6))
-            // })
-        }
-    },
-    {
-        gravity: new Vec2(0,.35),
-        modifyShot(effect){
-
-            const self = this;
-
-            effect.onUpdate(function(){
-                this.velocity.add(self.gravity);
-            })
-        }
-    },
 ]
 
 

@@ -21,19 +21,19 @@ import { Rect } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { DeserializeShortString, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
-import { AcknowledgeShotPacket, ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, ForceFieldEffectPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, TerrainCarverShotPacket } from "./networking/gamepacketwriters";
+import { AcknowledgeShotPacket, ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, ForceFieldEffectPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, ProjectileShotPacket } from "./networking/gamepacketwriters";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
 
 
-import { ForceFieldEffect, ItemEntity, SBaseItem, ServerShootHitscanWeapon, ServerShootTerrainCarver, STerrainCarverWeapon } from "./weapons/serveritems";
+import { ForceFieldEffect, ItemEntity, SBaseItem, ServerShootHitscanWeapon, ServerShootProjectileWeapon, SProjectileWeaponItem } from "./weapons/serveritems";
 import { commandDispatcher } from "./servercommands";
 
 import "server/source/app/weapons/serveritems.ts"
 import { random, random_range } from "shared/misc/random";
 import { Effect } from "shared/core/effects";
-import { ItemActionType } from "shared/core/sharedlogic/weapondefinitions";
+import { ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 
 const MAX_BYTES_PER_PACKET = 2048;
 
@@ -608,31 +608,36 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         const createServerTick = stream.getFloat32();
                         const pos = new Vec2(stream.getFloat32(), stream.getFloat32());
 
-                        switch(item_type){
-                            case ItemActionType.TERRAIN_CARVER:{
-                                const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
-                                const shot_prefab_id = stream.getUint8();
 
-                                const player_info = this.players.get(clientID);
+                        const player_info = this.players.get(clientID);
+
+                        switch(item_type){
+                            case ItemActionType.PROJECTILE_SHOT:{
+                                const direction = new Vec2(stream.getFloat32(), stream.getFloat32());
+                                
 
                                 // Ensure player is indeed holding the item that allows this
-                                if(player_info.playerEntity.item_in_hand instanceof STerrainCarverWeapon){
+                                if(player_info.playerEntity.item_in_hand instanceof SProjectileWeaponItem){
                                     const item = player_info.playerEntity.item_in_hand;
 
                                     if(item.ammo > 0){
                                         item.ammo -= 1;
+
+                                        const shot_prefab_id = item.shot_id;
 
                                         const shotID = this.getServerShotID();
 
                                         player_info.personalPackets.enqueue(
                                             new AcknowledgeShotPacket(true,clientShotID, shotID)
                                         )
+
+                                        const velocity = direction.extend(item.initial_speed);
     
                                         this.enqueueGlobalPacket(
-                                            new TerrainCarverShotPacket(clientID, shotID, createServerTick, pos, velocity, shot_prefab_id)
+                                            new ProjectileShotPacket(clientID, shotID, createServerTick, pos, velocity, shot_prefab_id)
                                         );
-    
-                                        ServerShootTerrainCarver(this, shotID, pos, velocity, shot_prefab_id);
+
+                                        ServerShootProjectileWeapon(this, shotID, pos, velocity, shot_prefab_id);
                                     }
                                 }
                                 
@@ -654,7 +659,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                             case ItemActionType.FORCE_FIELD_ACTION: {
 
                                 console.log("Player forcefield!");
-                                const player_info = this.players.get(clientID);
 
                                 // Only one exists
                                 const radius = ITEM_LINKER.NameToData("forcefield").radius;

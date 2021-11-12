@@ -1,4 +1,4 @@
-import { Vec2 } from "shared/shapes/vec2";
+import { Coordinate, Vec2 } from "shared/shapes/vec2";
 import { Test } from "./items"
 import type { SharedNetworkedEntities } from "./networkschemas"
 import { DefineSchema } from "./serialization"
@@ -7,7 +7,7 @@ import { GenerateLinker } from "shared/core/sharedlogic/serialization";
 
 export enum ItemActionType {
     HIT_SCAN,
-    TERRAIN_CARVER,
+    PROJECTILE_SHOT,
     FORCE_FIELD_ACTION,
 }
 
@@ -20,9 +20,10 @@ export type OnProjectileHitTerrain = {
 } | {
     type:"particle"
     path:string
+} | {
+    type: "gravity",
+    force: Coordinate
 }
-
-
 
 
 
@@ -44,6 +45,28 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<keyof Shar
             {
                 type:"boom",
                 radius:60
+            },
+            {
+                type:"gravity",
+                force: { x:0, y:0.35 }
+            }
+        ]
+    }),
+
+    NOSEDIVE: CreateShot({
+        type:"projectile_bullet",
+        item_name:"First example bullet",
+        item_sprite:"tree.gif",
+        pos: new Vec2(0,0),
+        velocity: new Vec2(0,0),
+        on_terrain:[
+            {
+                type:"boom",
+                radius:90
+            },
+            {
+                type:"gravity",
+                force: { x:0, y:0.75 }
             }
         ]
     })

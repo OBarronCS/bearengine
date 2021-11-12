@@ -389,7 +389,7 @@ export class HitscanShotPacket extends PacketWriter {
 }
 
 
-export class TerrainCarverShotPacket extends PacketWriter {
+export class ProjectileShotPacket extends PacketWriter {
 
     constructor(public playerID: number, public serverShotID: number, public createServerTick: number, public start: Vec2, public velocity: Vec2, public shot_prefab_id: number){
         super(false);
@@ -398,7 +398,7 @@ export class TerrainCarverShotPacket extends PacketWriter {
     write(stream: BufferStreamWriter){
         stream.setUint8(GamePacket.SHOOT_WEAPON);
         stream.setUint8(this.playerID);
-        stream.setUint8(ItemActionType.TERRAIN_CARVER);
+        stream.setUint8(ItemActionType.PROJECTILE_SHOT);
 
         stream.setUint32(this.serverShotID);
         

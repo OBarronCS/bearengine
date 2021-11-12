@@ -6,7 +6,6 @@ import { DefineSchema, DeserializeTypedVar, netv, NetworkVariableTypes, Serializ
 import { OnProjectileHitTerrain, SimpleWeaponControllerDefinition } from "./weapondefinitions";
 
 
-
 export abstract class PacketWriter {
     savePacket: boolean;
 
@@ -59,8 +58,12 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
         },
         events: {}
     },
-    "terrain_carver_weapon": {
+    "projectile_weapon": {
         extends: "weapon_item",
+        static:{
+            shot_name: null as string, //keyof typeof PROJECTILE_SHOT_DATA --> makes a circular reference
+            initial_speed: null as number
+        },
         variables: {
             
         },

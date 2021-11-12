@@ -67,13 +67,27 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
 
 
     circle_terrain_carver: CreateItem({
-        type:"terrain_carver_weapon",
+        type:"projectile_weapon",
         item_name:"Circle Carver",
         item_sprite:"weapon1.png",
         capacity: 10,
         ammo: 10,
         reload_time: 12,
-        shoot_controller: { type:"auto", time_between_shots: 15 }
+        shoot_controller: { type:"auto", time_between_shots: 15 },
+        shot_name: "SIMPLE_TERRAIN_HIT",
+        initial_speed: 25,
+    }),
+
+    terrain_nosedive: CreateItem({
+        type:"projectile_weapon",
+        item_name:"Circle Carver",
+        item_sprite:"weapon1.png",
+        capacity: 10,
+        ammo: 10,
+        reload_time: 12,
+        shoot_controller: { type:"auto", time_between_shots: 15 },
+        shot_name: "NOSEDIVE",
+        initial_speed: 50,
     }),
 
     first_hitscan: CreateItem({
