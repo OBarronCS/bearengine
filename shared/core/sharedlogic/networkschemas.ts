@@ -81,11 +81,15 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
             on_terrain: null as OnProjectileHitTerrain[],
         },
         variables:{
-            pos: netv.vec2("float"),
             velocity: netv.vec2("float"),
         },
         extends:null,
-        events: {}
+        events: {
+            changeTrajectory: {
+                argTypes:[netv.uint32(),netv.vec2("double"), netv.vec2("double")],
+                callback:(server_time, position, velocity) => void 0
+            }
+        }
     },
     "forcefield_item": {
         extends: null,

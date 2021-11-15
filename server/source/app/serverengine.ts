@@ -627,17 +627,20 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
                                         const shotID = this.getServerShotID();
 
-                                        player_info.personalPackets.enqueue(
-                                            new AcknowledgeShotPacket(true,clientShotID, shotID)
-                                        )
+
 
                                         const velocity = direction.extend(item.initial_speed);
     
+                                        const b = ServerShootProjectileWeapon(this, shotID, pos, velocity, shot_prefab_id);
+
                                         this.enqueueGlobalPacket(
-                                            new ProjectileShotPacket(clientID, shotID, createServerTick, pos, velocity, shot_prefab_id)
+                                            new ProjectileShotPacket(clientID, shotID, createServerTick, pos, velocity, shot_prefab_id, b.entityID)
                                         );
 
-                                        ServerShootProjectileWeapon(this, shotID, pos, velocity, shot_prefab_id);
+                                        player_info.personalPackets.enqueue(
+                                            new AcknowledgeShotPacket(true,clientShotID, shotID, b.entityID)
+                                        )
+
                                     }
                                 }
                                 

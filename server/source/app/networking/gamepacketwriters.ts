@@ -391,7 +391,7 @@ export class HitscanShotPacket extends PacketWriter {
 
 export class ProjectileShotPacket extends PacketWriter {
 
-    constructor(public playerID: number, public serverShotID: number, public createServerTick: number, public start: Vec2, public velocity: Vec2, public shot_prefab_id: number){
+    constructor(public playerID: number, public serverShotID: number, public createServerTick: number, public start: Vec2, public velocity: Vec2, public shot_prefab_id: number, public entity_id: number){
         super(false);
     }
 
@@ -411,6 +411,7 @@ export class ProjectileShotPacket extends PacketWriter {
         stream.setFloat32(this.velocity.y);
 
         stream.setUint8(this.shot_prefab_id);
+        StreamWriteEntityID(stream, this.entity_id);
     }
 }
 
@@ -418,7 +419,7 @@ export class ProjectileShotPacket extends PacketWriter {
 
 export class AcknowledgeShotPacket extends PacketWriter {
 
-    constructor(private success: boolean, private localID: number, private serverID: number){
+    constructor(private success: boolean, private localID: number, private serverID: number, public entityID: number){
         super(false);
     }
 
@@ -428,6 +429,7 @@ export class AcknowledgeShotPacket extends PacketWriter {
         stream.setBool(this.success);
         stream.setUint32(this.localID);
         stream.setUint32(this.serverID);
+        StreamWriteEntityID(stream, this.entityID);
     }
 }
 

@@ -1,4 +1,4 @@
-import { autoDetectRenderer, Renderer, Container, DisplayObject, utils, InteractionManager, Graphics, Sprite, Texture, AbstractRenderer } from "shared/graphics/graphics";
+import { autoDetectRenderer, Renderer, Container, DisplayObject, utils, InteractionManager, Graphics, Sprite, Texture, AbstractRenderer, ParticleContainer } from "shared/graphics/graphics";
 import { clamp, E } from "shared/misc/mathutils";
 import { BearEngine } from "./bearengine";
 import { GraphicsPart, SpritePart } from "./parts";
@@ -27,6 +27,8 @@ export class RendererSystem {
     public stage = new Container();
     public guiContainer = new Container();
     public mainContainer = new Container();
+
+    private particle_container = new ParticleContainer(1500*6,{})
     
     public targetWindow: Window;
     public targetDiv: HTMLElement;
@@ -36,7 +38,7 @@ export class RendererSystem {
 
     addEmitter(path: string, settings: EmitterConfigV1 | EmitterConfigV3, x: number, y: number): Emitter {
         const newVersionSettings = upgradeConfig(settings, this.getTexture(path));
-        const e = new Emitter(this.mainContainer, newVersionSettings);
+        const e = new Emitter(this.particle_container, newVersionSettings);
 
         e.emit = true;
 
@@ -85,10 +87,14 @@ export class RendererSystem {
         this.mainContainer.zIndex = 0;
         this.mainContainer.sortableChildren = true;
 
+        this.mainContainer.addChild(this.particle_container)
+
+
         this.guiContainer.zIndex = 100;
 
         this.stage.addChild(this.mainContainer);
         this.stage.addChild(this.guiContainer);
+        
 
         //this.setCursorSprite("assets/flower.png");
 

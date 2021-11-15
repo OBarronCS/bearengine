@@ -450,6 +450,13 @@ class EntitySystemSubset<TSystem extends EntitySystem<AbstractEntity>, TEntity e
         return this.parentEntitySystem.getAttribute(e, partConstructor);
     }
 
+    forceAddEntityFromMain<T extends TEntity>(e: T) {
+        this.subset.set(e.entityID, e);
+        
+        //@ts-expect-error
+        e.scene = this
+    }
+
     addEntity<T extends TEntity>(e: T): T {
         if(e.entityID !== NULL_ENTITY_INDEX) {
             console.log("trying to add the same entity twice;")

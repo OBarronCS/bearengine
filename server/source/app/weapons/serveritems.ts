@@ -185,8 +185,6 @@ class ModularBullet extends Effect<ServerBearEngine> {
 
     last_force_field_id = NULL_ENTITY_INDEX;
 
-    @sync("projectile_bullet").var("pos")
-    pos = new Vec2(0,0)
 
     @sync("projectile_bullet").var("velocity")
     velocity = new Vec2(0,0);
@@ -194,6 +192,7 @@ class ModularBullet extends Effect<ServerBearEngine> {
     constructor(){
         super();
 
+        // Is immediately destroyed if starts at (0,0)
         this.position.add({x:1,y:1});
     
         this.onUpdate(function(dt: number){
@@ -210,7 +209,7 @@ class ModularBullet extends Effect<ServerBearEngine> {
 } 
 
 
-export function ServerShootProjectileWeapon(game: ServerBearEngine, shotID: number, position: Vec2, velocity: Vec2, shot_prefab_id: number): void {
+export function ServerShootProjectileWeapon(game: ServerBearEngine, shotID: number, position: Vec2, velocity: Vec2, shot_prefab_id: number): ModularBullet {
 
     const bullet = new ModularBullet();
 
@@ -267,9 +266,11 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, shotID: numb
                                 
                                 this.position.set(bounceOffOf);
 
-                                this.game.enqueueGlobalPacket(
-                                    new ProjectileShotPacket(-1, shotID, 0, this.position.clone(), this.velocity.clone(), shot_prefab_id)
-                                );
+                                this.game.callEntityEvent(bullet, "projectile_bullet", "changeTrajectory",0,this.position.clone(), this.velocity.clone());
+
+                                // this.game.enqueueGlobalPacket(
+                                //     new ProjectileShotPacket(-1, shotID, 0, this.position.clone(), this.velocity.clone(), shot_prefab_id)
+                                // );
 
                                 break;
                             }
@@ -311,6 +312,8 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, shotID: numb
     
 
     game.entities.addEntity(bullet);
+
+    return bullet;
 }
 
 

@@ -228,14 +228,14 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     }
 
     // This entityID is from the network, and doesn't contain the version number
-    private createAutoRemoteEntity(sharedID: number, entityID: EntityID): Entity {
+    private createAutoRemoteEntity(sharedID: number, remoteEntityID: EntityID): Entity {
         const _class = SharedEntityClientTable.getEntityClass(sharedID);
 
         //@ts-expect-error
         const e = new _class();
 
         // Adds it to the scene
-        this.remoteEntities.set(entityID, e);
+        this.remoteEntities.set(remoteEntityID, e);
         this.networked_entity_subset.addEntity(e);
 
         return e;
@@ -485,6 +485,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             let entity = this.remoteEntities.get(entityID);
 
                             if(entity === undefined){
+                                console.log("Event for unknown entity. Ignoring")
                                 SharedEntityClientTable.readThroughRemoteEventStream(stream, SHARED_ID, eventID, entity)
                                 // Will try to create the entity for now, but we missed the REMOTE_ENTITY_CREATE packet clearly
                                 continue;
@@ -508,6 +509,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             if(entity !== undefined){
                                 this.remoteEntities.delete(entityID);
                                 this.networked_entity_subset.destroyEntity(entity);
+                            } else {
+                                console.log("Attempting to delete entity that does not exist")
                             }
                             
                             break;
@@ -756,13 +759,13 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             terrain.carveCircle(x, y, r);
 
                             // Check if we have a copy of bullet that created this effect. If so, delete it.
-                            const prediction = this.serverShotIDToEntity.get(serverShotID);
+                            const bullet = this.serverShotIDToEntity.get(serverShotID);
 
-                            if(prediction !== undefined){
+                            if(bullet !== undefined){
+                                // console.log("BULLET DESTROYED");
                                 this.serverShotIDToEntity.delete(serverShotID);
                                 
-                                // console.log("PREDICTION DESTROYED");
-                                prediction.destroy();
+                                bullet.destroy();
                             }
 
                             this.engine.renderer.addEmitter("assets/flower.png", PARTICLE_CONFIG["TERRAIN_EXPLOSION"], x, y);
@@ -833,12 +836,23 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                                     const shot_prefab_id = stream.getUint8();
 
+                                    const remoteEntityID = StreamReadEntityID(stream);
+
                                     // Only create it if someone else shot it
                                     if(this.MY_CLIENT_ID !== creatorID){
 
                                         const bullet_effects = SHOT_LINKER.IDToData(shot_prefab_id).on_terrain;
 
                                         const b = ShootProjectileWeapon(this.game, bullet_effects, pos, velocity);
+                                        
+                                        // this.game.entities.addEntity(b);
+
+
+                                        // It's now a networked entity
+                                        //@ts-expect-error
+                                        this.remoteEntities.set(remoteEntityID, b);
+                                        this.networked_entity_subset.addEntity(b);
+
 
                                         this.serverShotIDToEntity.set(serverShotID, b);
                                     }
@@ -875,6 +889,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const localShotID = stream.getUint32();
                             const serverShotID = stream.getUint32();
 
+                            const remoteEntityID = StreamReadEntityID(stream);
 
                             if(success){
                                 const bullet = this.localShotIDToEntity.get(localShotID);
@@ -883,6 +898,13 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     if(bullet.entityID !== NULL_ENTITY_INDEX){
                                         this.serverShotIDToEntity.set(serverShotID, bullet);
                                         this.localShotIDToEntity.delete(localShotID);
+
+
+                                        //@ts-expect-error
+                                        this.remoteEntities.set(remoteEntityID, bullet);
+                                        this.networked_entity_subset.forceAddEntityFromMain(bullet);
+
+
                                     } else {
                                         // This entity has already been destroyed.
                                         // This error shows why storing the entityID would be 

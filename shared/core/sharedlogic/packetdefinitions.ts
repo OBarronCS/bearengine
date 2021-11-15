@@ -68,12 +68,12 @@ export enum GamePacket {
 
     SHOOT_WEAPON, // [creator_id: uint8, ItemActionType: enum, serverShotID: uint32, createServerTick: float32, x: float32, y: float32, ...extra_data]
 
-    ACKNOWLEDGE_SHOT // [success: bool, localShotID: uint32, serverShotID: uint32];
+    ACKNOWLEDGE_SHOT // [success: bool, localShotID: uint32, serverShotID: uint32, entityIDOfBullet];
 }
 
 /*
 ITEM ACTION EXTRA DATA DEFINITIONS:
-    PROJECTILE_SHOT: [dir_x: float32, dir_y: float32];
+    PROJECTILE_SHOT: [dir_x: float32, dir_y: float32, entityIDofBullet];
     HIT_SCAN: [end_x: float32, end_y: float32];
     
 

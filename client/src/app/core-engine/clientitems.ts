@@ -104,6 +104,8 @@ export class ProjectileWeapon extends WeaponItem<"projectile_weapon"> {
         
         const b = ShootProjectileWeapon(game, this.on_terrain_effects, this.position, dir.clone().extend(this.GetStaticValue("initial_speed")));
 
+        game.entities.addEntity(b);
+
         const localID = game.networksystem.getLocalShotID();
         game.networksystem.localShotIDToEntity.set(localID,b)
 
@@ -156,19 +158,16 @@ export function ShootProjectileWeapon(game: NetworkPlatformGame, on_terrain_hit_
     //     addon.modifyShot(bullet);
     // }
 
-    game.entities.addEntity(bullet);
-
     return bullet
 }
 
 
 @networkedclass_client("projectile_bullet")
 export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
+    
     @net("projectile_bullet").variable("velocity")
     readonly velocity = new Vec2();
 
-    @net("projectile_bullet").variable("pos")
-    pos = new Vec2()
 
     private sprite = this.addPart(new SpritePart("test2.png"));
 
@@ -180,9 +179,9 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
         this.onUpdate(function(dt: number){
             this.position.add(this.velocity);
             this.emitter.updateSpawnPos(this.x, this.y);
-            if(!this.game.activeLevel.bbox.contains(this.position)){
-                this.destroy();
-            }
+            // if(!this.game.activeLevel.bbox.contains(this.position)){
+            //     this.destroy();
+            // }
         });
 
         this.onStart(function(){
@@ -192,6 +191,12 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
         this.onFinish(function(){
             this.emitter.emit = false;
         });
+    }
+
+    @net("projectile_bullet").event("changeTrajectory")
+    _onChangeTrajectory(server_time: number, position: Vec2, velocity: Vec2){
+        this.position.set(position);
+        this.velocity.set(velocity);
     }
 
 }

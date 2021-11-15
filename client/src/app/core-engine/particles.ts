@@ -32,6 +32,10 @@ export class EmitterAttach extends Entity {
         }
     }
 
+    override onDestroy(){
+        this.emitter.destroy();
+    }
+
 }
 
 
