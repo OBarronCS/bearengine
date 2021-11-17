@@ -16,6 +16,7 @@ import { ServerPlayerEntity } from "../playerlogic";
 import { NULL_ENTITY_INDEX } from "shared/core/entitysystem";
 import { ITEM_LINKER, MIGRATED_ITEMS, Test } from "shared/core/sharedlogic/items";
 import { SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
+import { EntityID } from "shared/core/abstractentity";
 
 export class SBaseItem<T extends keyof SharedNetworkedEntities> extends ServerEntity {
 
@@ -79,18 +80,34 @@ export class ForceFieldItem_S extends SBaseItem<"forcefield_item"> {
 
 } 
 
+//@ts-expect-error
+@networkedclass_server("forcefield_effect")
 export class ForceFieldEffect extends ServerEntity {
 
-    constructor(public targetPlayer: ServerPlayerEntity, public radius: number){
+    @sync("forcefield_effect").var("radius", true)
+    radius: number 
+
+    @sync("forcefield_effect").var("player_id",true)
+    player_id: EntityID
+
+    constructor(public targetPlayer: ServerPlayerEntity, radius: number){
         super();
+        
+        this.player_id = targetPlayer.connectionID;
+        this.radius = radius;
     }
 
     update(dt: number): void {
         if(this.targetPlayer.entityID !== NULL_ENTITY_INDEX){
             this.position.set(this.targetPlayer.position);
+            if(this.targetPlayer.dead) this.destroy()
         } else {
             this.destroy();
         }
+    }
+
+    override destroy(){
+        this.game.destroyRemoteEntity(this);
     }
 
 }
@@ -216,17 +233,52 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, shotID: numb
     bullet.position.set(position);
     bullet.velocity.set(velocity);
     
+    // Bouncing off of forcefields
+    bullet.onUpdate(function(dt){
+                            
+        const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone().extend(50)));
+        
+        for(const entity of this.game.entities.entities){
+            if(entity instanceof ForceFieldEffect){
+                if(entity.entityID === this.last_force_field_id) continue;
+
+                const test = Line.CircleLineIntersection(line.A, line.B, entity.x, entity.y, entity.radius);
+
+                if(test.points.length > 0){
+                    this.last_force_field_id = entity.entityID;
+
+                    // console.log("WE HAVE A HIT")
+                    const bounceOffOf = test.points[0];
+                    const normal = Vec2.subtract(bounceOffOf, entity.position);
+
+                    const len = this.velocity.length();
+                    Vec2.bounce(this.velocity.clone().normalize(),normal.clone().normalize(),this.velocity);
+                    this.velocity.extend(len);
+                    
+                    this.position.set(bounceOffOf);
+
+                    this.game.callEntityEvent(bullet, "projectile_bullet", "changeTrajectory",0,this.position.clone(), this.velocity.clone());
+
+                    // this.game.enqueueGlobalPacket(
+                    //     new ProjectileShotPacket(-1, shotID, 0, this.position.clone(), this.velocity.clone(), shot_prefab_id)
+                    // );
+
+                    break;
+                }
+            }
+        }
+    })
 
     const shot_data = SHOT_LINKER.IDToData(shot_prefab_id);
 
-    const on_hit_terrain_effects = shot_data.on_terrain;
+    const on_hit_terrain_effects = shot_data.bullet_effects;
 
     for(const effect of on_hit_terrain_effects){
         // Only add terrain hitting ability if have boom effect
         const type = effect.type;
         switch(type){
 
-            case "particle": {
+            case "particle_system": {
                 // Not relevent to the server
                 break;
             }
@@ -242,40 +294,11 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, shotID: numb
                 break;
             }
 
-            case "boom": {
+            case "terrain_hit_boom": {
                 bullet.onUpdate(function(){
                     
                     const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone().extend(50)));
 
-                    for(const entity of this.game.entities.entities){
-                        if(entity instanceof ForceFieldEffect){
-                            if(entity.entityID === this.last_force_field_id) continue;
-
-                            const test = Line.CircleLineIntersection(line.A, line.B, entity.x, entity.y, entity.radius);
-
-                            if(test.points.length > 0){
-                                this.last_force_field_id = entity.entityID;
-
-                                // console.log("WE HAVE A HIT")
-                                const bounceOffOf = test.points[0];
-                                const normal = Vec2.subtract(bounceOffOf, entity.position);
-
-                                const len = this.velocity.length();
-                                Vec2.bounce(this.velocity.clone().normalize(),normal.clone().normalize(),this.velocity);
-                                this.velocity.extend(len);
-                                
-                                this.position.set(bounceOffOf);
-
-                                this.game.callEntityEvent(bullet, "projectile_bullet", "changeTrajectory",0,this.position.clone(), this.velocity.clone());
-
-                                // this.game.enqueueGlobalPacket(
-                                //     new ProjectileShotPacket(-1, shotID, 0, this.position.clone(), this.velocity.clone(), shot_prefab_id)
-                                // );
-
-                                break;
-                            }
-                        }
-                    }
                 
 
                     const testTerrain = this.game.terrain.lineCollision(line.A, line.B);

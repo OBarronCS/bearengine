@@ -14,9 +14,12 @@ export class EmitterAttach extends Entity {
 
     private emitter: Emitter;
 
-    constructor(public targetEntity: AbstractEntity, part: keyof typeof PARTICLE_CONFIG, path: string, public offset = new Vec2()){
+    constructor(public targetEntity: AbstractEntity, public part: keyof typeof PARTICLE_CONFIG, public path: string, public offset = new Vec2()){
         super();
-        this.emitter = this.engine.renderer.addEmitter(path, PARTICLE_CONFIG[part], this.targetEntity.x + offset.x, this.targetEntity.y + offset.y);
+    }
+
+    override onAdd(){
+        this.emitter = this.engine.renderer.addEmitter(this.path, PARTICLE_CONFIG[this.part], this.targetEntity.x + this.offset.x, this.targetEntity.y + this.offset.y);
     }
 
 

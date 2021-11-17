@@ -22,7 +22,7 @@ import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
 import { ITEM_LINKER } from "shared/core/sharedlogic/items";
-import { ShootHitscanWeapon, ShootProjectileWeapon } from "../clientitems";
+import { ForceFieldEffect_C, ShootHitscanWeapon, ShootProjectileWeapon } from "../clientitems";
 import { Line } from "shared/shapes/line";
 import { EmitterAttach } from "../particles";
 import { PARTICLE_CONFIG } from "../../../../../shared/core/sharedlogic/sharedparticles";
@@ -841,7 +841,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     // Only create it if someone else shot it
                                     if(this.MY_CLIENT_ID !== creatorID){
 
-                                        const bullet_effects = SHOT_LINKER.IDToData(shot_prefab_id).on_terrain;
+                                        const bullet_effects = SHOT_LINKER.IDToData(shot_prefab_id).bullet_effects;
 
                                         const b = ShootProjectileWeapon(this.game, bullet_effects, pos, velocity);
                                         
@@ -867,11 +867,12 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 }
                                 case ItemActionType.FORCE_FIELD_ACTION: {
 
-                                    if(this.MY_CLIENT_ID === creatorID){
-                                        
-                                    } else {
-                                        const p = this.remotePlayerEntities.get(creatorID)
-                                    }
+                                    // if(this.MY_CLIENT_ID === creatorID){
+                                    //     this.game.entities.addEntity(new ForceFieldEffect_C(this.game.player));
+                                    // } else {
+                                    //     const p = this.remotePlayerEntities.get(creatorID);
+                                    //     this.game.entities.addEntity(new ForceFieldEffect_C(p));
+                                    // }
 
                                     
                                     break;

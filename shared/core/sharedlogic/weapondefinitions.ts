@@ -13,13 +13,13 @@ export enum ItemActionType {
 
 // Should This be more generic?
 // Just a BulletEffect?
-
-export type OnProjectileHitTerrain = {
-    type:"boom",
+// OnProjectileHitTerrain
+export type BulletEffects = {
+    type:"terrain_hit_boom",
     radius: number
 } | {
-    type:"particle"
-    path:string
+    type:"particle_system"
+    particle:string
 } | {
     type: "gravity",
     force: Coordinate
@@ -33,6 +33,7 @@ function CreateShot<T extends keyof SharedNetworkedEntities, K extends Test<T>>(
     return i;
 }
 
+// Make it Test<"projectile_bullet"> ?
 export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<keyof SharedNetworkedEntities>} >()({
 
     SIMPLE_TERRAIN_HIT: CreateShot({
@@ -41,14 +42,18 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<keyof Shar
         item_sprite:"tree.gif",
         pos: new Vec2(0,0),
         velocity: new Vec2(0,0),
-        on_terrain:[
+        bullet_effects:[
             {
-                type:"boom",
+                type:"terrain_hit_boom",
                 radius:60
             },
             {
                 type:"gravity",
                 force: { x:0, y:0.35 }
+            },
+            {
+                type:"particle_system",
+                particle:"ROCKET"
             }
         ]
     }),
@@ -59,14 +64,18 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<keyof Shar
         item_sprite:"tree.gif",
         pos: new Vec2(0,0),
         velocity: new Vec2(0,0),
-        on_terrain:[
+        bullet_effects:[
             {
-                type:"boom",
+                type:"terrain_hit_boom",
                 radius:90
             },
             {
                 type:"gravity",
                 force: { x:0, y:0.75 }
+            },
+            {
+                type:"particle_system",
+                particle:"ROCKET"
             }
         ]
     })

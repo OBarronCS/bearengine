@@ -3,7 +3,7 @@ import { Sprite, Graphics } from "shared/graphics/graphics";
 import { Effect } from "shared/core/effects";
 import { PacketWriter, SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
-import { CreateShootController, GunshootController, ItemActionType, OnProjectileHitTerrain, PROJECTILE_SHOT_DATA, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
+import { CreateShootController, GunshootController, ItemActionType, BulletEffects, PROJECTILE_SHOT_DATA, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { NumberTween } from "shared/core/tween";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable } from "shared/misc/assertstatements";
@@ -11,11 +11,15 @@ import { random_range } from "shared/misc/random";
 import { Line } from "shared/shapes/line";
 import { Vec2 } from "shared/shapes/vec2";
 import { BearEngine, NetworkPlatformGame } from "./bearengine";
-import { Entity } from "./entity";
+import { DrawableEntity, Entity } from "./entity";
 import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparticles";
 import { SpritePart } from "./parts";
 import { net, networkedclass_client } from "./networking/cliententitydecorators";
 import { ITEM_LINKER, MIGRATED_ITEMS, Test } from "shared/core/sharedlogic/items";
+import { AbstractEntity } from "shared/core/abstractentity";
+import { NULL_ENTITY_INDEX } from "shared/core/entitysystem";
+import { drawCircle, drawCircleOutline } from "shared/shapes/shapedrawing";
+import { EmitterAttach } from "./particles";
 
 
 
@@ -96,13 +100,13 @@ export class ProjectileWeapon extends WeaponItem<"projectile_weapon"> {
     private readonly shot_id = SHOT_LINKER.NameToID(this.shot_name);
 
     
-    private readonly on_terrain_effects = SHOT_LINKER.IDToData(this.shot_id).on_terrain;
+    private readonly bullet_effects = SHOT_LINKER.IDToData(this.shot_id).bullet_effects;
     
 
     protected shoot(game: NetworkPlatformGame): void {
         const dir = this.direction.normalize();
         
-        const b = ShootProjectileWeapon(game, this.on_terrain_effects, this.position, dir.clone().extend(this.GetStaticValue("initial_speed")));
+        const b = ShootProjectileWeapon(game, this.bullet_effects, this.position, dir.clone().extend(this.GetStaticValue("initial_speed")));
 
         game.entities.addEntity(b);
 
@@ -115,7 +119,7 @@ export class ProjectileWeapon extends WeaponItem<"projectile_weapon"> {
     }
 }
 
-export function ShootProjectileWeapon(game: NetworkPlatformGame, on_terrain_hit_effects: OnProjectileHitTerrain[], position: Vec2, velocity: Vec2): ModularProjectileBullet {
+export function ShootProjectileWeapon(game: NetworkPlatformGame, bullet_effects: BulletEffects[], position: Vec2, velocity: Vec2): ModularProjectileBullet {
     const bullet = new ModularProjectileBullet();
 
     bullet.position.set(position);
@@ -123,12 +127,19 @@ export function ShootProjectileWeapon(game: NetworkPlatformGame, on_terrain_hit_
     bullet.velocity.set(velocity);
 
 
-    for(const effect of on_terrain_hit_effects){
+    for(const effect of bullet_effects){
         
         const type = effect.type;
 
         switch(type){
-            case "particle": {
+            case "particle_system": {
+                const particle_path = effect.particle as keyof typeof PARTICLE_CONFIG;
+
+                const particle_system = new EmitterAttach(bullet,particle_path,"assets/particle.png");
+
+                bullet.onStart(function(){
+                    game.entities.addEntity(particle_system);
+                });
 
                 break;
             }
@@ -142,7 +153,7 @@ export function ShootProjectileWeapon(game: NetworkPlatformGame, on_terrain_hit_
 
                 break;
             }
-            case "boom": {
+            case "terrain_hit_boom": {
                 
                 break;
             }
@@ -169,28 +180,15 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
     readonly velocity = new Vec2();
 
 
-    private sprite = this.addPart(new SpritePart("test2.png"));
-
-    private emitter: Emitter
+    private sprite = this.addPart(new SpritePart("bullet.png"));
 
     constructor(){
         super();
 
         this.onUpdate(function(dt: number){
             this.position.add(this.velocity);
-            this.emitter.updateSpawnPos(this.x, this.y);
-            // if(!this.game.activeLevel.bbox.contains(this.position)){
-            //     this.destroy();
-            // }
         });
 
-        this.onStart(function(){
-            this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["ROCKET"], this.x, this.y)
-        });
-
-        this.onFinish(function(){
-            this.emitter.emit = false;
-        });
     }
 
     @net("projectile_bullet").event("changeTrajectory")
@@ -360,8 +358,44 @@ export class ForceFieldItem_C extends UsableItem<"forcefield_item"> {
 
         return false;
     }
-    
-} 
+}
+
+
+
+@networkedclass_client("forcefield_effect")
+export class ForceFieldEffect_C extends DrawableEntity {
+
+    target_player: AbstractEntity = null;
+
+    @net("forcefield_effect").variable("player_id", function(this:ForceFieldEffect_C, id){ 
+        
+        if(this.game.networksystem.MY_CLIENT_ID === id){
+            this.target_player = this.game.player;
+        } else {
+            const p = this.game.networksystem["remotePlayerEntities"].get(id);
+            this.target_player = p;
+        }
+    })
+    player_id: number
+
+    @net("forcefield_effect").variable("radius")
+    radius: number
+
+    update(dt: number): void {
+
+        if(this.target_player !== null && this.target_player.entityID !== NULL_ENTITY_INDEX){
+            this.position.set(this.target_player);
+            this.redraw(true);
+        } else {
+            this.destroy();
+        }
+    }
+
+    draw(g: Graphics): void {
+        drawCircleOutline(g, this.position, this.radius);
+    }
+
+}
 
 export class ForceFieldItemActionPacket extends PacketWriter {
 

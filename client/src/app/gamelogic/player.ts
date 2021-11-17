@@ -313,10 +313,6 @@ export class Player extends DrawableEntity {
 
         this.position.set({x : 500, y: 100});
 
-        this.keyboard.bind("p", ()=> {
-            this.position.set({x : 600, y: 100});
-        });
-
         
         this.colliderPart = new ColliderPart(dimensions(32,32),{x:16, y:16});
         this.addPart(this.colliderPart);
@@ -594,13 +590,18 @@ export class Player extends DrawableEntity {
     }
 
     manualUpdate(dt: number): void {
-        if(this.keyboard.wasPressed("KeyL")){
+        // Lock camera on me
+        if(this.keyboard.wasPressed("KeyC")){
             this.followCam = !this.followCam;
             if(this.followCam){
                 this.engine.camera.follow(this.position);
             } else {
                 this.engine.camera.free();
             }
+        }
+        
+        if(this.keyboard.wasPressed("KeyP")){
+            this.position.set({x : 600, y: 100});
         }
 
         const health_width = 500;
@@ -1179,8 +1180,9 @@ export class Player extends DrawableEntity {
     }
 
     draw(g: Graphics) {
-        drawCircleOutline(g, this.position, 50)
-        // drawPoint(g,this.position);
+        // drawCircleOutline(g, this.position, 50)
+        
+        drawPoint(g,this.position);
 
         // g.beginFill(0xFF00FF,.4)
         // g.drawRect(this.x - this.player_width / 2, this.y - this.player_height / 2, this.player_width, this.player_height)

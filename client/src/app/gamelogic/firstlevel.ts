@@ -192,14 +192,14 @@ export class FirstLevel extends GameLevel {
 
         //scene.addEntity(new SuperTest());
 
-        class OtherTest extends GMEntity {
-            constructor(){
-                super({x: 400, y: 400}, "test2.png", dimensions(20,20));
-            }
-            update(dt: number): void {
+        // class OtherTest extends GMEntity {
+        //     constructor(){
+        //         super({x: 400, y: 400}, "bullet.png", dimensions(20,20));
+        //     }
+        //     update(dt: number): void {
                
-            }
-        }
+        //     }
+        // }
 
         //scene.addEntity(new OtherTest());
 

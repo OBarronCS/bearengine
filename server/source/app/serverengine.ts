@@ -666,11 +666,11 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                                 // Only one exists
                                 const radius = ITEM_LINKER.NameToData("forcefield").radius;
                                 
-                                this.entities.addEntity(new ForceFieldEffect(player_info.playerEntity,radius));
+                                this.createRemoteEntity(new ForceFieldEffect(player_info.playerEntity,radius))
 
-                                this.enqueueGlobalPacket(
-                                    new ForceFieldEffectPacket(clientID, 0, createServerTick, pos)
-                                );
+                                // this.enqueueGlobalPacket(
+                                //     new ForceFieldEffectPacket(clientID, 0, createServerTick, pos)
+                                // );
 
 
                                 //Tell client to get rid of the item
