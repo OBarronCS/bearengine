@@ -114,6 +114,23 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
 
         }
     },
+    "laser_tripmine":{
+        extends: null,
+        static: {
+
+        },
+        variables:{
+            __position: netv.vec2("double"),
+            direction: netv.vec2("double")
+        },
+        events:{
+            // stick: {
+            //     argTypes:[netv.vec2("double")],
+            //     callback: (position) => void 0,
+            // }
+        },
+    },
+
     "ogre": {
         extends: null,
         variables: {

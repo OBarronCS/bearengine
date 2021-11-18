@@ -293,6 +293,29 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, shotID: numb
 
                 break;
             }
+            case "laser_mine_on_hit": {
+                bullet.onUpdate(function(){
+                    const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone().extend(50)));
+
+                    
+
+                    const testTerrain = this.game.terrain.lineCollision(line.A, line.B);
+                    
+                    // const RADIUS = 20;
+                    // const DMG_RADIUS = effect.radius * 1.5;
+            
+                    if(testTerrain){
+
+                        this.game.createRemoteEntity(new LaserTripmine_S(testTerrain.point, testTerrain.normal));
+
+                        this.destroy();
+
+
+                    }
+                });
+
+                break;
+            }
 
             case "terrain_hit_boom": {
                 bullet.onUpdate(function(){
@@ -379,4 +402,61 @@ export class ItemEntity extends ServerEntity {
     }
 
 }
+
+
+
+//@ts-expect-error
+@networkedclass_server("laser_tripmine")
+export class LaserTripmine_S extends ServerEntity {
+
+    @sync("laser_tripmine").var("__position")
+    __position = new Vec2(0,0);
+
+    @sync("laser_tripmine").var("direction")
+    direction = new Vec2(0,0);
+
+    line: Line;
+
+    constructor(pos: Vec2, dir: Vec2){
+        super();
+        this.__position.set(pos);
+        this.direction.set(dir);
+
+        this.line = new Line(pos,Vec2.add(pos, dir.clone().extend(20)));
+
+        this.markDirty();
+    }
+
+    update(dt: number): void {
+
+
+        for(const pEntity of this.game.activeScene.activePlayerEntities.values()){
+            
+            const p = Line.PointClosestToLine(this.line.A, this.line.B, pEntity.position);
+
+            if(Vec2.distanceSquared(p,pEntity.position) < 20 * 20){
+
+                this.game.terrain.carveCircle(this.__position.x, this.__position.y, 45);
+            
+                this.game.enqueueGlobalPacket(
+                    new TerrainCarveCirclePacket(this.__position.x, this.__position.y, 45, -1)
+                );
+                 
+                this.game.destroyRemoteEntity(this);
+
+                break;
+            }
+        } 
+    }
+
+
+}
+
+
+
+
+
+
+
+
 

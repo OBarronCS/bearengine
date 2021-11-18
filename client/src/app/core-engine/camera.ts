@@ -4,7 +4,7 @@ import { Rect } from "shared/shapes/rectangle";
 
 import { RendererSystem } from "./renderer";
 import { EngineKeyboard } from "../input/keyboard";
-import { lerp, round } from "shared/misc/mathutils";
+import { clamp, lerp, round } from "shared/misc/mathutils";
 import { smoothNoise } from "shared/misc/random";
 import { Subsystem } from "shared/core/subsystem";
 import { EngineMouse } from "../input/mouse";
@@ -32,10 +32,12 @@ export class CameraSystem  {
     // Used for camera shake [0,1]
     private trauma = 0;
 
+    shake(n: number){
+        this.trauma = clamp(this.trauma + n,0,1);
+    }
+
     // I couldn't get this to work well so just reverted to original DOM events
     init(): void {
-
-
 
         const renderer = this.renderer = this.engine.renderer;
         const container = this.container = renderer.mainContainer;
@@ -44,10 +46,6 @@ export class CameraSystem  {
 
         this.renderer.renderer.view.addEventListener("resize", (e) => this.setPivot());
 
-       
-        // pivot should be at center of screen at all times. Allows rotation around the middle
-        // container.position.x = renderer.renderer.width / 2;
-        // container.position.y = renderer.renderer.height / 2;
 
         const keyboard = this.engine.keyboard;
         const mouse = this.mouse = this.engine.mouse;
@@ -166,7 +164,6 @@ export class CameraSystem  {
 
 
     setPivot(){
-
         // pivot should be at center of screen at all times. Allows rotation around the middle
         this.container.position.x = this.renderer.renderer.width / 2;
         this.container.position.y = this.renderer.renderer.height / 2;
@@ -174,8 +171,8 @@ export class CameraSystem  {
 
     update(delta: number){
         
-        const maxAngle = 20;
-        const maxOffset = 40;
+        const maxAngle = 15;
+        const maxOffset = 35;
         
         const seed = Date.now();
 
@@ -185,7 +182,6 @@ export class CameraSystem  {
         const dx = maxOffset * shake * smoothNoise(seed + 1000);
         const dy = maxOffset * shake * smoothNoise(seed + 2000);
 
-        // shake is actually broken. It rotates around the position, which is not center of screen
         this.container.angle = this.baseDangle + shakeAngle;
         this.container.pivot.copyFrom({x: this.center.x + dx,y: this.center.y + dy});
 

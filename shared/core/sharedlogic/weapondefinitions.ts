@@ -23,6 +23,8 @@ export type BulletEffects = {
 } | {
     type: "gravity",
     force: Coordinate
+} | {
+    type:"laser_mine_on_hit"
 }
 
 
@@ -78,7 +80,29 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<keyof Shar
                 particle:"ROCKET"
             }
         ]
-    })
+    }),
+
+    LASER_ON_HIT: CreateShot({
+        type:"projectile_bullet",
+        item_name:"First example bullet",
+        item_sprite:"tree.gif",
+        pos: new Vec2(0,0),
+        velocity: new Vec2(0,0),
+        bullet_effects:[
+            {
+                type:"laser_mine_on_hit",
+                // radius:60
+            },
+            {
+                type:"gravity",
+                force: { x:0, y:0.05 }
+            },
+            {
+                type:"particle_system",
+                particle:"ROCKET"
+            }
+        ]
+    }),
 })
 
 export const SHOT_LINKER = GenerateLinker(PROJECTILE_SHOT_DATA);

@@ -131,6 +131,7 @@ export class Line {
     }
 
 
+    /** Returns the distance between given point and closest point on distnace */
     pointDistance(p: Coordinate){
         const point = this.pointClosestTo(p);
         return point.distance(p);

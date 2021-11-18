@@ -18,7 +18,7 @@ import { net, networkedclass_client } from "./networking/cliententitydecorators"
 import { ITEM_LINKER, MIGRATED_ITEMS, Test } from "shared/core/sharedlogic/items";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { NULL_ENTITY_INDEX } from "shared/core/entitysystem";
-import { drawCircle, drawCircleOutline } from "shared/shapes/shapedrawing";
+import { drawCircle, drawCircleOutline, drawLineArray, drawLineBetweenPoints } from "shared/shapes/shapedrawing";
 import { EmitterAttach } from "./particles";
 
 
@@ -154,6 +154,10 @@ export function ShootProjectileWeapon(game: NetworkPlatformGame, bullet_effects:
                 break;
             }
             case "terrain_hit_boom": {
+                
+                break;
+            }
+            case "laser_mine_on_hit": {
                 
                 break;
             }
@@ -413,6 +417,38 @@ export class ForceFieldItemActionPacket extends PacketWriter {
 
         stream.setFloat32(this.start.x);
         stream.setFloat32(this.start.y);
+    }
+}
+
+
+
+
+
+@networkedclass_client("laser_tripmine")
+export class LaserTripmine_C extends DrawableEntity {
+
+    @net("laser_tripmine").variable("__position", function(this:LaserTripmine_C, id){ 
+        this.redraw(true)
+    })
+    __position = new Vec2();
+
+    @net("laser_tripmine").variable("direction", function(this:LaserTripmine_C, id){ 
+        this.redraw(true)
+    })
+    direction = new Vec2();
+
+    update(dt: number): void {
+   
+    }
+
+    draw(g: Graphics): void {
+        drawLineBetweenPoints(g, this.__position, Vec2.add(this.__position, this.direction.clone().extend(30)))
+        drawCircleOutline(g, this.__position, 30);
+    }
+
+    override onDestroy(){
+        this.game.engine.camera.shake(.2);
+        console.log("GONE")
     }
 }
 
