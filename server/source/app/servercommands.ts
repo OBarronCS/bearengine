@@ -1,6 +1,6 @@
 import { BindCommandCreator, CommandDatabase, comv } from "shared/core/commands"
 import { ITEM_LINKER, MIGRATED_ITEMS, RandomItemID } from "shared/core/sharedlogic/items";
-import { RemoteResources } from "shared/core/sharedlogic/networkschemas";
+import { LevelRef } from "shared/core/sharedlogic/assetlinker";
 import type { PlayerInformation, ServerBearEngine } from "./serverengine";
 
 // What if commands are initiated from a NON player?
@@ -46,7 +46,7 @@ database.add(
     );
 
 database.add(
-    command("s").args(comv.string_options<keyof typeof RemoteResources>(Object.keys(RemoteResources)))
+    command("s").args(comv.string_options<keyof typeof LevelRef>(Object.keys(LevelRef)))
         .run((context,arg) => {
             context.engine.beginRound(arg);
         })

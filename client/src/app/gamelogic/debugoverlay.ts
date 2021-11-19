@@ -53,7 +53,7 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
         this.otherClientInfo.clear();
         this.otherClientText.text = "";
 
-        if(this.engine.keyboard.isDown("KeyC")){
+        if(this.engine.keyboard.isDown("Digit1")){
             this.otherClientInfo.beginFill(0x0000FF,.1);
 
             const width = 480;

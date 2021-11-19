@@ -97,7 +97,7 @@ export class ForceFieldEffect extends ServerEntity {
         this.radius = radius;
     }
 
-    timer = new TickTimer(60 * 10)
+    timer = new TickTimer(60 * 7);
 
     update(dt: number): void {
         if(this.targetPlayer.entityID !== NULL_ENTITY_INDEX){

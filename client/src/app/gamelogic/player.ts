@@ -32,6 +32,14 @@ enum PlayerState {
     WALL_SLIDE
 }
 
+export enum AnimationState {
+    IDLE,
+    RUN,
+    WALL,
+    CLIMB
+}
+
+
 interface PartData {
     textures: Texture;
     x: number,
@@ -293,6 +301,8 @@ export class Player extends DrawableEntity {
 
     state = PlayerState.AIR;
     last_state = PlayerState.GROUND;
+
+    animation_state = AnimationState.IDLE;
     
     
     // If both these values are >= 0, and the player is on the ground, the player will jump
@@ -348,7 +358,7 @@ export class Player extends DrawableEntity {
         this.engine.renderer.addSprite(this.idleAnimation.container)
         this.engine.renderer.addSprite(this.climbAnimation.container)
 
-        this.setSprite("run");
+        this.setAnimationSprite(AnimationState.RUN);
     }
 
     override onDestroy(){
@@ -368,7 +378,8 @@ export class Player extends DrawableEntity {
         this.climbAnimation.container.alpha = a;
     }
 
-    private setSprite(sprite: "idle"|"run"|"wall"|"climb"|"none"){
+    private setAnimationSprite(state: AnimationState){
+        this.animation_state = state
         this.runAnimation.container.visible = false;
         this.runAnimation.setPosition(this.position)
 
@@ -381,11 +392,14 @@ export class Player extends DrawableEntity {
         this.climbAnimation.container.visible = false;
         this.climbAnimation.setPosition(this.position)
 
-        switch(sprite){
-            case "run": this.runAnimation.container.visible = true; break;
-            case "wall": this.wallslideAnimation.container.visible = true; break;
-            case "idle": this.idleAnimation.container.visible = true; break;
-            case "climb": { 
+        switch(state){
+            case AnimationState.RUN: { 
+                this.runAnimation.container.visible = true; 
+                
+                break; }
+            case AnimationState.WALL: this.wallslideAnimation.container.visible = true; break;
+            case AnimationState.IDLE: this.idleAnimation.container.visible = true; break;
+            case AnimationState.CLIMB: { 
                 if(!this.climbStateData.right){
                     this.climbAnimation.originOffset.x = 63
                 } else {
@@ -394,8 +408,7 @@ export class Player extends DrawableEntity {
                 this.climbAnimation.xFlip(this.climbStateData.right ? 1 : -1)
                 this.climbAnimation.container.visible = true; break; 
             }
-            case "none": break;
-            default: AssertUnreachable(sprite);
+            default: AssertUnreachable(state);
         }
     }
     
@@ -687,7 +700,7 @@ export class Player extends DrawableEntity {
         this.yspd += dir.y;
     }
 
-    private Climb_State() {
+    private Climb_State(): void {
         const fraction = this.climbStateData.climbingTimer++ / this.timeToClimb;
 
         // console.log(fraction);
@@ -707,7 +720,7 @@ export class Player extends DrawableEntity {
         this.climbAnimation.xFlip(this.climbStateData.right ? 1 : -1)
 
         if(this.climbStateData.climbingTimer > this.timeToClimb){
-            this.setSprite("idle")
+            this.setAnimationSprite(AnimationState.IDLE);
             this.state = PlayerState.GROUND;
             this.gspd = 0;
         }
@@ -717,17 +730,17 @@ export class Player extends DrawableEntity {
         return (-.44 < normal.y) && (normal.y < .25);
     }
 
-    private doRightSlideSensorsHit(){
+    private doRightSlideSensorsHit(): boolean {
         this.setWallSensorsEven(this.slideSensorLength);
         return this.getRightWallCollisionPoint().collision;
     }
 
-    private doLeftSlideSensorsHit(){
+    private doLeftSlideSensorsHit(): boolean {
         this.setWallSensorsEven(this.slideSensorLength);
         return this.getLeftWallCollisionPoint().collision;
     }
 
-    private Wall_Slide_State(){
+    private Wall_Slide_State(): void {
         this.slideStateData.timeSliding++;
 
         this.wallslideAnimation.setPosition(this.position);
@@ -741,7 +754,7 @@ export class Player extends DrawableEntity {
             this.xspd = this.slideStateData.right ? -9 : 9;
             this.timeSincePressedJumpedButton = 10000;
 
-            this.setSprite("run")
+            this.setAnimationSprite(AnimationState.RUN)
 
             return;
         }
@@ -770,7 +783,7 @@ export class Player extends DrawableEntity {
                     console.log("To Steep")
                     this.state = PlayerState.AIR;
                     this.xspd = 0;
-                    this.setSprite("run")
+                    this.setAnimationSprite(AnimationState.RUN)
                     return;
                 } 
                 
@@ -782,7 +795,7 @@ export class Player extends DrawableEntity {
                 this.state = PlayerState.AIR;
                 this.yspd = 2;
                 this.xspd = 0;
-                this.setSprite("run")
+                this.setAnimationSprite(AnimationState.RUN);
             }
         } else {
             const leftWall = this.getLeftWallCollisionPoint();
@@ -792,7 +805,7 @@ export class Player extends DrawableEntity {
                     console.log("To Steep")
                     this.state = PlayerState.AIR;
                     this.xspd = 0;
-                    this.setSprite("run")
+                    this.setAnimationSprite(AnimationState.RUN);
                     return;
                 } 
                 this.x = leftWall.point.x + this.wallSensorLength;
@@ -802,7 +815,7 @@ export class Player extends DrawableEntity {
             if(!leftWall.both){
                 this.state = PlayerState.AIR;
                 this.xspd = 0;
-                this.setSprite("run")
+                this.setAnimationSprite(AnimationState.RUN);
             }
         }
         
@@ -820,7 +833,7 @@ export class Player extends DrawableEntity {
             this.slope_normal.set(ground.normal);
 
             this.state = PlayerState.GROUND;
-            this.setSprite("run")
+            this.setAnimationSprite(AnimationState.RUN)
             // Set GSPD here
             // this.gspd = this.yspd * this.slope_normal.x
             // this.gspd = this.xspd * -this.slope_normal.y
@@ -831,11 +844,8 @@ export class Player extends DrawableEntity {
 
     }
 
-    private Ground_State(){
+    private Ground_State(): void {
     
-    
-
-
         this.ticksSinceGroundState = 0;
         this.last_ground_xspd = this.xspd;
         this.last_ground_yspd = this.yspd;
@@ -928,8 +938,8 @@ export class Player extends DrawableEntity {
         }
 
 
-        if(this.gspd === 0) this.setSprite("idle")
-        else this.setSprite("run")
+        if(this.gspd === 0) this.setAnimationSprite(AnimationState.IDLE);
+        else this.setAnimationSprite(AnimationState.RUN);
 
         this.idleAnimation.setPosition(this.position);
         this.idleAnimation.tick();
@@ -950,7 +960,7 @@ export class Player extends DrawableEntity {
             
             this.timeSincePressedJumpedButton = 10000;
 
-            this.setSprite("run")
+            this.setAnimationSprite(AnimationState.RUN);
 
             this.gspd = 0;
             this.state = PlayerState.AIR;
@@ -959,10 +969,10 @@ export class Player extends DrawableEntity {
         }
     }
      
-    private Air_State(){
+    private Air_State(): void {
         this.idleAnimation.setPosition(this.position);
 
-        if(this.xspd !== 0) this.setSprite("run")
+        if(this.xspd !== 0) this.setAnimationSprite(AnimationState.RUN)
         this.runAnimation.setPosition(this.position);
         this.runAnimation.tick();
         this.runAnimation.xFlip(this.xspd)
@@ -1043,7 +1053,7 @@ export class Player extends DrawableEntity {
                             right: true,
                             timeSliding: 0
                         }
-                        this.setSprite("wall");
+                        this.setAnimationSprite(AnimationState.WALL);
                         return;
                     }
                 }
@@ -1061,7 +1071,7 @@ export class Player extends DrawableEntity {
                             right: false,
                             timeSliding: 0
                         }
-                        this.setSprite("wall");
+                        this.setAnimationSprite(AnimationState.WALL);
                         return;
                     }
                 }
@@ -1094,7 +1104,7 @@ export class Player extends DrawableEntity {
                         this.x = this.climbStateData.targetX - this.player_width / 2;
                         this.y = this.climbStateData.targetY - this.player_height / 2;
 
-                        this.setSprite("climb")
+                        this.setAnimationSprite(AnimationState.CLIMB)
                         return;
                     }
                 }
@@ -1123,7 +1133,7 @@ export class Player extends DrawableEntity {
                         this.y = this.climbStateData.targetY - this.player_height / 2;
 
                         this.state = PlayerState.CLIMB;
-                        this.setSprite("climb")
+                        this.setAnimationSprite(AnimationState.CLIMB);
                         return;
                     }
                 }
@@ -1158,7 +1168,7 @@ export class Player extends DrawableEntity {
                             right,
                             timeSliding: 0
                         }
-                        this.setSprite("wall");
+                        this.setAnimationSprite(AnimationState.WALL);
                     } 
                 } else {
                     this.position.y = ray.point.y - this.player_height / 2
@@ -1166,7 +1176,7 @@ export class Player extends DrawableEntity {
                     this.slope_normal.set(ray.normal);
 
                     this.state = PlayerState.GROUND
-                    this.setSprite("run");
+                    this.setAnimationSprite(AnimationState.RUN);
                     // Set GSPD here
                     // this.gspd = this.yspd * this.slope_normal.x
                     this.gspd = this.xspd * -this.slope_normal.y
@@ -1179,7 +1189,7 @@ export class Player extends DrawableEntity {
 
     }
 
-    draw(g: Graphics) {
+    draw(g: Graphics){
         // drawCircleOutline(g, this.position, 50)
         
         drawPoint(g,this.position);
@@ -1333,7 +1343,7 @@ export class RemotePlayer extends Entity {
         this.engine.renderer.removeSprite(this.climbAnimation.container);
     }
 
-    setState(state: PlayerState, flipped: boolean){
+    setState(state: AnimationState, flipped: boolean){
     
         this.runAnimation.xFlip(flipped ? -1 : 1);
         this.wallslideAnimation.xFlip(flipped ? -1 : 1);
@@ -1355,10 +1365,10 @@ export class RemotePlayer extends Entity {
         this.climbAnimation.setPosition(this.position)
 
         switch(state){
-            case PlayerState.AIR: this.runAnimation.container.visible = true; break;
-            case PlayerState.WALL_SLIDE: this.wallslideAnimation.container.visible = true; break;
-            // case PlayerState.GROUND "idle": this.idleAnimation.container.visible = true; break;
-            case PlayerState.CLIMB: { 
+            case AnimationState.IDLE: this.idleAnimation.container.visible = true; break;
+            case AnimationState.RUN: this.runAnimation.container.visible = true; break;
+            case AnimationState.WALL: this.wallslideAnimation.container.visible = true; break;
+            case AnimationState.CLIMB: { 
                 
                 // if(!this.climbStateData.right){
                 //     this.climbAnimation.originOffset.x = 63
@@ -1368,7 +1378,7 @@ export class RemotePlayer extends Entity {
                 //this.climbAnimation.xFlip(this.climbStateData.right ? 1 : -1)
                 this.climbAnimation.container.visible = true; break; 
             }
-            case PlayerState.GROUND: this.runAnimation.container.visible = true; break;
+
             default: AssertUnreachable(state);
         }
         

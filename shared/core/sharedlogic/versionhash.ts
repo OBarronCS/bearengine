@@ -1,5 +1,6 @@
+import { LevelRef } from "./assetlinker";
 import { MIGRATED_ITEMS } from "./items";
-import { RemoteFunctionStruct, RemoteResources, SharedNetworkedEntityDefinitions } from "./networkschemas";
+import { RemoteFunctionStruct, SharedNetworkedEntityDefinitions } from "./networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "./packetdefinitions";
 import { PROJECTILE_SHOT_DATA } from "./weapondefinitions";
 
@@ -104,7 +105,7 @@ function CreateHash(manual: number): bigint {
     hash += EnumHash(ServerImmediatePacket);
     hash += EnumHash(ServerBoundPacket);
 
-    hash += ObjectHash(RemoteResources);
+    hash += ObjectHash(LevelRef);
     hash += ObjectHash(RemoteFunctionStruct);
     hash += ObjectHash(SharedNetworkedEntityDefinitions);
     

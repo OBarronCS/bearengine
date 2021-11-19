@@ -103,8 +103,7 @@ export class TerrainManager extends Subsystem {
             
             // If no answer yet, choose this
             if(answer === null || dist < answer_dist) {
-                answer_dist = dist
-        
+                answer_dist = dist;
                 answer = collision;
             }
         }

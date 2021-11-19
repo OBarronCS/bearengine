@@ -516,35 +516,4 @@ export const RemoteFunctionLinker = {
 
 
 
-//#region RESOURCE LINKING
-export const RemoteResources = {
-    LEVEL_ONE: "firsttest.json",
-    LEVEL_TWO: "secondlevel.json",
-} as const;
-
-const orderedResources: (keyof typeof RemoteResources)[] = Object.keys(RemoteResources).sort() as any;
-
-const resourceToIDLookup = new Map<keyof typeof RemoteResources, number>();
-for(let i = 0; i < orderedResources.length; i++){
-    resourceToIDLookup.set(orderedResources[i],i);
-}
-
-const IDToResourceLookup: (keyof typeof RemoteResources)[] = [];
-for(let i = 0; i < orderedResources.length; i++){
-    IDToResourceLookup[i] = orderedResources[i];
-}
-
-export const RemoteResourceLinker = {
-    // Used on server side
-    getIDFromResource(name: keyof typeof RemoteResources): number {
-        return resourceToIDLookup.get(name);
-    },
-
-    // Used on client side
-    getResourceFromID(id: number): string {
-        return RemoteResources[IDToResourceLookup[id]];
-    },
-}
-//#endregion
-
 

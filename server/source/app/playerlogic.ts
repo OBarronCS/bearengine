@@ -35,7 +35,7 @@ export class ServerPlayerEntity extends ServerEntity {
     
     dead = false
     
-    state: number = 0;
+    animation_state: number = 0;
     flipped = false;
 
     mouse: Vec2 = new Vec2(0,0);

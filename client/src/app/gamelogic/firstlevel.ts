@@ -67,7 +67,6 @@ export class FirstLevel extends GameLevel {
         // }
         // this.p.manualUpdate(dt);
         // this.h.position.set(this.engine.mouse);
-
     }
 
     private p;
@@ -112,7 +111,7 @@ export class FirstLevel extends GameLevel {
 
         // this.p = scene.addEntity(new Player());
 
-        //this.h = scene.addEntity(new BoostZone());
+        // this.h = scene.addEntity(new BoostZone());
         
         
         const drawer = new ItemDrawer();

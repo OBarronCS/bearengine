@@ -9,6 +9,9 @@ export interface CustomMapFormat {
         height:number,
         backgroundcolor:string
     },
+    boostzones: {
+        rect: Rect
+    }[],
     // Polygons and Rectangles are turned into this!
     bodies:{
         normals: number[],
@@ -158,6 +161,7 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
 
     const bodies: CustomMapFormat["bodies"] = [];
     const sprites: CustomMapFormat["sprites"] = [];
+    const boostzones: CustomMapFormat["boostzones"] = [];
 
     for (const layer of map.layers as (ObjectLayer|GroupLayer)[]) { 
        
@@ -217,17 +221,31 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
                     })
 
                 } else if(isRectangle(obj)){
-                    const rect = new Rect(obj.x,obj.y,obj.width, obj.height);
+
+                    const rect = new Rect(obj.x,obj.y,obj.width,obj.height);
                     
                     const polygon = rect.toPolygon();
 
                     const points = flattenVecArray(polygon.points);
                     const normals = flattenVecArray(polygon.normals);
 
-                    bodies.push({
-                        normals:normals,
-                        points:points
-                    });
+                    if("properties" in obj && obj.properties.some(e => e.name === "boost")){
+                        obj.properties.forEach(e => {
+                            if(e.name === "boost"){
+                                boostzones.push({
+                                    rect: rect
+                                });
+                            }
+                        })
+                    } else {
+                        bodies.push({
+                            normals:normals,
+                            points:points
+                        });
+                    }
+
+
+                    
                 }
             }
         }
@@ -236,8 +254,9 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
 
     return {
         world:worldData,
-        bodies:bodies,
-        sprites:sprites
+        boostzones,
+        bodies,
+        sprites
     }
 }
 

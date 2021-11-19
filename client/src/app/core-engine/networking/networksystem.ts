@@ -1,7 +1,7 @@
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { EntitySystem, NULL_ENTITY_INDEX, StreamReadEntityID } from "shared/core/entitysystem";
-import { NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker, SharedEntityLinker } from "shared/core/sharedlogic/networkschemas";
+import { NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker } from "shared/core/sharedlogic/networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { SharedEntityClientTable } from "./cliententitydecorators";
@@ -9,7 +9,7 @@ import { RemoteLocations } from "./remotecontrol";
 import { CallbackNetwork, NetworkSettings } from "./clientsocket";
 import { Entity } from "../entity";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
-import { Player, RemotePlayer } from "../../gamelogic/player";
+import { AnimationState, Player, RemotePlayer } from "../../gamelogic/player";
 import { abs, ceil } from "shared/misc/mathutils";
 import { LinkedQueue } from "shared/datastructures/queue";
 import { BearEngine, NetworkPlatformGame } from "../bearengine";
@@ -29,6 +29,7 @@ import { PARTICLE_CONFIG } from "../../../../../shared/core/sharedlogic/sharedpa
 import { ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { DeserializeTypedArray, DeserializeTypedVar, netv, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { Trie } from "shared/datastructures/trie";
+import { LevelRefLinker } from "shared/core/sharedlogic/assetlinker";
 
 class ClientInfo {
     uniqueID: number;
@@ -528,7 +529,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         }
 
                         case GamePacket.JOIN_LATE_INFO: {
-                            const level = RemoteResourceLinker.getResourceFromID(stream.getUint8());
+                            const level = LevelRefLinker.IDToData(stream.getUint8());
 
                             this.game.endCurrentLevel();
                             this.game.loadLevel(new DummyLevel(this.game, level));
@@ -574,7 +575,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             const x = stream.getFloat32();
                             const y = stream.getFloat32();
-                            const level = RemoteResourceLinker.getResourceFromID(stream.getUint8());
+                            const level = LevelRefLinker.IDToData(stream.getUint8());
 
 
                             this.currentPlayState = ClientPlayState.ACTIVE;
@@ -714,7 +715,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                     
                             const x = stream.getFloat32();
                             const y = stream.getFloat32();
-                            const state = stream.getUint8();
+                            const state: AnimationState = stream.getUint8();
                             const flipped = stream.getBool();
                             const health = stream.getUint8();
 
@@ -1015,7 +1016,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                 stream.setFloat32(player.y);
                 stream.setFloat32(this.engine.mouse.x);
                 stream.setFloat32(this.engine.mouse.y);
-                stream.setUint8(player.state);
+                stream.setUint8(player.animation_state);
                 stream.setBool(player.xspd < 0);
                 stream.setBool(this.engine.mouse.isDown("left"));
                 stream.setBool(this.engine.keyboard.wasPressed("KeyF"));

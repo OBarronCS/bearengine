@@ -105,7 +105,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
     first_hitscan: CreateItem({
         type:"hitscan_weapon",
         item_name:"Simple Hitscan",
-        item_sprite:"tree.gif",
+        item_sprite:"hitscan.png",
         capacity: 10,
         ammo: 1000,
         reload_time: 10,

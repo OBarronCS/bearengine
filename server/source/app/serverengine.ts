@@ -11,7 +11,7 @@ import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
 import { ServerPlayerEntity } from "./playerlogic";
 import { SharedEntityServerTable, S_T_Sub } from "./networking/serverentitydecorators";
-import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, RemoteResourceLinker, RemoteResources, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
+import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { TerrainManager } from "shared/core/terrainmanager";
@@ -34,6 +34,7 @@ import "server/source/app/weapons/serveritems.ts"
 import { random, randomInt, random_range } from "shared/misc/random";
 import { Effect } from "shared/core/effects";
 import { ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
+import { LevelRefLinker, LevelRef } from "shared/core/sharedlogic/assetlinker";
 
 const MAX_BYTES_PER_PACKET = 2048;
 
@@ -270,7 +271,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
     // Resets everything to prepare for a new level, sends data to clients
     // Everyone who is spectating is now active
-    beginRound(str: keyof typeof RemoteResources){
+    beginRound(str: keyof typeof LevelRef){
         if(this.serverState !== ServerGameState.ROUND_ACTIVE){
             this.beginMatch();
         }
@@ -284,12 +285,12 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         this.currentTickGlobalPackets = [];
 
         // #region Loading level data
-        const levelPath = RemoteResources[str];
+        const levelPath = LevelRef[str];
         const tiledData: TiledMap = JSON.parse(readFileSync(path.join(__dirname, "../../../client/dist/assets/" + levelPath), "utf-8"));
         const levelData = ParseTiledMapData(tiledData);
 
 
-        const levelID = RemoteResourceLinker.getIDFromResource(str);
+        const levelID = LevelRefLinker.NameToID(str);
     
         // Create terrain and world size
         const worldInfo = levelData.world;
@@ -555,7 +556,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         p.mouse.y = stream.getFloat32();
 
 
-                        p.state = stream.getUint8();
+                        p.animation_state = stream.getUint8();
                         p.flipped = stream.getBool();
 
                         p.mousedown = stream.getBool();
@@ -746,7 +747,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                     stream.setUint8(connection);
                     stream.setFloat32(player.position.x);
                     stream.setFloat32(player.position.y);
-                    stream.setUint8(player.state);
+                    stream.setUint8(player.animation_state);
                     stream.setBool(player.flipped);
                     stream.setUint8(player.health);
                 }
