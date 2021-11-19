@@ -97,6 +97,8 @@ export class ForceFieldEffect extends ServerEntity {
         this.radius = radius;
     }
 
+    timer = new TickTimer(60 * 10)
+
     update(dt: number): void {
         if(this.targetPlayer.entityID !== NULL_ENTITY_INDEX){
             this.position.set(this.targetPlayer.position);
@@ -104,6 +106,9 @@ export class ForceFieldEffect extends ServerEntity {
         } else {
             this.destroy();
         }
+
+        if(this.timer.tick()) this.destroy();
+
     }
 
     override destroy(){
@@ -363,7 +368,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, shotID: numb
 }
 
 
-const item_gravity = new Vec2(0,3);
+const item_gravity = new Vec2(0,3.8);
 
 //@ts-expect-error
 @networkedclass_server("item_entity")
@@ -390,7 +395,9 @@ export class ItemEntity extends ServerEntity {
 
     update(dt: number): void {
         if(this.active){
-            if(this.game.terrain.lineCollision(this.pos, Vec2.add(this.pos, item_gravity)) !== null){
+            const col = this.game.terrain.lineCollision(this.pos, Vec2.add(this.pos, item_gravity));
+            if(col !== null){
+                this.pos.y = col.point.y - 15;
                 this.active = false;
                 // console.log("hit")
             } else {
@@ -432,6 +439,7 @@ export class LaserTripmine_S extends ServerEntity {
 
         for(const pEntity of this.game.activeScene.activePlayerEntities.values()){
             
+
             const p = Line.PointClosestToLine(this.line.A, this.line.B, pEntity.position);
 
             if(Vec2.distanceSquared(p,pEntity.position) < 20 * 20){
@@ -441,6 +449,8 @@ export class LaserTripmine_S extends ServerEntity {
                 this.game.enqueueGlobalPacket(
                     new TerrainCarveCirclePacket(this.__position.x, this.__position.y, 45, -1)
                 );
+
+                this.game.dmg_players_in_radius(this.__position, 50,20);
                  
                 this.game.destroyRemoteEntity(this);
 

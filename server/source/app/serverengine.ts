@@ -31,7 +31,7 @@ import { ForceFieldEffect, ItemEntity, SBaseItem, ServerShootHitscanWeapon, Serv
 import { commandDispatcher } from "./servercommands";
 
 import "server/source/app/weapons/serveritems.ts"
-import { random, random_range } from "shared/misc/random";
+import { random, randomInt, random_range } from "shared/misc/random";
 import { Effect } from "shared/core/effects";
 import { ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 
@@ -513,6 +513,15 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         p.playerEntity.clearItem();
     }
 
+    dmg_players_in_radius(point: Vec2, r: number, dmg: number):void{
+
+        for(const pEntity of this.activeScene.activePlayerEntities.values()){
+            if(Vec2.distanceSquared(pEntity.position,point) < r * r){
+                pEntity.health -= dmg;
+            }
+        } 
+    }
+
 
     // Reads from queue of data since last tick
     private readNetwork(){
@@ -791,7 +800,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             // Round logic
             if(this.serverState === ServerGameState.ROUND_ACTIVE){
                 
-                if(random() > .97){
+                if(random() > .90){
 
 
                     const random_itemprefab_id = RandomItemID();
@@ -800,7 +809,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
                     const item = new ItemEntity(item_instance);
 
-                    item.pos.x = 350;
+
+                    item.pos.x = randomInt(100, this.activeScene.levelbbox.width - 100);
                     this.createRemoteEntity(item);
                 }
 

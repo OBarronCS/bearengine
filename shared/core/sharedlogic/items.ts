@@ -99,7 +99,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         reload_time: 12,
         shoot_controller: { type:"semiauto", time_between_shots: 15 },
         shot_name: "LASER_ON_HIT",
-        initial_speed: 50,
+        initial_speed: 70,
     }),
 
     first_hitscan: CreateItem({
