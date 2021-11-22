@@ -1,3 +1,4 @@
+import { Coordinate, Vec2 } from "shared/shapes/vec2";
 import { ServerEntity } from "../entity";
 import { networkedclass_server, sync } from "./serverentitydecorators";
 
@@ -14,5 +15,6 @@ export class ServerOgre extends ServerEntity {
 
     }
 }
+
 
 

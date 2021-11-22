@@ -274,6 +274,30 @@ export class CommandDatabase<TContext> {
     add(command: CommandParser<any, TContext>){
         this.commands.set(command.name, command);
     }
+
+
+    autocomplete_hints(): CommandHintFormat[] {
+        const list: CommandHintFormat[] = [];
+
+        for(const [name, parser] of this.commands){
+            const hints: string[][] = [];
+
+            for(const info of (parser["argParsers"] as Iterable<CommandArgumentParser<any>>)){
+                hints.push(info.hint());
+            }
+
+            list.push({
+                name: name,
+                args: hints
+            })
+        }
+
+        return list;
+    }
 }
 
+export interface CommandHintFormat {
+    name: string,
+    args: string[][];
+}
 

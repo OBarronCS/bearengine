@@ -2,12 +2,54 @@ import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bu
 import { AssertUnreachable, assert } from "shared/misc/assertstatements";
 import { Vec2 } from "shared/shapes/vec2";
 
+/** Assigns ID's to keys of an object. Helpful for serialization of reference to a key of a shared object */
+export function GenerateLinker<T extends {}>(obj: Readonly<T>){
+        // Linking objects
+    const idToNameMap: Map<number, keyof T> = new Map();
+    const nameToIdMap: Map<keyof T, number> = new Map();
+
+    // Allows for items to be linked across the network
+    const count = (function(){
+        const shared_item_names = Object.keys(obj).sort() as (keyof T)[];
+
+        let max_id: number = 0;
+
+        for(const name of shared_item_names){
+            
+            const id = max_id++;
+
+            idToNameMap.set(id, name);
+            nameToIdMap.set(name, id);
+        }
+
+        return max_id;
+    })();
+
+
+    return {
+        count,
+        IDToData(id: number){
+            return obj[this.IDToName(id)];
+        },
+        NameToData<K extends keyof T>(name: K): T[K] {
+            //@ts-expect-error
+            return this.IDToData(this.NameToID(name));
+        },
+        IDToName(id: number){
+            return idToNameMap.get(id);
+        },
+        NameToID(name: keyof T){
+            return nameToIdMap.get(name);
+        }
+    }
+}
 
 export function DefineSchema<Format>(){
     return function<T extends Format>(value: T){
         return value;
     }
 }
+
 
 
 // Serialization of object literals
@@ -89,6 +131,10 @@ export const SharedTemplates = DefineSchema<{ [key:string]: TemplateDecoder<any>
         arr: {type:"array", subtype : {type : "string"}}
     }),
 
+    COMMANDS: Template({
+        name: { type:"string" },
+        args: { type:"array", subtype: {type:"array", subtype: {type: "string"}}}
+    })
 
 } as const);
 

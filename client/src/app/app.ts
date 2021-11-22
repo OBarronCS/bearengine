@@ -5,7 +5,6 @@ import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { Player } from "./gamelogic/player";
 import { DrawableEntity, Entity, GMEntity } from "./core-engine/entity";
 import { SpritePart } from "./core-engine/parts";
-import { ColliderPart } from "shared/core/entityattribute";
 import { dimensions } from "shared/shapes/rectangle";
 import { bearevent } from "shared/core/bearevents";
 import { Vec2 } from "shared/shapes/vec2";
@@ -15,11 +14,16 @@ import { FrameEditor } from "./gamelogic/testlevelentities";
 import { StringHash } from "shared/core/sharedlogic/versionhash";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { RunTests } from "shared/testing/testrunner";
-
+import { Trie } from "shared/datastructures/trie";
 
 // import "shared/testing/entitysystemtest";
 // RunTests();
 
+
+const t = new Trie();
+t.insertAll(["Banana", "Billy", "Baaaaa", "Bam", "Baam"]);
+console.log(t.autocomplete(""))
+console.log(t.autocomplete("b"))
 
 const engine = new BearEngine();
 
@@ -32,6 +36,8 @@ engine.loadAssets().then(RESOURCES => {
     game.loadLevel(new FirstLevel(game));
     
 
+
+    
     //engine.start(new FrameEditor(engine))
 })
 

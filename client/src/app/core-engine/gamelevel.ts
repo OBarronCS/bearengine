@@ -4,6 +4,7 @@ import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { string2hex } from "shared/misc/mathutils";
 import { Rect } from "shared/shapes/rectangle";
 import { ASSET_FOLDER_NAME, BearEngine, NetworkPlatformGame } from "./bearengine"
+import { BoostZone } from "../gamelogic/boostzone";
 
 
 export abstract class GameLevel {
@@ -60,6 +61,10 @@ export abstract class GameLevel {
                 sprite.width = s.width;
                 sprite.height = s.height;
                 engine.renderer.addSprite(sprite)
+            });
+
+            mapdata.boostzones.forEach(b => {
+                this.game.entities.addEntity(new BoostZone(b.rect))
             });
         }
 

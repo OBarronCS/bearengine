@@ -25,8 +25,21 @@ export function containsDuplicates<T extends number | string>(arr: readonly T[])
     return false;
 }
 
+/** Returns list of all values that are duplicates. Uses triple equals === */
+export function arrayDuplicates<T>(arr: readonly T[]): T[] {
+    const duplicates: T[] = [];
+
+    const seen = new Set<T>();
+    for(const val of arr){
+        if(seen.has(val)) duplicates.push(val);
+        else seen.add(val);
+    }
+
+    return duplicates;
+}
+
 /** Checks if two arrays have the same contents, assuming both are sorted. */
-export function areEqualSorted<T extends (number | string)>(first: readonly T[], second: readonly T[]): boolean{
+export function areEqualSorted<T extends (number | string)>(first: readonly T[], second: readonly T[]): boolean {
     if(first.length !== second.length) return false;
 
     for(let i = 0; i < first.length; i++){
@@ -34,6 +47,17 @@ export function areEqualSorted<T extends (number | string)>(first: readonly T[],
     }
 
     return true;
+}
+
+/**  Returns all elements of A that are not in B */
+export function arrayDifference<T>(A: readonly T[], B: readonly T[]): T[] {
+    const diff = new Set(A);
+
+    for(const x of B){
+        if(diff.has(x)) diff.delete(x);
+    }
+
+    return [...diff];
 }
 
 /** In-place, "Knuth/Fisher-Yates" shuffle */

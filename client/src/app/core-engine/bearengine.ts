@@ -1,5 +1,5 @@
 
-import { Graphics, Loader, Sprite, Texture } from "shared/graphics/graphics";
+import { Graphics, Loader, LoaderResource, Sprite, Texture } from "shared/graphics/graphics";
 import { GUI, GUIController } from "dat.gui";
 
 import { BearGame } from "shared/core/abstractengine";
@@ -104,13 +104,17 @@ export class BearEngine {
         });
     }
 
-    getResource(path: string) {
+    getResource(path: string): LoaderResource | undefined {
         if(path.startsWith(ASSET_FOLDER_NAME)) path = path.substr(7);
         
         const fullPath = ASSET_FOLDER_NAME + path;
         const data = SHARED_RESOURCES[fullPath];
 
-        if(data === undefined) throw new Error("Trying to get a resource that we don't have, " + path);
+        // 
+        // if(data === undefined) throw new Error("Trying to get a resource that we don't have, " + path);
+        if(data === undefined){
+            console.error(`Cannot find resource by the name: ${path}`)
+        }
         
         return data;
     }

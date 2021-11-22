@@ -1,9 +1,129 @@
+import { Coordinate, Vec2 } from "shared/shapes/vec2";
+import { Test } from "./items"
+import type { SharedNetworkedEntities } from "./networkschemas"
+import { DefineSchema } from "./serialization"
+import { GenerateLinker } from "shared/core/sharedlogic/serialization";
 
-// export enum ItemEnum {
-//     EMPTY,
-//     HIT_SCAN,
-//     TERRAIN_CARVER,
-// }
+
+export enum ItemActionType {
+    HIT_SCAN,
+    PROJECTILE_SHOT,
+    FORCE_FIELD_ACTION,
+}
+
+// Should This be more generic?
+// Just a BulletEffect?
+// OnProjectileHitTerrain
+export type BulletEffects = {
+    type:"terrain_hit_boom",
+    radius: number
+} | {
+    type:"particle_system"
+    particle:string
+} | {
+    type: "gravity",
+    force: Coordinate
+} | {
+    type:"laser_mine_on_hit"
+} | {
+    type: "emoji"
+}
+
+
+
+
+// Hack to make typescript autocomplete work for item types
+function CreateShot<T extends keyof SharedNetworkedEntities, K extends Test<T>>(i: Test<T>){
+    return i;
+}
+
+// Make it Test<"projectile_bullet"> ?
+export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<keyof SharedNetworkedEntities>} >()({
+
+    EMOJI_SHOT: CreateShot({
+        type:"projectile_bullet",
+        item_name:"First example bullet",
+        item_sprite:"tree.gif",
+        pos: new Vec2(0,0),
+        velocity: new Vec2(0,0),
+        bullet_effects:[
+            {
+                type:"emoji"
+            }
+        ]
+    }),
+
+    SIMPLE_TERRAIN_HIT: CreateShot({
+        type:"projectile_bullet",
+        item_name:"First example bullet",
+        item_sprite:"tree.gif",
+        pos: new Vec2(0,0),
+        velocity: new Vec2(0,0),
+        bullet_effects:[
+            {
+                type:"terrain_hit_boom",
+                radius:60
+            },
+            {
+                type:"gravity",
+                force: { x:0, y:0.35 }
+            },
+            {
+                type:"particle_system",
+                particle:"ROCKET"
+            }
+        ]
+    }),
+
+    NOSEDIVE: CreateShot({
+        type:"projectile_bullet",
+        item_name:"First example bullet",
+        item_sprite:"tree.gif",
+        pos: new Vec2(0,0),
+        velocity: new Vec2(0,0),
+        bullet_effects:[
+            {
+                type:"terrain_hit_boom",
+                radius:90
+            },
+            {
+                type:"gravity",
+                force: { x:0, y:0.75 }
+            },
+            {
+                type:"particle_system",
+                particle:"ROCKET"
+            }
+        ]
+    }),
+
+    LASER_ON_HIT: CreateShot({
+        type:"projectile_bullet",
+        item_name:"First example bullet",
+        item_sprite:"tree.gif",
+        pos: new Vec2(0,0),
+        velocity: new Vec2(0,0),
+        bullet_effects:[
+            {
+                type:"laser_mine_on_hit",
+                // radius:60
+            },
+            {
+                type:"gravity",
+                force: { x:0, y:0.05 }
+            },
+            {
+                type:"particle_system",
+                particle:"ROCKET"
+            }
+        ]
+    }),
+})
+
+export const SHOT_LINKER = GenerateLinker(PROJECTILE_SHOT_DATA);
+
+
+
 
 export class Clip {
     constructor(

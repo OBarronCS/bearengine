@@ -2,7 +2,7 @@ import { Vec2 } from "shared/shapes/vec2";
 import { BearGame } from "./abstractengine";
 
 import { Attribute } from "./entityattribute";
-import { NULL_ENTITY_INDEX, EntitySystem } from "./entitysystem";
+import { NULL_ENTITY_INDEX, EntitySystem, IEntityScene } from "./entitysystem";
 
 // Signifies that this number is special
 export type EntityID = number; 
@@ -14,7 +14,7 @@ export abstract class AbstractEntity<TGame extends BearGame<any> = BearGame<{}, 
     readonly parts: Attribute[] = [];
 
     // Set by scene in "addEntity"
-    public scene: EntitySystem;
+    public scene: IEntityScene;
 
     //@ts-expect-error --> Server and client side just make this equal to "engine.this"
     private static GAME_OBJECT: TGame;
@@ -44,7 +44,7 @@ export abstract class AbstractEntity<TGame extends BearGame<any> = BearGame<{}, 
         return this.scene.hasAttribute(this.entityID, part);
     }
 
-    getAttribute<T extends Attribute, K extends new(...args: any[]) => T>(partConstructor: K): T | null {
+    getAttribute<K extends new(...args: any[]) => Attribute, T extends InstanceType<K>>(partConstructor: K): T | null {
         return this.scene.getAttribute(this.entityID, partConstructor);
     }
 

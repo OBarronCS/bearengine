@@ -11,11 +11,53 @@ Only for collision detection for AABB's. No resolution.
 
 import type { Graphics } from "shared/graphics/graphics";
 import { Line } from "shared/shapes/line";
-import { Rect } from "shared/shapes/rectangle";
+import { Dimension, Rect } from "shared/shapes/rectangle";
 import { SpatialGrid } from "shared/datastructures/spatialgrid";
 import { AbstractEntity } from "shared/core/abstractentity";
-import { ColliderPart } from "./entityattribute";
 import { Subsystem } from "./subsystem";
+import { Attribute } from "./entityattribute";
+import { Vec2, Coordinate } from "shared/shapes/vec2";
+
+
+// Add all tags here!
+// Help to identify certain entities, like in collision
+const tags = [
+    "Unnamed",
+    "Player",
+    "BoostZone"
+] as const
+
+export type TagName = typeof tags[number]
+
+export class ColliderPart extends Attribute {
+
+    public readonly tag: TagName;
+
+    public readonly rect: Rect; // bbox
+
+    /* Where on the rectangle is the position */
+    public readonly offset: Vec2;
+
+    // isTrigger
+
+    constructor(dimensions: Dimension, offset: Coordinate, name: TagName = "Unnamed"){
+        super();
+        this.rect = new Rect(0,0,dimensions.width, dimensions.height);
+        this.offset = new Vec2(-offset.x,-offset.y);
+        this.tag = name;
+    }
+
+    setPosition(spot: Coordinate){
+        this.rect.moveTo(spot);
+        this.rect.translate(this.offset);
+    }
+}
+
+
+interface CollisionData {
+    entity: AbstractEntity,
+    collider: ColliderPart
+}
 
 
 export class CollisionManager extends Subsystem {
@@ -46,6 +88,26 @@ export class CollisionManager extends Subsystem {
 
     clear(){
         this.grid.clear();
+    }
+
+    colliders_on_point(point: Coordinate): readonly ColliderPart[] {
+        const parts: ColliderPart[] = [];
+        for(const c of this.grid.point(point)){
+            if(c.rect.contains(point)) parts.push(c)
+        }
+
+        return parts;
+    }
+
+
+    first_tagged_collider_on_point(point: Coordinate, tag: TagName): ColliderPart | null {
+        const options = this.colliders_on_point(point);
+
+        for(const o of options){
+            if(o.tag === tag) return o;
+        }
+
+        return null;
     }
 
     // return the first collider that it finds that is collides with 

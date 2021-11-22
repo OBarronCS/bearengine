@@ -37,14 +37,14 @@ export enum GamePacket {
     // Array of players in order of winner, to last place
     END_ROUND, // [ array_length: uint8, [clientID: uint8] * array_length] 
 
-
+    DECLARE_COMMANDS, // [Array<CommandHintFormat>]
 
     // If client joins will game is active, this packet is sent to them
     JOIN_LATE_INFO, // [level_enum: uint8]
 
 
     CLEAR_INV_ITEM, // []
-    SET_INV_ITEM, // [ItemID: uint8]
+    SET_INV_ITEM, // [ItemID: uint8,...data]
 
     // Notifying clients about other clients connected to the server
     OTHER_PLAYER_INFO_ADD, //      [unique_client_id: uint8, ping: uint16, gamemode: ClientPlayState] // add string to this one day
@@ -66,15 +66,17 @@ export enum GamePacket {
     TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32, serverShotID: uint32]
 
 
-    SHOOT_WEAPON, // [creator_id: uint8, ITEM_ID_OF_WEAPON: uint8, serverShotID: uint32, createServerTick: float32, x: float32, y: float32, ...extra_data]
+    SHOOT_WEAPON, // [creator_id: uint8, ItemActionType: enum, serverShotID: uint32, createServerTick: float32, x: float32, y: float32, ...extra_data]
 
-    ACKNOWLEDGE_SHOT // [success: bool, localShotID: uint32, serverShotID: uint32];
+    ACKNOWLEDGE_SHOT // [success: bool, localShotID: uint32, serverShotID: uint32, entityIDOfBullet];
 }
 
 /*
-SHOT EXTRA DATA DEFINITIONS:
-    HITSCAN_WEAPON: [end_x: float32, end_y: float32];
-    TERRAIN_CARVER: [velocity_x: float32, vel_y: float32];
+ITEM ACTION EXTRA DATA DEFINITIONS:
+    PROJECTILE_SHOT: [dir_x: float32, dir_y: float32, entityIDofBullet];
+    HIT_SCAN: [end_x: float32, end_y: float32];
+    
+
 */
 
 
@@ -88,13 +90,10 @@ export enum ServerImmediatePacket {
 }
 
 export enum ServerBoundPacket {
-    JOIN_GAME, // [empty packet]
-    LEAVE_GAME, // [empty packet]
-
-
     PLAYER_POSITION, // [x: float32, y: float32, mouse_x: float32, mouse_y: float32, uint8: animationstate, bool: flipped, isMouseDown: bool, isFDown: bool, isQDown: bool]
 
-    REQUEST_SHOOT_WEAPON, // [ITEM_ID_OF_WEAPON: uint8, localShootID: uint32, createServerTick: float32, x: float32, y: float32, ...data]
+
+    REQUEST_ITEM_ACTION, // [ItemActionType: enum, localShootID: uint32, createServerTick: float32, x: float32, y: float32, ...data]
 
     REQUEST_CHAT_MESSAGE, // [ShortString (255 chars max), ]
 }

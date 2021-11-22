@@ -23,6 +23,7 @@
 		"body":  [
 			"constructor(){",
 			"\tsuper();",
+			"\t$0",
 			"}"
 		]
 	},

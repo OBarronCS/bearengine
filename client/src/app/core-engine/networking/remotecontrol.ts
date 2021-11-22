@@ -1,10 +1,12 @@
 import { Attribute } from "shared/core/entityattribute";
+import { ITEM_LINKER } from "shared/core/sharedlogic/items";
 import { NetArg } from "shared/core/sharedlogic/networkschemas";
+import { Sprite } from "shared/graphics/graphics";
 import { ceil, floor } from "shared/misc/mathutils";
 import { randomInt } from "shared/misc/random";
 import { mix, Vec2 } from "shared/shapes/vec2";
 import { Entity } from "../entity";
-import { SpritePart } from "../parts";
+import { GraphicsPart, SpritePart } from "../parts";
 import { InterpolatedVar, net, networkedclass_client } from "./cliententitydecorators";
 
 
@@ -28,34 +30,6 @@ export class RemoteLocations extends Attribute {
 
 
 
-@networkedclass_client("bullet")
-export class ClientBullet extends Entity {
-
-    public sprite = this.addPart(new SpritePart("test2.png"));
-
-
-    @net("bullet").interpolatedvariable("test")
-    test = InterpolatedVar(1);
-
-    @net("bullet").interpolatedvariable("_pos")
-    _pos = InterpolatedVar(new Vec2(0,0));
-
-
-
-    @net("bullet").event("testEvent7")
-    callback(data: NetArg<"bullet","testEvent7",0>, testNumber: number){
-        console.log(JSON.stringify(data), testNumber);
-    }
-
-    update(dt: number): void {
-        this.position.set(this._pos.value);
-        // this.position.x = this._x.value;
-        // this.position.y = this._y.value;
-
-        // this.redraw();
-    }
-}
-
 @networkedclass_client("ogre")
 export class Ogre extends Entity {
 
@@ -73,6 +47,76 @@ export class Ogre extends Entity {
 
     }
 }
+
+
+@networkedclass_client("item_entity")
+export class CItemEntity extends Entity {
+
+    g = this.addPart(new GraphicsPart());
+    spritepart = this.addPart(new SpritePart(new Sprite()));
+
+    @net("item_entity").interpolatedvariable("pos")
+    pos = InterpolatedVar(new Vec2(0,0))
+
+    @net("item_entity").variable("item_id", function(this: CItemEntity, i) {
+        this.spritepart.sprite.texture = this.engine.renderer.getTexture(ITEM_LINKER.IDToData(i).item_sprite);
+    })
+    item_id: number = 0;
+
+    constructor(){
+        super();
+        this.g.graphics.beginFill(0xFF0000);
+        this.g.graphics.drawCircle(0, 0, 4);
+    }
+
+
+    update(dt: number): void {
+        this.position.set(this.pos.value);
+        this.g.graphics.position.set(this.pos.value.x, this.pos.value.y);
+    }
+
+}
+
+
+@networkedclass_client("test_super")
+class Test_Super extends Entity {
+
+    @net("test_super").variable("supervar", (e) => {
+        console.log(e)
+    })
+    supervar = 1;
+
+    constructor(){
+        super();
+        console.log("Test super constructor called!")
+    }
+
+    update(dt: number): void {
+    }
+
+}
+
+
+@networkedclass_client("test_sub")
+class Test_Sub extends Test_Super {
+
+    @net("test_sub").variable("subvar", (e) => {
+        console.log(e)
+    })
+    subvar = "Hello";
+
+    constructor(){
+        super();
+        console.log("Test sub constructor called!")
+    }
+    
+
+    override update(dt: number): void {
+
+    }
+
+}
+
 
 // @networkedclass_client("auto")
 // export class RemoteAuto extends Entity {

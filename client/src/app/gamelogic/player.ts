@@ -1,10 +1,10 @@
 import { AnimatedSprite, Container, Graphics, Sprite, Texture } from "shared/graphics/graphics";
 import { AssertUnreachable } from "shared/misc/assertstatements";
-import { ColliderPart } from "shared/core/entityattribute";
+import { ColliderPart } from "shared/core/entitycollision";
 import { clamp, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/misc/mathutils";
 import { Line } from "shared/shapes/line";
 import { dimensions } from "shared/shapes/rectangle";
-import { drawHealthBar, drawPoint } from "shared/shapes/shapedrawing";
+import { drawCircle, drawCircleOutline, drawHealthBar, drawPoint } from "shared/shapes/shapedrawing";
 import { angleBetween, Coordinate, rotatePoint, Vec2 } from "shared/shapes/vec2";
 import { TickTimer } from "shared/datastructures/ticktimer";
 
@@ -14,12 +14,14 @@ import { RemoteLocations } from "../core-engine/networking/remotecontrol";
 import { GraphicsPart, SpritePart } from "../core-engine/parts";
 import { SavePlayerAnimation } from "./testlevelentities";
 
-import { CreateItemData, ItemData } from "shared/core/sharedlogic/items"
-import { Gun, Hitscan, Item, ItemDrawer, TerrainCarverGun } from "../core-engine/clientitems";
-import { EmitterAttach, PARTICLE_CONFIG } from "../core-engine/particles";
+import { WeaponItem, ItemDrawer, UsableItem } from "../core-engine/clientitems";
+import { EmitterAttach } from "../core-engine/particles";
+import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparticles";
 import { Effect } from "shared/core/effects";
 import { random_range } from "shared/misc/random";
 import { PhysicsDotEntity } from "./firstlevel";
+import { NumberTween } from "shared/core/tween";
+import { BoostDirection } from "./boostzone";
 
 
 
@@ -29,6 +31,14 @@ enum PlayerState {
     CLIMB,
     WALL_SLIDE
 }
+
+export enum AnimationState {
+    IDLE,
+    RUN,
+    WALL,
+    CLIMB
+}
+
 
 interface PartData {
     textures: Texture;
@@ -196,7 +206,8 @@ export class Player extends DrawableEntity {
 
     // Item graphics
     itemInHand: ItemDrawer = new ItemDrawer();
-    weapon: Gun = null;
+    
+    usable_item: UsableItem<any> = null;
 
     setGhost(ghost: boolean){
         this.ghost = ghost;
@@ -208,15 +219,19 @@ export class Player extends DrawableEntity {
         }
     }
 
-    setItem(item: Item<ItemData>){
-        this.itemInHand.setItem(item.item_data);
-        if(item instanceof Gun){
-            this.weapon = item;
-        }
+    // What should the type that is taken in here be? hmm
+    setItem(item: UsableItem<any>, path: string){
+        this.itemInHand.setItem(path);
+        
+        this.usable_item = null;
+
+        if(item instanceof UsableItem){
+            this.usable_item = item
+        } 
     }
 
     clearItem(){
-        this.weapon = null;
+        this.usable_item = null;
         this.itemInHand.clear();
     }
 
@@ -286,6 +301,8 @@ export class Player extends DrawableEntity {
 
     state = PlayerState.AIR;
     last_state = PlayerState.GROUND;
+
+    animation_state = AnimationState.IDLE;
     
     
     // If both these values are >= 0, and the player is on the ground, the player will jump
@@ -305,10 +322,6 @@ export class Player extends DrawableEntity {
         super();
 
         this.position.set({x : 500, y: 100});
-
-        this.keyboard.bind("p", ()=> {
-            this.position.set({x : 600, y: 100});
-        });
 
         
         this.colliderPart = new ColliderPart(dimensions(32,32),{x:16, y:16});
@@ -345,7 +358,7 @@ export class Player extends DrawableEntity {
         this.engine.renderer.addSprite(this.idleAnimation.container)
         this.engine.renderer.addSprite(this.climbAnimation.container)
 
-        this.setSprite("run");
+        this.setAnimationSprite(AnimationState.RUN);
     }
 
     override onDestroy(){
@@ -365,7 +378,8 @@ export class Player extends DrawableEntity {
         this.climbAnimation.container.alpha = a;
     }
 
-    private setSprite(sprite: "idle"|"run"|"wall"|"climb"|"none"){
+    private setAnimationSprite(state: AnimationState){
+        this.animation_state = state
         this.runAnimation.container.visible = false;
         this.runAnimation.setPosition(this.position)
 
@@ -378,11 +392,14 @@ export class Player extends DrawableEntity {
         this.climbAnimation.container.visible = false;
         this.climbAnimation.setPosition(this.position)
 
-        switch(sprite){
-            case "run": this.runAnimation.container.visible = true; break;
-            case "wall": this.wallslideAnimation.container.visible = true; break;
-            case "idle": this.idleAnimation.container.visible = true; break;
-            case "climb": { 
+        switch(state){
+            case AnimationState.RUN: { 
+                this.runAnimation.container.visible = true; 
+                
+                break; }
+            case AnimationState.WALL: this.wallslideAnimation.container.visible = true; break;
+            case AnimationState.IDLE: this.idleAnimation.container.visible = true; break;
+            case AnimationState.CLIMB: { 
                 if(!this.climbStateData.right){
                     this.climbAnimation.originOffset.x = 63
                 } else {
@@ -391,8 +408,7 @@ export class Player extends DrawableEntity {
                 this.climbAnimation.xFlip(this.climbStateData.right ? 1 : -1)
                 this.climbAnimation.container.visible = true; break; 
             }
-            case "none": break;
-            default: AssertUnreachable(sprite);
+            default: AssertUnreachable(state);
         }
     }
     
@@ -587,13 +603,18 @@ export class Player extends DrawableEntity {
     }
 
     manualUpdate(dt: number): void {
-        if(this.keyboard.wasPressed("KeyL")){
+        // Lock camera on me
+        if(this.keyboard.wasPressed("KeyC")){
             this.followCam = !this.followCam;
             if(this.followCam){
                 this.engine.camera.follow(this.position);
             } else {
                 this.engine.camera.free();
             }
+        }
+        
+        if(this.keyboard.wasPressed("KeyP")){
+            this.position.set({x : 600, y: 100});
         }
 
         const health_width = 500;
@@ -616,8 +637,10 @@ export class Player extends DrawableEntity {
         this.itemInHand.position.set({x: this.x, y: this.y});
         rotatePoint(this.itemInHand.position,this.position,this.slope_normal);
 
-        const angleToMouse = angleBetween(this.itemInHand.position, this.mouse.position)
+        const angleToMouse = angleBetween(this.itemInHand.position, this.mouse.position);
+        
         const difference = Vec2.subtract(this.mouse.position, this.itemInHand.position);
+
         if(difference.x > 0){
             this.itemInHand.image.sprite.scale.x = 1;
             this.itemInHand.image.angle = angleToMouse;
@@ -626,9 +649,13 @@ export class Player extends DrawableEntity {
             this.itemInHand.image.angle = angleToMouse + PI;
         }
         
-        if(this.weapon !== null){
-            this.weapon.update(dt,this.position, difference.normalize(), this.mouse.isDown("left"), this.game);
-        }
+        if(this.usable_item !== null){
+            if(!this.usable_item.consumed){
+                const consumed = this.usable_item.operate(dt, this.position, this.mouse.position, this.mouse.isDown("left"), this.game);
+                this.usable_item.consumed = consumed;
+            }
+        } 
+
         // if(this.itemInHand.operate(this.mouse.isDown("left"))){
         //     if(this.state === PlayerState.GROUND) this.state = PlayerState.AIR;
 
@@ -643,6 +670,15 @@ export class Player extends DrawableEntity {
         const angle = Math.atan2(this.slope_normal.y, this.slope_normal.x) * RAD_TO_DEG;
 
         if(this.keyboard.wasPressed("KeyW")) this.timeSincePressedJumpedButton = 0;
+
+        const zone = this.game.collisionManager.first_tagged_collider_on_point(this.position, "BoostZone");
+        if(zone){
+            console.log("MOVE")
+            const dir = zone.owner.getAttribute(BoostDirection).dir;
+            this.xspd += dir.x;
+            this.yspd += dir.y;
+
+        }
 
         
         switch(this.state){
@@ -664,7 +700,7 @@ export class Player extends DrawableEntity {
         this.yspd += dir.y;
     }
 
-    private Climb_State() {
+    private Climb_State(): void {
         const fraction = this.climbStateData.climbingTimer++ / this.timeToClimb;
 
         // console.log(fraction);
@@ -684,7 +720,7 @@ export class Player extends DrawableEntity {
         this.climbAnimation.xFlip(this.climbStateData.right ? 1 : -1)
 
         if(this.climbStateData.climbingTimer > this.timeToClimb){
-            this.setSprite("idle")
+            this.setAnimationSprite(AnimationState.IDLE);
             this.state = PlayerState.GROUND;
             this.gspd = 0;
         }
@@ -694,17 +730,17 @@ export class Player extends DrawableEntity {
         return (-.44 < normal.y) && (normal.y < .25);
     }
 
-    private doRightSlideSensorsHit(){
+    private doRightSlideSensorsHit(): boolean {
         this.setWallSensorsEven(this.slideSensorLength);
         return this.getRightWallCollisionPoint().collision;
     }
 
-    private doLeftSlideSensorsHit(){
+    private doLeftSlideSensorsHit(): boolean {
         this.setWallSensorsEven(this.slideSensorLength);
         return this.getLeftWallCollisionPoint().collision;
     }
 
-    private Wall_Slide_State(){
+    private Wall_Slide_State(): void {
         this.slideStateData.timeSliding++;
 
         this.wallslideAnimation.setPosition(this.position);
@@ -718,7 +754,7 @@ export class Player extends DrawableEntity {
             this.xspd = this.slideStateData.right ? -9 : 9;
             this.timeSincePressedJumpedButton = 10000;
 
-            this.setSprite("run")
+            this.setAnimationSprite(AnimationState.RUN)
 
             return;
         }
@@ -747,7 +783,7 @@ export class Player extends DrawableEntity {
                     console.log("To Steep")
                     this.state = PlayerState.AIR;
                     this.xspd = 0;
-                    this.setSprite("run")
+                    this.setAnimationSprite(AnimationState.RUN)
                     return;
                 } 
                 
@@ -759,7 +795,7 @@ export class Player extends DrawableEntity {
                 this.state = PlayerState.AIR;
                 this.yspd = 2;
                 this.xspd = 0;
-                this.setSprite("run")
+                this.setAnimationSprite(AnimationState.RUN);
             }
         } else {
             const leftWall = this.getLeftWallCollisionPoint();
@@ -769,7 +805,7 @@ export class Player extends DrawableEntity {
                     console.log("To Steep")
                     this.state = PlayerState.AIR;
                     this.xspd = 0;
-                    this.setSprite("run")
+                    this.setAnimationSprite(AnimationState.RUN);
                     return;
                 } 
                 this.x = leftWall.point.x + this.wallSensorLength;
@@ -779,7 +815,7 @@ export class Player extends DrawableEntity {
             if(!leftWall.both){
                 this.state = PlayerState.AIR;
                 this.xspd = 0;
-                this.setSprite("run")
+                this.setAnimationSprite(AnimationState.RUN);
             }
         }
         
@@ -797,7 +833,7 @@ export class Player extends DrawableEntity {
             this.slope_normal.set(ground.normal);
 
             this.state = PlayerState.GROUND;
-            this.setSprite("run")
+            this.setAnimationSprite(AnimationState.RUN)
             // Set GSPD here
             // this.gspd = this.yspd * this.slope_normal.x
             // this.gspd = this.xspd * -this.slope_normal.y
@@ -808,11 +844,8 @@ export class Player extends DrawableEntity {
 
     }
 
-    private Ground_State(){
+    private Ground_State(): void {
     
-    
-
-
         this.ticksSinceGroundState = 0;
         this.last_ground_xspd = this.xspd;
         this.last_ground_yspd = this.yspd;
@@ -905,8 +938,8 @@ export class Player extends DrawableEntity {
         }
 
 
-        if(this.gspd === 0) this.setSprite("idle")
-        else this.setSprite("run")
+        if(this.gspd === 0) this.setAnimationSprite(AnimationState.IDLE);
+        else this.setAnimationSprite(AnimationState.RUN);
 
         this.idleAnimation.setPosition(this.position);
         this.idleAnimation.tick();
@@ -927,7 +960,7 @@ export class Player extends DrawableEntity {
             
             this.timeSincePressedJumpedButton = 10000;
 
-            this.setSprite("run")
+            this.setAnimationSprite(AnimationState.RUN);
 
             this.gspd = 0;
             this.state = PlayerState.AIR;
@@ -936,10 +969,10 @@ export class Player extends DrawableEntity {
         }
     }
      
-    private Air_State(){
+    private Air_State(): void {
         this.idleAnimation.setPosition(this.position);
 
-        if(this.xspd !== 0) this.setSprite("run")
+        if(this.xspd !== 0) this.setAnimationSprite(AnimationState.RUN)
         this.runAnimation.setPosition(this.position);
         this.runAnimation.tick();
         this.runAnimation.xFlip(this.xspd)
@@ -1020,7 +1053,7 @@ export class Player extends DrawableEntity {
                             right: true,
                             timeSliding: 0
                         }
-                        this.setSprite("wall");
+                        this.setAnimationSprite(AnimationState.WALL);
                         return;
                     }
                 }
@@ -1038,7 +1071,7 @@ export class Player extends DrawableEntity {
                             right: false,
                             timeSliding: 0
                         }
-                        this.setSprite("wall");
+                        this.setAnimationSprite(AnimationState.WALL);
                         return;
                     }
                 }
@@ -1071,7 +1104,7 @@ export class Player extends DrawableEntity {
                         this.x = this.climbStateData.targetX - this.player_width / 2;
                         this.y = this.climbStateData.targetY - this.player_height / 2;
 
-                        this.setSprite("climb")
+                        this.setAnimationSprite(AnimationState.CLIMB)
                         return;
                     }
                 }
@@ -1100,7 +1133,7 @@ export class Player extends DrawableEntity {
                         this.y = this.climbStateData.targetY - this.player_height / 2;
 
                         this.state = PlayerState.CLIMB;
-                        this.setSprite("climb")
+                        this.setAnimationSprite(AnimationState.CLIMB);
                         return;
                     }
                 }
@@ -1135,7 +1168,7 @@ export class Player extends DrawableEntity {
                             right,
                             timeSliding: 0
                         }
-                        this.setSprite("wall");
+                        this.setAnimationSprite(AnimationState.WALL);
                     } 
                 } else {
                     this.position.y = ray.point.y - this.player_height / 2
@@ -1143,7 +1176,7 @@ export class Player extends DrawableEntity {
                     this.slope_normal.set(ray.normal);
 
                     this.state = PlayerState.GROUND
-                    this.setSprite("run");
+                    this.setAnimationSprite(AnimationState.RUN);
                     // Set GSPD here
                     // this.gspd = this.yspd * this.slope_normal.x
                     this.gspd = this.xspd * -this.slope_normal.y
@@ -1156,8 +1189,10 @@ export class Player extends DrawableEntity {
 
     }
 
-    draw(g: Graphics) {
-        // drawPoint(g,this.position);
+    draw(g: Graphics){
+        // drawCircleOutline(g, this.position, 50)
+        
+        drawPoint(g,this.position);
 
         // g.beginFill(0xFF00FF,.4)
         // g.drawRect(this.x - this.player_width / 2, this.y - this.player_height / 2, this.player_width, this.player_height)
@@ -1243,7 +1278,8 @@ export class RemotePlayer extends Entity {
             } = this.idleAnimation;
 
 
-            const iter = [headSprite,
+            const iter = [
+                headSprite,
                 bodySprite,
                 leftHandSprite,
                 rightHandSprite,
@@ -1264,8 +1300,18 @@ export class RemotePlayer extends Entity {
                 this.game.entities.addEntity(e);
                 
                 
-                
                 this.scene.addEntity(e);
+
+                const tween = new NumberTween(e["sprite"],"alpha",6).from(1).to(.1).go();
+
+                // tween.easingfunction
+                tween.delay(2)
+
+                tween.onFinish(() => {
+                    e.destroy();
+                });
+
+                this.scene.addEntity(tween);
             }
             
             
@@ -1298,7 +1344,7 @@ export class RemotePlayer extends Entity {
         this.engine.renderer.removeSprite(this.climbAnimation.container);
     }
 
-    setState(state: PlayerState, flipped: boolean){
+    setState(state: AnimationState, flipped: boolean){
     
         this.runAnimation.xFlip(flipped ? -1 : 1);
         this.wallslideAnimation.xFlip(flipped ? -1 : 1);
@@ -1320,10 +1366,10 @@ export class RemotePlayer extends Entity {
         this.climbAnimation.setPosition(this.position)
 
         switch(state){
-            case PlayerState.AIR: this.runAnimation.container.visible = true; break;
-            case PlayerState.WALL_SLIDE: this.wallslideAnimation.container.visible = true; break;
-            // case PlayerState.GROUND "idle": this.idleAnimation.container.visible = true; break;
-            case PlayerState.CLIMB: { 
+            case AnimationState.IDLE: this.idleAnimation.container.visible = true; break;
+            case AnimationState.RUN: this.runAnimation.container.visible = true; break;
+            case AnimationState.WALL: this.wallslideAnimation.container.visible = true; break;
+            case AnimationState.CLIMB: { 
                 
                 // if(!this.climbStateData.right){
                 //     this.climbAnimation.originOffset.x = 63
@@ -1333,7 +1379,7 @@ export class RemotePlayer extends Entity {
                 //this.climbAnimation.xFlip(this.climbStateData.right ? 1 : -1)
                 this.climbAnimation.container.visible = true; break; 
             }
-            case PlayerState.GROUND: this.runAnimation.container.visible = true; break;
+
             default: AssertUnreachable(state);
         }
         

@@ -1,7 +1,6 @@
 import { BindCommandCreator, CommandDatabase, comv } from "shared/core/commands"
-import { ALL_ITEMS } from "shared/core/sharedlogic/items";
-import { RemoteResources } from "shared/core/sharedlogic/networkschemas";
-import { SetInvItemPacket } from "./networking/gamepacketwriters";
+import { ITEM_LINKER, MIGRATED_ITEMS, RandomItemID } from "shared/core/sharedlogic/items";
+import { LevelRef } from "shared/core/sharedlogic/assetlinker";
 import type { PlayerInformation, ServerBearEngine } from "./serverengine";
 
 // What if commands are initiated from a NON player?
@@ -15,7 +14,7 @@ import type { PlayerInformation, ServerBearEngine } from "./serverengine";
 
 export interface CommandContext {
     engine: ServerBearEngine,
-    targetPlayer: PlayerInformation
+    targetPlayer: PlayerInformation | null
 }
 
 const command = BindCommandCreator<CommandContext>();
@@ -27,17 +26,27 @@ const database = commandDispatcher;
 
 // Some of these assume they are being called by a player
 database.add(
-    command("item").args(comv.string_options<keyof typeof ALL_ITEMS>(Object.keys(ALL_ITEMS)))
-        .run((context, item_name: keyof typeof ALL_ITEMS) => {
+    command("item").args(comv.string_options<keyof typeof MIGRATED_ITEMS>(Object.keys(MIGRATED_ITEMS)))
+        .run((context, item_name: keyof typeof MIGRATED_ITEMS) => {
 
-            context.engine.enqueueGlobalPacket(
-                new SetInvItemPacket(ALL_ITEMS[item_name].item_id)
-            );
+            // Only give the item to the player that ran the command
+            
+            if(context.targetPlayer === null){
+                // aka if the source of the command is the command line, give the item to all players
+                console.log("CANNOT GIVE ALL PLAYERS ITEM")
+                return;
+            } else {
+                //Only give it to the player that made this command
+                const p = context.targetPlayer;
+
+                context.engine.givePlayerItem(p,context.engine.createItemFromPrefab(ITEM_LINKER.NameToID(item_name)));
+            }
+            
         })
     );
 
 database.add(
-    command("s").args(comv.string_options<keyof typeof RemoteResources>(Object.keys(RemoteResources)))
+    command("s").args(comv.string_options<keyof typeof LevelRef>(Object.keys(LevelRef)))
         .run((context,arg) => {
             context.engine.beginRound(arg);
         })

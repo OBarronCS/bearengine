@@ -1,7 +1,9 @@
 import { StreamWriteEntityID } from "shared/core/entitysystem";
-import { SharedNetworkedEntities, SharedEntityLinker } from "shared/core/sharedlogic/networkschemas";
+import { SharedNetworkedEntities, SharedEntityLinker, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { NetworkVariableTypes, SerializeTypedVar, TypescriptTypeOfNetVar } from "shared/core/sharedlogic/serialization";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
+import { TickTimer } from "shared/datastructures/ticktimer";
+import { randomChar, randomInt } from "shared/misc/random";
 import { ServerEntity } from "../entity";
 
 
@@ -17,9 +19,10 @@ export function networkedclass_server<T extends keyof SharedNetworkedEntities>(c
     return function<U extends typeof ServerEntity>(targetConstructor: U){
 
         targetConstructor["SHARED_ID"] = -1; 
+        targetConstructor["SHARED_NAME"] = classname;
 
         // Validates that it has all the correct variables
-        const variableslist = targetConstructor["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList || [];
+        const variableslist = targetConstructor.hasOwnProperty("NETWORKED_VARIABLE_REGISTRY") ? targetConstructor["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList : [];
 
         const myVariables = variableslist.map(e => e.variablename);
 
@@ -45,40 +48,43 @@ export function sync<SharedName extends keyof SharedNetworkedEntities>(sharedVar
 
                 const constructorOfClass = target.constructor;
                  
-                 if(constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] === undefined){
-                     constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] = [];
-                 }
+
+                // Ensure it doesn't get list from super class
+                if(!constructorOfClass.hasOwnProperty("NETWORKED_VARIABLE_REGISTRY")){
+                    constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] = [];
+                }
+
          
-                 const variableslist = constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList;
-                 variableslist.push({
-                     variablename: propertyKey,
-                 });
+                const variableslist = constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList;
+                variableslist.push({
+                    variablename: propertyKey,
+                });
+        
+                // This makes it so the entity is marked dirty automatically when a variable changes
+                if(createSetterAndGetter){
+        
+                    Object.defineProperty(target, propertyKey, {
+                        get: function(this: ServerEntity) {
+                            // console.log('get', this['__'+propertyKey]);
+                            // console.log("get");
+        
+                            return this['__'+propertyKey];
+                        },
+                        set: function (this: ServerEntity, value) {
+                            this['__'+propertyKey] = value;
+                            
+                            // console.log(`set ${propertyKey} to`, value);
+                            
+                            this.markDirty();
+                        },
+                        // enumerable: true,
+                        // configurable: true
+                    }); 
+        
+                    // console.log(target)
+                }
          
-                 // This makes it so the entity is marked dirty automatically when a variable changes
-                 if(createSetterAndGetter){
-         
-                     Object.defineProperty(target, propertyKey, {
-                         get: function(this: ServerEntity) {
-                             // console.log('get', this['__'+propertyKey]);
-                             // console.log("get");
-         
-                             return this['__'+propertyKey];
-                         },
-                         set: function (this: ServerEntity, value) {
-                             this['__'+propertyKey] = value;
-                             
-                             // console.log(`set ${propertyKey} to`, value);
-                             
-                             this.markDirty();
-                         },
-                         // enumerable: true,
-                         // configurable: true
-                     }); 
-         
-                     // console.log(target)
-                 }
-         
-             }
+            }
         }
     }
     
@@ -97,11 +103,17 @@ export class SharedEntityServerTable {
         name: keyof SharedNetworkedEntities
     }[] = [];
 
-    // Not in use on server side as of now 
+
     private static readonly networkedEntityIndexMap = new Map<number,EntityConstructor>();
+
+    static getEntityClass(sharedID: number): EntityConstructor {
+        return SharedEntityServerTable.networkedEntityIndexMap.get(sharedID);
+    }
 
     static init(){
 
+        SharedEntityLinker.validateNames(this.REGISTERED_NETWORKED_ENTITIES.sort((a,b) => a.name.localeCompare(b.name)).map(e => e.name));
+        
         for(let i = 0; i < this.REGISTERED_NETWORKED_ENTITIES.length; i++){
             const registry = this.REGISTERED_NETWORKED_ENTITIES[i];
 
@@ -111,7 +123,27 @@ export class SharedEntityServerTable {
             this.networkedEntityIndexMap.set(SHARED_ID,registry.create);
         }
 
-        SharedEntityLinker.validateNames(this.REGISTERED_NETWORKED_ENTITIES.sort((a,b) => a.name.localeCompare(b.name)).map(e => e.name));
+
+
+        for(const data of this.REGISTERED_NETWORKED_ENTITIES){
+
+            // If the type for this class inherits from something, make sure this does too
+            // Adds all the needed types to the variable definition, and sorts the list
+            if(SharedNetworkedEntityDefinitions[data.name]["extends"]) {
+                const shouldBe = SharedNetworkedEntityDefinitions[data.name]["extends"];
+                // The super class of this class
+                const parentConstructor = Object.getPrototypeOf(data.create);
+
+                
+                if(!parentConstructor.hasOwnProperty("SHARED_NAME") || parentConstructor["SHARED_NAME"]!== shouldBe){
+                    throw new Error(`Class '${data.create.name}' should extend the class that implements shared type '${shouldBe}'`);
+                }
+
+                // data.varDefinition.push(...this.GetParentSharedEntityVariables(data.create));
+
+                // data.varDefinition.sort((a,b) => a.variablename.localeCompare(b.variablename));
+            }
+        }        
     }
 
     static serialize(stream: BufferStreamWriter, entity: ServerEntity){
@@ -133,3 +165,32 @@ export class SharedEntityServerTable {
     }
 }
 
+
+@networkedclass_server("test_super")
+export class S_T_Super extends ServerEntity {
+
+    @sync("test_super").var("supervar")
+    supervar = 1;
+
+    update(dt: number): void {
+        throw new Error("Method not implemented.");
+    }
+
+}
+
+@networkedclass_server("test_sub")
+export class S_T_Sub extends S_T_Super {
+
+    @sync("test_sub").var("subvar", true)
+    subvar = "Lmaoo!"
+
+
+    timer = new TickTimer(40)
+
+    override update(dt: number): void {
+        if(this.timer.tick()){
+            this.subvar = randomChar();
+            this.supervar = randomInt(0,100000)
+        }
+    }
+}

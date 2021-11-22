@@ -103,8 +103,7 @@ export class TerrainManager extends Subsystem {
             
             // If no answer yet, choose this
             if(answer === null || dist < answer_dist) {
-                answer_dist = dist
-        
+                answer_dist = dist;
                 answer = collision;
             }
         }
@@ -152,7 +151,7 @@ export class TerrainManager extends Subsystem {
             const result = mesh.carveCircle(x, y, r);
 
             if(result !== null){
-                // reinsert the original one, since it has been broken up,
+                // reinsert the original one, since it has been broken up, and mutated
                 this.grid.insert(mesh);
                 
                 //All the other ones

@@ -18,7 +18,7 @@ import { Vec2, Coordinate, angleBetween, mix } from "shared/shapes/vec2";
 import { atan2, cos, floor, PI, second, sin } from "shared/misc/mathutils";
 import { ColorTween } from "shared/core/tween"
 import { TickTimer } from "shared/datastructures/ticktimer"
-import { ColliderPart } from "shared/core/entityattribute";
+import { ColliderPart } from "shared/core/entitycollision";
 import { bearevent } from "shared/core/bearevents";
 
 import { DrawableEntity, Entity, GMEntity, SpriteEntity } from "../core-engine/entity";
@@ -1723,34 +1723,7 @@ export function loadTestLevel(engine: BearEngine): void {
 
     //this.addEntity(new ConvexHullTest());
 
-    class CircleLineIntersectionTest extends DrawableEntity {
-        
-        private circle = new Vec2(0,0);
-        
-        private point = new Vec2(0,0);
-
-        draw(g: Graphics): void {
-            drawCircle(g, this.circle, 50)
-
-            if(this.mouse.wasPressed("left")) this.point = this.mouse.position.clone();
-
-            const otherPoint = this.mouse.position.clone();
-
-            drawLineBetweenPoints(g,this.point,otherPoint);
-
-            const points = Line.CircleLineIntersection(this.point, otherPoint, this.circle.x, this.circle.y, 50);
-            
-            for(const point of points.points){
-                drawPoint(g,point);
-            }
-        }
-        update(dt: number): void {
-            this.redraw()
-        }
-
-    }
-
-    //this.addEntity(new CircleLineIntersectionTest);
+    
 
 
     class MouseRectCollider extends DrawableEntity {

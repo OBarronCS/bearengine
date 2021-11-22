@@ -2,6 +2,7 @@ import type { Graphics } from "shared/graphics/graphics";
 import { clamp } from "shared/misc/mathutils";
 import { Rect } from "../shapes/rectangle";
 import { drawLineBetweenPoints } from "shared/shapes/shapedrawing";
+import { Coordinate } from "shared/shapes/vec2";
 
 export class SpatialGrid<T> {
 
@@ -78,28 +79,28 @@ export class SpatialGrid<T> {
         drawLineBetweenPoints(g,{x: this.worldWidth, y: 0},{x: this.worldWidth, y: this.worldHeight})
         drawLineBetweenPoints(g,{x: 0, y: this.worldHeight},{x: this.worldWidth, y:  this.worldHeight})
 
-		// Draw everything the mouse is over
-		//var x_index = floor(mouse_x / tile_width);
-		//var y_index = floor(mouse_y / tile_height);
-		
-		//if(x_index >= 0 and x_index < grid_width and y_index >= 0 and y_index < grid_height){
-		//	grid[x_index][y_index].forEach(function(e){
-		//		e.draw();
-		//	})
-		//}
+        // Draw everything the mouse is over
+        //var x_index = floor(mouse_x / tile_width);
+        //var y_index = floor(mouse_y / tile_height);
+        
+        //if(x_index >= 0 and x_index < grid_width and y_index >= 0 and y_index < grid_height){
+        //	grid[x_index][y_index].forEach(function(e){
+        //		e.draw();
+        //	})
+        //}
     }
 
     public remove(obj: T): void {
         const aabb = this.AABBFunction(obj);
 
         let left_index = Math.floor(aabb.left / this.tileWidth);
-		let right_index = Math.floor(aabb.right / this.tileWidth);
-		let top_index = Math.floor(aabb.top / this.tileHeight);
-		let bot_index = Math.floor(aabb.bot / this.tileHeight);
-		
-		left_index = clamp(left_index, 0, this.gridWidth - 1);
+        let right_index = Math.floor(aabb.right / this.tileWidth);
+        let top_index = Math.floor(aabb.top / this.tileHeight);
+        let bot_index = Math.floor(aabb.bot / this.tileHeight);
+        
+        left_index = clamp(left_index, 0, this.gridWidth - 1);
         right_index = clamp(right_index, 0, this.gridWidth - 1);   
-		top_index = clamp(top_index, 0, this.gridHeight - 1);
+        top_index = clamp(top_index, 0, this.gridHeight - 1);
         bot_index = clamp(bot_index, 0, this.gridHeight - 1);
         
         // Used for debugging
@@ -124,13 +125,13 @@ export class SpatialGrid<T> {
         const aabb = this.AABBFunction(obj);
 
         let left_index = Math.floor(aabb.left / this.tileWidth);
-		let right_index = Math.floor(aabb.right / this.tileWidth);
-		let top_index = Math.floor(aabb.top / this.tileHeight);
-		let bot_index = Math.floor(aabb.bot / this.tileHeight);
-		
-		left_index = clamp(left_index, 0, this.gridWidth - 1);
+        let right_index = Math.floor(aabb.right / this.tileWidth);
+        let top_index = Math.floor(aabb.top / this.tileHeight);
+        let bot_index = Math.floor(aabb.bot / this.tileHeight);
+        
+        left_index = clamp(left_index, 0, this.gridWidth - 1);
         right_index = clamp(right_index, 0, this.gridWidth - 1);   
-		top_index = clamp(top_index, 0, this.gridHeight - 1);
+        top_index = clamp(top_index, 0, this.gridHeight - 1);
         bot_index = clamp(bot_index, 0, this.gridHeight - 1);
         
         for(let j = left_index; j <= right_index; j++){
@@ -141,6 +142,18 @@ export class SpatialGrid<T> {
         }
     } 
 
+    // Returns an iterable of all the values that lie under a region
+    public point(p: Coordinate): readonly T[] {
+        let x_index = Math.floor(p.x / this.tileWidth);
+        let y_index = Math.floor(p.y / this.tileHeight);
+        
+        x_index = clamp(x_index, 0, this.gridWidth - 1)
+        y_index = clamp(y_index, 0, this.gridWidth - 1)
+
+
+        return this.grid[x_index][y_index];
+    }
+
     // Returns an iterable of all the values that lie in the region
     public region(box: Rect): Iterable<T> {
         // Its a set so there's no repeats. 
@@ -148,22 +161,22 @@ export class SpatialGrid<T> {
         // Or when I've implemented a BST use it here.
         const set = new Set<T>();
 
-		let left_index = Math.floor(box.left / this.tileWidth);
-		let right_index = Math.floor(box.right / this.tileWidth);
-		let top_index = Math.floor(box.top / this.tileHeight);
-		let bot_index = Math.floor(box.bot / this.tileHeight);
-		
-		left_index = clamp(left_index, 0, this.gridWidth - 1)
-		right_index = clamp(right_index, 0, this.gridWidth - 1)
-		top_index = clamp(top_index, 0, this.gridHeight - 1)
-		bot_index = clamp(bot_index, 0, this.gridHeight - 1)
-			
+        let left_index = Math.floor(box.left / this.tileWidth);
+        let right_index = Math.floor(box.right / this.tileWidth);
+        let top_index = Math.floor(box.top / this.tileHeight);
+        let bot_index = Math.floor(box.bot / this.tileHeight);
+        
+        left_index = clamp(left_index, 0, this.gridWidth - 1)
+        right_index = clamp(right_index, 0, this.gridWidth - 1)
+        top_index = clamp(top_index, 0, this.gridHeight - 1)
+        bot_index = clamp(bot_index, 0, this.gridHeight - 1)
+            
         // Goes through all grid boxes in the bounding box,
         // adds all items in them to the iterable
-		for(let j = left_index; j <= right_index; j++){
-			for(let k = top_index; k <= bot_index; k++){
+        for(let j = left_index; j <= right_index; j++){
+            for(let k = top_index; k <= bot_index; k++){
                 const list = this.grid[j][k];
-				for(let i = 0; i < list.length; i++){
+                for(let i = 0; i < list.length; i++){
                     const obj = list[i];
                     set.add(obj);
                 }

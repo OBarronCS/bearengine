@@ -1,5 +1,5 @@
 import { Graphics, Sprite } from "shared/graphics/graphics";
-import { ColliderPart } from "shared/core/entityattribute";
+import { ColliderPart } from "shared/core/entitycollision";
 import { bearevent } from "shared/core/bearevents";
 import { EntitySystem } from "shared/core/entitysystem";
 import { TiledMap } from "shared/core/tiledmapeditor";
@@ -12,10 +12,14 @@ import { SpritePart } from "../core-engine/parts";
 import { Player } from "./player";
 import { Polygon } from "shared/shapes/polygon";
 import { Emitter } from "shared/graphics/particles";
-import { PARTICLE_CONFIG } from "../core-engine/particles";
+import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparticles";
 import { TickTimer } from "shared/datastructures/ticktimer";
 import { Line } from "shared/shapes/line";
-import { drawVecAsArrow } from "shared/shapes/shapedrawing";
+import { drawCircle, drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "shared/shapes/shapedrawing";
+import { ItemDrawer } from "../core-engine/clientitems";
+import { BoostZone } from "./boostzone";
+
+
 
 
 
@@ -45,43 +49,72 @@ export class FirstLevel extends GameLevel {
     
     path: string | TiledMap = "assets/firsttest.json";
 
+    // subset = this.game.entities.createSubset();
 
+            
     private emitter: Emitter;
 
     update(dt: number): void {
-        this.emitter.updateSpawnPos(this.engine.mouse.x, this.engine.mouse.y);
-        if(this.engine.mouse.isDown("left")){
+        // this.emitter.updateSpawnPos(this.engine.mouse.x, this.engine.mouse.y);
+        // if(this.engine.mouse.isDown("left")){
 
-            const e = new PhysicsDotEntity(this.engine.mouse, "vector.jpg");
-            e.velocity.set(this.engine.mouse.velocity.clone().scale(.2))
-            e.velocity.set({x:30,y:10})
-            this.game.entities.addEntity(e)
-        }
+        //     const e = new PhysicsDotEntity(this.engine.mouse, "vector.jpg");
+        //     e.velocity.set(this.engine.mouse.velocity.clone().extend(20))//scale(.2))
+        //     console.log(e.velocity.length())
+        //     this.game.entities.addEntity(e)
+
+        //     // this.subset.clear()
+        // }
         // this.p.manualUpdate(dt);
+        // this.h.position.set(this.engine.mouse);
     }
 
     private p;
 
-    start(): void {
-        this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["BOOM"], 0,0);
+    private h: BoostZone;
 
-        // this.p = this.game.entities.addEntity(new Player())
+    start(): void {
+        const scene = this.game.entities;
+
+        class CircleLineIntersectionTest extends DrawableEntity {
+        
+            private circle = new Vec2(0,0);
+            
+            private point = new Vec2(0,0);
+    
+            draw(g: Graphics): void {
+                drawCircle(g, this.circle, 50)
+    
+                if(this.mouse.wasPressed("right")) { 
+                    this.circle.x = this.mouse.x;
+                    this.circle.y = this.mouse.y;
+                }
+                if(this.mouse.wasPressed("left")) this.point = this.mouse.position.clone();
+    
+                const otherPoint = this.mouse.position.clone();
+    
+                drawLineBetweenPoints(g,this.point,otherPoint);
+    
+                const points = Line.CircleLineIntersection(this.point, otherPoint, this.circle.x, this.circle.y, 50);
+                
+                for(const point of points.points){
+                    drawPoint(g,point);
+                }
+            }
+            update(dt: number): void {
+                this.redraw()
+            }
+    
+        }
+    
+        // scene.addEntity(new CircleLineIntersectionTest);
+
+        // this.p = scene.addEntity(new Player());
+
+        // this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["BOOM"], 0,0);
         
         // scene.addEntity(new PolygonExpandTest)
-        //const p = scene.addEntity(new Player());
-
-        class Test7 extends Entity {
-
-            private a = this.addPart(new ColliderPart(dimensions(10,10), Vec2.ZERO));
-            // private dd = this.addPart(new ColliderPart(dimensions(10,10), Vec2.ZERO));
-
-            update(dt: number): void {
-
-            }
-
-        }
-
-        //scene.addEntity(new Test7())
+    
 
         // class TestEntityForVideo extends Entity {
 
@@ -132,14 +165,14 @@ export class FirstLevel extends GameLevel {
 
         //scene.addEntity(new SuperTest());
 
-        class OtherTest extends GMEntity {
-            constructor(){
-                super({x: 400, y: 400}, "test2.png", dimensions(20,20));
-            }
-            update(dt: number): void {
+        // class OtherTest extends GMEntity {
+        //     constructor(){
+        //         super({x: 400, y: 400}, "bullet.png", dimensions(20,20));
+        //     }
+        //     update(dt: number): void {
                
-            }
-        }
+        //     }
+        // }
 
         //scene.addEntity(new OtherTest());
 
@@ -158,7 +191,7 @@ export class FirstLevel extends GameLevel {
 
 
     end(): void {
-        this.emitter.destroy();
+        // this.emitter.destroy();
     }
    
 }
@@ -168,6 +201,8 @@ export class FirstLevel extends GameLevel {
 export class PhysicsDotEntity extends DrawableEntity {
     
     private sprite: SpritePart;
+    
+    private slow_factor = 0.7;
 
 
     velocity = new Vec2(0,0);
@@ -187,7 +222,6 @@ export class PhysicsDotEntity extends DrawableEntity {
 
         this.sprite.originPercent = new Vec2(.5, .5);
     }
-
 
 
     draw(g: Graphics): void {
@@ -234,18 +268,20 @@ export class PhysicsDotEntity extends DrawableEntity {
                 // Set my position to colliding point, then do more logic later
                 this.position.set(last_test.point);
 
-                // Bounce off of wall, set elocity
+                // Bounce off of wall, set velocity
                 Vec2.bounce(this.velocity, last_test.normal, this.velocity);
 
                 const lastStretchVel = this.velocity.clone().normalize().scale(distanceAfterBounce);
 
+                // Slows done
+                this.velocity.scale(this.slow_factor);
+
+                distanceToMove -= distanceToPoint;
+                distanceToMove *= this.slow_factor;
+
+
+                // Move forward
                 const bounce_test = this.terrain.lineCollisionExt(this.position, Vec2.add(this.position, lastStretchVel));
-
-                distanceToMove *= .7;
-                this.velocity.scale(.7);
-
-                distanceToMove -= lastStretchVel.length();
-
 
                 if(bounce_test === null || bounce_test.normal.equals(last_test.normal) ){
                     this.position.add(lastStretchVel);
@@ -254,12 +290,8 @@ export class PhysicsDotEntity extends DrawableEntity {
                     break;
                 }
 
-                last_test = bounce_test
-
-                
+                last_test = bounce_test   
             }
-
-            
         }
 
         

@@ -76,6 +76,7 @@ export class Vec2 {
         return (vec1.x * vec2.x) + (vec1.y * vec2.y);
     }
 
+    /** Mutates targets. Assumes both are normalized */
     static bounce(vec: Coordinate, normal: Coordinate, target: Vec2 = new Vec2(0,0)): Vec2 {
         const dot = 2 * Vec2.dot(vec,normal);
         target.x = vec.x - dot * normal.x;
@@ -220,6 +221,10 @@ export class Vec2 {
 
     toString(){
         return this.x + "," + this.y
+    }
+
+    toCoordinate(): Coordinate {
+        return { x:this.x, y: this.y };
     }
 
     equals(vec: Coordinate){

@@ -1,8 +1,9 @@
 import { assert } from "shared/misc/assertstatements";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { GamePacket } from "./packetdefinitions";
-import { areEqualSorted, containsDuplicates } from "shared/datastructures/arrayutils";
-import { DefineSchema, DeserializeTypedVar, NetworkVariableTypes, SerializeTypedVar, SharedTemplates, TypescriptTypeOfNetVar } from "./serialization";
+import { areEqualSorted, arrayDifference, arrayDuplicates, containsDuplicates } from "shared/datastructures/arrayutils";
+import { DefineSchema, DeserializeTypedVar, netv, NetworkVariableTypes, SerializeTypedVar, SharedTemplates, TypescriptTypeOfNetVar } from "./serialization";
+import { BulletEffects, SimpleWeaponControllerDefinition } from "./weapondefinitions";
 
 
 export abstract class PacketWriter {
@@ -21,6 +22,7 @@ export abstract class PacketWriter {
 interface SharedNetworkEntityFormat {
     [key: string] : {
         // create: (...args: any[]) => void;
+        extends: string | null
         events: {
             [key: string] : {
                 argTypes: readonly [...NetworkVariableTypes[]],
@@ -35,22 +37,102 @@ interface SharedNetworkEntityFormat {
 
 /** Linking networked entity classes */
 export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntityFormat>()({    
-    "bullet": {
-        create: () => void 0,
+    "item_entity": {
+        extends: null,
         variables: {
-            _pos: { type:"vec2", subtype: "float" },
-            test: { type: "number", subtype: "float"},
-            // _x: {type:"string"},
+            item_id: netv.uint8(),
+            pos: netv.vec2("float")
         },
+        events: {}
+    },
+    
+    "weapon_item": {
+        extends: null,
+        static: {
+            shoot_controller: null as SimpleWeaponControllerDefinition,
+        },
+        variables: {
+            capacity: netv.uint32(),
+            reload_time: netv.uint32(),
+            ammo: netv.uint32()
+        },
+        events: {}
+    },
+    "projectile_weapon": {
+        extends: "weapon_item",
+        static:{
+            shot_name: null as string, //keyof typeof PROJECTILE_SHOT_DATA --> makes a circular reference
+            initial_speed: null as number
+        },
+        variables: {
+            
+        },
+        events: {},
+    },
+    "hitscan_weapon": {
+        extends: "weapon_item",
+        variables: {
+            
+        },
+        events: {},
+    },
+    "projectile_bullet":{
+        static:{
+            bullet_effects: null as BulletEffects[],
+        },
+        variables:{
+            velocity: netv.vec2("float"),
+        },
+        extends:null,
         events: {
-            testEvent7: {
-                argTypes: [{ type: "template", subtype: SharedTemplates.ONE}, {type:"number", subtype:"uint8"}],
-                callback: (point, testNumber) => void 0,
-            },
+            changeTrajectory: {
+                argTypes:[netv.uint32(),netv.vec2("double"), netv.vec2("double")],
+                callback:(server_time, position, velocity) => void 0
+            }
         }
     },
+    "forcefield_item": {
+        extends: null,
+        static: {
+            radius:null as number
+        },
+        variables: {
+            
+        },
+        events: {},
+    },
+    "forcefield_effect": {
+        extends: null,
+        static: {
+
+        },
+        variables: {
+            radius:netv.uint32(),
+            player_id:netv.uint8()
+        },
+        events: {
+
+        }
+    },
+    "laser_tripmine":{
+        extends: null,
+        static: {
+
+        },
+        variables:{
+            __position: netv.vec2("double"),
+            direction: netv.vec2("double")
+        },
+        events:{
+            // stick: {
+            //     argTypes:[netv.vec2("double")],
+            //     callback: (position) => void 0,
+            // }
+        },
+    },
+
     "ogre": {
-        create: () => void 0,
+        extends: null,
         variables: {
             _x: {type:"number", subtype: "float"},
             asdasd: {type:"number", subtype: "float"},
@@ -60,6 +142,25 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
 
         }
     },
+    
+    "test_super": {
+        extends: null,
+        variables: {
+            "supervar":netv.uint32()
+        },
+        events: {
+
+        }
+    },
+    "test_sub": {
+        extends: "test_super",
+        variables: {
+            "subvar":netv.string()
+        },
+        events: {
+
+        }
+    }
 } as const);
 
 export type SharedNetworkedEntities = typeof SharedNetworkedEntityDefinitions;
@@ -123,6 +224,36 @@ type AllNetworkedVariablesWithTypes = {
 }
 
 
+/***
+ * Code to do with serialization shared entities
+ */
+
+/** Takes into account inheritance. Returns all variables for a given entity */
+
+
+
+function __GetSharedEntityVariables(name: keyof SharedNetworkedEntities): { variableName: string, type: NetworkVariableTypes }[] {
+
+    const allvarnames: string[] = [...Object.keys(SharedNetworkedEntityDefinitions[name]["variables"])];
+
+    const allvars_withtypes: { variableName: string, type: NetworkVariableTypes }[] = allvarnames.map(e => { 
+        return { variableName: e, type: SharedNetworkedEntityDefinitions[name]["variables"][e] }
+    });
+
+    const parent = SharedNetworkedEntityDefinitions[name]["extends"];
+    if(parent !== null && parent !== ""){
+
+        allvars_withtypes.push(...__GetSharedEntityVariables(parent));
+
+    }
+
+    // Sorts all variables alphabetically
+    allvars_withtypes.sort((a,b) => a.variableName.localeCompare(b.variableName));
+
+    return allvars_withtypes;
+}
+
+
 const orderedSharedEntities: (keyof typeof SharedNetworkedEntityDefinitions)[] = Object.keys(SharedNetworkedEntityDefinitions).sort() as any;
 
 const sharedNameToIDLookup = new Map<keyof typeof SharedNetworkedEntityDefinitions, number>();
@@ -135,12 +266,17 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
     sharedIDToNameLookup[i] = orderedSharedEntities[i];
 }
 
-// Index is shared index
 
+
+
+
+
+// Index is shared index
 const orderedSharedEntityVariables: {variableName: keyof AllNetworkedVariablesWithTypes, type: NetworkVariableTypes}[][] = [];
 for(let i = 0; i < orderedSharedEntities.length; i++){
 
     const sharedName = sharedIDToNameLookup[i];
+
     const variableStruct = SharedNetworkedEntityDefinitions[sharedName]["variables"]
     
     const orderedVariables: (keyof AllNetworkedVariablesWithTypes)[] = Object.keys(variableStruct).sort() as any;
@@ -156,6 +292,21 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
 
     orderedSharedEntityVariables[i] = arr;
 }
+
+
+
+// Includes all inherited variables as well. Index is shared index
+const AllOrderedSharedEntityVariables: {variableName: keyof AllNetworkedVariablesWithTypes, type: NetworkVariableTypes}[][] = [];
+for(let i = 0; i < orderedSharedEntities.length; i++){
+
+    const sharedName = sharedIDToNameLookup[i];
+    const vars = __GetSharedEntityVariables(sharedName);
+    //@ts-expect-error
+    AllOrderedSharedEntityVariables[i] = vars;
+   
+}
+    
+
 
 
 const orderedSharedEntityEvents: {eventName: string, argtypes: NetworkVariableTypes[]}[][] = [];
@@ -197,15 +348,18 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
 
 
 
+
+
+
 export const SharedEntityLinker = {
 
     validateNames(names: (keyof SharedNetworkedEntities)[]){
-        assert(!containsDuplicates(names), "Duplicate entity definitions!");
+        assert(!containsDuplicates(names),`Duplicate entity definitions: ${arrayDuplicates(names)}`);
 
         // console.log(names);
         // console.log(orderedSharedEntities);
 
-        assert(areEqualSorted(orderedSharedEntities, names), "Entity amount mismatch");
+        assert(areEqualSorted(orderedSharedEntities, names), `Entity amount mismatch: ${arrayDifference(orderedSharedEntities,names)}`);
     },
 
     // Makes sure all the variables are present
@@ -267,7 +421,7 @@ export const SharedEntityLinker = {
         return sharedNameToIDLookup.get(name);
     },
     sharedIDToVariables(id: number){
-        return orderedSharedEntityVariables[id];
+        return AllOrderedSharedEntityVariables[id];
     }
 }
 
@@ -361,36 +515,5 @@ export const RemoteFunctionLinker = {
 
 
 
-
-//#region RESOURCE LINKING
-export const RemoteResources = {
-    LEVEL_ONE: "firsttest.json",
-    LEVEL_TWO: "secondlevel.json",
-} as const;
-
-const orderedResources: (keyof typeof RemoteResources)[] = Object.keys(RemoteResources).sort() as any;
-
-const resourceToIDLookup = new Map<keyof typeof RemoteResources, number>();
-for(let i = 0; i < orderedResources.length; i++){
-    resourceToIDLookup.set(orderedResources[i],i);
-}
-
-const IDToResourceLookup: (keyof typeof RemoteResources)[] = [];
-for(let i = 0; i < orderedResources.length; i++){
-    IDToResourceLookup[i] = orderedResources[i];
-}
-
-export const RemoteResourceLinker = {
-    // Used on server side
-    getIDFromResource(name: keyof typeof RemoteResources): number {
-        return resourceToIDLookup.get(name);
-    },
-
-    // Used on client side
-    getResourceFromID(id: number): string {
-        return RemoteResources[IDToResourceLookup[id]];
-    },
-}
-//#endregion
 
 

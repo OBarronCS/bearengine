@@ -30,6 +30,20 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
     private complete_buffers: TextGapBuffer[] = [];
     private selected_index = 0;
 
+    private autocomplete_info = {
+        suggesting: false,
+
+        selected_suggestion_index: 0,
+
+        current_command: "",
+        current_effective_word: "",
+        current_effective_word_minus_index: 0,
+
+        current_argument_index: 0,
+        options: [] as string[]
+    };
+
+
     
     private current_text_buffer = new TextGapBuffer(MAX_MESSAGE_SIZE);
 
@@ -49,6 +63,9 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
 
     
     private text_field = new Text("", this.text_style);
+    
+    private auto_complete_text_field = new Text("", this.text_style);
+    private selected_autocomplete_box = new Graphics();
 
     private box = new Graphics();
 
@@ -62,10 +79,15 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
         this.text_field.x = 10;
         this.container.addChild(this.text_field);
 
+        this.auto_complete_text_field.x = 10;
+        this.container.addChild(this.auto_complete_text_field);
+
+
         this.container.y = this.engine.renderer.getPercentHeight(1) - this.height;
         this.container.visible = false;
-        this.container.addChild(this.box);
         
+        this.container.addChild(this.box);
+        this.container.addChild(this.selected_autocomplete_box);
         this.container.addChild(this.cursor);
 
         // const y = this.engine.renderer.getPercentHeight(1) - this.height;
@@ -73,6 +95,9 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
         this.box.alpha = .56;
         this.box.beginFill(0x9492a1);
         this.box.drawRect(0, 0, this.engine.renderer.getPercentWidth(1), this.height)
+
+        this.selected_autocomplete_box.alpha = .56;
+        this.selected_autocomplete_box.beginFill(0x9492a1);
         
         // console.log(this.box.position)
 
@@ -91,6 +116,47 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
         }
     }
 
+    private stopSuggesting(){
+        this.autocomplete_info.suggesting = false;
+
+        this.autocomplete_info.current_command = "";
+        this.autocomplete_info.current_effective_word = "";
+        this.autocomplete_info.current_effective_word_minus_index = 0;
+
+        this.autocomplete_info.current_argument_index = 0;
+        this.autocomplete_info.selected_suggestion_index = 0;
+    }
+
+    private calculateSuggestionInfo(){
+        this.autocomplete_info.selected_suggestion_index = 0;
+        const all_text = this.current_text_buffer.createString();
+
+        if(all_text === "") return;
+
+        const all_words = all_text.split(" "); 
+                
+        let options: string[];
+
+        let latest_word: string = all_words[all_words.length - 1];
+        if(all_words.length === 1 && latest_word.length > 0 && latest_word[0] === "/") { 
+            latest_word = latest_word.substring(1);
+            options = this.game.networksystem.command_autocomplete.all_commands.autocomplete(latest_word);
+        } else {
+            const command = all_words[0].substring(1);
+            const trie_array = this.game.networksystem.command_autocomplete.command_arguments.get(command);
+
+            if(trie_array){
+                options = trie_array[0].autocomplete(latest_word);
+            }
+
+            
+        }
+
+        this.autocomplete_info.options = options || [];
+
+        console.log(options);
+    }
+
     update(delta: number): void {
 
         if(this.engine.keyboard.wasPressed("Slash") && !this.engine.keyboard.isDown("ShiftLeft")){
@@ -103,99 +169,144 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
         if(this.enabled){
             const press_info = this.engine.keyboard.pressedKeyInfo();
 
-            
-            for(const info of press_info){
-                switch(info.code){
-                    case "ArrowUp": {
-                        this.selected_index -= 1;
-                        if(this.selected_index < 0) this.selected_index = 0;
+            if(this.engine.keyboard.isDown("ControlLeft") && this.engine.keyboard.wasPressed("Space")){
+                if(this.autocomplete_info.suggesting){
+                    this.stopSuggesting();
 
+                } else {
+                    this.autocomplete_info.suggesting = true;
 
-                        break;
-                    }
+                    this.calculateSuggestionInfo();
+                }
+                
+            } else {
+        
+                for(const info of press_info){
+                    switch(info.code){
+                        case "ArrowUp": {
+                            if(this.autocomplete_info.suggesting) {
+                                this.autocomplete_info.selected_suggestion_index += 1;
+                                if(this.autocomplete_info.selected_suggestion_index === this.autocomplete_info.options.length) this.autocomplete_info.selected_suggestion_index = this.autocomplete_info.options.length - 1;
+                            } else {
+                                this.selected_index -= 1;
+                                if(this.selected_index < 0) this.selected_index = 0;
+                            }
 
-                    case "ArrowDown": {
-                        this.selected_index += 1;
-                        if(this.selected_index > this.complete_buffers.length) this.selected_index = this.complete_buffers.length;
-
-                        break;
-                    }
-
-                    case "ArrowLeft": { 
-                        this.setSelectedBufferToCurrent();
-
-                        if(this.engine.keyboard.isDown("ControlLeft")){
-                            this.current_text_buffer.wordLeft()
-                        } else { 
-                            this.current_text_buffer.cursorLeft(); 
+                            break;
                         }
 
-                        break;
-                    }
-                    case "ArrowRight": {
-                        this.setSelectedBufferToCurrent();
+                        case "ArrowDown": {
+                            if(this.autocomplete_info.suggesting) {
+                                this.autocomplete_info.selected_suggestion_index -= 1;
+                                if(this.autocomplete_info.selected_suggestion_index < 0) this.autocomplete_info.selected_suggestion_index = 0;
+                            } else {
+                                this.selected_index += 1;
+                                if(this.selected_index > this.complete_buffers.length) this.selected_index = this.complete_buffers.length;
+                            }
 
-                        if(this.engine.keyboard.isDown("ControlLeft")){
-                            this.current_text_buffer.wordRight()
-                        } else { 
-                            this.current_text_buffer.cursorRight(); 
+                            break;
                         }
 
-                        break;
-                    }
-                    case "Backspace": {
-                        this.setSelectedBufferToCurrent();
+                        case "ArrowLeft": { 
+                            this.stopSuggesting()
 
-                        if(this.engine.keyboard.isDown("ControlLeft")){
-                            this.current_text_buffer.deleteWord();
-                        } else {
-                            this.current_text_buffer.deleteChar();
+                            this.setSelectedBufferToCurrent();
+
+                            if(this.engine.keyboard.isDown("ControlLeft")){
+                                this.current_text_buffer.wordLeft()
+                            } else { 
+                                this.current_text_buffer.cursorLeft(); 
+                            }
+
+                            break;
                         }
-                        break;
-                    }
-                    case "Enter": {
-                        this.setSelectedBufferToCurrent();
+                        case "ArrowRight": {
+                            this.stopSuggesting();
 
-                        const word = this.current_text_buffer.createString();
+                            this.setSelectedBufferToCurrent();
 
-                        if(word.length <= 255){
-                            this.game.networksystem.enqueueGeneralPacket(
-                                new ServerBoundChatRequestPacket(word)
-                            )
+                            if(this.engine.keyboard.isDown("ControlLeft")){
+                                this.current_text_buffer.wordRight()
+                            } else { 
+                                this.current_text_buffer.cursorRight(); 
+                            }
+
+                            break;
                         }
+                        case "Backspace": {
+                            this.setSelectedBufferToCurrent();
 
-                        this.complete_buffers.push(this.current_text_buffer);
+                            if(this.engine.keyboard.isDown("ControlLeft")){
+                                this.current_text_buffer.deleteWord();
+                            } else {
+                                this.current_text_buffer.deleteChar();
+                            }
 
-                        this.current_text_buffer = new TextGapBuffer(MAX_MESSAGE_SIZE);
+                            this.calculateSuggestionInfo();
+                            break;
+                        }
+                        case "Enter": {
+                            if(this.autocomplete_info.suggesting){
+                                if(this.autocomplete_info.options[this.autocomplete_info.selected_suggestion_index]){
+                                    for(const c of this.autocomplete_info.options[this.autocomplete_info.selected_suggestion_index])
+                                        this.current_text_buffer.insertChar(c.charCodeAt(0))
+                                }
 
-                        this.selected_index = this.complete_buffers.length;
+                                this.stopSuggesting();
+    
+                            } else {
+                                
+                                this.setSelectedBufferToCurrent();
+                                
+                                const word = this.current_text_buffer.createString();
+                                
+                                if(word.length <= 255){
+                                    this.game.networksystem.enqueueGeneralPacket(
+                                        new ServerBoundChatRequestPacket(word)
+                                    )
+                                }
+                                    
+                                this.complete_buffers.push(this.current_text_buffer);
+                                
+                                this.current_text_buffer = new TextGapBuffer(MAX_MESSAGE_SIZE);
+                                
+                                this.selected_index = this.complete_buffers.length;
+                                
+                                
+                                // for(const buffer of this.complete_buffers){
+                                //     console.log(buffer.createString())
+                                // }
+                                    
+                                this.enabled = false;
+                                this.container.visible = false;
+     
+                            }
 
+                            break;
+                        }
+                        default: {
+                            
+                            // console.log(info);
 
-                        // for(const buffer of this.complete_buffers){
-                        //     console.log(buffer.createString())
-                        // }
+                            this.setSelectedBufferToCurrent()
 
-                        this.enabled = false;
-                        this.container.visible = false;
+                            if(info.char.length === 1 && StringIsPrintableASCII(info.char)){
+                                this.current_text_buffer.insertChar(info.char.charCodeAt(0));
 
-                        break;
-                    }
-                    default: {
-                        
-                        // console.log(info);
-
-                        this.setSelectedBufferToCurrent()
-
-                        if(info.char.length === 1 && StringIsPrintableASCII(info.char)){
-                            this.current_text_buffer.insertChar(info.char.charCodeAt(0));
+                                this.calculateSuggestionInfo();
+                            }
                         }
                     }
                 }
 
             }
 
+            
+
             // Update text if something was pressed
             if(press_info.length !== 0){
+
+
 
                 
                 const buffer = this.selected_index === this.complete_buffers.length ? this.current_text_buffer : this.complete_buffers[this.selected_index];
@@ -203,6 +314,19 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
                 this.text_field.text = buffer.createString();
 
                 this.text_metrics = TextMetrics.measureText(this.text_field.text.substring(0,buffer["endLeft"]), this.text_style);
+            
+                if(this.autocomplete_info.suggesting){
+                    this.selected_autocomplete_box.clear();
+                    this.auto_complete_text_field.text = this.autocomplete_info.options.slice().reverse().join("\n")
+                    this.auto_complete_text_field.x = this.text_metrics.width + this.text_field.x
+                    this.auto_complete_text_field.y = -this.autocomplete_info.options.length * this.text_metrics.height;
+
+                    this.selected_autocomplete_box.beginFill(0x0F0F0F)
+                    this.selected_autocomplete_box.drawRect(this.auto_complete_text_field.x, -(this.text_metrics.height) + -(this.text_metrics.height) * (this.autocomplete_info.selected_suggestion_index), 100, this.text_metrics.height);
+                } else {
+                    this.auto_complete_text_field.text = "";
+                    this.selected_autocomplete_box.clear();
+                }
             }
 
             // Draw cursors at correct spot 

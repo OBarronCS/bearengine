@@ -1,11 +1,12 @@
 import { StreamWriteEntityID } from "shared/core/entitysystem";
-import { ItemType } from "shared/core/sharedlogic/items";
 import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
-import { SerializeTypedVar } from "shared/core/sharedlogic/serialization";
+import { GetTemplateRealType, netv, SerializeTypedArray, SerializeTypedVar, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums";
+import { ItemActionType } from "shared/core/sharedlogic/weapondefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { Vec2 } from "shared/shapes/vec2";
+import { SBaseItem } from "../weapons/serveritems";
 import { ConnectionID } from "./serversocket";
 
 
@@ -98,7 +99,17 @@ export class InitPacket extends PacketWriter {
 }
 
 
+export class DeclareCommandsPacket extends PacketWriter {
 
+    constructor(public struct: GetTemplateRealType<typeof SharedTemplates["COMMANDS"]>[]){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.DECLARE_COMMANDS);
+        SerializeTypedArray(stream, netv.template(SharedTemplates["COMMANDS"].format), this.struct)
+    }
+}
 
 
 export class ServerIsTickingPacket extends PacketWriter {
@@ -199,9 +210,11 @@ export class PlayerEntityCompletelyDeletePacket extends PacketWriter {
 }
 
 
+// This has a potential for an error, because the data could have changed
+// while the game logic assumes the data does not change after the item is passed int
 export class SetInvItemPacket extends PacketWriter {
 
-    constructor(public itemID: number){
+    constructor(public itemID: number, public item: SBaseItem<any>){
         super(false);
     }
 
@@ -209,6 +222,27 @@ export class SetInvItemPacket extends PacketWriter {
         stream.setUint8(GamePacket.SET_INV_ITEM);
         stream.setUint8(this.itemID);
 
+        const SHARED_ID = this.item.constructor["SHARED_ID"];
+
+        const variableslist = SharedEntityLinker.sharedIDToVariables(SHARED_ID);
+
+        for(const variable of variableslist){
+
+            //@ts-expect-error
+            SerializeTypedVar(stream, variable.type, this.item[variable.variableName]);
+        }
+
+    }
+}
+
+export class ClearInvItemPacket extends PacketWriter {
+
+    constructor(){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.CLEAR_INV_ITEM);
     }
 }
 
@@ -306,6 +340,27 @@ export class TerrainCarveCirclePacket extends PacketWriter {
     }
 }
 
+export class ForceFieldEffectPacket extends PacketWriter {
+
+    constructor(public playerID: number, public serverShotID: number, public createServerTick: number,  public start: Vec2){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.SHOOT_WEAPON);
+        stream.setUint8(this.playerID);
+
+        stream.setUint8(ItemActionType.FORCE_FIELD_ACTION);
+
+
+        stream.setUint32(this.serverShotID);
+        
+        stream.setFloat32(this.createServerTick);
+
+        stream.setFloat32(this.start.x);
+        stream.setFloat32(this.start.y);
+    }
+}
 
 export class HitscanShotPacket extends PacketWriter {
 
@@ -316,7 +371,8 @@ export class HitscanShotPacket extends PacketWriter {
     write(stream: BufferStreamWriter){
         stream.setUint8(GamePacket.SHOOT_WEAPON);
         stream.setUint8(this.playerID);
-        stream.setUint8(ItemType.HITSCAN_WEAPON);
+
+        stream.setUint8(ItemActionType.HIT_SCAN);
 
 
         stream.setUint32(this.serverShotID);
@@ -333,16 +389,16 @@ export class HitscanShotPacket extends PacketWriter {
 }
 
 
-export class TerrainCarverShotPacket extends PacketWriter {
+export class ProjectileShotPacket extends PacketWriter {
 
-    constructor(public playerID: number, public serverShotID: number, public createServerTick: number, public start: Vec2, public velocity: Vec2){
+    constructor(public playerID: number, public serverShotID: number, public createServerTick: number, public start: Vec2, public velocity: Vec2, public shot_prefab_id: number, public entity_id: number){
         super(false);
     }
 
     write(stream: BufferStreamWriter){
         stream.setUint8(GamePacket.SHOOT_WEAPON);
         stream.setUint8(this.playerID);
-        stream.setUint8(ItemType.TERRAIN_CARVER);
+        stream.setUint8(ItemActionType.PROJECTILE_SHOT);
 
         stream.setUint32(this.serverShotID);
         
@@ -353,6 +409,9 @@ export class TerrainCarverShotPacket extends PacketWriter {
 
         stream.setFloat32(this.velocity.x);
         stream.setFloat32(this.velocity.y);
+
+        stream.setUint8(this.shot_prefab_id);
+        StreamWriteEntityID(stream, this.entity_id);
     }
 }
 
@@ -360,7 +419,7 @@ export class TerrainCarverShotPacket extends PacketWriter {
 
 export class AcknowledgeShotPacket extends PacketWriter {
 
-    constructor(private success: boolean, private localID: number, private serverID: number){
+    constructor(private success: boolean, private localID: number, private serverID: number, public entityID: number){
         super(false);
     }
 
@@ -370,6 +429,7 @@ export class AcknowledgeShotPacket extends PacketWriter {
         stream.setBool(this.success);
         stream.setUint32(this.localID);
         stream.setUint32(this.serverID);
+        StreamWriteEntityID(stream, this.entityID);
     }
 }
 

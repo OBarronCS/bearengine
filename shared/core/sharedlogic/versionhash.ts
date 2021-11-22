@@ -1,5 +1,8 @@
-import { RemoteFunctionStruct, RemoteResources, SharedNetworkedEntityDefinitions } from "./networkschemas";
+import { LevelRef } from "./assetlinker";
+import { MIGRATED_ITEMS } from "./items";
+import { RemoteFunctionStruct, SharedNetworkedEntityDefinitions } from "./networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "./packetdefinitions";
+import { PROJECTILE_SHOT_DATA } from "./weapondefinitions";
 
 /*
 need to add:
@@ -102,9 +105,12 @@ function CreateHash(manual: number): bigint {
     hash += EnumHash(ServerImmediatePacket);
     hash += EnumHash(ServerBoundPacket);
 
-    hash += ObjectHash(RemoteResources);
+    hash += ObjectHash(LevelRef);
     hash += ObjectHash(RemoteFunctionStruct);
-    hash += ObjectHash(SharedNetworkedEntityDefinitions)
+    hash += ObjectHash(SharedNetworkedEntityDefinitions);
+    
+    hash += ObjectHash(MIGRATED_ITEMS);
+    // hash += ObjectHash(PROJECTILE_SHOT_DATA);
 
     // Approximate number of bits needed to represent it: 
     // console.log("Number of bits in hash:", Math.log2(Number(hash)))
