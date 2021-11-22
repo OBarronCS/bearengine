@@ -17,6 +17,8 @@ import { NULL_ENTITY_INDEX } from "shared/core/entitysystem";
 import { ITEM_LINKER, MIGRATED_ITEMS, Test } from "shared/core/sharedlogic/items";
 import { SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 import { EntityID } from "shared/core/abstractentity";
+import { Rect } from "shared/shapes/rectangle";
+import { Ellipse } from "shared/shapes/ellipse";
 
 export class SBaseItem<T extends keyof SharedNetworkedEntities> extends ServerEntity {
 
@@ -151,7 +153,7 @@ export class ForceFieldEffect extends ServerEntity {
 
 
 interface GunAddon {
-    modifyShot: (bullet: ModularBullet) => void,
+    modifyShot: (bullet: ServerProjectileBullet) => void,
     [key: string]: any; // allow for random data
 }
 
@@ -196,9 +198,12 @@ export function ServerShootHitscanWeapon(game: ServerBearEngine, shotID: number,
 
 }
 
+//@ts-expect-error
 @networkedclass_server("projectile_bullet")
-class ModularBullet extends Effect<ServerBearEngine> {
+class ServerProjectileBullet extends Effect<ServerBearEngine> {
     
+
+
     stateHasBeenChanged = false;
     markDirty(): void {
         this.stateHasBeenChanged = true;
@@ -211,14 +216,20 @@ class ModularBullet extends Effect<ServerBearEngine> {
     @sync("projectile_bullet").var("velocity")
     velocity = new Vec2(0,0);
 
-    constructor(){
+    circle: Ellipse;
+
+    constructor(circle: Ellipse, public creatorID: number){
         super();
+
+        this.circle = circle;
 
         // Is immediately destroyed if starts at (0,0)
         this.position.add({x:1,y:1});
     
         this.onUpdate(function(dt: number){
-            this.position.add(this.velocity)
+            this.position.add(this.velocity);
+            this.circle.position.set(this.position);
+
             if(!this.game.activeScene.levelbbox.contains(this.position)){
                 this.destroy();
             }
@@ -231,9 +242,9 @@ class ModularBullet extends Effect<ServerBearEngine> {
 } 
 
 
-export function ServerShootProjectileWeapon(game: ServerBearEngine, shotID: number, position: Vec2, velocity: Vec2, shot_prefab_id: number): ModularBullet {
+export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: number, shotID: number, position: Vec2, velocity: Vec2, shot_prefab_id: number): ServerProjectileBullet {
 
-    const bullet = new ModularBullet();
+    const bullet = new ServerProjectileBullet(new Ellipse(new Vec2(),20,20), creatorID);
 
     bullet.position.set(position);
     bullet.velocity.set(velocity);
@@ -241,7 +252,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, shotID: numb
     // Bouncing off of forcefields
     bullet.onUpdate(function(dt){
                             
-        const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone().extend(50)));
+        const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone()));
         
         for(const entity of this.game.entities.entities){
             if(entity instanceof ForceFieldEffect){
@@ -272,6 +283,15 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, shotID: numb
                 }
             }
         }
+
+        for(const player of this.game.activeScene.activePlayerEntities.values()){
+            if(player.connectionID === this.creatorID) continue;
+            const point = Line.PointClosestToLine(line.A, line.B, player.position);
+            if(Vec2.distanceSquared(player.position, point) < 30 * 30 ){
+                player.health -= 10;
+                this.destroy();
+            }
+        }
     })
 
     const shot_data = SHOT_LINKER.IDToData(shot_prefab_id);
@@ -282,7 +302,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, shotID: numb
         // Only add terrain hitting ability if have boom effect
         const type = effect.type;
         switch(type){
-
+            case "emoji": break;
             case "particle_system": {
                 // Not relevent to the server
                 break;
@@ -300,7 +320,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, shotID: numb
             }
             case "laser_mine_on_hit": {
                 bullet.onUpdate(function(){
-                    const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone().extend(50)));
+                    const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone()));
 
                     
 
@@ -370,9 +390,17 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, shotID: numb
 
 const item_gravity = new Vec2(0,3.8);
 
+export enum ItemEntityPhysicsMode {
+    ASLEEP,
+    FLOATING,
+    BOUNCING
+}
+
 //@ts-expect-error
 @networkedclass_server("item_entity")
 export class ItemEntity extends ServerEntity {
+
+    override position: never
 
     item: SBaseItem<any>
 
@@ -382,8 +410,10 @@ export class ItemEntity extends ServerEntity {
     @sync("item_entity").var("pos")
     pos = new Vec2(0,0)
 
-
-    private active = true;
+    mode: ItemEntityPhysicsMode = ItemEntityPhysicsMode.FLOATING;
+    velocity = new Vec2();
+        
+    private slow_factor = 0.7;
 
     constructor(item: SBaseItem<any>){
         super();
@@ -393,19 +423,102 @@ export class ItemEntity extends ServerEntity {
         this.markDirty();
     }
 
+
     update(dt: number): void {
-        if(this.active){
-            const col = this.game.terrain.lineCollision(this.pos, Vec2.add(this.pos, item_gravity));
-            if(col !== null){
-                this.pos.y = col.point.y - 15;
-                this.active = false;
-                // console.log("hit")
-            } else {
-                this.pos.add(item_gravity);
-                this.markDirty()
+
+        const pos = this.pos.clone();
+
+        switch(this.mode){
+            case ItemEntityPhysicsMode.ASLEEP: break;
+            case ItemEntityPhysicsMode.FLOATING: {
+
+                const col = this.game.terrain.lineCollision(this.pos, Vec2.add(this.pos, item_gravity));
+                if(col !== null){
+                    this.pos.y = col.point.y - 15;
+                    this.mode = ItemEntityPhysicsMode.ASLEEP;
+                    // console.log("hit")
+                } else {
+                    this.pos.add(item_gravity);
+                    this.markDirty()
+                }
+
+                break;
             }
+            case ItemEntityPhysicsMode.BOUNCING: {
+                // THIS SIMULATES SUPER FAST, IDK WHY
+                // It should be equal to client side, but...
+                this.markDirty()
+                // Gravity
+                this.velocity.add(item_gravity);
+
+
+
+                const destination = Vec2.add(this.velocity,this.pos);
+
+                // If no terrain hit, proceed
+                const test = this.game.terrain.lineCollisionExt(this.pos, destination);
+
+                if(test === null){
+                    this.pos.add(this.velocity);
+                } else {
+
+                    if(this.velocity.length() <= 1){
+                        this.mode = ItemEntityPhysicsMode.ASLEEP;
+                    }
+                    // Could potentially bounce multiple times;
+
+                    let last_test = test;
+                    let distanceToMove = this.velocity.length();
+
+                    const max_iter = 20;
+                    let i = 0;
+                    while(distanceToMove > 0 && i++ < max_iter){
+
+
+                        const distanceToPoint = Vec2.subtract(last_test.point,this.pos).length();
+
+                        const distanceAfterBounce = distanceToMove - distanceToPoint;
+
+                        // Set my position to colliding point, then do more logic later
+                        this.pos.set(last_test.point);
+
+                        // Bounce off of wall, set velocity
+                        Vec2.bounce(this.velocity, last_test.normal, this.velocity);
+
+                        const lastStretchVel = this.velocity.clone().normalize().scale(distanceAfterBounce);
+
+                        // Slows done
+                        this.velocity.scale(this.slow_factor);
+
+                        distanceToMove -= distanceToPoint;
+                        distanceToMove *= this.slow_factor;
+
+
+                        // Move forward
+                        const bounce_test = this.game.terrain.lineCollisionExt(this.pos, Vec2.add(this.pos, lastStretchVel));
+
+                        if(bounce_test === null || bounce_test.normal.equals(last_test.normal) ){
+                            this.pos.add(lastStretchVel);
+
+                            if(this.game.terrain.pointInTerrain(this.pos)) this.mode = ItemEntityPhysicsMode.ASLEEP;
+                            // console.log(Vec2.distance(pos, this.pos))
+                            break;
+                        }
+
+                        last_test = bounce_test   
+                    }
+
+
+                }
+
+
+                break;
+            }
+            default: AssertUnreachable(this.mode);
         }
-        
+
+
+
     }
 
 }

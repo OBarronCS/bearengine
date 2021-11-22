@@ -27,7 +27,7 @@ import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
 
 
-import { ForceFieldEffect, ItemEntity, SBaseItem, ServerShootHitscanWeapon, ServerShootProjectileWeapon, SProjectileWeaponItem } from "./weapons/serveritems";
+import { ForceFieldEffect, ItemEntity, ItemEntityPhysicsMode, SBaseItem, ServerShootHitscanWeapon, ServerShootProjectileWeapon, SProjectileWeaponItem } from "./weapons/serveritems";
 import { commandDispatcher } from "./servercommands";
 
 import "server/source/app/weapons/serveritems.ts"
@@ -499,7 +499,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         );
     }
 
-    dropPlayerItem(p: PlayerInformation): void {
+    dropPlayerItem(p: PlayerInformation): ItemEntity {
         console.log("Dropping item")
         const item = new ItemEntity(p.playerEntity.item_in_hand);
 
@@ -512,6 +512,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         );
 
         p.playerEntity.clearItem();
+
+        return item;
     }
 
     dmg_players_in_radius(point: Vec2, r: number, dmg: number):void{
@@ -566,7 +568,9 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         //Drop item
                         if(isQDown){
                             if(p.item_in_hand !== null){
-                                this.dropPlayerItem(player_info);
+                                const item = this.dropPlayerItem(player_info);
+                                // item.velocity.set(Vec2.subtract(p.mouse,p.position).extend(17));
+                                // item.mode = ItemEntityPhysicsMode.BOUNCING;
                             }
                         }
                         
@@ -641,7 +645,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
                                         const velocity = direction.extend(item.initial_speed);
     
-                                        const b = ServerShootProjectileWeapon(this, shotID, pos, velocity, shot_prefab_id);
+                                        const b = ServerShootProjectileWeapon(this, clientID, shotID, pos, velocity, shot_prefab_id);
 
                                         this.enqueueGlobalPacket(
                                             new ProjectileShotPacket(clientID, shotID, createServerTick, pos, velocity, shot_prefab_id, b.entityID)
@@ -811,7 +815,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                     const item = new ItemEntity(item_instance);
 
 
-                    item.pos.x = randomInt(100, this.activeScene.levelbbox.width - 100);
+                    item.pos.x = randomInt(100, this.activeScene.map_bounds.width - 100);
                     this.createRemoteEntity(item);
                 }
 
@@ -866,7 +870,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                             new EndRoundPacket([...this.activeScene.deadplayers].reverse())
                         );
 
-                        const effect = new ServerEffect() ;
+                        const effect = new ServerEffect();
                         effect.onDelay(60 * 3, () => {
                             this.endRound();
                         });
@@ -900,15 +904,20 @@ class ServerScene {
 
     public roundOver: boolean = false;
     public readonly levelID: number;
+
+    // The bounds of the map defined in the Tiled Map
+    public readonly map_bounds: Rect;
+
     public readonly levelbbox: Rect;
     public readonly deadplayers: ConnectionID[] = [];
     
     // Set of player entities that are ALIVE!
     public readonly activePlayerEntities: SparseSet<ServerPlayerEntity> = new SparseSet(256);
 
-    constructor(levelID: number, levelbbox: Rect){
+    constructor(levelID: number, map_bounds: Rect){
         this.levelID = levelID;
-        this.levelbbox = levelbbox;
+        this.map_bounds = map_bounds;
+        this.levelbbox = new Rect(-100,-1000, map_bounds.width + 200, map_bounds.height + 1000);
     }
 
 

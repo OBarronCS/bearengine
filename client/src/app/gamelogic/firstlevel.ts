@@ -59,8 +59,8 @@ export class FirstLevel extends GameLevel {
         // if(this.engine.mouse.isDown("left")){
 
         //     const e = new PhysicsDotEntity(this.engine.mouse, "vector.jpg");
-        //     e.velocity.set(this.engine.mouse.velocity.clone().scale(.2))
-        //     e.velocity.set({x:30,y:10})
+        //     e.velocity.set(this.engine.mouse.velocity.clone().extend(20))//scale(.2))
+        //     console.log(e.velocity.length())
         //     this.game.entities.addEntity(e)
 
         //     // this.subset.clear()
@@ -111,36 +111,10 @@ export class FirstLevel extends GameLevel {
 
         // this.p = scene.addEntity(new Player());
 
-        // this.h = scene.addEntity(new BoostZone());
-        
-        
-        const drawer = new ItemDrawer();
-        drawer.setItem("weapon1.png")
-
-        // this.subset.addEntity(drawer);
-
-
-
-
         // this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["BOOM"], 0,0);
-
-        // this.p = this.game.entities.addEntity(new Player())
         
         // scene.addEntity(new PolygonExpandTest)
-        
-
-        class Test7 extends Entity {
-
-            private a = this.addPart(new ColliderPart(dimensions(10,10), Vec2.ZERO));
-            // private dd = this.addPart(new ColliderPart(dimensions(10,10), Vec2.ZERO));
-
-            update(dt: number): void {
-
-            }
-
-        }
-
-        //scene.addEntity(new Test7())
+    
 
         // class TestEntityForVideo extends Entity {
 
@@ -212,7 +186,7 @@ export class FirstLevel extends GameLevel {
                 this.game.collisionManager.draw(g);
             }
         }
-        scene.addEntity(new Debug())
+        // scene.addEntity(new Debug())
     }
 
 
@@ -227,6 +201,8 @@ export class FirstLevel extends GameLevel {
 export class PhysicsDotEntity extends DrawableEntity {
     
     private sprite: SpritePart;
+    
+    private slow_factor = 0.7;
 
 
     velocity = new Vec2(0,0);
@@ -292,18 +268,20 @@ export class PhysicsDotEntity extends DrawableEntity {
                 // Set my position to colliding point, then do more logic later
                 this.position.set(last_test.point);
 
-                // Bounce off of wall, set elocity
+                // Bounce off of wall, set velocity
                 Vec2.bounce(this.velocity, last_test.normal, this.velocity);
 
                 const lastStretchVel = this.velocity.clone().normalize().scale(distanceAfterBounce);
 
+                // Slows done
+                this.velocity.scale(this.slow_factor);
+
+                distanceToMove -= distanceToPoint;
+                distanceToMove *= this.slow_factor;
+
+
+                // Move forward
                 const bounce_test = this.terrain.lineCollisionExt(this.position, Vec2.add(this.position, lastStretchVel));
-
-                distanceToMove *= .7;
-                this.velocity.scale(.7);
-
-                distanceToMove -= lastStretchVel.length();
-
 
                 if(bounce_test === null || bounce_test.normal.equals(last_test.normal) ){
                     this.position.add(lastStretchVel);
@@ -312,12 +290,8 @@ export class PhysicsDotEntity extends DrawableEntity {
                     break;
                 }
 
-                last_test = bounce_test
-
-                
+                last_test = bounce_test   
             }
-
-            
         }
 
         

@@ -66,6 +66,18 @@ interface CommonItemData {
 export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetworkedEntities>} >()({
 
 
+    emoji_weapon: CreateItem({
+        type:"projectile_weapon",
+        item_name:"Emoji weapon",
+        item_sprite:"weapon1.png",
+        capacity: 10,
+        ammo: 100,
+        reload_time: 12,
+        shoot_controller: { type:"auto", time_between_shots: 8 },
+        shot_name: "EMOJI_SHOT",
+        initial_speed: 11,
+    }),
+
     circle_terrain_carver: CreateItem({
         type:"projectile_weapon",
         item_name:"Circle Carver",
@@ -115,7 +127,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
     forcefield: CreateItem({
         type:"forcefield_item",
         item_name:"Force Field",
-        item_sprite:"missing_texture.png",
+        item_sprite:"forcefield_item.png",
         radius: 50,
     }),
 

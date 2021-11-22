@@ -151,7 +151,7 @@ export class TerrainManager extends Subsystem {
             const result = mesh.carveCircle(x, y, r);
 
             if(result !== null){
-                // reinsert the original one, since it has been broken up,
+                // reinsert the original one, since it has been broken up, and mutated
                 this.grid.insert(mesh);
                 
                 //All the other ones

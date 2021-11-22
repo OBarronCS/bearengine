@@ -25,6 +25,8 @@ export type BulletEffects = {
     force: Coordinate
 } | {
     type:"laser_mine_on_hit"
+} | {
+    type: "emoji"
 }
 
 
@@ -37,6 +39,19 @@ function CreateShot<T extends keyof SharedNetworkedEntities, K extends Test<T>>(
 
 // Make it Test<"projectile_bullet"> ?
 export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<keyof SharedNetworkedEntities>} >()({
+
+    EMOJI_SHOT: CreateShot({
+        type:"projectile_bullet",
+        item_name:"First example bullet",
+        item_sprite:"tree.gif",
+        pos: new Vec2(0,0),
+        velocity: new Vec2(0,0),
+        bullet_effects:[
+            {
+                type:"emoji"
+            }
+        ]
+    }),
 
     SIMPLE_TERRAIN_HIT: CreateShot({
         type:"projectile_bullet",

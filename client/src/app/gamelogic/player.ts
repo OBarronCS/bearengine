@@ -1278,7 +1278,8 @@ export class RemotePlayer extends Entity {
             } = this.idleAnimation;
 
 
-            const iter = [headSprite,
+            const iter = [
+                headSprite,
                 bodySprite,
                 leftHandSprite,
                 rightHandSprite,

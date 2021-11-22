@@ -4,9 +4,6 @@ import { GenerateLinker } from "shared/core/sharedlogic/serialization";
 
 
 
-
-
-
 export const PARTICLE_CONFIG = DefineSchema<{ [key: string]: EmitterConfigV1 | EmitterConfigV3; }>()({
     ROCKET: {
         "alpha": {
@@ -267,7 +264,58 @@ export const PARTICLE_CONFIG = DefineSchema<{ [key: string]: EmitterConfigV1 | E
         "particlesPerWave": 2,
         "particleSpacing": 0,
         "angleStart": 0
-    }
+    },
+    POOF:{
+        "alpha": {
+            "start": 0.22,
+            "end": 0.09
+        },
+        "scale": {
+            "start": 0.8,
+            "end": 0.3,
+            "minimumScaleMultiplier": 1
+        },
+        "color": {
+            "start": "#bdbdbd",
+            "end": "#fcca88"
+        },
+        "speed": {
+            "start": 60,
+            "end": 50,
+            "minimumSpeedMultiplier": 1
+        },
+        "acceleration": {
+            "x": 0,
+            "y": 0
+        },
+        "maxSpeed": 0,
+        "startRotation": {
+            "min": 0,
+            "max": 0
+        },
+        "noRotation": false,
+        "rotationSpeed": {
+            "min": 0,
+            "max": 0
+        },
+        "lifetime": {
+            "min": 0.24,
+            "max": 0.41
+        },
+        "blendMode": "normal",
+        "frequency": 0.1,
+        "emitterLifetime": 0.12,
+        "maxParticles": 1000,
+        "pos": {
+            "x": 0,
+            "y": 0
+        },
+        "addAtBack": false,
+        "spawnType": "burst",
+        "particlesPerWave": 10,
+        "particleSpacing": 0,
+        "angleStart": 0
+    },
 });
 
 

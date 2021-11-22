@@ -1,5 +1,5 @@
 import { Emitter } from "shared/graphics/particles";
-import { Sprite, Graphics } from "shared/graphics/graphics";
+import { Sprite, Graphics, Text } from "shared/graphics/graphics";
 import { Effect } from "shared/core/effects";
 import { PacketWriter, SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
@@ -13,13 +13,15 @@ import { Vec2 } from "shared/shapes/vec2";
 import { BearEngine, NetworkPlatformGame } from "./bearengine";
 import { DrawableEntity, Entity } from "./entity";
 import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparticles";
-import { SpritePart } from "./parts";
+import { GraphicsPart, SpritePart } from "./parts";
 import { net, networkedclass_client } from "./networking/cliententitydecorators";
 import { ITEM_LINKER, MIGRATED_ITEMS, Test } from "shared/core/sharedlogic/items";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { NULL_ENTITY_INDEX } from "shared/core/entitysystem";
 import { drawCircle, drawCircleOutline, drawLineArray, drawLineBetweenPoints } from "shared/shapes/shapedrawing";
 import { EmitterAttach } from "./particles";
+import { choose } from "shared/datastructures/arrayutils";
+import { EMOJIS } from "./emojis";
 
 
 
@@ -116,6 +118,8 @@ export class ProjectileWeapon extends WeaponItem<"projectile_weapon"> {
         game.networksystem.enqueueStagePacket(
             new ServerBoundProjectileShotPacket(0, localID, this.position.clone(), dir)
         )
+
+        game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"))
     }
 }
 
@@ -161,6 +165,22 @@ export function ShootProjectileWeapon(game: NetworkPlatformGame, bullet_effects:
                 
                 break;
             }
+            case "emoji": {
+                
+                const text = new Text(choose(EMOJIS));
+
+                bullet.onStart(function(){
+                    //this.sprite.visible = false;
+                    this.sprite.sprite.addChild(text);
+                });
+
+                bullet.onUpdate(function(){
+                    text.angle = this.velocity.dangle()
+                });
+
+
+                break;
+            }
 
             default: AssertUnreachable(type);
         }
@@ -184,7 +204,7 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
     readonly velocity = new Vec2();
 
 
-    private sprite = this.addPart(new SpritePart("bullet.png"));
+    readonly sprite = this.addPart(new SpritePart("bullet.png"));
 
     constructor(){
         super();
