@@ -1,3 +1,5 @@
+import { SparseSet } from "shared/datastructures/sparseset";
+import { AssertUnreachable } from "shared/misc/assertstatements";
 import { Ellipse } from "shared/shapes/ellipse";
 import { Polygon } from "shared/shapes/polygon";
 import { Rect } from "shared/shapes/rectangle";
@@ -9,6 +11,7 @@ export interface CustomMapFormat {
         height:number,
         backgroundcolor:string
     },
+    spawn_points: Vec2[],
     boostzones: {
         rect: Rect
     }[],
@@ -148,8 +151,10 @@ function isRectangle(object: any): object is RectangleObject {
 }
 //#endregion
 
-
-
+/**
+    Two-pass system:
+        Map<id, Map<property,value>>;
+ */
 export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
     // console.log("map:" + map)
     const worldData: CustomMapFormat["world"] = {
@@ -162,12 +167,55 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
     const bodies: CustomMapFormat["bodies"] = [];
     const sprites: CustomMapFormat["sprites"] = [];
     const boostzones: CustomMapFormat["boostzones"] = [];
+    const spawn_points: CustomMapFormat["spawn_points"] = [];
+
+    const IGNORE_ITERATION_STRING = "__IGNORE_ITERATION";
+
+    const property_set = new SparseSet<Map<string, Property>>();
+
+    // First pass
+    for (const layer of map.layers as (ObjectLayer|GroupLayer)[]) { 
+
+        switch(layer.type){
+            case "objectgroup": {
+
+                for(const obj of layer.objects){
+                    
+                    if("properties" in obj){
+                        const map = new Map<string, Property>();
+
+                        for(const prop of obj.properties){
+                            map.set(prop.name, prop);
+                        }
+
+                        // if(map.has("spawn")){
+                        //     map.set(IGNORE_ITERATION_STRING, null);
+                        // }
+
+                        property_set.set(obj.id, map)
+                    } else {
+                        property_set.set(obj.id, new Map());
+                    }
+                }
+                
+                break;
+            }
+            case "group": {
+                break;
+            }
+            default: AssertUnreachable(layer)
+        }
+
+    }
 
     for (const layer of map.layers as (ObjectLayer|GroupLayer)[]) { 
        
         if(layer.type === "objectgroup"){
 
             for(const obj of layer.objects){
+
+
+                if(property_set.get(obj.id).has(IGNORE_ITERATION_STRING)) continue;
         
                 if(isPolygon(obj)){
                     // Add all polygon points
@@ -220,6 +268,8 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
                         normals: flattenVecArray(polygon.normals),
                     })
 
+                } else if(isPoint(obj)) {
+                    spawn_points.push(new Vec2(obj.x, obj.y));
                 } else if(isRectangle(obj)){
 
                     const rect = new Rect(obj.x,obj.y,obj.width,obj.height);
@@ -229,23 +279,16 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
                     const points = flattenVecArray(polygon.points);
                     const normals = flattenVecArray(polygon.normals);
 
-                    if("properties" in obj && obj.properties.some(e => e.name === "boost")){
-                        obj.properties.forEach(e => {
-                            if(e.name === "boost"){
-                                boostzones.push({
-                                    rect: rect
-                                });
-                            }
-                        })
+                    if(property_set.get(obj.id).has("boost")){
+                        boostzones.push({
+                            rect: rect
+                        });
                     } else {
                         bodies.push({
                             normals:normals,
                             points:points
                         });
                     }
-
-
-                    
                 }
             }
         }
@@ -256,7 +299,14 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
         world:worldData,
         boostzones,
         bodies,
-        sprites
+        sprites,
+        spawn_points
     }
 }
+
+
+
+
+
+
 

@@ -21,6 +21,7 @@ import { Player } from "../gamelogic/player";
 import { GameLevel } from "./gamelevel";
 import { DebugScreen } from "../gamelogic/debugoverlay";
 import { Chatbox } from "../gamelogic/chatbox";
+import { MyUI } from "../gamelogic/gameui";
 
 
 
@@ -204,6 +205,8 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
     public debug: DebugScreen;
     public chatbox: Chatbox
 
+    public ui: MyUI;
+
     initSystems(): void {
         this.networksystem = this.registerSystem(new NetworkSystem(this, {port:80}));
         this.terrain = this.registerSystem(new TerrainManager(this));
@@ -212,6 +215,7 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         this.entityRenderer = this.registerSystem(new DefaultEntityRenderer(this));
         this.debug = this.registerSystem(new DebugScreen(this));
         this.chatbox = this.registerSystem(new Chatbox(this));
+        this.ui = this.registerSystem(new MyUI(this));
     }
 
     onStart(): void {
@@ -244,16 +248,14 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
 
         this.debug.update(dt);
 
-
+        this.ui.update(dt)
 
         this.entityRenderer.update(dt);
     }
 
-
     onEnd(): void {
 
     }
-
     
 
     loadLevel(level: GameLevel){

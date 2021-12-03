@@ -28,6 +28,13 @@ export class Rect implements Shape<Rect> {
         return new Rect(topLeft.x, topLeft.y, botRight.x - topLeft.x, botRight.y - topLeft.y);
     }
     
+    static rectContains(x: number, y: number, width: number, height: number, point: Coordinate): boolean {
+        return (point.x > x
+            && point.x < x + width
+            && point.y > y
+            && point.y < y + height);
+    }
+
     get left() { return this.x; }
     get right() { return this.x2; }
     get top() { return this.y; }

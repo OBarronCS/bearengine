@@ -660,6 +660,7 @@ export class Player extends DrawableEntity {
         //     if(this.state === PlayerState.GROUND) this.state = PlayerState.AIR;
 
         //     if(this.state === PlayerState.AIR) this.knockback(kb);
+            
         //     // else if (this.state === PlayerState.GROUND) {
         //     //     this.gspd += -kb.x * this.slope_normal.y
         //     //     this.gspd += kb.y * this.slope_normal.x
@@ -673,7 +674,6 @@ export class Player extends DrawableEntity {
 
         const zone = this.game.collisionManager.first_tagged_collider_on_point(this.position, "BoostZone");
         if(zone){
-            console.log("MOVE")
             const dir = zone.owner.getAttribute(BoostDirection).dir;
             this.xspd += dir.x;
             this.yspd += dir.y;

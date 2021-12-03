@@ -58,7 +58,7 @@ rl.on('line', (input: string) => {
         switch(first){
             case "command": {
                 engine.dispatchCommand(allWords.slice(1).join(" "));
-                break
+                break;
             }
 
             case "end": {
@@ -67,7 +67,7 @@ rl.on('line', (input: string) => {
             }
 
             default: {
-                console.log("You made a typo")
+                console.log("You made a typo");
             }
         }
     }

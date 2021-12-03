@@ -38,7 +38,8 @@ export class EngineMouse {
 
     // Really far away so doesn't overlap with anyone at beginning
     position: Vec2 = new Vec2(-99999999,-99999999);
-    screenPosition: Vec2 = new Vec2(-99999999,-99999999);
+    screenPosition: Vec2 = new Vec2(-99999999,-99999999); // Position on the physical screen 
+    guiPosition: Vec2 = new Vec2(-99999999,-99999999);   // Position on the internal canvas
     velocity: Vec2 = new Vec2(0,0);
     scroll: number = 0;
 
@@ -72,6 +73,8 @@ export class EngineMouse {
         const targetWindow: Window = renderer.renderer.view.ownerDocument.defaultView;
 
         const setPositionFromEvent = (e: MouseEvent) => {
+            (renderer.renderer.plugins.interaction as InteractionManager).mapPositionToPoint(this.guiPosition,this.screenPosition.x,this.screenPosition.y);
+
             this.screenPosition.x = e.x;
             this.screenPosition.y = e.y;
 

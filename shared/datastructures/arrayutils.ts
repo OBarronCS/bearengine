@@ -61,11 +61,13 @@ export function arrayDifference<T>(A: readonly T[], B: readonly T[]): T[] {
 }
 
 /** In-place, "Knuth/Fisher-Yates" shuffle */
-export function shuffle(arr: any[]): void {
+export function shuffle<T>(arr: T[]): T[] {
     for(let i = arr.length - 1; i > 0; i--){
         const r = randomInt(0,i+1);
         swap(arr, i, r)
     }
+
+    return arr;
 }
 
 

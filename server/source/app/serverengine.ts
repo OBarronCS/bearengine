@@ -27,7 +27,7 @@ import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
 
 
-import { ForceFieldEffect, ItemEntity, ItemEntityPhysicsMode, SBaseItem, ServerShootHitscanWeapon, ServerShootProjectileWeapon, SProjectileWeaponItem } from "./weapons/serveritems";
+import { ForceFieldEffect, ForceFieldItem_S, ItemEntity, ItemEntityPhysicsMode, SBaseItem, ServerShootHitscanWeapon, ServerShootProjectileWeapon, SHitscanWeapon, SProjectileWeaponItem } from "./weapons/serveritems";
 import { commandDispatcher } from "./servercommands";
 
 import "server/source/app/weapons/serveritems.ts"
@@ -35,8 +35,11 @@ import { random, randomInt, random_range } from "shared/misc/random";
 import { Effect } from "shared/core/effects";
 import { ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { LevelRefLinker, LevelRef } from "shared/core/sharedlogic/assetlinker";
+import { shuffle } from "shared/datastructures/arrayutils";
 
 const MAX_BYTES_PER_PACKET = 2048;
+
+const SET_TIMEOUT_JUST_IN_CASE_BUFFER_MS = 15;
 
 /** Per client info  */
 export class PlayerInformation {
@@ -105,6 +108,10 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     private serverState: ServerGameState = ServerGameState.PRE_MATCH_LOBBY;
     public activeScene: ServerScene = null;
 
+    public roundIsActive(): boolean {
+        return this.serverState === ServerGameState.ROUND_ACTIVE;
+    }
+
 
     // Subsystems
     public terrain: TerrainManager;
@@ -121,8 +128,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     private savedPackets: Queue<PacketWriter> = new LinkedQueue<PacketWriter>();
 
 
- 
-    
 
     private serverShotID = 0;
     getServerShotID(){
@@ -152,11 +157,11 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         this.network = new ServerNetwork(socket);
 
-    
         this.network.start(
             this.onClientConnect.bind(this),
             this.onClientLeave.bind(this)
         );
+        
         this.previousTickTime = Date.now();
 
         this.loop();
@@ -304,6 +309,10 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             this.terrain.addTerrain(body.points, body.normals)
         });
 
+        
+
+        const spawn_points = shuffle([...levelData.spawn_points])
+
         //  this.collisionManager.setupGrid(width, height);
         //#endregion
 
@@ -314,8 +323,11 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         for(let i = 0; i < this.clients.length; i++){
             const clientID = this.clients[i];
- 
             const p = this.players.get(clientID);
+
+
+            const spawn_spot = i < spawn_points.length ? spawn_points[i] : new Vec2( 150 + (i * 200), 0);
+
 
             // If someone waiting to join, allow them to join
             if(p.gamemode === ClientPlayState.SPECTATING){
@@ -346,12 +358,11 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             this.activeScene.activePlayerEntities.set(clientID, p.playerEntity);
 
 
-            const spawn_x = 150 + (i * 200);
-            const spawn_y = 0;
+
 
 
             p.personalPackets.enqueue(
-                new StartRoundPacket(spawn_x, spawn_y, levelID)
+                new StartRoundPacket(spawn_spot.x, spawn_spot.y, levelID)
             );
 
             this.enqueueGlobalPacket(
@@ -661,38 +672,46 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                                 break;
                             }
                             case ItemActionType.HIT_SCAN:{
+
                                 const end = new Vec2(stream.getFloat32(), stream.getFloat32());
 
-                                const shotID = this.getServerShotID();
+                                if(player_info.playerEntity.item_in_hand instanceof SHitscanWeapon){
 
-                                this.enqueueGlobalPacket(
-                                    new HitscanShotPacket(clientID, shotID, createServerTick, pos, end)
-                                );
-                                
-                                ServerShootHitscanWeapon(this, shotID, pos, end, clientID);
+                                    
+                                    const shotID = this.getServerShotID();
+                                    
+                                    this.enqueueGlobalPacket(
+                                        new HitscanShotPacket(clientID, shotID, createServerTick, pos, end)
+                                    );
+                                        
+                                    ServerShootHitscanWeapon(this, shotID, pos, end, clientID);
+                                        
+                                }
 
                                 break;
                             }
                             case ItemActionType.FORCE_FIELD_ACTION: {
 
-                                console.log("Player forcefield!");
+                                if(player_info.playerEntity.item_in_hand instanceof ForceFieldItem_S){
+                                    // console.log("Player forcefield!");
 
-                                // Only one exists
-                                const radius = ITEM_LINKER.NameToData("forcefield").radius;
-                                
-                                this.createRemoteEntity(new ForceFieldEffect(player_info.playerEntity,radius))
-
-                                // this.enqueueGlobalPacket(
-                                //     new ForceFieldEffectPacket(clientID, 0, createServerTick, pos)
-                                // );
-
-
-                                //Tell client to get rid of the item
-                                player_info.personalPackets.enqueue(
-                                    new ClearInvItemPacket()
-                                );
-                        
-                                player_info.playerEntity.clearItem();
+                                    // Only one exists
+                                    const radius = ITEM_LINKER.NameToData("forcefield").radius;
+                                    
+                                    this.createRemoteEntity(new ForceFieldEffect(player_info.playerEntity,radius))
+    
+                                    // this.enqueueGlobalPacket(
+                                    //     new ForceFieldEffectPacket(clientID, 0, createServerTick, pos)
+                                    // );
+    
+    
+                                    //Tell client to get rid of the item
+                                    player_info.personalPackets.enqueue(
+                                        new ClearInvItemPacket()
+                                    );
+                            
+                                    player_info.playerEntity.clearItem();
+                                }
 
                                 break;
                             }
@@ -782,6 +801,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
     private _boundLoop = this.loop.bind(this);
 
+    // private __useless_calls_test = 0;
+
     loop(){
         const now = Date.now();
 
@@ -789,8 +810,11 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         if (this.previousTickTime + (1000 / this.TICK_RATE) <= now) {
             const dt = 1000 / this.TICK_RATE;
 
+            // console.log(this.__useless_calls_test)
+            // this.__useless_calls_test = 0;
 
             this.tick += 1;
+            this.totalTime += dt;
             // Think about whether the time should be at beginning or end of tick
             this.referenceTick = this.tick;
             this.referenceTime = BigInt(now);
@@ -891,10 +915,12 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     
         // if we are more than 16 milliseconds away from the next tick
         // This avoids blocking like in a while loop. while keeping the timer somewhat accurate
-        if(now - this.previousTickTime < (1000 / this.TICK_RATE) - 16) {
+        if(now - this.previousTickTime < (1000 / this.TICK_RATE) - SET_TIMEOUT_JUST_IN_CASE_BUFFER_MS) {
+
             setTimeout(this._boundLoop) // not accurate to the millisecond
         } else {
             setImmediate(this._boundLoop) // ultra accurate, sub millisecond
+            // this.__useless_calls_test++;
         }
     }
 }

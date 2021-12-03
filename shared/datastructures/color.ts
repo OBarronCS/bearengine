@@ -69,7 +69,7 @@ export class Color {
     }
 
     constructor(
-        public values: [number, number, number, number]
+        public values: [r: number, g: number, b: number, a: number]
     ){};
 
     clone(): Color {

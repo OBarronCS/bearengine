@@ -1,5 +1,6 @@
 
 
+// BitString
 
 // Mutable set of bits. Max 32 values
 // If want more bits, used Uint8TypedArray

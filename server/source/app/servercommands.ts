@@ -28,6 +28,11 @@ const database = commandDispatcher;
 database.add(
     command("item").args(comv.string_options<keyof typeof MIGRATED_ITEMS>(Object.keys(MIGRATED_ITEMS)))
         .run((context, item_name: keyof typeof MIGRATED_ITEMS) => {
+            
+            if(!context.engine.roundIsActive()) {
+                console.log("Cannot give items when round is not active");
+                return;
+            }
 
             // Only give the item to the player that ran the command
             
