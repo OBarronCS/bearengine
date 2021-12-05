@@ -22,6 +22,7 @@ import { random_range } from "shared/misc/random";
 import { PhysicsDotEntity } from "./firstlevel";
 import { NumberTween } from "shared/core/tween";
 import { BoostDirection } from "./boostzone";
+import { InterpolatedVar } from "../core-engine/networking/cliententitydecorators";
 
 
 
@@ -1231,6 +1232,9 @@ export class RemotePlayer extends Entity {
     graphics = this.addPart(new GraphicsPart());
     locations = this.addPart(new RemoteLocations());
 
+    /** Normalized direction vector */
+    look_angle = InterpolatedVar(new Vec2(1))
+
     constructor(id: number){
         super();
         this.id = id;
@@ -1244,11 +1248,14 @@ export class RemotePlayer extends Entity {
     update(dt: number): void {
 
         this.draw_item.position.set({x: this.x, y: this.y});
+        this.draw_item.image.angle = this.look_angle.value.angle();
 
         this.runAnimation.setPosition(this.position);
         this.wallslideAnimation.setPosition(this.position);
         this.idleAnimation.setPosition(this.position);
         this.climbAnimation.setPosition(this.position);
+
+        this.look_angle.value.set(this.look_angle.buffer.getValue(this.game.networksystem["getServerTickToSimulate"]()))
 
         if(!this.ghost){
             this.runAnimation.tick();

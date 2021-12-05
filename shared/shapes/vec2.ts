@@ -190,6 +190,10 @@ export class Vec2 {
         }
         return this;
     }
+    
+    public isZero(): boolean {
+        return this.x === 0 && this.y === 0;
+    }
 
     /** Set the length of the vector
      *  MAYBE: change this to a more intuitive name 

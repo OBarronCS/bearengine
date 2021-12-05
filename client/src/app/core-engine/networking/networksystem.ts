@@ -719,6 +719,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                     
                             const x = stream.getFloat32();
                             const y = stream.getFloat32();
+
+                            const dir_x = stream.getFloat32();
+                            const dir_y = stream.getFloat32();
+
                             const state: AnimationState = stream.getUint8();
                             const flipped = stream.getBool();
                             const health = stream.getUint8();
@@ -743,6 +747,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             e.locations.addPosition(frame, x,y);
                             e.setState(state,flipped);
+                            e.look_angle.buffer.addValue(frame, new Vec2(dir_x, dir_y));
+
                             if(e.health !== health){
                                 const emitter = new EmitterAttach(e,"HIT_SPLAT", "particle.png", Vec2.random(10));
                                 this.game.entities.addEntity(emitter);

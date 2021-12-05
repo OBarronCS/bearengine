@@ -589,6 +589,9 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         const isFDown = stream.getBool();
                         const isQDown = stream.getBool();
 
+
+                        p.setLookDirection();
+
                         //Drop item
                         if(isQDown){
                             if(p.item_in_hand !== null){
@@ -779,6 +782,10 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                     stream.setUint8(connection);
                     stream.setFloat32(player.position.x);
                     stream.setFloat32(player.position.y);
+
+                    stream.setFloat32(player.look_dir.x);
+                    stream.setFloat32(player.look_dir.y);
+
                     stream.setUint8(player.animation_state);
                     stream.setBool(player.flipped);
                     stream.setUint8(player.health);

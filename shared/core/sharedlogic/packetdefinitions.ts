@@ -57,7 +57,7 @@ export enum GamePacket {
     // Client must ignore if ID === localID; 
     // spawn creates an entity. Places it at given location --> Used to deghost
     PLAYER_ENTITY_SPAWN, // [playerID: uint8, x: float32, y: float32]
-    PLAYER_ENTITY_POSITION, // [playerID: uint8, x: float32, y: float32, uint8: animationstate, bool: flipped, health: uint8];
+    PLAYER_ENTITY_POSITION, // [playerID: uint8, x: float32, y: float32, look_dir: Vec2(float), uint8: animationstate, bool: flipped, health: uint8];
     PLAYER_ENTITY_GHOST, // [playerID: uint8]
     PLAYER_ENTITY_COMPLETELY_DELETE, // [playerID: uint8]
     

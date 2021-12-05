@@ -39,6 +39,19 @@ export class ServerPlayerEntity extends ServerEntity {
     flipped = false;
 
     mouse: Vec2 = new Vec2(0,0);
+
+    readonly look_dir: Vec2 = new Vec2(1,0);
+
+    setLookDirection(): void {
+        const dir = Vec2.subtract(this.mouse, this.position);
+        if(!dir.isZero()){
+            this.look_dir.set(dir.normalize());
+        } else {
+            this.look_dir.set({x: 1, y: 1});
+        }
+
+    }
+
     mousedown = false;
 
 
