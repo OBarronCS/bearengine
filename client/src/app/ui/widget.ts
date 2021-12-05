@@ -82,6 +82,7 @@ abstract class BearWidget {
     }
 
     render(){
+        this.graphics.clear();
         this.draw();
         for(const child of this.children){
             child.render();

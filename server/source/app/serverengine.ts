@@ -21,7 +21,7 @@ import { Rect } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { DeserializeShortString, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
-import { AcknowledgeShotPacket, ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, ForceFieldEffectPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, ProjectileShotPacket } from "./networking/gamepacketwriters";
+import { AcknowledgeShotPacket, ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, ForceFieldEffectPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, ProjectileShotPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket } from "./networking/gamepacketwriters";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
@@ -508,6 +508,10 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         p.personalPackets.enqueue(
             new SetInvItemPacket(raw_item.item_id, raw_item)
         );
+
+        this.enqueueGlobalPacket(
+            new PlayerEntitySetItemPacket(p.connectionID, raw_item.item_id)
+        );
     }
 
     dropPlayerItem(p: PlayerInformation): ItemEntity {
@@ -518,13 +522,22 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         this.createRemoteEntity(item);
 
-        p.personalPackets.enqueue(
-            new ClearInvItemPacket()
-        );
+        this.notifyItemRemove(p)
+
 
         p.playerEntity.clearItem();
 
         return item;
+    }
+
+    notifyItemRemove(p: PlayerInformation){
+        p.personalPackets.enqueue(
+            new ClearInvItemPacket()
+        );
+
+        this.enqueueGlobalPacket(
+            new PlayerEntityClearItemPacket(p.connectionID)
+        )
     }
 
     dmg_players_in_radius(point: Vec2, r: number, dmg: number):void{
@@ -704,11 +717,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                                     //     new ForceFieldEffectPacket(clientID, 0, createServerTick, pos)
                                     // );
     
-    
-                                    //Tell client to get rid of the item
-                                    player_info.personalPackets.enqueue(
-                                        new ClearInvItemPacket()
-                                    );
+                                    this.notifyItemRemove(player_info);
                             
                                     player_info.playerEntity.clearItem();
                                 }

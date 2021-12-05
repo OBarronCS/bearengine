@@ -209,6 +209,31 @@ export class PlayerEntityCompletelyDeletePacket extends PacketWriter {
     }
 }
 
+export class PlayerEntitySetItemPacket extends PacketWriter {
+
+    constructor(public player_id: number, public item_id: number){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.PLAYER_ENTITY_SET_ITEM);
+        stream.setUint8(this.player_id);
+        stream.setUint8(this.item_id);
+    }
+}
+
+export class PlayerEntityClearItemPacket extends PacketWriter {
+
+    constructor(public player_id: number){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.PLAYER_ENTITY_CLEAR_ITEM);
+        stream.setUint8(this.player_id);
+    }
+}
+
 
 // This has a potential for an error, because the data could have changed
 // while the game logic assumes the data does not change after the item is passed int

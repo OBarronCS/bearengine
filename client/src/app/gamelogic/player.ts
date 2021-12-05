@@ -1226,6 +1226,8 @@ export class RemotePlayer extends Entity {
 
     private ghost = false;
 
+    draw_item: ItemDrawer = new ItemDrawer();
+
     graphics = this.addPart(new GraphicsPart());
     locations = this.addPart(new RemoteLocations());
 
@@ -1240,6 +1242,9 @@ export class RemotePlayer extends Entity {
     private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
 
     update(dt: number): void {
+
+        this.draw_item.position.set({x: this.x, y: this.y});
+
         this.runAnimation.setPosition(this.position);
         this.wallslideAnimation.setPosition(this.position);
         this.idleAnimation.setPosition(this.position);
@@ -1334,6 +1339,8 @@ export class RemotePlayer extends Entity {
         this.engine.renderer.addSprite(this.wallslideAnimation.container);
         this.engine.renderer.addSprite(this.idleAnimation.container);
         this.engine.renderer.addSprite(this.climbAnimation.container);
+
+        this.scene.addEntity(this.draw_item);
     }
 
     override onDestroy(){
@@ -1342,6 +1349,7 @@ export class RemotePlayer extends Entity {
         this.engine.renderer.removeSprite(this.wallslideAnimation.container);
         this.engine.renderer.removeSprite(this.idleAnimation.container);
         this.engine.renderer.removeSprite(this.climbAnimation.container);
+        this.scene.destroyEntity(this.draw_item);
     }
 
     setState(state: AnimationState, flipped: boolean){

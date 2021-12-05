@@ -593,6 +593,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 this.game.player.setGhost(false);
                             }
 
+                            for(const p of this.remotePlayerEntities.values()){
+                                p.draw_item.clear();
+                            }
+
                             break;
                         }
                         case GamePacket.END_ROUND: {
@@ -746,6 +750,44 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             e.health = health;
                             
+                            break;
+                        }
+                        
+                        case GamePacket.PLAYER_ENTITY_SET_ITEM: {
+                            
+                            const playerID = stream.getUint8();
+                            const item_id = stream.getUint8();
+
+                        
+                            if(playerID === this.MY_CLIENT_ID) continue;
+                            
+                            const e = this.remotePlayerEntities.get(playerID);
+                            
+                            if(e === undefined){
+                                console.log("Unknown player entity data");
+                                continue;
+                            }
+
+                            const item_data = ITEM_LINKER.IDToData(item_id);
+
+                            e.draw_item.setItem(item_data.item_sprite);
+
+                            break;
+                        }
+                        case GamePacket.PLAYER_ENTITY_CLEAR_ITEM: {
+                            const playerID = stream.getUint8();
+                        
+                            if(playerID === this.MY_CLIENT_ID) continue;
+
+                            const e = this.remotePlayerEntities.get(playerID);
+                            
+                            if(e === undefined){
+                                console.log("Unknown player entity data");
+                                continue;
+                            }
+
+                            e.draw_item.clear();
+
                             break;
                         }
 

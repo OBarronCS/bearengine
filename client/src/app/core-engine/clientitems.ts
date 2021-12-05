@@ -338,8 +338,8 @@ export class ItemDrawer extends Entity {
         this.image.sprite.visible = false;
     }
 
-    setItem(item: string){
-        this.setSprite(item);
+    setItem(path: string){
+        this.setSprite(path);
     }
 
     clear(){
