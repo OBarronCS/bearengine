@@ -12,7 +12,7 @@ import { SpritePart } from "../core-engine/parts";
 import { Player } from "./player";
 import { Polygon } from "shared/shapes/polygon";
 import { Emitter } from "shared/graphics/particles";
-import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparticles";
+import { PARTICLE_CONFIG } from "shared/core/sharedlogic/sharedparticles";
 import { TickTimer } from "shared/datastructures/ticktimer";
 import { Line } from "shared/shapes/line";
 import { drawCircle, drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "shared/shapes/shapedrawing";
@@ -20,181 +20,31 @@ import { ItemDrawer } from "../core-engine/clientitems";
 import { BoostZone } from "./boostzone";
 
 
+// export class FirstLevel extends GameLevel {
+    
+//     path: string | TiledMap = "assets/firsttest.json";
 
-
-
-// class PolygonExpandTest extends DrawableEntity {
-
-//     poly = Polygon.random(24);
-//     expandedpoly = this.poly;
-//     test = this.redraw()
-
-
-
-
-//     draw(g: Graphics): void {
-//         this.poly.draw(g);
-//         this.expandedpoly.draw(g);
-//     }
+//     // subset = this.game.entities.createSubset();
 
 //     update(dt: number): void {
-//         if(this.keyboard.wasPressed("KeyL")){
-//             this.expandedpoly = this.expandedpoly.expand(50);
-//             this.redraw()
-//         }
+//         // if(this.engine.mouse.isDown("left")){
+//         //     const e = new PhysicsDotEntity(this.engine.mouse, "vector.jpg");
+//         //     e.velocity.set(this.engine.mouse.velocity.clone().extend(20))//scale(.2))
+//         //     console.log(e.velocity.length())
+//         //     this.game.entities.addEntity(e)
+//         // }
 //     }
-// }
 
-export class FirstLevel extends GameLevel {
-    
-    path: string | TiledMap = "assets/firsttest.json";
+//     start(): void {
 
-    // subset = this.game.entities.createSubset();
-
-            
-    private emitter: Emitter;
-
-    update(dt: number): void {
-        // this.emitter.updateSpawnPos(this.engine.mouse.x, this.engine.mouse.y);
-        // if(this.engine.mouse.isDown("left")){
-
-        //     const e = new PhysicsDotEntity(this.engine.mouse, "vector.jpg");
-        //     e.velocity.set(this.engine.mouse.velocity.clone().extend(20))//scale(.2))
-        //     console.log(e.velocity.length())
-        //     this.game.entities.addEntity(e)
-
-        //     // this.subset.clear()
-        // }
-        // this.p.manualUpdate(dt);
-        // this.h.position.set(this.engine.mouse);
-    }
-
-    private p;
-
-    private h: BoostZone;
-
-    start(): void {
-        const scene = this.game.entities;
-
-        class CircleLineIntersectionTest extends DrawableEntity {
-        
-            private circle = new Vec2(0,0);
-            
-            private point = new Vec2(0,0);
-    
-            draw(g: Graphics): void {
-                drawCircle(g, this.circle, 50)
-    
-                if(this.mouse.wasPressed("right")) { 
-                    this.circle.x = this.mouse.x;
-                    this.circle.y = this.mouse.y;
-                }
-                if(this.mouse.wasPressed("left")) this.point = this.mouse.position.clone();
-    
-                const otherPoint = this.mouse.position.clone();
-    
-                drawLineBetweenPoints(g,this.point,otherPoint);
-    
-                const points = Line.CircleLineIntersection(this.point, otherPoint, this.circle.x, this.circle.y, 50);
-                
-                for(const point of points.points){
-                    drawPoint(g,point);
-                }
-            }
-            update(dt: number): void {
-                this.redraw()
-            }
-    
-        }
-    
-        // scene.addEntity(new CircleLineIntersectionTest);
-
-        // this.p = scene.addEntity(new Player());
-
-        // this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["BOOM"], 0,0);
-        
-        // scene.addEntity(new PolygonExpandTest)
-    
-
-        // class TestEntityForVideo extends Entity {
-
-        //     private sprite = this.addPart(new SpritePart("tree.gif"));
-        //     private collider = this.addPart(new ColliderPart(dimensions(200,200), Vec2.ZERO));
-    
-
-        //     update(dt: number): void {}
-    
-        //     // @bearevent("mousehover", {})
-        //     daisvfdakusvdjasd(point: Vec2){
-        //         console.log("Hello, i was hovered", point.toString());
-        //     }
-    
-        //     //@bearevent("tap", {})
-        //     ontapcallback(num: Vec2){
-        //         console.log("I was clicked")
-        //     }
-    
-        //     @bearevent("mousedown", { button: "left"})
-        //     asdasdasdasd(point: Vec2){
-        //         console.log("HEOLLO")
-        //     }
-    
-        //     @bearevent("scroll", {})
-        //     asdasd(scroll: number, point: Vec2){
-        //         console.log(scroll)
-        //     }
-        // }
-
-        // const test = new TestEntityForVideo();            
-        // engine.entityManager.addEntity(test);
-
-        class SuperTest extends GMEntity {
-
-            constructor(){
-                super({x: 100, y: 100}, "flower.png", dimensions(100,100));
-            }
-            update(dt: number): void {
-               
-            }
-
-            @bearevent("scroll", { button: "left"} )
-            test(scroll: number, mousePoint: Vec2){
-                console.log(mousePoint.x)
-            }
-        }
-
-        //scene.addEntity(new SuperTest());
-
-        // class OtherTest extends GMEntity {
-        //     constructor(){
-        //         super({x: 400, y: 400}, "bullet.png", dimensions(20,20));
-        //     }
-        //     update(dt: number): void {
-               
-        //     }
-        // }
-
-        //scene.addEntity(new OtherTest());
-
-        // Drawing the collision grid
-        class Debug extends DrawableEntity {
-            update(dt: number): void {
-                this.redraw();
-            }
-            draw(g: Graphics): void {
-                g.clear();
-                this.game.collisionManager.draw(g);
-            }
-        }
-        // scene.addEntity(new Debug())
-    }
+//     }
 
 
-    end(): void {
-        // this.emitter.destroy();
-    }
+//     end(): void {
+
+//     }
    
-}
+// }
 
 
 
@@ -301,8 +151,119 @@ export class PhysicsDotEntity extends DrawableEntity {
 
 }
 
+// const scene = this.game.entities;
+
+// // Drawing the collision grid
+// class Debug extends DrawableEntity {
+//     update(dt: number): void {
+//         this.redraw();
+//     }
+//     draw(g: Graphics): void {
+//         g.clear();
+//         this.game.collisionManager.draw(g);
+//     }
+// }
+// scene.addEntity(new Debug())
+
+// class CircleLineIntersectionTest extends DrawableEntity {
+        
+//     private circle = new Vec2(0,0);
+    
+//     private point = new Vec2(0,0);
+
+//     draw(g: Graphics): void {
+//         drawCircle(g, this.circle, 50)
+
+//         if(this.mouse.wasPressed("right")) { 
+//             this.circle.x = this.mouse.x;
+//             this.circle.y = this.mouse.y;
+//         }
+//         if(this.mouse.wasPressed("left")) this.point = this.mouse.position.clone();
+
+//         const otherPoint = this.mouse.position.clone();
+
+//         drawLineBetweenPoints(g,this.point,otherPoint);
+
+//         const points = Line.CircleLineIntersection(this.point, otherPoint, this.circle.x, this.circle.y, 50);
+        
+//         for(const point of points.points){
+//             drawPoint(g,point);
+//         }
+//     }
+//     update(dt: number): void {
+//         this.redraw()
+//     }
+
+// }
+
+// scene.addEntity(new CircleLineIntersectionTest);
+
+// this.p = scene.addEntity(new Player());
+
+// this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["BOOM"], 0,0);
+
+// scene.addEntity(new PolygonExpandTest)
 
 
+// class TestEntityForVideo extends Entity {
+
+//     private sprite = this.addPart(new SpritePart("tree.gif"));
+//     private collider = this.addPart(new ColliderPart(dimensions(200,200), Vec2.ZERO));
+
+
+//     update(dt: number): void {}
+
+//     // @bearevent("mousehover", {})
+//     daisvfdakusvdjasd(point: Vec2){
+//         console.log("Hello, i was hovered", point.toString());
+//     }
+
+//     //@bearevent("tap", {})
+//     ontapcallback(num: Vec2){
+//         console.log("I was clicked")
+//     }
+
+//     @bearevent("mousedown", { button: "left"})
+//     asdasdasdasd(point: Vec2){
+//         console.log("HEOLLO")
+//     }
+
+//     @bearevent("scroll", {})
+//     asdasd(scroll: number, point: Vec2){
+//         console.log(scroll)
+//     }
+// }
+
+// const test = new TestEntityForVideo();            
+// engine.entityManager.addEntity(test);
+
+// class SuperTest extends GMEntity {
+
+//     constructor(){
+//         super({x: 100, y: 100}, "flower.png", dimensions(100,100));
+//     }
+//     update(dt: number): void {
+       
+//     }
+
+//     @bearevent("scroll", { button: "left"} )
+//     test(scroll: number, mousePoint: Vec2){
+//         console.log(mousePoint.x)
+//     }
+// }
+
+//scene.addEntity(new SuperTest());
+
+// class OtherTest extends GMEntity {
+//     constructor(){
+//         super({x: 400, y: 400}, "bullet.png", dimensions(20,20));
+//     }
+//     update(dt: number): void {
+       
+//     }
+// }
+
+//scene.addEntity(new OtherTest());
 
 
 

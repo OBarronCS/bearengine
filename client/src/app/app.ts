@@ -1,19 +1,6 @@
 import { BearEngine, NetworkPlatformGame } from "./core-engine/bearengine";
-import { DropTarget } from "./apiwrappers/draganddrop";
 import { LockKeys } from "./apiwrappers/keyboardapiwrapper";
-import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
-import { Player } from "./gamelogic/player";
-import { DrawableEntity, Entity, GMEntity } from "./core-engine/entity";
-import { SpritePart } from "./core-engine/parts";
-import { dimensions } from "shared/shapes/rectangle";
-import { bearevent } from "shared/core/bearevents";
-import { Vec2 } from "shared/shapes/vec2";
 import { FirstLevel } from "./gamelogic/firstlevel";
-import { DummyLevel } from "./core-engine/gamelevel";
-import { FrameEditor } from "./gamelogic/testlevelentities";
-import { StringHash } from "shared/core/sharedlogic/versionhash";
-import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
-import { RunTests } from "shared/testing/testrunner";
 import { Trie } from "shared/datastructures/trie";
 
 // import "shared/testing/entitysystemtest";
@@ -33,28 +20,12 @@ engine.loadAssets().then(RESOURCES => {
 
     const game = new NetworkPlatformGame(engine);
     engine.start(game);
-    game.loadLevel(new FirstLevel(game));
     
 
 
     
     //engine.start(new FrameEditor(engine))
 })
-
-
-
-
-function JSMapToString(map: Map<any, any>): string {
-
-    let str = "";
-
-    for(const [key, value] of map){
-        str += `[${key}:${value}],`
-    }
-
-
-    return str;
-}
 
 LockKeys([
     "KeyW", 
@@ -63,6 +34,9 @@ LockKeys([
     "KeyD",
     //"Escape"
 ]);
+
+
+
 
 // // Testing drag and drop!
 // function dragAndDropTest(element: HTMLCanvasElement){

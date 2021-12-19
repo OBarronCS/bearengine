@@ -44,7 +44,7 @@ export class CameraSystem  {
 
         this.setPivot();
 
-        this.renderer.renderer.view.addEventListener("resize", (e) => this.setPivot());
+        this.renderer.onresize((e) => this.setPivot())
 
 
         const keyboard = this.engine.keyboard;
@@ -164,6 +164,7 @@ export class CameraSystem  {
 
 
     setPivot(){
+        console.log("Hello")
         // pivot should be at center of screen at all times. Allows rotation around the middle
         this.container.position.x = this.renderer.renderer.width / 2;
         this.container.position.y = this.renderer.renderer.height / 2;

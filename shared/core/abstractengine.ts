@@ -34,9 +34,6 @@ export abstract class BearGame<TEngine extends {}, TEntity extends AbstractEntit
 
         AbstractEntity["GAME_OBJECT"] = this;
 
-
-        console.trace("HIIII");
-
         this.onStart();
     }
 
@@ -45,7 +42,7 @@ export abstract class BearGame<TEngine extends {}, TEntity extends AbstractEntit
         return system;
     }
 
-    private scenes: BearScene<this>[] = [];
+    private scenes: BearScene<any>[] = [];
 
     protected updateScenes(dt: number){
         for(const scene of this.scenes){
@@ -53,15 +50,15 @@ export abstract class BearGame<TEngine extends {}, TEntity extends AbstractEntit
         }
     }
 
-    enable_scene(scene: BearScene<this>){
+    enable_scene(scene: BearScene<any>){
         this.scenes.push(scene);
         scene.on_enable();
         scene.enabled = true;
     }
 
-    disable_scene(scene: BearScene<this>){
+    disable_scene(scene: BearScene<any>){
         let i: number;
-        if((i = this.scenes.indexOf(scene)) != 0 ){
+        if((i = this.scenes.indexOf(scene)) !== -1 ){
             this.scenes.splice(i,1);
 
             scene.on_disable();
