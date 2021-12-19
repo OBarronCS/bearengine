@@ -2,7 +2,7 @@
 import { Graphics, Loader, LoaderResource, Sprite, Texture } from "shared/graphics/graphics";
 import { GUI, GUIController } from "dat.gui";
 
-import { BearGame } from "shared/core/abstractengine";
+import { BearGame, BearScene } from "shared/core/abstractengine";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { EntitySystem } from "shared/core/entitysystem";
 import { Subsystem } from "shared/core/subsystem";
@@ -207,6 +207,9 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
 
     public ui: MyUI;
 
+    // Scenes
+    public mainmenu_scene: MainMenuScene;
+
     initSystems(): void {
         this.networksystem = this.registerSystem(new NetworkSystem(this, {port:80}));
         this.terrain = this.registerSystem(new TerrainManager(this));
@@ -216,6 +219,8 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         this.debug = this.registerSystem(new DebugScreen(this));
         this.chatbox = this.registerSystem(new Chatbox(this));
         this.ui = this.registerSystem(new MyUI(this));
+
+        this.mainmenu_scene = this.addScene(new MainMenuScene(this));
     }
 
     onStart(): void {
@@ -290,4 +295,25 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
     }
 }
 
+
+
+export class MainMenuScene extends BearScene<NetworkPlatformGame> {
+
+    init(): void {
+        
+    }
+
+    update(dt: number): void {
+        throw new Error("Method not implemented.");
+    }
+
+    on_enable(): void {
+        throw new Error("Method not implemented.");
+    }
+
+    on_disable(): void {
+        throw new Error("Method not implemented.");
+    }
+
+}
 

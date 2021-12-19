@@ -12,7 +12,7 @@ export class MyUI extends Subsystem<NetworkPlatformGame> {
         this.engine.renderer.addGUI(this.ui.base_container);  
     }
 
-    some_text = (() =>  { 
+    some_text = (() => { 
         const b = this.ui.addWidget(new ButtonWidget(new Vec2(500,50), 100,50, () => 1));
         b.background_color.copyFrom(Color.fromNumber(0xdeadbeef)) 
         b.draw_color.copyFrom(b.background_color)
