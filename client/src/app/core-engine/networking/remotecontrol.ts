@@ -59,6 +59,7 @@ export class CItemEntity extends Entity {
     pos = InterpolatedVar(new Vec2(0,0))
 
     @net("item_entity").variable("item_id", function(this: CItemEntity, i) {
+        console.log("Sprite set");
         this.spritepart.sprite.texture = this.engine.renderer.getTexture(ITEM_LINKER.IDToData(i).item_sprite);
     })
     item_id: number = 0;

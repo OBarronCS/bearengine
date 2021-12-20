@@ -22,6 +22,7 @@ import { drawCircle, drawCircleOutline, drawLineArray, drawLineBetweenPoints } f
 import { EmitterAttach } from "./particles";
 import { choose } from "shared/datastructures/arrayutils";
 import { EMOJIS } from "./emojis";
+import { Player } from "./../gamelogic/player"
 
 
 
@@ -43,9 +44,12 @@ class BaseItem<T extends keyof SharedNetworkedEntities> extends Entity {
 
 export abstract class UsableItem<T extends keyof SharedNetworkedEntities> extends BaseItem<T> {
 
+    // TEMP
+    // juice = {knockback: 10, shake: .15};
+
     consumed: boolean = false;
 
-    abstract operate(dt: number, position: Vec2, mouse: Vec2, mouse_down: boolean, game: NetworkPlatformGame): boolean;
+    abstract operate(dt: number, position: Vec2, mouse: Vec2, mouse_down: boolean, game: NetworkPlatformGame, player: Player): boolean;
 
 }
 
@@ -71,7 +75,7 @@ export abstract class WeaponItem<T extends "weapon_item" = "weapon_item"> extend
         // this.shootController = CreateShootController(item_data.shoot_controller);
     }
 
-    override operate(dt: number, position: Vec2, mouse: Vec2, mouse_down: boolean, game: NetworkPlatformGame): boolean {
+    override operate(dt: number, position: Vec2, mouse: Vec2, mouse_down: boolean, game: NetworkPlatformGame, p: Player): boolean {
         
         this.position.set(position);
         this.direction.set(Vec2.subtract(mouse, this.position).normalize()); 
@@ -81,6 +85,8 @@ export abstract class WeaponItem<T extends "weapon_item" = "weapon_item"> extend
                 this.ammo -= 1;
 
                 this.shoot(game);
+                // this.game.engine.camera.shake(this.juice.shake);
+                // p.knockback(this.direction.clone().negate().extend(this.juice.knockback))
             }
         }
 
@@ -370,7 +376,7 @@ export class ForceFieldItem_C extends UsableItem<"forcefield_item"> {
     
     radius = this.GetStaticValue("radius")
     
-    operate(dt: number, position: Vec2, mouse: Vec2, mouse_down: boolean, game: NetworkPlatformGame): boolean {
+    operate(dt: number, position: Vec2, mouse: Vec2, mouse_down: boolean, game: NetworkPlatformGame, p: Player): boolean {
 
         if(mouse_down){
             game.networksystem.enqueueStagePacket(
@@ -468,7 +474,6 @@ export class LaserTripmine_C extends DrawableEntity {
 
     override onDestroy(){
         this.game.engine.camera.shake(.2);
-        console.log("GONE")
     }
 }
 

@@ -4,7 +4,7 @@ import { EntitySystem, NULL_ENTITY_INDEX, StreamReadEntityID } from "shared/core
 import { NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker } from "shared/core/sharedlogic/networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
-import { SharedEntityClientTable } from "./cliententitydecorators";
+import { InterpolatedVarType, SharedEntityClientTable } from "./cliententitydecorators";
 import { RemoteLocations } from "./remotecontrol";
 import { CallbackNetwork, NetworkSettings } from "./clientsocket";
 import { Entity } from "../entity";
@@ -985,9 +985,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             }
 
             for(const obj of this.remoteEntities.values()){
-                const list = obj.constructor["INTERP_LIST"];
+                const list = obj.constructor["INTERP_LIST"] as string[]; // List of variables that are interpolated
                 for(const value of list){
-                    const interpVar = obj[value];
+                    const interpVar = obj[value] as InterpolatedVarType<any>;
                     const interpValue = interpVar.buffer.getValue(frameToSimulate);
                     interpVar.value = interpValue;
                 }

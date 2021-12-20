@@ -652,7 +652,7 @@ export class Player extends DrawableEntity {
         
         if(this.usable_item !== null){
             if(!this.usable_item.consumed){
-                const consumed = this.usable_item.operate(dt, this.position, this.mouse.position, this.mouse.isDown("left"), this.game);
+                const consumed = this.usable_item.operate(dt, this.position, this.mouse.position, this.mouse.isDown("left"), this.game, this);
                 this.usable_item.consumed = consumed;
             }
         } 
