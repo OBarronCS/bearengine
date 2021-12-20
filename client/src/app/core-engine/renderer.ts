@@ -19,6 +19,8 @@ const MAX_RATIO = 21/9;
 //https://pixijs.download/dev/docs/PIXI.utils.html#.isMobile
 const isMobile = utils.isMobile.any;
 
+type OnResizeCallback = ((width:number, height: number) => void);
+
 export class RendererSystem {
 
 
@@ -33,11 +35,13 @@ export class RendererSystem {
     public targetWindow: Window;
     public targetDiv: HTMLElement;
 
-
     private emitters: Emitter[] = [];
+
+    private on_resize_callbacks: OnResizeCallback[] = [];
 
     addEmitter(path: string, settings: EmitterConfigV1 | EmitterConfigV3, x: number, y: number): Emitter {
         const newVersionSettings = upgradeConfig(settings, this.getTexture(path));
+        //@ts-expect-error --> another type issue with pixi-particle-emitter... 
         const e = new Emitter(this.particle_container, newVersionSettings);
 
         e.emit = true;
@@ -51,6 +55,10 @@ export class RendererSystem {
         this.emitters.push(e);
 
         return e;
+    }
+
+    onresize(cb: OnResizeCallback){
+        this.on_resize_callbacks.push(cb);
     }
 
     engine: BearEngine;
@@ -220,12 +228,16 @@ export class RendererSystem {
         const new_surface_width = aspect_ratio * DEFAULT_RESOLUTION_HEIGHT;
         const new_surface_height = DEFAULT_RESOLUTION_HEIGHT;
 
+        // Changes the underlying texture size
         this.renderer.resize(new_surface_width, new_surface_height);
         
         // console.log(ideal_width,ideal_height)
 
+        // Changes the actual viewport on the web browser
         this.renderer.view.style.width = ideal_width  + 'px';
         this.renderer.view.style.height = ideal_height  + 'px';
+
+        this.on_resize_callbacks.forEach(cb => cb(new_surface_width, new_surface_height));
     }
      
     clear(){
@@ -263,6 +275,9 @@ export class RendererSystem {
         return tex_data.texture;
     }
     
+    //These functions return the width of the underlying canvas texture
+    //Despite saying "view". 
+    //view.style is the css pixels
     getPercentWidth(percent: number){
         return percent * this.renderer.view.width;
     }

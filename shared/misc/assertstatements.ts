@@ -15,3 +15,17 @@ export function AssertNotUndefined(value: any): void {
     if(value === undefined) throw new Error(`ERROR: Undefined value`);
 }
 
+
+// Helps with debugging
+function JSMapToString(map: Map<any, any>): string {
+
+    let str = "";
+
+    for(const [key, value] of map){
+        str += `[${key}:${value}],`
+    }
+
+
+    return str;
+}
+

@@ -18,10 +18,13 @@ import { NetworkSystem } from "./networking/networksystem";
 import { DefaultEntityRenderer, RendererSystem } from "./renderer";
 import { TestMouseDownEventDispatcher } from "./mouseevents";
 import { Player } from "../gamelogic/player";
-import { GameLevel } from "./gamelevel";
+import { DummyLevel, GameLevel } from "./gamelevel";
 import { DebugScreen } from "../gamelogic/debugoverlay";
 import { Chatbox } from "../gamelogic/chatbox";
-import { MyUI } from "../gamelogic/gameui";
+import { ButtonWidget, LabelWidget, SpriteWidget, UIManager } from "../ui/widget";
+import { Color } from "shared/datastructures/color";
+import { Vec2 } from "shared/shapes/vec2";
+import { LevelRef } from "shared/core/sharedlogic/assetlinker";
 
 
 
@@ -205,7 +208,7 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
     public debug: DebugScreen;
     public chatbox: Chatbox
 
-    public ui: MyUI;
+    public ui: UIManager;
 
     // Scenes
     public mainmenu_scene: MainMenuScene;
@@ -218,13 +221,13 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         this.entityRenderer = this.registerSystem(new DefaultEntityRenderer(this));
         this.debug = this.registerSystem(new DebugScreen(this));
         this.chatbox = this.registerSystem(new Chatbox(this));
-        this.ui = this.registerSystem(new MyUI(this));
+        this.ui = this.registerSystem(new UIManager(this));
 
         this.mainmenu_scene = this.addScene(new MainMenuScene(this));
     }
 
     onStart(): void {
-        this.networksystem.connect();
+        this.enable_scene(this.mainmenu_scene);
     }
 
 
@@ -236,6 +239,8 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         this.collisionManager.update(dt);
 
         this.mouseEventDispatcher.update(dt)
+
+        this.updateScenes(dt);
 
         if(this.levelLoaded){
             this.activeLevel.update(dt);
@@ -304,16 +309,83 @@ export class MainMenuScene extends BearScene<NetworkPlatformGame> {
     }
 
     update(dt: number): void {
-        throw new Error("Method not implemented.");
+
     }
 
+
+
     on_enable(): void {
-        throw new Error("Method not implemented.");
+        
+        const bgColor = Color.fromNumber(0xd9f9ff);
+        bgColor.a = 1;
+
+        this.game.ui.setBackgroundColor(bgColor);
+
+
+        const b = this.game.ui.addWidget((() => { 
+            const b = new ButtonWidget(new Vec2(), 200,100, () => {
+
+                this.game.loadLevel(new DummyLevel(this.game, LevelRef.LEVEL_ONE));
+                this.game.disable_scene(this);
+
+                this.game.networksystem.connect();
+            });
+
+
+            b.background_color.copyFrom(Color.fromNumber(0xdeadbeef)) 
+            b.draw_color.copyFrom(b.background_color)
+            return b;
+        })());
+
+        b.setPosition({type: "percent", percent: .50}, {type: "percent", percent: .50}).center();
+
+        // this.game.ui.addWidget((() =>  { 
+        //     const b = new ButtonWidget(new Vec2(300,50), 100,50, () => console.log("123"));
+        //     b.background_color.copyFrom(Color.fromNumber(0xdeadbeef)) 
+        //     b.draw_color.copyFrom(b.background_color)
+        //     return b;
+        // })());
+        // const spr = this.game.ui.addWidget(new SpriteWidget(new Vec2(400,60), this.game.engine.renderer.getTexture("flower.png")))
+        {
+            const label = new LabelWidget(new Vec2(), "Play");
+            label.setFontColor(Color.fromNumber(0x000000));
+            this.game.ui.addWidget(label);
+            label.setPosition({type: "percent", percent: .50}, {type: "percent", percent: .50}).center();
+        }
+
+        {
+            const label = new LabelWidget(new Vec2(), "Networked Platform Game");
+            label.setFontColor(Color.fromNumber(0x000000));
+            this.game.ui.addWidget(label);
+            label.setPosition({type: "percent", percent: .50}, {type: "percent", percent: .20}).center();
+        }
+
+
+    
     }
 
     on_disable(): void {
+        this.game.ui.clearUI();
+    }
+
+}
+
+
+export class LevelScene extends BearScene<NetworkPlatformGame> {
+    
+    init(): void {
         throw new Error("Method not implemented.");
     }
+    update(dt: number): void {
+        throw new Error("Method not implemented.");
+    }
+    on_enable(): void {
+        throw new Error("Method not implemented.");
+    }
+    on_disable(): void {
+        throw new Error("Method not implemented.");
+    }
+
 
 }
 

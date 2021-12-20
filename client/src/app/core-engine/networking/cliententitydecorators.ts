@@ -43,7 +43,7 @@ type NetworkedEventList = {
 
 
 
-interface InterpolatedVarType<T> {
+export interface InterpolatedVarType<T> {
     value: T,
     buffer: InterpVariableBuffer<any>
 }
