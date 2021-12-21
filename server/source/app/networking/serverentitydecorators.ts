@@ -1,6 +1,6 @@
 import { StreamWriteEntityID } from "shared/core/entitysystem";
 import { SharedNetworkedEntities, SharedEntityLinker, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
-import { NetworkVariableTypes, SerializeTypedVar, TypescriptTypeOfNetVar } from "shared/core/sharedlogic/serialization";
+import { NetworkVariableTypes, SerializeTypedVar, SerializeVec2, TypescriptTypeOfNetVar } from "shared/core/sharedlogic/serialization";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { TickTimer } from "shared/datastructures/ticktimer";
 import { randomChar, randomInt } from "shared/misc/random";
@@ -13,11 +13,28 @@ type RegisterVariablesList = {
 }[]
 
 
+export abstract class NetworkedEntity<T extends keyof SharedNetworkedEntities> extends ServerEntity {
+    // static SHARED_ID = -1;
+    // static SHARED_NAME = "__UNINITIALIZED_NAME";
+
+    dirty_bits: number;
+
+    mark_dirty<K extends keyof SharedNetworkedEntities[T]["variables"]>(key: K){
+        const id = SharedEntityLinker.sharedIDToVariableMap(this.constructor["SHARED_ID"]).get(key as string);
+
+        this.dirty_bits |= (1 << (id + 1));
+    }
+}
+
+type TEntity = NetworkedEntity<any>;
+type TEntityCon = typeof NetworkedEntity;
+
+
+
 // Class decorator, makes it's variables updated over the network. Need client side implementation.
 export function networkedclass_server<T extends keyof SharedNetworkedEntities>(classname: T) {
 
-    return function<U extends typeof ServerEntity>(targetConstructor: U){
-
+    return function<U extends TEntityCon>(targetConstructor: U){
         targetConstructor["SHARED_ID"] = -1; 
         targetConstructor["SHARED_NAME"] = classname;
 
@@ -44,7 +61,7 @@ export function sync<SharedName extends keyof SharedNetworkedEntities>(sharedVar
 
     return {
         var<VarName extends keyof SharedNetworkedEntities[SharedName]["variables"]>(key: VarName, createSetterAndGetter = false){
-            return function<T extends ServerEntity & Record<VarName,GetTypeScriptType<SharedNetworkedEntities[SharedName]["variables"][VarName]>>>(target: T, propertyKey: VarName & string){
+            return function<T extends TEntity & Record<VarName,GetTypeScriptType<SharedNetworkedEntities[SharedName]["variables"][VarName]>>>(target: T, propertyKey: VarName & string){
 
                 const constructorOfClass = target.constructor;
                  
@@ -64,18 +81,18 @@ export function sync<SharedName extends keyof SharedNetworkedEntities>(sharedVar
                 if(createSetterAndGetter){
         
                     Object.defineProperty(target, propertyKey, {
-                        get: function(this: ServerEntity) {
+                        get: function(this: TEntity) {
                             // console.log('get', this['__'+propertyKey]);
                             // console.log("get");
         
                             return this['__'+propertyKey];
                         },
-                        set: function (this: ServerEntity, value) {
+                        set: function (this: TEntity, value) {
                             this['__'+propertyKey] = value;
                             
                             // console.log(`set ${propertyKey} to`, value);
                             
-                            this.markDirty();
+                            this.mark_dirty(key);
                         },
                         // enumerable: true,
                         // configurable: true
@@ -92,7 +109,7 @@ export function sync<SharedName extends keyof SharedNetworkedEntities>(sharedVar
 
 
 
-type EntityConstructor = abstract new(...args:any[]) => ServerEntity;
+type EntityConstructor = abstract new(...args:any[]) => TEntity;
 
  // A similar thing to this exists on client-side as well
 export class SharedEntityServerTable {
@@ -146,7 +163,7 @@ export class SharedEntityServerTable {
         }        
     }
 
-    static serialize(stream: BufferStreamWriter, entity: ServerEntity){
+    static serialize(stream: BufferStreamWriter, entity: TEntity){
 
         // Could make this a getter on the prototype,
         const SHARED_ID = entity.constructor["SHARED_ID"];
@@ -157,17 +174,32 @@ export class SharedEntityServerTable {
         stream.setUint8(SHARED_ID);
         StreamWriteEntityID(stream, entity.entityID);
 
-        for(const variable of variableslist){
+        stream.setUint32(entity.dirty_bits);
 
-            //@ts-expect-error
-            SerializeTypedVar(stream, variable.type, entity[variable.variableName]);
+        if(entity.dirty_bits & 1){
+            SerializeVec2(stream, "float", entity.position);
         }
+
+        // Position is always implicitely the 1st var
+        for(let i = 1; i < variableslist.length + 1; i++){
+            if((entity.dirty_bits & (1 << i)) !== 0) {
+                const variable = variableslist[i - 1];
+                //@ts-expect-error
+                SerializeTypedVar(stream, variable.type, entity[variable.variableName]);
+            }
+        }
+
+        // for(const variable of variableslist){
+
+        //     //@ts-expect-error
+        //     SerializeTypedVar(stream, variable.type, entity[variable.variableName]);
+        // }
     }
 }
 
 
 @networkedclass_server("test_super")
-export class S_T_Super extends ServerEntity {
+export class S_T_Super extends NetworkedEntity<"test_super"> {
 
     @sync("test_super").var("supervar")
     supervar = 1;

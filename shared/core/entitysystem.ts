@@ -405,9 +405,10 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         }
     }
 
-    createSubset<T extends TEntity>(): EntitySystemSubset<this> {
+    createSubset<T extends EntitySystemEntityType<this>>(): EntitySystemSubset<this,T> {
 
-        const subset = new EntitySystemSubset<this>(this);
+
+        const subset = new EntitySystemSubset<this,T>(this);
 
         this.subsets.push(subset);
 

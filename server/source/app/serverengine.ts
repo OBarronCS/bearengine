@@ -10,7 +10,7 @@ import { GamePacket, ServerBoundPacket, ServerPacketSubType } from "shared/core/
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { ConnectionID, ServerNetwork } from "./networking/serversocket";
 import { ServerPlayerEntity } from "./playerlogic";
-import { SharedEntityServerTable, S_T_Sub } from "./networking/serverentitydecorators";
+import { NetworkedEntity, SharedEntityServerTable, S_T_Sub } from "./networking/serverentitydecorators";
 import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { LinkedQueue, Queue } from "shared/datastructures/queue";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
@@ -32,7 +32,7 @@ import { commandDispatcher } from "./servercommands";
 
 import "server/source/app/weapons/serveritems.ts"
 import { random, randomInt, random_range } from "shared/misc/random";
-import { Effect } from "shared/core/effects";
+import { Effect, Effect2 } from "shared/core/effects";
 import { ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { LevelRefLinker, LevelRef } from "shared/core/sharedlogic/assetlinker";
 import { shuffle } from "shared/datastructures/arrayutils";
@@ -116,6 +116,10 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     // Subsystems
     public terrain: TerrainManager;
 
+    //////////////////////////////////////////////////////////////////////////////////////////
+    public networked_entity_subset = this.entities.createSubset<NetworkedEntity<any>>()
+
+    // override entities: never;
     
 
     // Serializes the packets in here at end of tick, sends to every player
@@ -459,21 +463,23 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         }
     }
   
-    createRemoteEntity(e: ServerEntity){
-        this.entities.addEntity(e);
+    createRemoteEntity(e: NetworkedEntity<any>){
+        this.networked_entity_subset.addEntity(e);
+        // this.entities.addEntity(e);
         
         const id = e.entityID;
         
         this.enqueueGlobalPacket(new RemoteEntityCreatePacket(e.constructor["SHARED_ID"], id));
     }
     
-    destroyRemoteEntity(e: ServerEntity){
+    destroyRemoteEntity(e: NetworkedEntity<any>){
 
         const id = e.entityID;
 
         this.enqueueGlobalPacket(new RemoteEntityDestroyPacket(e.constructor["SHARED_ID"], id));
 
-        this.entities.destroyEntity(e);
+        this.networked_entity_subset.destroyEntity(e);
+        // this.entities.destroyEntity(e);
     }
 
     createItemFromPrefab(item_id: number): SBaseItem<any> {
@@ -742,14 +748,11 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     private writeToNetwork(){
 
         // Get entities marked dirty
-        const entitiesToSerialize: ServerEntity[] = []
+        const entitiesToSerialize: NetworkedEntity<any>[] = []
 
-        for(const entity of this.entities.entities){
-            if(entity.stateHasBeenChanged){
-
+        for(const entity of this.networked_entity_subset.entities){ 
+            if(entity.dirty_bits !== 0){
                 entitiesToSerialize.push(entity);
-
-                entity.stateHasBeenChanged = false;
             }
         }
 
@@ -809,6 +812,10 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             }
         }
         
+        for(const e of entitiesToSerialize){
+            e.dirty_bits = 0;
+        }
+
         this.currentTickGlobalPackets = [];
 
         // console.log(this.tick,Date.now()  - this.previousTick);
@@ -910,7 +917,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                             new EndRoundPacket([...this.activeScene.deadplayers].reverse())
                         );
 
-                        const effect = new ServerEffect();
+                        const effect = new Effect2(undefined);
                         effect.onDelay(60 * 3, () => {
                             this.endRound();
                         });
@@ -966,11 +973,3 @@ class ServerScene {
 }
 
 
-//Band-aid fix 
-
-class ServerEffect extends Effect<ServerBearEngine> {
-    stateHasBeenChanged = false;
-    markDirty(): void {
-        this.stateHasBeenChanged = true;
-    }
-}

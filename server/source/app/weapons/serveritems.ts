@@ -1,4 +1,4 @@
-import { Effect } from "shared/core/effects";
+import { Effect, Effect2 } from "shared/core/effects";
 import { Clip, CreateShootController, GunshootController, SHOT_LINKER, SimpleWeaponControllerDefinition } from "shared/core/sharedlogic/weapondefinitions";
 import { TickTimer } from "shared/datastructures/ticktimer";
 import { random_range } from "shared/misc/random";
@@ -6,7 +6,7 @@ import { Line } from "shared/shapes/line";
 import { Vec2 } from "shared/shapes/vec2";
 
 import { TerrainCarveCirclePacket, ProjectileShotPacket } from "../networking/gamepacketwriters";
-import { networkedclass_server, sync } from "../networking/serverentitydecorators";
+import { networkedclass_server, NetworkedEntity, sync } from "../networking/serverentitydecorators";
 import { ServerBearEngine } from "../serverengine";
 
 import { ConnectionID } from "../networking/serversocket";
@@ -20,7 +20,7 @@ import { EntityID } from "shared/core/abstractentity";
 import { Rect } from "shared/shapes/rectangle";
 import { Ellipse } from "shared/shapes/ellipse";
 
-export class SBaseItem<T extends keyof SharedNetworkedEntities> extends ServerEntity {
+export class SBaseItem<T extends keyof SharedNetworkedEntities> extends NetworkedEntity<T> {
 
     constructor(public item_id: number){
         super();
@@ -84,7 +84,7 @@ export class ForceFieldItem_S extends SBaseItem<"forcefield_item"> {
 
 //@ts-expect-error
 @networkedclass_server("forcefield_effect")
-export class ForceFieldEffect extends ServerEntity {
+export class ForceFieldEffect extends NetworkedEntity<"forcefield_effect"> {
 
     @sync("forcefield_effect").var("radius", true)
     radius: number 
@@ -200,15 +200,22 @@ export function ServerShootHitscanWeapon(game: ServerBearEngine, shotID: number,
 
 //@ts-expect-error
 @networkedclass_server("projectile_bullet")
-class ServerProjectileBullet extends Effect<ServerBearEngine> {
-    
+class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
+ 
+    effect = new Effect2(this);
 
-
-    stateHasBeenChanged = false;
-    markDirty(): void {
-        this.stateHasBeenChanged = true;
+    update(dt: number): void {
+        this.effect.update(dt);
     }
 
+    override onAdd(): void {
+        this.effect.onAdd();
+    }
+
+    override onDestroy(): void {
+        this.effect.onDestroy()
+    }
+    
 
     last_force_field_id = NULL_ENTITY_INDEX;
 
@@ -226,7 +233,7 @@ class ServerProjectileBullet extends Effect<ServerBearEngine> {
         // Is immediately destroyed if starts at (0,0)
         this.position.add({x:1,y:1});
     
-        this.onUpdate(function(dt: number){
+        this.effect.onUpdate(function(dt: number){
             this.position.add(this.velocity);
             this.circle.position.set(this.position);
 
@@ -250,7 +257,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
     bullet.velocity.set(velocity);
     
     // Bouncing off of forcefields
-    bullet.onUpdate(function(dt){
+    bullet.effect.onUpdate(function(dt){
                             
         const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone()));
         
@@ -312,14 +319,14 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
 
                 const grav = new Vec2().set(effect.force);
 
-                bullet.onUpdate(function(){
+                bullet.effect.onUpdate(function(){
                     this.velocity.add(grav);
                 });
 
                 break;
             }
             case "laser_mine_on_hit": {
-                bullet.onUpdate(function(){
+                bullet.effect.onUpdate(function(){
                     const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone()));
 
                     
@@ -343,7 +350,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
             }
 
             case "terrain_hit_boom": {
-                bullet.onUpdate(function(){
+                bullet.effect.onUpdate(function(){
                     
                     const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone().extend(50)));
 
@@ -398,7 +405,7 @@ export enum ItemEntityPhysicsMode {
 
 //@ts-expect-error
 @networkedclass_server("item_entity")
-export class ItemEntity extends ServerEntity {
+export class ItemEntity extends NetworkedEntity<"item_entity"> {
 
     override position: never
 
@@ -420,7 +427,8 @@ export class ItemEntity extends ServerEntity {
         this.item = item;
         this.item_id = item.item_id;
 
-        this.markDirty();
+        this.mark_dirty("item_id");
+        this.mark_dirty("pos");
     }
 
 
@@ -439,7 +447,7 @@ export class ItemEntity extends ServerEntity {
                     // console.log("hit")
                 } else {
                     this.pos.add(item_gravity);
-                    this.markDirty()
+                    this.mark_dirty("pos");
                 }
 
                 break;
@@ -447,7 +455,7 @@ export class ItemEntity extends ServerEntity {
             case ItemEntityPhysicsMode.BOUNCING: {
                 // THIS SIMULATES SUPER FAST, IDK WHY
                 // It should be equal to client side, but...
-                this.markDirty()
+                this.mark_dirty("pos");
                 // Gravity
                 this.velocity.add(item_gravity);
 
@@ -527,7 +535,7 @@ export class ItemEntity extends ServerEntity {
 
 //@ts-expect-error
 @networkedclass_server("laser_tripmine")
-export class LaserTripmine_S extends ServerEntity {
+export class LaserTripmine_S extends NetworkedEntity<"laser_tripmine"> {
 
     @sync("laser_tripmine").var("__position")
     __position = new Vec2(0,0);
@@ -544,7 +552,8 @@ export class LaserTripmine_S extends ServerEntity {
 
         this.line = new Line(pos,Vec2.add(pos, dir.clone().extend(20)));
 
-        this.markDirty();
+        this.mark_dirty("__position");
+        this.mark_dirty("direction");
     }
 
     update(dt: number): void {

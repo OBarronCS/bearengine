@@ -1,6 +1,6 @@
 import { AbstractEntity } from "shared/core/abstractentity";
 import { SharedNetworkedEntities, SharedEntityLinker, SharedNetworkedEntityDefinitions, NetCallbackTypeV1 } from "shared/core/sharedlogic/networkschemas";
-import { DeserializeTypedVar, NetworkVariableTypes, TypescriptTypeOfNetVar } from "shared/core/sharedlogic/serialization";
+import { DeserializeTypedVar, DeserializeVec2, NetworkVariableTypes, TypescriptTypeOfNetVar } from "shared/core/sharedlogic/serialization";
 import { areEqualSorted } from "shared/datastructures/arrayutils";
 import { BufferStreamReader } from "shared/datastructures/bufferstream";
 import { floor, ceil, lerp, E } from "shared/misc/mathutils";
@@ -414,22 +414,51 @@ export const SharedEntityClientTable = {
 
     deserialize(stream: BufferStreamReader, frame: number, sharedID: number, entity: BaseEntityType){
         
+        const dirty_bits = stream.getUint32();
+
+        if(dirty_bits & 1){
+            // What about interpolation... whoops forgot about that
+            DeserializeVec2(stream, "float", new Vec2());
+        }
+
         const variableslist = this.REGISTERED_NETWORKED_ENTITIES[sharedID].varDefinition
+        
+        for(let i = 1; i < variableslist.length + 1; i++){
+            if((dirty_bits & (1 << i)) !== 0) {
 
-        for(const variableinfo of variableslist){
-            const value = DeserializeTypedVar(stream, variableinfo.variabletype);
+                
+                const variableinfo = variableslist[i - 1];
+                // console.log("DIRTY: " + variableinfo.variablename);
+                
+                const value = DeserializeTypedVar(stream, variableinfo.variabletype);
 
-            if(variableinfo.interpolated){
-                (entity[variableinfo.variablename] as InterpolatedVarType<any>).buffer.addValue(frame, value); 
-            } else {
-                entity[variableinfo.variablename] = value
-            }
-
-
-            if(variableinfo.recieveFuncName !== null){
-                entity[variableinfo.recieveFuncName](value);
+                if(variableinfo.interpolated){
+                    (entity[variableinfo.variablename] as InterpolatedVarType<any>).buffer.addValue(frame, value); 
+                } else {
+                    entity[variableinfo.variablename] = value
+                }
+    
+    
+                if(variableinfo.recieveFuncName !== null){
+                    entity[variableinfo.recieveFuncName](value);
+                }
             }
         }
+
+        // for(const variableinfo of variableslist){
+        //     const value = DeserializeTypedVar(stream, variableinfo.variabletype);
+
+        //     if(variableinfo.interpolated){
+        //         (entity[variableinfo.variablename] as InterpolatedVarType<any>).buffer.addValue(frame, value); 
+        //     } else {
+        //         entity[variableinfo.variablename] = value
+        //     }
+
+
+        //     if(variableinfo.recieveFuncName !== null){
+        //         entity[variableinfo.recieveFuncName](value);
+        //     }
+        // }
     }
 }
 

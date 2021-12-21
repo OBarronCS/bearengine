@@ -471,7 +471,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             }
 
-                            //console.log("CHANGING VAR: " + entityID + " at frame " + frame);
+                            // console.log("CHANGING VAR: " + entityID + " at frame " + frame);
 
                             SharedEntityClientTable.deserialize(stream, frame, SHARED_ID, entity);
 

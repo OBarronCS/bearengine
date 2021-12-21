@@ -10,12 +10,14 @@ export enum ClientBoundImmediate {
     PONG, // [ original stamp: BigInt64, server stamp: BigInt64]
 }
 
+//REMOTE_ENTITY_VARIABLE_DATA = [shared_id: uint8, entityID, dirty_bits: uint32, ...[position: Vec2<float32>?]...data]
+
 export enum GamePacket {
     INIT, // [ hash: uint64, tick_rate: uint8, reference time: biguint64, tick: uint16, uint8: your_player_id] 
     SERVER_IS_TICKING, // [tick: uint16];
 
     REMOTE_ENTITY_CREATE, // [ SHARED_ID: uint8, entityID]
-    REMOTE_ENTITY_VARIABLE_CHANGE, // [ SHARED_ID: uint8, entityID, ...data];
+    REMOTE_ENTITY_VARIABLE_CHANGE, // REMOTE_ENTITY_VARIABLE_DATA;
     REMOTE_ENTITY_EVENT, // [SHARED_ID: uint8, entityID, EVENT_ID: uint8][...data];
     REMOTE_ENTITY_DELETE, // [SHARED_ID: uint8, entityID]
 
