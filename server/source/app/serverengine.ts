@@ -21,7 +21,7 @@ import { Rect } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { DeserializeShortString, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
-import { AcknowledgeShotPacket, ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, ForceFieldEffectPacket, HitscanShotPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, ProjectileShotPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket } from "./networking/gamepacketwriters";
+import { AcknowledgeShotPacket, ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, HitscanShotPacket, ProjectileShotPacket } from "./networking/gamepacketwriters";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
@@ -126,6 +126,13 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     private currentTickGlobalPackets: PacketWriter[] = [];
     enqueueGlobalPacket(packet: PacketWriter){
         this.currentTickGlobalPackets.push(packet);
+    }
+    sendToAllBut(player: PlayerInformation, packet: PacketWriter){
+        for(const c of this.players.values()){
+            if(c !== player){
+                c.personalPackets.enqueue(packet);
+            }
+        }
     }
 
     // Set of all packets that should be sent to any player joining mid-game
@@ -465,7 +472,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
   
     createRemoteEntity(e: NetworkedEntity<any>){
         this.networked_entity_subset.addEntity(e);
-        // this.entities.addEntity(e);
         
         const id = e.entityID;
         
@@ -479,7 +485,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         this.enqueueGlobalPacket(new RemoteEntityDestroyPacket(e.constructor["SHARED_ID"], id));
 
         this.networked_entity_subset.destroyEntity(e);
-        // this.entities.destroyEntity(e);
     }
 
     createItemFromPrefab(item_id: number): SBaseItem<any> {
@@ -852,7 +857,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             // Round logic
             if(this.serverState === ServerGameState.ROUND_ACTIVE){
                 
-                if(random() > .90){
+                if(random() > 1.90){
 
 
                     const random_itemprefab_id = RandomItemID();

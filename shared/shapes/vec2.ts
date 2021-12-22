@@ -26,6 +26,10 @@ export class Vec2 {
     static NW: Readonly<Coordinate> = new Vec2(-Math.SQRT1_2,-Math.SQRT1_2);
     static HALFHALF: Readonly<Coordinate> = new Vec2(0.5,0.5);
 
+    static from(c: Coordinate){
+        return new Vec2(c.x,c.y);
+    }
+
     /** A random vector of a given length */
     static random(length = 1): Vec2 {
         const vec = new Vec2(0,0);

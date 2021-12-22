@@ -66,6 +66,11 @@ rl.on('line', (input: string) => {
                 break;
             }
 
+            case "p": {
+                console.log(engine.networked_entity_subset["subset"].size());
+                break;
+            }
+
             default: {
                 console.log("You made a typo");
             }

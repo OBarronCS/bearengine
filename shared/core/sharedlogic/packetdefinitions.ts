@@ -10,7 +10,7 @@ export enum ClientBoundImmediate {
     PONG, // [ original stamp: BigInt64, server stamp: BigInt64]
 }
 
-//REMOTE_ENTITY_VARIABLE_DATA = [shared_id: uint8, entityID, dirty_bits: uint32, ...[position: Vec2<float32>?]...data]
+//REMOTE_ENTITY_VARIABLE_DATA = [SHARED_ID: uint8, entityID, dirty_bits: uint32, ...[position: Vec2<float32>?]...data]
 
 export enum GamePacket {
     INIT, // [ hash: uint64, tick_rate: uint8, reference time: biguint64, tick: uint16, uint8: your_player_id] 
@@ -73,10 +73,15 @@ export enum GamePacket {
 
     SHOOT_WEAPON, // [creator_id: uint8, ItemActionType: enum, serverShotID: uint32, createServerTick: float32, x: float32, y: float32, ...extra_data]
 
-    ACKNOWLEDGE_SHOT // [success: bool, localShotID: uint32, serverShotID: uint32, entityIDOfBullet];
+    
+    ACKNOWLEDGE_SHOT, // [success: bool, localShotID: uint32, serverShotID: uint32, entityIDOfBullet];
+    
+    // Personal packet, response to REQUEST_ITEM_ACTION
+    ACKNOWLEDGE_ITEM_ACTION, // NOT IMPLEMENTED [ItemActionType: uint8_enum, clientside_action_id: uint32, success/fail, ...data];
 }
 
 /*
+// THESE ARE INCORRECT
 ITEM ACTION EXTRA DATA DEFINITIONS:
     PROJECTILE_SHOT: [dir_x: float32, dir_y: float32, entityIDofBullet];
     HIT_SCAN: [end_x: float32, end_y: float32];
@@ -98,7 +103,7 @@ export enum ServerBoundPacket {
     PLAYER_POSITION, // [x: float32, y: float32, mouse_x: float32, mouse_y: float32, uint8: animationstate, bool: flipped, isMouseDown: bool, isFDown: bool, isQDown: bool]
 
 
-    REQUEST_ITEM_ACTION, // [ItemActionType: enum, localShootID: uint32, createServerTick: float32, x: float32, y: float32, ...data]
+    REQUEST_ITEM_ACTION, // [ItemActionType: enum, local_action_id: uint32, createServerTick: float32, x: float32, y: float32, ...data]
 
     REQUEST_CHAT_MESSAGE, // [ShortString (255 chars max), ]
 }

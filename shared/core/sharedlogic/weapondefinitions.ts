@@ -11,9 +11,14 @@ export enum ItemActionType {
     FORCE_FIELD_ACTION,
 }
 
-// Should This be more generic?
-// Just a BulletEffect?
-// OnProjectileHitTerrain
+/** Success/failure state of a requested action */
+export enum ItemActionAck {
+    SUCCESS,
+    INVALID_STATE, // CANNOT_DO_RIGHT_NOW
+    DO_NOT_HAVE_ITEM
+}
+
+
 export type BulletEffects = {
     type:"terrain_hit_boom",
     radius: number

@@ -81,6 +81,7 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
             bullet_effects: null as BulletEffects[],
         },
         variables:{
+            
             velocity: netv.vec2("float"),
         },
         extends:null,

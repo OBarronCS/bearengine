@@ -5,7 +5,7 @@ import { random_range } from "shared/misc/random";
 import { Line } from "shared/shapes/line";
 import { Vec2 } from "shared/shapes/vec2";
 
-import { TerrainCarveCirclePacket, ProjectileShotPacket } from "../networking/gamepacketwriters";
+import { TerrainCarveCirclePacket } from "../networking/gamepacketwriters";
 import { networkedclass_server, NetworkedEntity, sync } from "../networking/serverentitydecorators";
 import { ServerBearEngine } from "../serverengine";
 

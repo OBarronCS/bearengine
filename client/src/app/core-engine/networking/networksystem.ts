@@ -967,7 +967,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             break;
                         }
+                        case GamePacket.ACKNOWLEDGE_ITEM_ACTION: {
 
+                            break;
+                        }
                         default: AssertUnreachable(type);
                     }
                 }

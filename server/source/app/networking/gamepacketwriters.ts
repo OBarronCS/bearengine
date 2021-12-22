@@ -458,3 +458,19 @@ export class AcknowledgeShotPacket extends PacketWriter {
     }
 }
 
+
+// export class AcknowledgeItemActionPacket extends PacketWriter {
+
+//     constructor(public action_type: ItemActionType, public clientside_action_id: number, public success: boolean){
+//         super(false);
+//     }
+
+//     write(stream: BufferStreamWriter){
+//         stream.setUint8(GamePacket.ACKNOWLEDGE_ITEM_ACTION);
+
+//     }
+// }
+
+
+
+
