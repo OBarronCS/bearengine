@@ -146,7 +146,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     
     
 
-    // values exist here while shot awaiting acknowledgement from the server
+    // Predicted values exist here while shot awaiting acknowledgement from the server
     public readonly localShotIDToEntity: Map<number,AbstractEntity> = new Map();
 
     
@@ -979,10 +979,11 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
             for(const obj of this.remoteEntities.values()){
                 const list = obj.constructor["INTERP_LIST"] as string[]; // List of variables that are interpolated
-                for(const value of list){
-                    const interpVar = obj[value] as InterpolatedVarType<any>;
+                for(const key of list){
+                    const interpVar = obj["__"+key+"__BUFFER_"] as InterpolatedVarType<any>;
                     const interpValue = interpVar.buffer.getValue(frameToSimulate);
-                    interpVar.value = interpValue;
+                    obj["__"+key] = interpValue;
+                    // console.log(key, obj);
                 }
             }
         }
