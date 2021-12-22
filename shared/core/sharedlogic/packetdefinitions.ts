@@ -71,10 +71,6 @@ export enum GamePacket {
     TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
 
 
-    // SHOOT_WEAPON, // [creator_id: uint8, ItemActionType: enum, serverShotID: uint32, createServerTick: float32, x: float32, y: float32, ...extra_data]
-    // ACKNOWLEDGE_SHOT, // [success: bool, localShotID: uint32, serverShotID: uint32, entityIDOfBullet];
-    
-
     // Many items will use this packet to communicate their actions
     GENERAL_DO_ITEM_ACTION, // [creator_id: uint8, ItemActionType: uint8_enum, createServerTick: float32, x: float32, y: float32, ...extra_data]
 

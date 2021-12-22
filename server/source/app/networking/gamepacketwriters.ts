@@ -364,28 +364,6 @@ export class TerrainCarveCirclePacket extends PacketWriter {
     }
 }
 
-// ForceFields are created through entities, so this is not needed
-// export class ForceFieldEffectPacket extends PacketWriter {
-
-//     constructor(public playerID: number, public serverShotID: number, public createServerTick: number,  public start: Vec2){
-//         super(false);
-//     }
-
-//     write(stream: BufferStreamWriter){
-//         stream.setUint8(GamePacket.SHOOT_WEAPON);
-//         stream.setUint8(this.playerID);
-
-//         stream.setUint8(ItemActionType.FORCE_FIELD_ACTION);
-
-
-//         stream.setUint32(this.serverShotID);
-        
-//         stream.setFloat32(this.createServerTick);
-
-//         stream.setFloat32(this.start.x);
-//         stream.setFloat32(this.start.y);
-//     }
-// }
 
 
 
@@ -442,27 +420,31 @@ export class ActionDo_ProjectileShotPacket extends PacketWriter {
 }
 
 
+// ForceFields are created through entities, so this is not needed
+// export class ForceFieldEffectPacket extends PacketWriter {
 
-// export class AcknowledgeShotPacket extends PacketWriter {
-
-//     constructor(private success: boolean, private localID: number, private serverID: number, public entityID: number){
+//     constructor(public playerID: number, public createServerTick: number,  public start: Vec2){
 //         super(false);
 //     }
 
 //     write(stream: BufferStreamWriter){
-//         stream.setUint8(GamePacket.ACKNOWLEDGE_SHOT);
+//         stream.setUint8(GamePacket.SHOOT_WEAPON);
+//         stream.setUint8(this.playerID);
+
+//         stream.setUint8(ItemActionType.FORCE_FIELD_ACTION);
         
-//         stream.setBool(this.success);
-//         stream.setUint32(this.localID);
-//         stream.setUint32(this.serverID);
-//         StreamWriteEntityID(stream, this.entityID);
+//         stream.setFloat32(this.createServerTick);
+
+//         stream.setFloat32(this.start.x);
+//         stream.setFloat32(this.start.y);
 //     }
 // }
 
-/** General fail packet */
-export class AcknowledgeItemActionFailPacket extends PacketWriter {
 
-    constructor(public action_type: ItemActionType, public success: ItemActionAck.DO_NOT_HAVE_ITEM | ItemActionAck.INVALID_STATE, public clientside_action_id: number){
+/** General ack packet */
+export class AcknowledgeItemActionPacket extends PacketWriter {
+
+    constructor(public action_type: ItemActionType, public success: ItemActionAck, public clientside_action_id: number){
         super(false);
     }
 
@@ -490,18 +472,6 @@ export class AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet extends Packet
     }
 }
 
-
-// export class AcknowledgeItemActionPacket extends PacketWriter {
-
-//     constructor(){
-//         super(false);
-//     }
-
-//     write(stream: BufferStreamWriter){
-//         stream.setUint8(GamePacket.ACKNOWLEDGE_ITEM_ACTION);
-
-//     }
-// }
 
 
 

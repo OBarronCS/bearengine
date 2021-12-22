@@ -146,7 +146,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     
     
 
-    // private readonly serverShotIDToEntity: Map<number,AbstractEntity> = new Map();
     // values exist here while shot awaiting acknowledgement from the server
     public readonly localShotIDToEntity: Map<number,AbstractEntity> = new Map();
 
@@ -805,16 +804,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             terrain.carveCircle(x, y, r);
 
-                            // // Check if we have a copy of bullet that created this effect. If so, delete it.
-                            // const bullet = this.serverShotIDToEntity.get(serverShotID);
-
-                            // if(bullet !== undefined){
-                            //     // console.log("BULLET DESTROYED");
-                            //     this.serverShotIDToEntity.delete(serverShotID);
-                                
-                            //     bullet.destroy();
-                            // }
-
                             this.engine.renderer.addEmitter("assets/flower.png", PARTICLE_CONFIG["TERRAIN_EXPLOSION"], x, y);
                             
                             break;
@@ -865,106 +854,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             break;
                         }
 
-                        // case GamePacket.SHOOT_WEAPON: {
-
-                        //     const creatorID = stream.getUint8();
-                        //     const item_type: ItemActionType = stream.getUint8();
-
-                        //     const serverShotID = stream.getUint32();
-
-                        //     const createServerTick = stream.getFloat32();
-                        //     const pos = new Vec2(stream.getFloat32(), stream.getFloat32());
-
-
-
-                        //     switch(item_type){
-                        //         case ItemActionType.PROJECTILE_SHOT:{
-                        //             const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
-
-                        //             const shot_prefab_id = stream.getUint8();
-
-                        //             const remoteEntityID = StreamReadEntityID(stream);
-
-                        //             // Only create it if someone else shot it
-                        //             if(this.MY_CLIENT_ID !== creatorID){
-
-                        //                 const bullet_effects = SHOT_LINKER.IDToData(shot_prefab_id).bullet_effects;
-
-                        //                 const b = ShootProjectileWeapon(this.game, bullet_effects, pos, velocity);
-                                        
-                        //                 // this.game.entities.addEntity(b);
-
-
-                        //                 // It's now a networked entity
-                        //                 //@ts-expect-error
-                        //                 this.remoteEntities.set(remoteEntityID, b);
-                        //                 this.networked_entity_subset.addEntity(b);
-
-
-                        //                 this.serverShotIDToEntity.set(serverShotID, b);
-                        //             }
-                        //             break;
-                        //         }
-                        //         case ItemActionType.HIT_SCAN:{
-                        //             const end = new Vec2(stream.getFloat32(), stream.getFloat32());
-                        //             const ray = new Line(pos, end);
-                        //             if(this.MY_CLIENT_ID !== creatorID)
-                        //                 ShootHitscanWeapon(this.game, ray);
-                        //             break;
-                        //         }
-                        //         case ItemActionType.FORCE_FIELD_ACTION: {
-
-                        //             // if(this.MY_CLIENT_ID === creatorID){
-                        //             //     this.game.entities.addEntity(new ForceFieldEffect_C(this.game.player));
-                        //             // } else {
-                        //             //     const p = this.remotePlayerEntities.get(creatorID);
-                        //             //     this.game.entities.addEntity(new ForceFieldEffect_C(p));
-                        //             // }
-
-                                    
-                        //             break;
-                        //         }
-                        //         default: AssertUnreachable(item_type);
-
-                        //     }
-
-
-                        //     break;
-                        // }
-                        // case GamePacket.ACKNOWLEDGE_SHOT: {
-                        //     const success = stream.getBool();
-
-                        //     const localShotID = stream.getUint32();
-                        //     const serverShotID = stream.getUint32();
-
-                        //     const remoteEntityID = StreamReadEntityID(stream);
-
-                        //     if(success){
-                        //         const bullet = this.localShotIDToEntity.get(localShotID);
-                        //         // May not exist, for some reason...
-                        //         if(bullet !== undefined){
-                        //             if(bullet.entityID !== NULL_ENTITY_INDEX){
-                        //                 this.serverShotIDToEntity.set(serverShotID, bullet);
-                        //                 this.localShotIDToEntity.delete(localShotID);
-
-
-                        //                 //@ts-expect-error
-                        //                 this.remoteEntities.set(remoteEntityID, bullet);
-                        //                 this.networked_entity_subset.forceAddEntityFromMain(bullet);
-
-
-                        //             } else {
-                        //                 // This entity has already been destroyed.
-                        //                 // This error shows why storing the entityID would be 
-                        //                 // more safe in this case
-                        //             }
-                                    
-                                        
-                        //         }
-                        //     }
-
-                        //     break;
-                        // }
                         case GamePacket.GENERAL_DO_ITEM_ACTION: {
 
                             const creator_id = stream.getUint8();
@@ -989,16 +878,13 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                                         // Creates bullet, links it to make it a shared entity
                                         const b = ShootProjectileWeapon(this.game, bullet_effects, pos, velocity);
-                                        
-                                        // this.game.entities.addEntity(b);
+
 
                                         // It's now a networked entity
                                         //@ts-expect-error
                                         this.remoteEntities.set(remoteEntityID, b);
                                         this.networked_entity_subset.addEntity(b);
 
-
-                                        // this.serverShotIDToEntity.set(serverShotID, b);
                                     }
                                     break;
                                 }
@@ -1018,14 +904,11 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     //     const p = this.remotePlayerEntities.get(creatorID);
                                     //     this.game.entities.addEntity(new ForceFieldEffect_C(p));
                                     // }
-
                                     
                                     break;
                                 }
                                 default: AssertUnreachable(item_type);
-
                             }
-
 
                             break;
                         }
@@ -1054,7 +937,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                         // May not exist, for some reason...
                                         if(bullet !== undefined){
                                             if(bullet.entityID !== NULL_ENTITY_INDEX){
-                                                // this.serverShotIDToEntity.set(serverShotID, bullet);
                                                 
                                                 this.localShotIDToEntity.delete(clientside_action_id);
         
@@ -1063,14 +945,11 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                                 this.remoteEntities.set(remoteEntityID, bullet);
                                                 this.networked_entity_subset.forceAddEntityFromMain(bullet);
         
-        
                                             } else {
                                                 // This entity has already been destroyed.
                                                 // This error shows why storing the entityID would be 
                                                 // more safe in this case
                                             }
-                                            
-                                                
                                         }
                                     }
                                     break;

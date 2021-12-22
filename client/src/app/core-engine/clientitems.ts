@@ -129,6 +129,7 @@ export class ProjectileWeapon extends WeaponItem<"projectile_weapon"> {
     }
 }
 
+/** Does not insert the bullet into a scene. Just returns the entity */
 export function ShootProjectileWeapon(game: NetworkPlatformGame, bullet_effects: BulletEffects[], position: Vec2, velocity: Vec2): ModularProjectileBullet {
     const bullet = new ModularProjectileBullet();
 
