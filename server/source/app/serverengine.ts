@@ -21,7 +21,7 @@ import { Rect } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { DeserializeShortString, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
-import { AcknowledgeShotPacket, ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, HitscanShotPacket, ProjectileShotPacket } from "./networking/gamepacketwriters";
+import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet, ActionDo_ProjectileShotPacket, ActionDo_HitscanShotPacket } from "./networking/gamepacketwriters";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
@@ -140,10 +140,10 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
 
 
-    private serverShotID = 0;
-    getServerShotID(){
-        return this.serverShotID++;
-    }
+    // private serverShotID = 0;
+    // getServerShotID(){
+    //     return this.serverShotID++;
+    // }
 
     constructor(tick_rate: number){
         super({});
@@ -477,6 +477,10 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         
         this.enqueueGlobalPacket(new RemoteEntityCreatePacket(e.constructor["SHARED_ID"], id));
     }
+
+    createRemoteEntityNoNotify(e: NetworkedEntity<any>){
+        this.networked_entity_subset.addEntity(e);
+    }
     
     destroyRemoteEntity(e: NetworkedEntity<any>){
 
@@ -677,22 +681,23 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
                                         const shot_prefab_id = item.shot_id;
 
-                                        const shotID = this.getServerShotID();
+                                        // const shotID = this.getServerShotID();
 
 
 
                                         const velocity = direction.extend(item.initial_speed);
     
-                                        const b = ServerShootProjectileWeapon(this, clientID, shotID, pos, velocity, shot_prefab_id);
+                                        const b = ServerShootProjectileWeapon(this, clientID, pos, velocity, shot_prefab_id);
 
                                         this.enqueueGlobalPacket(
-                                            new ProjectileShotPacket(clientID, shotID, createServerTick, pos, velocity, shot_prefab_id, b.entityID)
+                                            new ActionDo_ProjectileShotPacket(clientID, createServerTick, pos, velocity, shot_prefab_id, b.entityID)
                                         );
 
                                         player_info.personalPackets.enqueue(
-                                            new AcknowledgeShotPacket(true,clientShotID, shotID, b.entityID)
-                                        )
-
+                                            new AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet(clientShotID,b.entityID)
+                                        );
+                                            
+                                            //new AcknowledgeShotPacket(true,clientShotID, shotID, b.entityID)
                                     }
                                 }
                                 
@@ -704,14 +709,12 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
                                 if(player_info.playerEntity.item_in_hand instanceof SHitscanWeapon){
 
-                                    
-                                    const shotID = this.getServerShotID();
-                                    
+                            
                                     this.enqueueGlobalPacket(
-                                        new HitscanShotPacket(clientID, shotID, createServerTick, pos, end)
+                                        new ActionDo_HitscanShotPacket(clientID, createServerTick, pos, end)
                                     );
                                         
-                                    ServerShootHitscanWeapon(this, shotID, pos, end, clientID);
+                                    ServerShootHitscanWeapon(this, pos, end, clientID);
                                         
                                 }
 

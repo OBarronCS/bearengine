@@ -1309,10 +1309,8 @@ export class RemotePlayer extends Entity {
                 e.position.set(this.position);
 
                 e.velocity.set(new Vec2(random_range(-20, 20), random_range(-20, 20)));
+                
                 this.game.entities.addEntity(e);
-                
-                
-                this.scene.addEntity(e);
 
                 const tween = new NumberTween(e["sprite"],"alpha",6).from(1).to(.1).go();
 

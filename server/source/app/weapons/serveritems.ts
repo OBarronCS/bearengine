@@ -183,7 +183,7 @@ interface GunAddon {
 // }
 
 
-export function ServerShootHitscanWeapon(game: ServerBearEngine, shotID: number, position: Vec2, end: Vec2, owner: ConnectionID){
+export function ServerShootHitscanWeapon(game: ServerBearEngine, position: Vec2, end: Vec2, owner: ConnectionID){
     
     const ray = new Line(position, end);
 
@@ -249,7 +249,7 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
 } 
 
 
-export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: number, shotID: number, position: Vec2, velocity: Vec2, shot_prefab_id: number): ServerProjectileBullet {
+export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: number, position: Vec2, velocity: Vec2, shot_prefab_id: number): ServerProjectileBullet {
 
     const bullet = new ServerProjectileBullet(new Ellipse(new Vec2(),20,20), creatorID);
 
@@ -365,7 +365,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
                         this.game.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
             
                         this.game.enqueueGlobalPacket(
-                            new TerrainCarveCirclePacket(testTerrain.point.x, testTerrain.point.y, RADIUS, shotID)
+                            new TerrainCarveCirclePacket(testTerrain.point.x, testTerrain.point.y, RADIUS)
                         );
             
                         const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
@@ -388,8 +388,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
     }
 
     
-
-    game.entities.addEntity(bullet);
+    game.createRemoteEntityNoNotify(bullet);
 
     return bullet;
 }
@@ -569,7 +568,7 @@ export class LaserTripmine_S extends NetworkedEntity<"laser_tripmine"> {
                 this.game.terrain.carveCircle(this.__position.x, this.__position.y, 45);
             
                 this.game.enqueueGlobalPacket(
-                    new TerrainCarveCirclePacket(this.__position.x, this.__position.y, 45, -1)
+                    new TerrainCarveCirclePacket(this.__position.x, this.__position.y, 45)
                 );
 
                 this.game.dmg_players_in_radius(this.__position, 50,20);

@@ -68,24 +68,35 @@ export enum GamePacket {
 
     // TODO: EXPLOSION: [fromPlayer: uint8, x: float32, y: float32, strength: uint8] // handle knockback on clients
 
-    TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32, serverShotID: uint32]
+    TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
 
 
-    SHOOT_WEAPON, // [creator_id: uint8, ItemActionType: enum, serverShotID: uint32, createServerTick: float32, x: float32, y: float32, ...extra_data]
-
+    // SHOOT_WEAPON, // [creator_id: uint8, ItemActionType: enum, serverShotID: uint32, createServerTick: float32, x: float32, y: float32, ...extra_data]
+    // ACKNOWLEDGE_SHOT, // [success: bool, localShotID: uint32, serverShotID: uint32, entityIDOfBullet];
     
-    ACKNOWLEDGE_SHOT, // [success: bool, localShotID: uint32, serverShotID: uint32, entityIDOfBullet];
-    
+
+    // Many items will use this packet to communicate their actions
+    GENERAL_DO_ITEM_ACTION, // [creator_id: uint8, ItemActionType: uint8_enum, createServerTick: float32, x: float32, y: float32, ...extra_data]
+
     // Personal packet, response to REQUEST_ITEM_ACTION
-    ACKNOWLEDGE_ITEM_ACTION, // NOT IMPLEMENTED [ItemActionType: uint8_enum, clientside_action_id: uint32, success/fail, ...data];
+    ACKNOWLEDGE_ITEM_ACTION, // NOT IMPLEMENTED [ItemActionType: uint8_enum, ItemActionAck: uint8_enum, clientside_action_id: uint32, , ...data];
 }
 
 /*
-// THESE ARE INCORRECT
 ITEM ACTION EXTRA DATA DEFINITIONS:
+// CLIENTBOUND
+    PROJECTILE_SHOT: [dir_x: float32, dir_y: float32, shot_prefab_id:uint8, entityIDofBullet];
+    HIT_SCAN: [end_x: float32, end_y: float32];
+    FORCE_FIELD: [], // NEVER CALLED
+
+
+
+// SERVERBOUND
+    // NOT CORRENT
     PROJECTILE_SHOT: [dir_x: float32, dir_y: float32, entityIDofBullet];
     HIT_SCAN: [end_x: float32, end_y: float32];
-    
+    FORCE_FIELD: [],
+
 
 */
 
