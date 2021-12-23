@@ -17,6 +17,7 @@ import { ITEM_LINKER, MIGRATED_ITEMS, Test } from "shared/core/sharedlogic/items
 import { SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 import { EntityID } from "shared/core/abstractentity";
 import { Ellipse } from "shared/shapes/ellipse";
+import { TerrainManager } from "shared/core/terrainmanager";
 
 export enum ItemActivationType {
     GIVE_ITEM,
@@ -233,7 +234,13 @@ export function ServerShootHitscanWeapon(game: ServerBearEngine, position: Vec2,
 //@ts-expect-error
 @networkedclass_server("projectile_bullet")
 class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
- 
+
+    allow_move = true;
+
+    forward_line = new Line(this.position,this.position);
+    terrain_test: ReturnType<TerrainManager["lineCollision"]> | null = null;
+
+
     effect = new Effect2(this);
 
     update(dt: number): void {
@@ -255,27 +262,28 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
     @sync("projectile_bullet").var("velocity")
     velocity = new Vec2(0,0);
 
+    //hitbox
     circle: Ellipse;
+    
 
     constructor(circle: Ellipse, public creatorID: number){
         super();
 
         this.circle = circle;
 
+        this.effect.onUpdate(function(dt){
+            this.forward_line.A = this.position;
+            this.forward_line.B = Vec2.add(this.position, this.velocity);
+
+            this.terrain_test = this.game.terrain.lineCollision(this.forward_line.A, this.forward_line.B);
+        })
+
         // Is immediately destroyed if starts at (0,0)
         this.position.add({x:1,y:1});
-    
-        this.effect.onUpdate(function(dt: number){
-            this.position.add(this.velocity);
-            this.circle.position.set(this.position);
-
-            if(!this.game.activeScene.levelbbox.contains(this.position)){
-                this.destroy();
-            }
-        });
     }
 
     override destroy(){
+        this.allow_move = false;
         this.game.destroyRemoteEntity(this);
     }
 } 
@@ -287,11 +295,11 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
 
     bullet.position.set(position);
     bullet.velocity.set(velocity);
-    
-    // Bouncing off of forcefields
+
+    // Bouncing off of forcefields, damaging players
     bullet.effect.onUpdate(function(dt){
-                            
-        const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone()));
+
+        const line = this.forward_line;
         
         for(const entity of this.game.entities.entities){
             if(entity instanceof ForceFieldEffect){
@@ -342,11 +350,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
         const type = effect.type;
         switch(type){
             case "emoji": break;
-            case "particle_system": {
-                // Not relevent to the server
-                break;
-            }
-
+            case "particle_system": break;
             case "gravity": {
 
                 const grav = new Vec2().set(effect.force);
@@ -359,36 +363,25 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
             }
             case "laser_mine_on_hit": {
                 bullet.effect.onUpdate(function(){
-                    const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone()));
-
                     
-
-                    const testTerrain = this.game.terrain.lineCollision(line.A, line.B);
-                    
+                    const testTerrain = this.terrain_test;
                     // const RADIUS = 20;
                     // const DMG_RADIUS = effect.radius * 1.5;
             
                     if(testTerrain){
-
+                        
                         this.game.createRemoteEntity(new LaserTripmine_S(testTerrain.point, testTerrain.normal));
 
                         this.destroy();
-
-
                     }
                 });
 
                 break;
             }
-
             case "terrain_hit_boom": {
                 bullet.effect.onUpdate(function(){
-                    
-                    const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone().extend(50)));
 
-                
-
-                    const testTerrain = this.game.terrain.lineCollision(line.A, line.B);
+                    const testTerrain = this.terrain_test;
                     
                     const RADIUS = effect.radius;
                     const DMG_RADIUS = effect.radius * 1.5;
@@ -419,7 +412,19 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
         }  
     }
 
-    
+
+    // Move at the very end, if all checks are valid
+    bullet.effect.onUpdate(function(dt: number){
+        if(this.allow_move){
+            this.position.add(this.velocity);
+            this.circle.position.set(this.position);
+        }
+
+        if(!this.game.activeScene.levelbbox.contains(this.position)){
+            this.destroy();
+        }
+    });
+
     game.createRemoteEntityNoNotify(bullet);
 
     return bullet;

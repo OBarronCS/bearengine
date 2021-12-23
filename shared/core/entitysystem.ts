@@ -403,7 +403,7 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
 
         // Does it afterwards to clear all internally held entities
         for(const sub of this.subsets){
-            sub.clear();
+            sub.clear_subset();
         }
     }
 
@@ -514,6 +514,11 @@ class EntitySystemSubset<TSystem extends EntitySystem<AbstractEntity>, TEntity e
 
         this.subset.clear();
     }
+
+    clear_subset(){
+        this.subset.clear();
+    }
+
 }
 
 

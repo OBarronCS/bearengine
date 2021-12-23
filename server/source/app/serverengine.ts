@@ -292,6 +292,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         this.serverState = ServerGameState.PRE_MATCH_LOBBY;
     }
+    
     // Resets everything to prepare for a new level, sends data to clients
     // Everyone who is spectating is now active
     beginRound(str: keyof typeof LevelRef){

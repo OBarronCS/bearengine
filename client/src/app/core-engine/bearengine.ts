@@ -25,6 +25,7 @@ import { ButtonWidget, LabelWidget, SpriteWidget, UIManager } from "../ui/widget
 import { Color } from "shared/datastructures/color";
 import { Vec2 } from "shared/shapes/vec2";
 import { LevelRef } from "shared/core/sharedlogic/assetlinker";
+import { DrawableEntity } from "./entity";
 
 
 
@@ -276,6 +277,8 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         level.internalStart();
 
         this.levelLoaded = true;
+
+        this.entities.addEntity(new Debug())
     }
 
     endCurrentLevel(){
@@ -300,6 +303,16 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
     }
 }
 
+// Drawing the collision grid
+class Debug extends DrawableEntity {
+    update(dt: number): void {
+        this.redraw();
+    }
+    draw(g: Graphics): void {
+        g.clear();
+        this.game.collisionManager.draw(g);
+    }
+}
 
 
 export class MainMenuScene extends BearScene<NetworkPlatformGame> {

@@ -153,18 +153,6 @@ export class PhysicsDotEntity extends DrawableEntity {
 
 // const scene = this.game.entities;
 
-// // Drawing the collision grid
-// class Debug extends DrawableEntity {
-//     update(dt: number): void {
-//         this.redraw();
-//     }
-//     draw(g: Graphics): void {
-//         g.clear();
-//         this.game.collisionManager.draw(g);
-//     }
-// }
-// scene.addEntity(new Debug())
-
 // class CircleLineIntersectionTest extends DrawableEntity {
         
 //     private circle = new Vec2(0,0);
