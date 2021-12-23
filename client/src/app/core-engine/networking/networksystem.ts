@@ -809,6 +809,15 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             break;
                         }
 
+                        case GamePacket.FORCE_POSITION: {
+                            const x = stream.getFloat32();
+                            const y = stream.getFloat32();
+
+                            this.game.player.position.set({x,y});
+
+                            break;
+                        }
+
                         case GamePacket.SET_INV_ITEM: {
                             const item_id = stream.getUint8();
 

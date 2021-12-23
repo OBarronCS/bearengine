@@ -14,8 +14,6 @@ type RegisterVariablesList = {
 
 
 export abstract class NetworkedEntity<T extends keyof SharedNetworkedEntities> extends ServerEntity {
-    // static SHARED_ID = -1;
-    // static SHARED_NAME = "__UNINITIALIZED_NAME";
 
     dirty_bits: number;
 

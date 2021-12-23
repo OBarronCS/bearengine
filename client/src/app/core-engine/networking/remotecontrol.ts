@@ -58,11 +58,17 @@ export class CItemEntity extends Entity {
     @net("item_entity").interpolatedvariable("pos")
     pos = new Vec2()
 
-    @net("item_entity").variable("item_id", function(this: CItemEntity, i) {
+    // @net("item_entity").variable("item_id", function(this: CItemEntity, i) {
+    //     console.log("Sprite set");
+    //     this.spritepart.sprite.texture = this.engine.renderer.getTexture(ITEM_LINKER.IDToData(i).item_sprite);
+    // })
+    // item_id: number = 0;
+
+    @net("item_entity").variable("art_path", function(this: CItemEntity, i) {
         console.log("Sprite set");
-        this.spritepart.sprite.texture = this.engine.renderer.getTexture(ITEM_LINKER.IDToData(i).item_sprite);
+        this.spritepart.sprite.texture = this.engine.renderer.getTexture(i);
     })
-    item_id: number = 0;
+    art_path = "";
 
     constructor(){
         super();

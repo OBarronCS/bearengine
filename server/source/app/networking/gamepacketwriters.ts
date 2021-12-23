@@ -475,4 +475,17 @@ export class AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet extends Packet
 
 
 
+export class ForcePositionPacket extends PacketWriter {
+
+    constructor(public x: number, public y: number){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.FORCE_POSITION);
+        stream.setFloat32(this.x);
+        stream.setFloat32(this.y);
+    }
+}
+
 

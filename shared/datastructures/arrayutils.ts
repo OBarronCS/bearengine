@@ -86,7 +86,8 @@ export function swap(arr: any[], i: number, j: number): void {
     arr[j] = val1;
 }
 
-export function choose<T>(elements: readonly T[]): T{
+/** Array must contain at least one element */
+export function choose<T>(elements: readonly T[]): T {
     const index = randomInt(0,elements.length);
     return elements[index];
 }

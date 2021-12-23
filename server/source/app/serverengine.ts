@@ -27,7 +27,7 @@ import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
 
 
-import { ForceFieldEffect, ForceFieldItem_S, ItemEntity, ItemEntityPhysicsMode, SBaseItem, ServerShootHitscanWeapon, ServerShootProjectileWeapon, SHitscanWeapon, SProjectileWeaponItem } from "./weapons/serveritems";
+import { ForceFieldEffect, ForceFieldItem_S, ItemActivationType, ItemEntity, ItemEntityPhysicsMode, PlayerSwapperItem, SBaseItem, ServerShootHitscanWeapon, ServerShootProjectileWeapon, SHitscanWeapon, SProjectileWeaponItem } from "./weapons/serveritems";
 import { commandDispatcher } from "./servercommands";
 
 import "server/source/app/weapons/serveritems.ts"
@@ -127,6 +127,13 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     enqueueGlobalPacket(packet: PacketWriter){
         this.currentTickGlobalPackets.push(packet);
     }
+
+    enqueuePacketForClient(clientID: number, packet: PacketWriter){
+        this.players.get(clientID).personalPackets.enqueue(
+            packet
+        );
+    }
+
     sendToAllBut(player: PlayerInformation, packet: PacketWriter){
         for(const c of this.players.values()){
             if(c !== player){
@@ -618,11 +625,19 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         
                         //Pick up item
                         if(isFDown){
-                            for(const itemEntity of this.entities.entities){
-                                if(itemEntity instanceof ItemEntity){
-                                    if(Vec2.distanceSquared(p.position, itemEntity.pos) < 50**2){
+                            for(const item_entity of this.entities.entities){
+                                if(item_entity instanceof ItemEntity){
+                                    if(Vec2.distanceSquared(p.position, item_entity.pos) < 50**2){
+
                                         
-                                        this.givePlayerItemEntityAndDropIfHave(player_info,itemEntity);
+
+                                        if(item_entity.item.activation_type === ItemActivationType.GIVE_ITEM){
+                                            this.givePlayerItemEntityAndDropIfHave(player_info,item_entity);
+                                        } else if (item_entity.item.activation_type === ItemActivationType.INSTANT){
+                                            item_entity.item.do_action(this.players.get(clientID));
+                                            this.destroyRemoteEntity(item_entity);
+                                        }
+                                        
 
                                         break;
                                     }
@@ -860,6 +875,17 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             // Round logic
             if(this.serverState === ServerGameState.ROUND_ACTIVE){
                 
+                if(random() > .95){
+                    const item_instance = new PlayerSwapperItem(0);
+
+                    const item = new ItemEntity(item_instance);
+
+                    item.art_path = "fireball.png";
+
+                    item.pos.x = randomInt(100, this.activeScene.map_bounds.width - 100);
+                    this.createRemoteEntity(item);
+                }
+
                 if(random() > 1.90){
 
 

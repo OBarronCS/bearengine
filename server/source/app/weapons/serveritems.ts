@@ -1,26 +1,31 @@
 import { Effect, Effect2 } from "shared/core/effects";
 import { Clip, CreateShootController, GunshootController, SHOT_LINKER, SimpleWeaponControllerDefinition } from "shared/core/sharedlogic/weapondefinitions";
 import { TickTimer } from "shared/datastructures/ticktimer";
-import { random_range } from "shared/misc/random";
+import { randomInt, random_range } from "shared/misc/random";
 import { Line } from "shared/shapes/line";
 import { Vec2 } from "shared/shapes/vec2";
 
-import { TerrainCarveCirclePacket } from "../networking/gamepacketwriters";
+import { ForcePositionPacket, TerrainCarveCirclePacket } from "../networking/gamepacketwriters";
 import { networkedclass_server, NetworkedEntity, sync } from "../networking/serverentitydecorators";
-import { ServerBearEngine } from "../serverengine";
+import { PlayerInformation, ServerBearEngine } from "../serverengine";
 
 import { ConnectionID } from "../networking/serversocket";
-import { ServerEntity } from "../entity";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { ServerPlayerEntity } from "../playerlogic";
 import { NULL_ENTITY_INDEX } from "shared/core/entitysystem";
 import { ITEM_LINKER, MIGRATED_ITEMS, Test } from "shared/core/sharedlogic/items";
 import { SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 import { EntityID } from "shared/core/abstractentity";
-import { Rect } from "shared/shapes/rectangle";
 import { Ellipse } from "shared/shapes/ellipse";
 
+export enum ItemActivationType {
+    GIVE_ITEM,
+    INSTANT
+}
+
 export class SBaseItem<T extends keyof SharedNetworkedEntities> extends NetworkedEntity<T> {
+
+    public readonly activation_type: ItemActivationType = ItemActivationType.GIVE_ITEM;
 
     constructor(public item_id: number){
         super();
@@ -32,6 +37,9 @@ export class SBaseItem<T extends keyof SharedNetworkedEntities> extends Networke
     }
 
     update(dt: number): void {}
+
+    // Subclasses that use it can implement it
+    do_action(creator: PlayerInformation): void {};
 
 }
 
@@ -120,6 +128,30 @@ export class ForceFieldEffect extends NetworkedEntity<"forcefield_effect"> {
 }
 
 
+export class PlayerSwapperItem extends SBaseItem<null> {
+    public override activation_type = ItemActivationType.INSTANT;
+
+    override do_action(creator: PlayerInformation): void {
+        const all_players = this.game.activeScene.activePlayerEntities.values();
+
+        if(all_players.length <= 1) {
+            console.log("Cannot swap");
+            return;
+        }
+        
+        // Pick a random other player to swap with
+        const other_player = all_players.filter(p => p !== creator.playerEntity)[randomInt(0,all_players.length - 1)];
+
+        creator.personalPackets.enqueue(
+            new ForcePositionPacket(other_player.x, other_player.y)
+        )
+
+        this.game.enqueuePacketForClient(other_player.connectionID,
+            new ForcePositionPacket(creator.playerEntity.x, creator.playerEntity.y)
+        )
+        
+    }
+}
 
 
 // abstract class Gun<T extends ItemData> extends ServerItem<T> {
@@ -408,10 +440,14 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
 
     override position: never
 
-    item: SBaseItem<any>
+    item: SBaseItem<keyof SharedNetworkedEntities>
 
-    @sync("item_entity").var("item_id")
-    item_id = 0;
+
+    @sync("item_entity").var("art_path")
+    art_path = ""
+
+    // @sync("item_entity").var("item_id")
+    // item_id = 0;
 
     @sync("item_entity").var("pos")
     pos = new Vec2(0,0)
@@ -421,13 +457,15 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
         
     private slow_factor = 0.7;
 
-    constructor(item: SBaseItem<any>){
+    constructor(item: SBaseItem<keyof SharedNetworkedEntities>){
         super();
         this.item = item;
-        this.item_id = item.item_id;
+        this.art_path = item.GetStaticValue("item_sprite")
+        //this.item_id = item.item_id;
 
-        this.mark_dirty("item_id");
+        // this.mark_dirty("item_id");
         this.mark_dirty("pos");
+        this.mark_dirty("art_path")
     }
 
 

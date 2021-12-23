@@ -13,7 +13,7 @@ export const LevelRefLinker = GenerateLinker(LevelRef);
 
 
 export const ArtRef = DefineSchema<{ [key: string]: string }>()({
-
+    
     
 } as const);
 

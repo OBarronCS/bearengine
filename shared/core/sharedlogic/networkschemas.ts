@@ -40,7 +40,8 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
     "item_entity": {
         extends: null,
         variables: {
-            item_id: netv.uint8(),
+            art_path: netv.string(),
+            // item_id: netv.uint8(),
             pos: netv.vec2("float")
         },
         events: {}

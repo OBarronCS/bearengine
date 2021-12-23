@@ -25,8 +25,7 @@ export enum GamePacket {
     REMOTE_FUNCTION_CALL, // [shared function id: uint8, ...function argument data]
 
     // Personal Packet
-    // Sets client state to ACTIVE
-    // Allows client to send position packets for player
+    // Sets client state to ACTIVE, which allows client to send position packets for player
     SPAWN_YOUR_PLAYER_ENTITY, // [x: float32, y: float32]
 
     // If true, set client state to GHOST. If false set to active
@@ -68,6 +67,10 @@ export enum GamePacket {
 
     // TODO: EXPLOSION: [fromPlayer: uint8, x: float32, y: float32, strength: uint8] // handle knockback on clients
 
+    // Teleports your player to this position
+    FORCE_POSITION, // [x: float32, y: float32]
+
+        
     TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
 
 
