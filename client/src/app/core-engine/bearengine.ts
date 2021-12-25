@@ -278,7 +278,8 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
 
         this.levelLoaded = true;
 
-        this.entities.addEntity(new Debug())
+        this.entities.addEntity(new Debug());
+         // this.player = this.entities.addEntity(new Player())
     }
 
     endCurrentLevel(){

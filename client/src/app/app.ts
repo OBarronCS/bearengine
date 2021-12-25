@@ -1,6 +1,5 @@
 import { BearEngine, NetworkPlatformGame } from "./core-engine/bearengine";
 import { LockKeys } from "./apiwrappers/keyboardapiwrapper";
-import { FirstLevel } from "./gamelogic/firstlevel";
 import { Trie } from "shared/datastructures/trie";
 
 // import "shared/testing/entitysystemtest";
@@ -10,7 +9,7 @@ import { Trie } from "shared/datastructures/trie";
 const t = new Trie();
 t.insertAll(["Banana", "Billy", "Baaaaa", "Bam", "Baam"]);
 console.log(t.autocomplete(""))
-console.log(t.autocomplete("b"))
+console.log(t.autocomplete("ba"))
 
 const engine = new BearEngine();
 

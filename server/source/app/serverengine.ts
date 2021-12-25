@@ -725,12 +725,12 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
                                 if(player_info.playerEntity.item_in_hand instanceof SHitscanWeapon){
 
+                                    const end_point = ServerShootHitscanWeapon(this, pos, end, clientID);
                             
                                     this.enqueueGlobalPacket(
-                                        new ActionDo_HitscanShotPacket(clientID, createServerTick, pos, end)
+                                        new ActionDo_HitscanShotPacket(clientID, createServerTick, pos, end_point)
                                     );
                                         
-                                    ServerShootHitscanWeapon(this, pos, end, clientID);
                                         
                                 }
 
@@ -877,11 +877,9 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             if(this.serverState === ServerGameState.ROUND_ACTIVE){
                 
                 if(random() > .95){
-                    const item_instance = new PlayerSwapperItem(0);
+                    const item_instance = new PlayerSwapperItem(ITEM_LINKER.NameToID("swap_item"));
 
                     const item = new ItemEntity(item_instance);
-
-                    item.art_path = "fireball.png";
 
                     item.pos.x = randomInt(100, this.activeScene.map_bounds.width - 100);
                     this.createRemoteEntity(item);

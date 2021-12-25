@@ -65,6 +65,11 @@ interface CommonItemData {
 // Each of these is assigned a unique ItemID
 export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetworkedEntities>} >()({
 
+    swap_item: CreateItem({
+        item_name: "Swapper",
+        item_sprite: "fireball.png",
+        type:"swap_item"
+    }),
 
     emoji_weapon: CreateItem({
         type:"projectile_weapon",

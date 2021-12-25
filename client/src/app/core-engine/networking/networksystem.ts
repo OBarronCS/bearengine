@@ -22,7 +22,7 @@ import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
 import { ITEM_LINKER } from "shared/core/sharedlogic/items";
-import { ForceFieldEffect_C, ModularProjectileBullet, ShootHitscanWeapon, ShootProjectileWeapon } from "../clientitems";
+import { ForceFieldEffect_C, ModularProjectileBullet, ShootHitscanWeapon_C, ShootProjectileWeapon } from "../clientitems";
 import { Line } from "shared/shapes/line";
 import { EmitterAttach } from "../particles";
 import { PARTICLE_CONFIG } from "../../../../../shared/core/sharedlogic/sharedparticles";
@@ -901,7 +901,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     const end = new Vec2(stream.getFloat32(), stream.getFloat32());
                                     const ray = new Line(pos, end);
                                     if(this.MY_CLIENT_ID !== creator_id){
-                                        ShootHitscanWeapon(this.game, ray);
+                                        ShootHitscanWeapon_C(this.game, ray);
                                     }
                                     break;
                                 }

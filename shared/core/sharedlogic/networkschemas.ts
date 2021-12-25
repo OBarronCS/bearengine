@@ -133,6 +133,15 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
         },
     },
 
+    "swap_item": {
+        extends: null,
+        variables: {
+
+        },
+        events: {
+
+        },
+    },
     "ogre": {
         extends: null,
         variables: {

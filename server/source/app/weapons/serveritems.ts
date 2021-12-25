@@ -128,8 +128,9 @@ export class ForceFieldEffect extends NetworkedEntity<"forcefield_effect"> {
 
 }
 
-
-export class PlayerSwapperItem extends SBaseItem<null> {
+//@ts-expect-error
+@networkedclass_server("swap_item")
+export class PlayerSwapperItem extends SBaseItem<"swap_item"> {
     public override activation_type = ItemActivationType.INSTANT;
 
     override do_action(creator: PlayerInformation): void {
@@ -216,9 +217,12 @@ interface GunAddon {
 // }
 
 
-export function ServerShootHitscanWeapon(game: ServerBearEngine, position: Vec2, end: Vec2, owner: ConnectionID){
+export function ServerShootHitscanWeapon(game: ServerBearEngine, position: Vec2, end: Vec2, owner: ConnectionID): Vec2 {
     
     const ray = new Line(position, end);
+
+    const terrain = game.terrain.lineCollision(ray.A, ray.B);
+    if(terrain) ray.B = terrain.point;
 
     // Check each players distance to the line.
     for(const pEntity of game.activeScene.activePlayerEntities.values()){
@@ -228,6 +232,8 @@ export function ServerShootHitscanWeapon(game: ServerBearEngine, position: Vec2,
             pEntity.health -= 16;
         }
     } 
+
+    return ray.B;
 
 }
 
@@ -418,6 +424,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
         if(this.allow_move){
             this.position.add(this.velocity);
             this.circle.position.set(this.position);
+            if(this.terrain_test) this.destroy();
         }
 
         if(!this.game.activeScene.levelbbox.contains(this.position)){
