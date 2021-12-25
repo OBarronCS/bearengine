@@ -306,6 +306,8 @@ export function ShootHitscanWeapon_C(game: NetworkPlatformGame, line: Line): voi
     const tween = new NumberTween(canvas, "alpha",.4).from(1).to(0).go().onFinish(() => canvas.destroy());
 
     game.entities.addEntity(tween);
+
+    game.engine.renderer.addEmitter("particle.png", PARTICLE_CONFIG.BULLET_HIT_WALL, line.B.x, line.B.y);
 }
 
 

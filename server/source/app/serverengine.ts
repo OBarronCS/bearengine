@@ -876,7 +876,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             // Round logic
             if(this.serverState === ServerGameState.ROUND_ACTIVE){
                 
-                if(random() > .95){
+                if(random() > .98){
                     const item_instance = new PlayerSwapperItem(ITEM_LINKER.NameToID("swap_item"));
 
                     const item = new ItemEntity(item_instance);
@@ -885,7 +885,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                     this.createRemoteEntity(item);
                 }
 
-                if(random() > 1.90){
+                if(random() > .90){
 
 
                     const random_itemprefab_id = RandomItemID();

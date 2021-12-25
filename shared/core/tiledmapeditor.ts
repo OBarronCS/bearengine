@@ -13,7 +13,8 @@ export interface CustomMapFormat {
     },
     spawn_points: Vec2[],
     boostzones: {
-        rect: Rect
+        rect: Rect,
+        dir: Vec2
     }[],
     // Polygons and Rectangles are turned into this!
     bodies:{
@@ -39,7 +40,8 @@ polygons = [{info}];
 ellipse = [{info}];
 sprite = []
 */
-
+const IGNORE_ITERATION_STRING = "__IGNORE_ITERATION";
+type CustomPropertyNames = "boost" | "boost_dir" | "spawn" | typeof IGNORE_ITERATION_STRING;
 
 // Infinite maps have additional properties
 export interface TiledMap  {
@@ -66,7 +68,7 @@ interface Tileset {
 }
 
 interface Property {
-    name: string,
+    name: CustomPropertyNames,
     type: "string"|"int"|"float"|"bool"|"color"|"color"|"file"
     value: unknown;
 }
@@ -169,9 +171,12 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
     const boostzones: CustomMapFormat["boostzones"] = [];
     const spawn_points: CustomMapFormat["spawn_points"] = [];
 
-    const IGNORE_ITERATION_STRING = "__IGNORE_ITERATION";
 
-    const property_set = new SparseSet<Map<string, Property>>();
+
+    const property_set = new SparseSet<{ 
+        obj: TiledObject,
+        properties: Map<CustomPropertyNames, Property>
+    }>();
 
     // First pass
     for (const layer of map.layers as (ObjectLayer|GroupLayer)[]) { 
@@ -182,19 +187,23 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
                 for(const obj of layer.objects){
                     
                     if("properties" in obj){
-                        const map = new Map<string, Property>();
+                        const map = new Map<CustomPropertyNames, Property>();
 
                         for(const prop of obj.properties){
                             map.set(prop.name, prop);
+                            console.log(prop)
                         }
 
-                        // if(map.has("spawn")){
-                        //     map.set(IGNORE_ITERATION_STRING, null);
-                        // }
+                        if(map.has("boost_dir")){
+                            map.set(IGNORE_ITERATION_STRING, null);
+                        }
 
-                        property_set.set(obj.id, map)
+                        property_set.set(obj.id, { 
+                            obj:obj,
+                            properties:map,
+                        })
                     } else {
-                        property_set.set(obj.id, new Map());
+                        property_set.set(obj.id, { obj: obj, properties: new Map() });
                     }
                 }
                 
@@ -215,7 +224,7 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
             for(const obj of layer.objects){
 
 
-                if(property_set.get(obj.id).has(IGNORE_ITERATION_STRING)) continue;
+                if(property_set.get(obj.id).properties.has(IGNORE_ITERATION_STRING)) continue;
         
                 if(isPolygon(obj)){
                     // Add all polygon points
@@ -279,9 +288,16 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
                     const points = flattenVecArray(polygon.points);
                     const normals = flattenVecArray(polygon.normals);
 
-                    if(property_set.get(obj.id).has("boost")){
+                    if(property_set.get(obj.id).properties.has("boost")){
+
+                        const polyline_id = property_set.get(obj.id).properties.get("boost").value as number;
+                        const polyline = property_set.get(polyline_id).obj as PolylineObject;
+
+                        const dir = Vec2.subtract(polyline.polyline[1], polyline.polyline[0]).normalize();
+
                         boostzones.push({
-                            rect: rect
+                            rect,
+                            dir
                         });
                     } else {
                         bodies.push({

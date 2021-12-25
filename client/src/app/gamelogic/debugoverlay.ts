@@ -4,7 +4,8 @@ import { Subsystem } from "shared/core/subsystem";
 import { round } from "shared/misc/mathutils";
 import { randomChar } from "shared/misc/random";
 import { NetworkPlatformGame } from "../core-engine/bearengine";
-import { Coordinate } from "shared/shapes/vec2";
+import { Coordinate, Vec2 } from "shared/shapes/vec2";
+import { ExpandingTextPanel } from "../ui/widget";
 
 
 export class DebugScreen extends Subsystem<NetworkPlatformGame> {
@@ -13,28 +14,38 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
     otherClientInfo = new Graphics();
     otherClientText = new Text("");
 
+    private left_panel = new ExpandingTextPanel(new Vec2(0,5));
 
-    container = new Container();
+    private mouse_position = this.left_panel.addTextField("");
+    private mouse_screen_position = this.left_panel.addTextField("");
+    private connected_to_network = this.left_panel.addTextField("");
+    private gamemode = this.left_panel.addTextField("");
+    private bytesPerSecond = this.left_panel.addTextField("");
+    private ping = this.left_panel.addTextField("");
 
-    y = 5;
-    private mouse_position = this.addTextField();
-    private mouse_screen_position = this.addTextField();
-    private connected_to_network = this.addTextField();
-    private gamemode = this.addTextField();
-    private bytesPerSecond = this.addTextField();
-    private ping = this.addTextField();
+    // container = new Container();
 
-    addTextField(): Text {
-        const t = new Text("");
-        t.y = this.y;
-        this.y += t.height + 1;
+    // y = 5;
+    // private mouse_position = this.addTextField();
+    // private mouse_screen_position = this.addTextField();
+    // private connected_to_network = this.addTextField();
+    // private gamemode = this.addTextField();
+    // private bytesPerSecond = this.addTextField();
+    // private ping = this.addTextField();
 
-        this.container.addChild(t);
-        return t;
-    }
+    // addTextField(): Text {
+    //     const t = new Text("");
+    //     t.y = this.y;
+    //     this.y += t.height + 1;
+
+    //     this.container.addChild(t);
+    //     return t;
+    // }
 
     init(): void {
-        this.engine.renderer.addGUI(this.container);
+        // this.engine.renderer.addGUI(this.container);
+        this.game.ui.addWidget(this.left_panel);
+
         this.engine.renderer.addGUI(this.otherClientInfo);
         this.engine.renderer.addGUI(this.otherClientText);
     }
@@ -49,9 +60,9 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
         this.ping.text = "Ping: " + this.game.networksystem["ping"]
         
         if(this.engine.keyboard.wasPressed("Digit3")){
-            this.container.visible = !this.container.visible;
+            this.left_panel.toggleVisible();
         }
-
+        
         this.otherClientInfo.clear();
         this.otherClientText.text = "";
 

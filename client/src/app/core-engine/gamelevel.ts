@@ -64,7 +64,7 @@ export abstract class GameLevel {
             });
 
             mapdata.boostzones.forEach(b => {
-                this.game.entities.addEntity(new BoostZone(b.rect))
+                this.game.entities.addEntity(new BoostZone(b.rect, b.dir))
             });
         }
 
