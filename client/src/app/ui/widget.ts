@@ -5,7 +5,6 @@ import { Rect } from "shared/shapes/rectangle";
 import { Subsystem } from "shared/core/subsystem";
 import { BearGame } from "shared/core/abstractengine";
 import { BearEngine } from "../core-engine/bearengine";
-import { drawPoint } from "shared/shapes/shapedrawing";
 
 export class UIManager extends Subsystem<BearGame<BearEngine>> {
     
@@ -14,11 +13,22 @@ export class UIManager extends Subsystem<BearGame<BearEngine>> {
 
     setBackgroundColor(color: Color){
         this.parent_widget.background_color.copyFrom(color);
+        this.parent_widget.markDirty();
+    }
+    
+    clearBackground(){
+        this.parent_widget.background_color.copyFrom(new Color([0,0,0,0]));
+        this.parent_widget.markDirty();
     }
     
     
     addWidget<T extends BearWidget>(widget: T): T {
         this.parent_widget.addChild(widget);
+        return widget;
+    }
+
+    removeWidget<T extends BearWidget>(widget: T): T {
+        this.parent_widget.removeChild(widget);
         return widget;
     }
     
@@ -33,9 +43,14 @@ export class UIManager extends Subsystem<BearGame<BearEngine>> {
         this.base_container.addChild(this.parent_widget.container);
 
         this.engine.renderer.onresize((w,h)=>{
-            this.parent_widget.width = this.game.engine.renderer.getPercentWidth(1);
-            this.parent_widget.height = this.game.engine.renderer.getPercentHeight(1)
+            
+            this.parent_widget.setSize({type:"pixels", pixels: w}, {type:"pixels", pixels: h});
+
+            // Recursively resolve all positions given the new canvas size
             this.parent_widget.resolvePosition();
+            
+            // Forces all the UI to be redraw
+            this.parent_widget.markDirty();
         });
     }
     
@@ -57,30 +72,34 @@ export class UIManager extends Subsystem<BearGame<BearEngine>> {
             if(!w.mouse_in){
                 w.mouse_in = true;
                 w.mouse_enter();
+                w.markDirty();
             }
 
             for(const c of w.children) this.mouse_hit_test(c, mouse_position, mouse_down, mouse_pressed, mouse_released, mouse_clicked);
         } else if (w.mouse_in){
             w.mouse_in = false;
             w.mouse_leave();
-
+            w.markDirty();
             for(const c of w.children) { 
-                console.log("NOT RECURSIVE")
+                console.log("NOT RECURSIVE");
                 w.mouse_leave() 
             };
         }
     }
 
     render(){
-        this.parent_widget.render();
+        if(this.parent_widget.dirty){
+            this.parent_widget.resolvePosition();
+            this.parent_widget.render();
+        }
     }
 
 }
 
 // type Alignment = "centered"
 type UISizeType = 
-    | { type: "pixels", pixels: number }
-    | { type: "percent", percent: number }
+    | { type: "pixels", pixels: number } // absolute size
+    | { type: "percent", percent: number } // relative to parent size.
 
 /**
  * 
@@ -94,6 +113,12 @@ type PositionInfo = {
     y: UISizeType
 }
 
+type SizeInfo = {
+    width: UISizeType,
+    height: UISizeType;
+}
+
+// widget --> parent-width
 
 const uisize = {
     pixels(p:number){ return { type: "pixels", pixels: p } as const },
@@ -107,10 +132,17 @@ abstract class BearWidget {
 
     protected position: Vec2; get x(){return this.position.x}; get y(){return this.position.y};
     
-    readonly position_info: PositionInfo;
-
     width: number;
     height: number;
+
+    readonly position_info: PositionInfo;
+    readonly size_info: SizeInfo;
+
+    private visible = true;
+
+    dirty = false;
+
+
 
     background_color: Color = new Color([0,0,0,1]);
 
@@ -132,15 +164,22 @@ abstract class BearWidget {
             y:{type:"pixels", pixels:pos.y},
             horz_centered: false,
             vert_centered: false
+        };
+
+        this.size_info = {
+            width:{type:"pixels", pixels:width},
+            height:{type:"pixels", pixels:height},
         }
     }
 
     render(){
         this.graphics.clear();
-        this.draw();
-        for(const child of this.children){
-            child.render();
-        }
+        if(this.visible){
+            this.draw();
+            for(const child of this.children){
+                child.render();
+            }
+        } 
     }
 
     protected abstract draw(): void;
@@ -153,54 +192,116 @@ abstract class BearWidget {
     abstract mouse_leave(): void;
 
 
-    addChild(widget: BearWidget){
+    addChild<T extends BearWidget>(widget: T): T {
         widget.parent = this;
         this.children.push(widget);
 
         this.container.addChild(widget.container);
         widget.container.zIndex = this.container.zIndex + 1;
-        
         this.container.sortChildren();
+
+        this.markDirty();
+
+        return widget;
+    }
+
+    removeChild(w: BearWidget) {
+        const index = this.children.indexOf(w);
+        if(index !== -1){
+            this.container.removeChild(w.container);
+        
+            this.children.splice(index,1)
+    
+            this.markDirty();
+        }
+        
     }
 
     removeChildren() {
         this.container.removeChildren();
         this.children.forEach(c=>c.removeChildren());
         this.children = [];
+
+        this.markDirty();
     }
     
-    setPosition(x: UISizeType, y: UISizeType){
-        this.position.x = x.type === "pixels" ? x.pixels : (
-            this.parent.width * x.percent);
-
-        this.position.y = y.type === "pixels" ? y.pixels : (
-            this.parent.height * y.percent);
+    setPosition(x: UISizeType, y: UISizeType): this {
+        this.markDirty();
 
         this.position_info.x = x;
         this.position_info.y = y;
 
         return this;
     }
+
+    setSize(w: UISizeType, h: UISizeType): this {
+        this.markDirty();
+
+        this.size_info.width = w;
+        this.size_info.height = h
+        return this;
+    }
     
-    center(){
+    center(): this {
         this.position_info.horz_centered = true;
         this.position_info.vert_centered = true;
         this.position.x -= this.width / 2;
         this.position.y -= this.height / 2;
+
+        return this;
+    }
+
+
+    markDirty(){
+        this.dirty = true;
+        if(this.parent !== null) this.parent.markDirty();
     }
 
     resolvePosition(){
-        this.setPosition(this.position_info.x, this.position_info.y);
+
+        const {x,y} = this.position_info;
+        
+        this.position.x = x.type === "pixels" ? x.pixels : (
+            this.parent.width * x.percent);
+
+        this.position.y = y.type === "pixels" ? y.pixels : (
+            this.parent.height * y.percent);
+
+        const {width,height} = this.size_info;
+
+        this.width = width.type === "pixels" ? width.pixels : (
+            this.parent.width * width.percent);
+
+        this.height = height.type === "pixels" ? height.pixels : (
+            this.parent.height * height.percent);
+
         if(this.position_info.horz_centered) this.center()
+        
+        this.dirty = false;
+
+        this.container.position.copyFrom(this.position)
+        
         this.children.forEach(c => c.resolvePosition());
     }
 
     // abstract printableCharEvent(): void;
+
+    setVisible(visible: boolean){
+        this.visible = visible;
+        this.container.visible = this.visible;
+        this.markDirty();
+    }
+
+    toggleVisible(){
+        this.visible = !this.visible;
+        this.container.visible = this.visible;
+        this.markDirty();
+    }
+
 }
 
 /** Null implementation */
 abstract class BearWidgetAdapter extends BearWidget {
-
     mouse_clicked(): void {}
     mouse_pressed(): void {}
     mouse_released(): void {}
@@ -208,26 +309,38 @@ abstract class BearWidgetAdapter extends BearWidget {
     mouse_leave(): void {}
 }
 
-/** Easy way to delete/add widgets at the same time, with no background until the panel */
+/** Easy way to delete/add widgets at the same time, with no background unlike the panel 
+ *  Has the width/height of its parent
+*/
 export class WidgetGroup extends BearWidgetAdapter {
+    constructor(pos: Vec2){
+        super(pos, 0, 0);
+
+        this.setSize({type:"percent", percent:1}, {type:"percent", percent:1})
+    }
+
     protected draw(): void {}
 }
 
 /* Groups Widgets Together */
 export class PanelWidget extends BearWidgetAdapter {
     
-    
     protected draw(): void {
         this.graphics.beginFill(this.background_color.hex(), this.background_color.a);
-        this.graphics.drawRect(this.x, this.y, this.width, this.height);
+        this.graphics.drawRect(0, 0, this.width, this.height);
     }
-
 }
 
 
 export class LabelWidget extends BearWidgetAdapter {
     
-    text: string;
+    private text: string;
+
+    setText(str: string){
+        this.markDirty();
+        this.text = str;
+    }
+
     // font: FontType
     private text_style = new TextStyle({
         fontFamily: "Tahoma",
@@ -250,17 +363,16 @@ export class LabelWidget extends BearWidgetAdapter {
 
     override setPosition(x: UISizeType, y: UISizeType): this {
         super.setPosition(x, y);
-        this.text_render.position.copyFrom(this.position);
         return this;
     }
 
-    override center(): void {
+    override center(): this {
         super.center();
         const metrics = TextMetrics.measureText(this.text_render.text, this.text_style);
         this.position.x -= metrics.width / 2;
         this.position.y -= (metrics.height / 2) + 3 ;
-
-        this.text_render.position.copyFrom(this.position);
+        
+        return this;
     }
 
     setFontColor(color: Color){
@@ -269,9 +381,32 @@ export class LabelWidget extends BearWidgetAdapter {
 
  
     protected draw(): void {
-        // this.text_render.text = this.text;
+        this.text_render.text = this.text;
         // drawPoint(this.graphics, this.position)
     }
+}
+
+export class ExpandingTextPanel extends BearWidgetAdapter {
+
+    y_offset = 0;
+
+    constructor(pos: Vec2){
+        super(pos, 0, 0);
+    }
+
+    addTextField(initial_string: string){
+        const text = new Text(initial_string);
+        text.y = this.y_offset;
+        this.y_offset += text.height + 1;
+
+        this.container.addChild(text);
+        return text;
+    }
+
+    protected draw(): void {
+
+    }
+
 }
 
 
@@ -301,7 +436,7 @@ export class ButtonWidget extends BearWidgetAdapter {
 
     protected draw(): void {
         this.graphics.beginFill(this.draw_color.hex(), this.draw_color.a);
-        this.graphics.drawRect(this.x, this.y, this.width, this.height);
+        this.graphics.drawRect(0,0, this.width, this.height);
     }
 }
 

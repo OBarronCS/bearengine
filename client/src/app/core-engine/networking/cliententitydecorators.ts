@@ -1,11 +1,10 @@
 import { AbstractEntity } from "shared/core/abstractentity";
 import { SharedNetworkedEntities, SharedEntityLinker, SharedNetworkedEntityDefinitions, NetCallbackTypeV1 } from "shared/core/sharedlogic/networkschemas";
-import { DeserializeTypedVar, NetworkVariableTypes, TypescriptTypeOfNetVar } from "shared/core/sharedlogic/serialization";
+import { DeserializeTypedVar, DeserializeVec2, NetworkVariableTypes, TypescriptTypeOfNetVar } from "shared/core/sharedlogic/serialization";
 import { areEqualSorted } from "shared/datastructures/arrayutils";
 import { BufferStreamReader } from "shared/datastructures/bufferstream";
 import { floor, ceil, lerp, E } from "shared/misc/mathutils";
 import { mix, Vec2 } from "shared/shapes/vec2";
-import { Entity } from "../entity";
 
 
 
@@ -102,10 +101,10 @@ abstract class AbstractInterpolatedVariable<T> implements InterpVariableBuffer<T
 
 }
 
-export function InterpolatedVar<T>(value: T): InterpolatedVarType<T> {
+export function InterpolatedVar<T>(default_value: T): InterpolatedVarType<T> {
     return {
-        value: value,
-        buffer: (typeof value === "number" ? new InterpNumberVariable() : new InterpVecVariable())
+        value: default_value,
+        buffer: (typeof default_value === "number" ? new InterpNumberVariable() : new InterpVecVariable())
     }
 }
 
@@ -203,14 +202,37 @@ export function net<SharedName extends keyof SharedNetworkedEntities>(name: Shar
             }
         },
         interpolatedvariable<VarName extends keyof SharedNetworkedEntities[SharedName]["variables"], OuterEntityType extends BaseEntityType>(varName: VarName, receiveFunc: (this: OuterEntityType, value: GetTypeScriptType<SharedNetworkedEntities[SharedName]["variables"][VarName]>) => void = undefined){
-            return function<T extends BaseEntityType & Record<VarName,InterpolatedVarType<GetTypeScriptType<SharedNetworkedEntities[SharedName]["variables"][VarName]>>>>(target: T, propertyKey: VarName & string){        
+            return function<T extends BaseEntityType & Record<VarName,GetTypeScriptType<SharedNetworkedEntities[SharedName]["variables"][VarName]>>>(target: T, propertyKey: VarName & string){        
+            // return function<T extends BaseEntityType & Record<VarName,InterpolatedVarType<GetTypeScriptType<SharedNetworkedEntities[SharedName]["variables"][VarName]>>>>(target: T, propertyKey: VarName & string){        
 
                 const constructorOfClass = target.constructor;
                 
                 if(constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] === undefined){
                     constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] = [];
                 }
+           
+                // Replaces the variable with a custom setter/getter, for a nice API
+                // Getting the value will return the current interpolated value,
+                // setting it will create the buffer and initial value. 
+                // ONLY SET IT ONCE.
+
+                const underlying_property = "__" + propertyKey;
+
+                Object.defineProperty(target, propertyKey, {
+
+                    get(){
+                        return this[underlying_property];
+                    },
+                    // This should ONLY BE CALLED ONCE, in the public setter
+                    set(value){
+                        this[underlying_property] = value;
+                        this[underlying_property + "__BUFFER_"] = InterpolatedVar<T[VarName]>(value);
+                    },
+                });
+                
         
+
+                 
                 let realReceiveFunc: string = null;
         
                 if(receiveFunc !== undefined){
@@ -222,7 +244,7 @@ export function net<SharedName extends keyof SharedNetworkedEntities>(name: Shar
                     realReceiveFunc = recName;
                 }
         
-        
+
                 const variableslist = constructorOfClass["NETWORKED_VARIABLE_REGISTRY"] as RegisterVariablesList;
                 variableslist.push({
                     variablename: propertyKey,
@@ -414,22 +436,52 @@ export const SharedEntityClientTable = {
 
     deserialize(stream: BufferStreamReader, frame: number, sharedID: number, entity: BaseEntityType){
         
+        const dirty_bits = stream.getUint32();
+
+        if(dirty_bits & 1){
+            // What about interpolation... whoops forgot about that
+            DeserializeVec2(stream, "float", new Vec2());
+        }
+
         const variableslist = this.REGISTERED_NETWORKED_ENTITIES[sharedID].varDefinition
+        
+        for(let i = 1; i < variableslist.length + 1; i++){
+            if((dirty_bits & (1 << i)) !== 0) {
 
-        for(const variableinfo of variableslist){
-            const value = DeserializeTypedVar(stream, variableinfo.variabletype);
+                
+                const variableinfo = variableslist[i - 1];
+                // console.log("DIRTY: " + variableinfo.variablename);
+                
+                const value = DeserializeTypedVar(stream, variableinfo.variabletype);
 
-            if(variableinfo.interpolated){
-                (entity[variableinfo.variablename] as InterpolatedVarType<any>).buffer.addValue(frame, value); 
-            } else {
-                entity[variableinfo.variablename] = value
-            }
-
-
-            if(variableinfo.recieveFuncName !== null){
-                entity[variableinfo.recieveFuncName](value);
+                if(variableinfo.interpolated){
+                    (entity["__" + variableinfo.variablename + "__BUFFER_"] as InterpolatedVarType<any>).buffer.addValue(frame, value); 
+                    //console.log(value);
+                } else {
+                    entity[variableinfo.variablename] = value
+                }
+    
+    
+                if(variableinfo.recieveFuncName !== null){
+                    entity[variableinfo.recieveFuncName](value);
+                }
             }
         }
+
+        // for(const variableinfo of variableslist){
+        //     const value = DeserializeTypedVar(stream, variableinfo.variabletype);
+
+        //     if(variableinfo.interpolated){
+        //         (entity[variableinfo.variablename] as InterpolatedVarType<any>).buffer.addValue(frame, value); 
+        //     } else {
+        //         entity[variableinfo.variablename] = value
+        //     }
+
+
+        //     if(variableinfo.recieveFuncName !== null){
+        //         entity[variableinfo.recieveFuncName](value);
+        //     }
+        // }
     }
 }
 

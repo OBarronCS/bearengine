@@ -1,26 +1,32 @@
-import { Effect } from "shared/core/effects";
+import { Effect, Effect2 } from "shared/core/effects";
 import { Clip, CreateShootController, GunshootController, SHOT_LINKER, SimpleWeaponControllerDefinition } from "shared/core/sharedlogic/weapondefinitions";
 import { TickTimer } from "shared/datastructures/ticktimer";
-import { random_range } from "shared/misc/random";
+import { randomInt, random_range } from "shared/misc/random";
 import { Line } from "shared/shapes/line";
 import { Vec2 } from "shared/shapes/vec2";
 
-import { TerrainCarveCirclePacket, ProjectileShotPacket } from "../networking/gamepacketwriters";
-import { networkedclass_server, sync } from "../networking/serverentitydecorators";
-import { ServerBearEngine } from "../serverengine";
+import { ForcePositionPacket, TerrainCarveCirclePacket } from "../networking/gamepacketwriters";
+import { networkedclass_server, NetworkedEntity, sync } from "../networking/serverentitydecorators";
+import { PlayerInformation, ServerBearEngine } from "../serverengine";
 
 import { ConnectionID } from "../networking/serversocket";
-import { ServerEntity } from "../entity";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { ServerPlayerEntity } from "../playerlogic";
 import { NULL_ENTITY_INDEX } from "shared/core/entitysystem";
 import { ITEM_LINKER, MIGRATED_ITEMS, Test } from "shared/core/sharedlogic/items";
 import { SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 import { EntityID } from "shared/core/abstractentity";
-import { Rect } from "shared/shapes/rectangle";
 import { Ellipse } from "shared/shapes/ellipse";
+import { TerrainManager } from "shared/core/terrainmanager";
 
-export class SBaseItem<T extends keyof SharedNetworkedEntities> extends ServerEntity {
+export enum ItemActivationType {
+    GIVE_ITEM,
+    INSTANT
+}
+
+export class SBaseItem<T extends keyof SharedNetworkedEntities> extends NetworkedEntity<T> {
+
+    public readonly activation_type: ItemActivationType = ItemActivationType.GIVE_ITEM;
 
     constructor(public item_id: number){
         super();
@@ -32,6 +38,9 @@ export class SBaseItem<T extends keyof SharedNetworkedEntities> extends ServerEn
     }
 
     update(dt: number): void {}
+
+    // Subclasses that use it can implement it
+    do_action(creator: PlayerInformation): void {};
 
 }
 
@@ -84,7 +93,7 @@ export class ForceFieldItem_S extends SBaseItem<"forcefield_item"> {
 
 //@ts-expect-error
 @networkedclass_server("forcefield_effect")
-export class ForceFieldEffect extends ServerEntity {
+export class ForceFieldEffect extends NetworkedEntity<"forcefield_effect"> {
 
     @sync("forcefield_effect").var("radius", true)
     radius: number 
@@ -119,7 +128,32 @@ export class ForceFieldEffect extends ServerEntity {
 
 }
 
+//@ts-expect-error
+@networkedclass_server("swap_item")
+export class PlayerSwapperItem extends SBaseItem<"swap_item"> {
+    public override activation_type = ItemActivationType.INSTANT;
 
+    override do_action(creator: PlayerInformation): void {
+        const all_players = this.game.activeScene.activePlayerEntities.values();
+
+        if(all_players.length <= 1) {
+            console.log("Cannot swap");
+            return;
+        }
+        
+        // Pick a random other player to swap with
+        const other_player = all_players.filter(p => p !== creator.playerEntity)[randomInt(0,all_players.length - 1)];
+
+        creator.personalPackets.enqueue(
+            new ForcePositionPacket(other_player.x, other_player.y)
+        )
+
+        this.game.enqueuePacketForClient(other_player.connectionID,
+            new ForcePositionPacket(creator.playerEntity.x, creator.playerEntity.y)
+        )
+        
+    }
+}
 
 
 // abstract class Gun<T extends ItemData> extends ServerItem<T> {
@@ -183,9 +217,12 @@ interface GunAddon {
 // }
 
 
-export function ServerShootHitscanWeapon(game: ServerBearEngine, shotID: number, position: Vec2, end: Vec2, owner: ConnectionID){
+export function ServerShootHitscanWeapon(game: ServerBearEngine, position: Vec2, end: Vec2, owner: ConnectionID): Vec2 {
     
     const ray = new Line(position, end);
+
+    const terrain = game.terrain.lineCollision(ray.A, ray.B);
+    if(terrain) ray.B = terrain.point;
 
     // Check each players distance to the line.
     for(const pEntity of game.activeScene.activePlayerEntities.values()){
@@ -196,19 +233,34 @@ export function ServerShootHitscanWeapon(game: ServerBearEngine, shotID: number,
         }
     } 
 
+    return ray.B;
+
 }
 
 //@ts-expect-error
 @networkedclass_server("projectile_bullet")
-class ServerProjectileBullet extends Effect<ServerBearEngine> {
-    
+class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
+
+    allow_move = true;
+
+    forward_line = new Line(this.position,this.position);
+    terrain_test: ReturnType<TerrainManager["lineCollision"]> | null = null;
 
 
-    stateHasBeenChanged = false;
-    markDirty(): void {
-        this.stateHasBeenChanged = true;
+    effect = new Effect2(this);
+
+    update(dt: number): void {
+        this.effect.update(dt);
     }
 
+    override onAdd(): void {
+        this.effect.onAdd();
+    }
+
+    override onDestroy(): void {
+        this.effect.onDestroy()
+    }
+    
 
     last_force_field_id = NULL_ENTITY_INDEX;
 
@@ -216,43 +268,44 @@ class ServerProjectileBullet extends Effect<ServerBearEngine> {
     @sync("projectile_bullet").var("velocity")
     velocity = new Vec2(0,0);
 
+    //hitbox
     circle: Ellipse;
+    
 
     constructor(circle: Ellipse, public creatorID: number){
         super();
 
         this.circle = circle;
 
+        this.effect.onUpdate(function(dt){
+            this.forward_line.A = this.position;
+            this.forward_line.B = Vec2.add(this.position, this.velocity);
+
+            this.terrain_test = this.game.terrain.lineCollision(this.forward_line.A, this.forward_line.B);
+        })
+
         // Is immediately destroyed if starts at (0,0)
         this.position.add({x:1,y:1});
-    
-        this.onUpdate(function(dt: number){
-            this.position.add(this.velocity);
-            this.circle.position.set(this.position);
-
-            if(!this.game.activeScene.levelbbox.contains(this.position)){
-                this.destroy();
-            }
-        });
     }
 
     override destroy(){
+        this.allow_move = false;
         this.game.destroyRemoteEntity(this);
     }
 } 
 
 
-export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: number, shotID: number, position: Vec2, velocity: Vec2, shot_prefab_id: number): ServerProjectileBullet {
+export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: number, position: Vec2, velocity: Vec2, shot_prefab_id: number): ServerProjectileBullet {
 
     const bullet = new ServerProjectileBullet(new Ellipse(new Vec2(),20,20), creatorID);
 
     bullet.position.set(position);
     bullet.velocity.set(velocity);
-    
-    // Bouncing off of forcefields
-    bullet.onUpdate(function(dt){
-                            
-        const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone()));
+
+    // Bouncing off of forcefields, damaging players
+    bullet.effect.onUpdate(function(dt){
+
+        const line = this.forward_line;
         
         for(const entity of this.game.entities.entities){
             if(entity instanceof ForceFieldEffect){
@@ -303,53 +356,38 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
         const type = effect.type;
         switch(type){
             case "emoji": break;
-            case "particle_system": {
-                // Not relevent to the server
-                break;
-            }
-
+            case "particle_system": break;
             case "gravity": {
 
                 const grav = new Vec2().set(effect.force);
 
-                bullet.onUpdate(function(){
+                bullet.effect.onUpdate(function(){
                     this.velocity.add(grav);
                 });
 
                 break;
             }
             case "laser_mine_on_hit": {
-                bullet.onUpdate(function(){
-                    const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone()));
-
+                bullet.effect.onUpdate(function(){
                     
-
-                    const testTerrain = this.game.terrain.lineCollision(line.A, line.B);
-                    
+                    const testTerrain = this.terrain_test;
                     // const RADIUS = 20;
                     // const DMG_RADIUS = effect.radius * 1.5;
             
                     if(testTerrain){
-
+                        
                         this.game.createRemoteEntity(new LaserTripmine_S(testTerrain.point, testTerrain.normal));
 
                         this.destroy();
-
-
                     }
                 });
 
                 break;
             }
-
             case "terrain_hit_boom": {
-                bullet.onUpdate(function(){
-                    
-                    const line = new Line(this.position,Vec2.add(this.position, this.velocity.clone().extend(50)));
+                bullet.effect.onUpdate(function(){
 
-                
-
-                    const testTerrain = this.game.terrain.lineCollision(line.A, line.B);
+                    const testTerrain = this.terrain_test;
                     
                     const RADIUS = effect.radius;
                     const DMG_RADIUS = effect.radius * 1.5;
@@ -358,7 +396,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
                         this.game.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
             
                         this.game.enqueueGlobalPacket(
-                            new TerrainCarveCirclePacket(testTerrain.point.x, testTerrain.point.y, RADIUS, shotID)
+                            new TerrainCarveCirclePacket(testTerrain.point.x, testTerrain.point.y, RADIUS)
                         );
             
                         const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
@@ -380,9 +418,21 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
         }  
     }
 
-    
 
-    game.entities.addEntity(bullet);
+    // Move at the very end, if all checks are valid
+    bullet.effect.onUpdate(function(dt: number){
+        if(this.allow_move){
+            this.position.add(this.velocity);
+            this.circle.position.set(this.position);
+            if(this.terrain_test) this.destroy();
+        }
+
+        if(!this.game.activeScene.levelbbox.contains(this.position)){
+            this.destroy();
+        }
+    });
+
+    game.createRemoteEntityNoNotify(bullet);
 
     return bullet;
 }
@@ -398,14 +448,18 @@ export enum ItemEntityPhysicsMode {
 
 //@ts-expect-error
 @networkedclass_server("item_entity")
-export class ItemEntity extends ServerEntity {
+export class ItemEntity extends NetworkedEntity<"item_entity"> {
 
     override position: never
 
-    item: SBaseItem<any>
+    item: SBaseItem<keyof SharedNetworkedEntities>
 
-    @sync("item_entity").var("item_id")
-    item_id = 0;
+
+    @sync("item_entity").var("art_path")
+    art_path = ""
+
+    // @sync("item_entity").var("item_id")
+    // item_id = 0;
 
     @sync("item_entity").var("pos")
     pos = new Vec2(0,0)
@@ -415,12 +469,15 @@ export class ItemEntity extends ServerEntity {
         
     private slow_factor = 0.7;
 
-    constructor(item: SBaseItem<any>){
+    constructor(item: SBaseItem<keyof SharedNetworkedEntities>){
         super();
         this.item = item;
-        this.item_id = item.item_id;
+        this.art_path = item.GetStaticValue("item_sprite")
+        //this.item_id = item.item_id;
 
-        this.markDirty();
+        // this.mark_dirty("item_id");
+        this.mark_dirty("pos");
+        this.mark_dirty("art_path")
     }
 
 
@@ -439,7 +496,7 @@ export class ItemEntity extends ServerEntity {
                     // console.log("hit")
                 } else {
                     this.pos.add(item_gravity);
-                    this.markDirty()
+                    this.mark_dirty("pos");
                 }
 
                 break;
@@ -447,7 +504,7 @@ export class ItemEntity extends ServerEntity {
             case ItemEntityPhysicsMode.BOUNCING: {
                 // THIS SIMULATES SUPER FAST, IDK WHY
                 // It should be equal to client side, but...
-                this.markDirty()
+                this.mark_dirty("pos");
                 // Gravity
                 this.velocity.add(item_gravity);
 
@@ -527,7 +584,7 @@ export class ItemEntity extends ServerEntity {
 
 //@ts-expect-error
 @networkedclass_server("laser_tripmine")
-export class LaserTripmine_S extends ServerEntity {
+export class LaserTripmine_S extends NetworkedEntity<"laser_tripmine"> {
 
     @sync("laser_tripmine").var("__position")
     __position = new Vec2(0,0);
@@ -544,7 +601,8 @@ export class LaserTripmine_S extends ServerEntity {
 
         this.line = new Line(pos,Vec2.add(pos, dir.clone().extend(20)));
 
-        this.markDirty();
+        this.mark_dirty("__position");
+        this.mark_dirty("direction");
     }
 
     update(dt: number): void {
@@ -560,7 +618,7 @@ export class LaserTripmine_S extends ServerEntity {
                 this.game.terrain.carveCircle(this.__position.x, this.__position.y, 45);
             
                 this.game.enqueueGlobalPacket(
-                    new TerrainCarveCirclePacket(this.__position.x, this.__position.y, 45, -1)
+                    new TerrainCarveCirclePacket(this.__position.x, this.__position.y, 45)
                 );
 
                 this.game.dmg_players_in_radius(this.__position, 50,20);

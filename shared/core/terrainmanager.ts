@@ -1,4 +1,4 @@
-import type { Graphics } from "shared/graphics/graphics";
+import { Filter, Graphics } from "shared/graphics/graphics";
 
 import { SpatialGrid } from "shared/datastructures/spatialgrid";
 import { atan2, ceil, cos, floor, sin, TWO_PI } from "shared/misc/mathutils";
@@ -8,8 +8,6 @@ import { Polygon } from "shared/shapes/polygon";
 import { Rect } from "shared/shapes/rectangle";
 import { Coordinate, coordinateArraytoVec, mix, Vec2 } from "shared/shapes/vec2";
 import { Subsystem } from "./subsystem";
-
-
 
 
 export class TerrainManager extends Subsystem {
@@ -41,9 +39,9 @@ export class TerrainManager extends Subsystem {
 
     public graphics: Graphics;
     update(delta: number): void {
+
         if(this.redrawQueued){
             this.redrawQueued = false;
-
             this.draw(this.graphics);
         }
     }

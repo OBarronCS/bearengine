@@ -10,12 +10,14 @@ export enum ClientBoundImmediate {
     PONG, // [ original stamp: BigInt64, server stamp: BigInt64]
 }
 
+//REMOTE_ENTITY_VARIABLE_DATA = [SHARED_ID: uint8, entityID, dirty_bits: uint32, ...[position: Vec2<float32>?]...data]
+
 export enum GamePacket {
     INIT, // [ hash: uint64, tick_rate: uint8, reference time: biguint64, tick: uint16, uint8: your_player_id] 
     SERVER_IS_TICKING, // [tick: uint16];
 
     REMOTE_ENTITY_CREATE, // [ SHARED_ID: uint8, entityID]
-    REMOTE_ENTITY_VARIABLE_CHANGE, // [ SHARED_ID: uint8, entityID, ...data];
+    REMOTE_ENTITY_VARIABLE_CHANGE, // REMOTE_ENTITY_VARIABLE_DATA;
     REMOTE_ENTITY_EVENT, // [SHARED_ID: uint8, entityID, EVENT_ID: uint8][...data];
     REMOTE_ENTITY_DELETE, // [SHARED_ID: uint8, entityID]
 
@@ -23,8 +25,7 @@ export enum GamePacket {
     REMOTE_FUNCTION_CALL, // [shared function id: uint8, ...function argument data]
 
     // Personal Packet
-    // Sets client state to ACTIVE
-    // Allows client to send position packets for player
+    // Sets client state to ACTIVE, which allows client to send position packets for player
     SPAWN_YOUR_PLAYER_ENTITY, // [x: float32, y: float32]
 
     // If true, set client state to GHOST. If false set to active
@@ -66,19 +67,35 @@ export enum GamePacket {
 
     // TODO: EXPLOSION: [fromPlayer: uint8, x: float32, y: float32, strength: uint8] // handle knockback on clients
 
-    TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32, serverShotID: uint32]
+    // Teleports your player to this position
+    FORCE_POSITION, // [x: float32, y: float32]
+
+        
+    TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
 
 
-    SHOOT_WEAPON, // [creator_id: uint8, ItemActionType: enum, serverShotID: uint32, createServerTick: float32, x: float32, y: float32, ...extra_data]
+    // Many items will use this packet to communicate their actions
+    GENERAL_DO_ITEM_ACTION, // [creator_id: uint8, ItemActionType: uint8_enum, createServerTick: float32, x: float32, y: float32, ...extra_data]
 
-    ACKNOWLEDGE_SHOT // [success: bool, localShotID: uint32, serverShotID: uint32, entityIDOfBullet];
+    // Personal packet, response to REQUEST_ITEM_ACTION
+    ACKNOWLEDGE_ITEM_ACTION, // NOT IMPLEMENTED [ItemActionType: uint8_enum, ItemActionAck: uint8_enum, clientside_action_id: uint32, , ...data];
 }
 
 /*
 ITEM ACTION EXTRA DATA DEFINITIONS:
+// CLIENTBOUND
+    PROJECTILE_SHOT: [dir_x: float32, dir_y: float32, shot_prefab_id:uint8, entityIDofBullet];
+    HIT_SCAN: [end_x: float32, end_y: float32];
+    FORCE_FIELD: [], // NEVER CALLED
+
+
+
+// SERVERBOUND
+    // NOT CORRENT
     PROJECTILE_SHOT: [dir_x: float32, dir_y: float32, entityIDofBullet];
     HIT_SCAN: [end_x: float32, end_y: float32];
-    
+    FORCE_FIELD: [],
+
 
 */
 
@@ -96,7 +113,7 @@ export enum ServerBoundPacket {
     PLAYER_POSITION, // [x: float32, y: float32, mouse_x: float32, mouse_y: float32, uint8: animationstate, bool: flipped, isMouseDown: bool, isFDown: bool, isQDown: bool]
 
 
-    REQUEST_ITEM_ACTION, // [ItemActionType: enum, localShootID: uint32, createServerTick: float32, x: float32, y: float32, ...data]
+    REQUEST_ITEM_ACTION, // [ItemActionType: enum, local_action_id: uint32, createServerTick: float32, x: float32, y: float32, ...data]
 
     REQUEST_CHAT_MESSAGE, // [ShortString (255 chars max), ]
 }

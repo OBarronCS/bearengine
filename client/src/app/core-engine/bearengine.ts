@@ -21,10 +21,11 @@ import { Player } from "../gamelogic/player";
 import { DummyLevel, GameLevel } from "./gamelevel";
 import { DebugScreen } from "../gamelogic/debugoverlay";
 import { Chatbox } from "../gamelogic/chatbox";
-import { ButtonWidget, LabelWidget, SpriteWidget, UIManager } from "../ui/widget";
+import { ButtonWidget, LabelWidget, SpriteWidget, UIManager, WidgetGroup } from "../ui/widget";
 import { Color } from "shared/datastructures/color";
 import { Vec2 } from "shared/shapes/vec2";
 import { LevelRef } from "shared/core/sharedlogic/assetlinker";
+import { DrawableEntity } from "./entity";
 
 
 
@@ -219,9 +220,9 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         this.collisionManager = this.registerSystem(new CollisionManager(this));
         this.mouseEventDispatcher = this.registerSystem(new TestMouseDownEventDispatcher(this));
         this.entityRenderer = this.registerSystem(new DefaultEntityRenderer(this));
-        this.debug = this.registerSystem(new DebugScreen(this));
         this.chatbox = this.registerSystem(new Chatbox(this));
         this.ui = this.registerSystem(new UIManager(this));
+        this.debug = this.registerSystem(new DebugScreen(this));
 
         this.mainmenu_scene = this.addScene(new MainMenuScene(this));
     }
@@ -276,6 +277,9 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         level.internalStart();
 
         this.levelLoaded = true;
+
+        //this.entities.addEntity(new Debug());
+         // this.player = this.entities.addEntity(new Player())
     }
 
     endCurrentLevel(){
@@ -300,6 +304,16 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
     }
 }
 
+// Drawing the collision grid
+class Debug extends DrawableEntity {
+    update(dt: number): void {
+        this.redraw();
+    }
+    draw(g: Graphics): void {
+        g.clear();
+        this.game.collisionManager.draw(g);
+    }
+}
 
 
 export class MainMenuScene extends BearScene<NetworkPlatformGame> {
@@ -312,17 +326,16 @@ export class MainMenuScene extends BearScene<NetworkPlatformGame> {
 
     }
 
-
+    group = new WidgetGroup(new Vec2());
 
     on_enable(): void {
         
         const bgColor = Color.fromNumber(0xd9f9ff);
         bgColor.a = 1;
-
         this.game.ui.setBackgroundColor(bgColor);
 
 
-        const b = this.game.ui.addWidget((() => { 
+        const b = this.group.addChild((() => { 
             const b = new ButtonWidget(new Vec2(), 200,100, () => {
 
                 this.game.loadLevel(new DummyLevel(this.game, LevelRef.LEVEL_ONE));
@@ -332,12 +345,14 @@ export class MainMenuScene extends BearScene<NetworkPlatformGame> {
             });
 
 
-            b.background_color.copyFrom(Color.fromNumber(0xdeadbeef)) 
-            b.draw_color.copyFrom(b.background_color)
+            b.background_color.copyFrom(Color.fromNumber(0xdeadbeef));
+            b.draw_color.copyFrom(b.background_color);
+            b.setPosition({type: "percent", percent: .50}, {type: "percent", percent: .50});
+            b.center();
             return b;
         })());
 
-        b.setPosition({type: "percent", percent: .50}, {type: "percent", percent: .50}).center();
+        
 
         // this.game.ui.addWidget((() =>  { 
         //     const b = new ButtonWidget(new Vec2(300,50), 100,50, () => console.log("123"));
@@ -349,23 +364,29 @@ export class MainMenuScene extends BearScene<NetworkPlatformGame> {
         {
             const label = new LabelWidget(new Vec2(), "Play");
             label.setFontColor(Color.fromNumber(0x000000));
-            this.game.ui.addWidget(label);
-            label.setPosition({type: "percent", percent: .50}, {type: "percent", percent: .50}).center();
+            label.setPosition({type: "percent", percent: .50}, {type: "percent", percent: .50});
+            label.center();
+            
+            this.group.addChild(label);
         }
 
         {
             const label = new LabelWidget(new Vec2(), "Networked Platform Game");
             label.setFontColor(Color.fromNumber(0x000000));
-            this.game.ui.addWidget(label);
-            label.setPosition({type: "percent", percent: .50}, {type: "percent", percent: .20}).center();
+            label.setPosition({type: "percent", percent: .50}, {type: "percent", percent: .20});
+            label.center();
+            
+            this.group.addChild(label);
         }
 
+        this.game.ui.addWidget(this.group);
 
     
     }
 
     on_disable(): void {
-        this.game.ui.clearUI();
+        this.game.ui.removeWidget(this.group);
+        this.game.ui.clearBackground();
     }
 
 }

@@ -40,7 +40,8 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
     "item_entity": {
         extends: null,
         variables: {
-            item_id: netv.uint8(),
+            art_path: netv.string(),
+            // item_id: netv.uint8(),
             pos: netv.vec2("float")
         },
         events: {}
@@ -81,6 +82,7 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
             bullet_effects: null as BulletEffects[],
         },
         variables:{
+            
             velocity: netv.vec2("float"),
         },
         extends:null,
@@ -131,6 +133,15 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
         },
     },
 
+    "swap_item": {
+        extends: null,
+        variables: {
+
+        },
+        events: {
+
+        },
+    },
     "ogre": {
         extends: null,
         variables: {
@@ -254,6 +265,7 @@ function __GetSharedEntityVariables(name: keyof SharedNetworkedEntities): { vari
 }
 
 
+/** Links name to id, id to name */
 const orderedSharedEntities: (keyof typeof SharedNetworkedEntityDefinitions)[] = Object.keys(SharedNetworkedEntityDefinitions).sort() as any;
 
 const sharedNameToIDLookup = new Map<keyof typeof SharedNetworkedEntityDefinitions, number>();
@@ -294,6 +306,8 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
 }
 
 
+// Index is SHARED ID
+const networkedVarToID: Map<string, number>[] = [];
 
 // Includes all inherited variables as well. Index is shared index
 const AllOrderedSharedEntityVariables: {variableName: keyof AllNetworkedVariablesWithTypes, type: NetworkVariableTypes}[][] = [];
@@ -304,6 +318,15 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
     //@ts-expect-error
     AllOrderedSharedEntityVariables[i] = vars;
    
+
+    
+    const map = new Map<string, number>();
+
+    for(let i = 0; i < vars.length; i++){
+        map.set(vars[i].variableName, i);
+    }
+
+    networkedVarToID[i] = map;
 }
     
 
@@ -329,7 +352,8 @@ for(let i = 0; i < orderedSharedEntities.length; i++){
     orderedSharedEntityEvents[i] = arr;
 }
 
-// Index is entityID, index into that array 
+
+// Index is shared id, index into that array 
 const sharedEntityEventToEventID: Map<string,number>[] = [];
 
 for(let i = 0; i < orderedSharedEntities.length; i++){
@@ -420,8 +444,13 @@ export const SharedEntityLinker = {
     nameToSharedID(name: keyof SharedNetworkedEntities): number {
         return sharedNameToIDLookup.get(name);
     },
+    /** Ordered list of networked variables on the type */
     sharedIDToVariables(id: number){
         return AllOrderedSharedEntityVariables[id];
+    },
+
+    sharedIDToVariableMap(id: number){
+        return networkedVarToID[id];
     }
 }
 

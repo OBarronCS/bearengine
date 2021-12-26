@@ -316,6 +316,59 @@ export const PARTICLE_CONFIG = DefineSchema<{ [key: string]: EmitterConfigV1 | E
         "particleSpacing": 0,
         "angleStart": 0
     },
+    BULLET_HIT_WALL:{
+        "alpha": {
+            "start": 1,
+            "end": 0
+        },
+        "scale": {
+            "start": 0.1,
+            "end": 0.01,
+            "minimumScaleMultiplier": 1
+        },
+        "color": {
+            "start": "#e4f9ff",
+            "end": "#3fcbff"
+        },
+        "speed": {
+            "start": 50,
+            "end": 10,
+            "minimumSpeedMultiplier": 1
+        },
+        "acceleration": {
+            "x": 0,
+            "y": 0
+        },
+        "maxSpeed": 0,
+        "startRotation": {
+            "min": 0,
+            "max": 360
+        },
+        "noRotation": false,
+        "rotationSpeed": {
+            "min": 0,
+            "max": 0
+        },
+        "lifetime": {
+            "min": 0.07,
+            "max": 0.71
+        },
+        "blendMode": "normal",
+        "frequency": 0.001,
+        "emitterLifetime": 0.2,
+        "maxParticles": 40,
+        "pos": {
+            "x": 0,
+            "y": 0
+        },
+        "addAtBack": false,
+        "spawnType": "circle",
+        "spawnCircle": {
+            "x": 0,
+            "y": 0,
+            "r": 0
+        }
+    },
 });
 
 

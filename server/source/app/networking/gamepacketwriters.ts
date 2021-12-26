@@ -3,7 +3,7 @@ import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, 
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { GetTemplateRealType, netv, SerializeTypedArray, SerializeTypedVar, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums";
-import { ItemActionType } from "shared/core/sharedlogic/weapondefinitions";
+import { ItemActionAck, ItemActionType } from "shared/core/sharedlogic/weapondefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { Vec2 } from "shared/shapes/vec2";
 import { SBaseItem } from "../weapons/serveritems";
@@ -352,7 +352,7 @@ export class RemoteEntityEventPacket<TSharedName extends keyof SharedNetworkedEn
 
 export class TerrainCarveCirclePacket extends PacketWriter {
 
-    constructor(public x: number, public y: number, public radius: number, public serverShotID: number){
+    constructor(public x: number, public y: number, public radius: number){
         super(true);
     }
 
@@ -361,46 +361,23 @@ export class TerrainCarveCirclePacket extends PacketWriter {
         stream.setFloat64(this.x);
         stream.setFloat64(this.y);
         stream.setInt32(this.radius);
-        stream.setUint32(this.serverShotID);
     }
 }
 
-export class ForceFieldEffectPacket extends PacketWriter {
 
-    constructor(public playerID: number, public serverShotID: number, public createServerTick: number,  public start: Vec2){
+
+
+export class ActionDo_HitscanShotPacket extends PacketWriter {
+
+    constructor(public playerID: number, public createServerTick: number, public start: Vec2, public end: Vec2){
         super(false);
     }
 
     write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.SHOOT_WEAPON);
-        stream.setUint8(this.playerID);
-
-        stream.setUint8(ItemActionType.FORCE_FIELD_ACTION);
-
-
-        stream.setUint32(this.serverShotID);
+        stream.setUint8(GamePacket.GENERAL_DO_ITEM_ACTION);
         
-        stream.setFloat32(this.createServerTick);
-
-        stream.setFloat32(this.start.x);
-        stream.setFloat32(this.start.y);
-    }
-}
-
-export class HitscanShotPacket extends PacketWriter {
-
-    constructor(public playerID: number, public serverShotID: number, public createServerTick: number,  public start: Vec2, public end: Vec2){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.SHOOT_WEAPON);
         stream.setUint8(this.playerID);
-
         stream.setUint8(ItemActionType.HIT_SCAN);
-
-
-        stream.setUint32(this.serverShotID);
         
         stream.setFloat32(this.createServerTick);
 
@@ -414,23 +391,25 @@ export class HitscanShotPacket extends PacketWriter {
 }
 
 
-export class ProjectileShotPacket extends PacketWriter {
+export class ActionDo_ProjectileShotPacket extends PacketWriter {
 
-    constructor(public playerID: number, public serverShotID: number, public createServerTick: number, public start: Vec2, public velocity: Vec2, public shot_prefab_id: number, public entity_id: number){
+    constructor(public creator_player_id: number, public createServerTick: number, public start: Vec2, public velocity: Vec2, public shot_prefab_id: number, public entity_id: number){
         super(false);
     }
 
     write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.SHOOT_WEAPON);
-        stream.setUint8(this.playerID);
+        stream.setUint8(GamePacket.GENERAL_DO_ITEM_ACTION);
+        
+        stream.setUint8(this.creator_player_id);
         stream.setUint8(ItemActionType.PROJECTILE_SHOT);
-
-        stream.setUint32(this.serverShotID);
         
         stream.setFloat32(this.createServerTick);
 
         stream.setFloat32(this.start.x);
         stream.setFloat32(this.start.y);
+
+
+
 
         stream.setFloat32(this.velocity.x);
         stream.setFloat32(this.velocity.y);
@@ -441,20 +420,72 @@ export class ProjectileShotPacket extends PacketWriter {
 }
 
 
+// ForceFields are created through entities, so this is not needed
+// export class ForceFieldEffectPacket extends PacketWriter {
 
-export class AcknowledgeShotPacket extends PacketWriter {
+//     constructor(public playerID: number, public createServerTick: number,  public start: Vec2){
+//         super(false);
+//     }
 
-    constructor(private success: boolean, private localID: number, private serverID: number, public entityID: number){
+//     write(stream: BufferStreamWriter){
+//         stream.setUint8(GamePacket.SHOOT_WEAPON);
+//         stream.setUint8(this.playerID);
+
+//         stream.setUint8(ItemActionType.FORCE_FIELD_ACTION);
+        
+//         stream.setFloat32(this.createServerTick);
+
+//         stream.setFloat32(this.start.x);
+//         stream.setFloat32(this.start.y);
+//     }
+// }
+
+
+/** General ack packet */
+export class AcknowledgeItemActionPacket extends PacketWriter {
+
+    constructor(public action_type: ItemActionType, public success: ItemActionAck, public clientside_action_id: number){
         super(false);
     }
 
     write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.ACKNOWLEDGE_SHOT);
-        
-        stream.setBool(this.success);
-        stream.setUint32(this.localID);
-        stream.setUint32(this.serverID);
-        StreamWriteEntityID(stream, this.entityID);
+        stream.setUint8(GamePacket.ACKNOWLEDGE_ITEM_ACTION);
+        stream.setUint8(this.action_type);
+        stream.setUint8(this.success);
+        stream.setUint32(this.clientside_action_id);
     }
 }
+
+export class AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet extends PacketWriter {
+
+    constructor(public clientside_action_id: number, public bullet_entity_id: number){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.ACKNOWLEDGE_ITEM_ACTION);
+        stream.setUint8(ItemActionType.PROJECTILE_SHOT);
+        stream.setUint8(ItemActionAck.SUCCESS);
+        stream.setUint32(this.clientside_action_id);
+
+        StreamWriteEntityID(stream, this.bullet_entity_id);
+    }
+}
+
+
+
+
+export class ForcePositionPacket extends PacketWriter {
+
+    constructor(public x: number, public y: number){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.FORCE_POSITION);
+        stream.setFloat32(this.x);
+        stream.setFloat32(this.y);
+    }
+}
+
 

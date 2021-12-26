@@ -11,9 +11,14 @@ export enum ItemActionType {
     FORCE_FIELD_ACTION,
 }
 
-// Should This be more generic?
-// Just a BulletEffect?
-// OnProjectileHitTerrain
+/** Success/failure state of a requested action */
+export enum ItemActionAck {
+    SUCCESS,
+    INVALID_STATE, // CANNOT_DO_RIGHT_NOW
+    DO_NOT_HAVE_ITEM
+}
+
+
 export type BulletEffects = {
     type:"terrain_hit_boom",
     radius: number
@@ -156,6 +161,8 @@ type PulseDefinition = {
 
 type ChargeDefinition = {
     type: "charge",
+    percent_per_tick: number,
+    percent_loss: number
 }
 
 export type SimpleWeaponControllerDefinition = AutoDefinition | SemiAutoDefinition | PulseDefinition | ChargeDefinition;
@@ -171,7 +178,7 @@ export function CreateShootController(def: SimpleWeaponControllerDefinition): Gu
     } else if(def.type === "pulse"){
         trigger = new PulseController(def.submode, def.time_between_shots, def.shots_per_burst,def.time_between_bullet);
     } else if(def.type === "charge"){
-        trigger = new ChargeController();
+        trigger = new ChargeController(def.percent_per_tick, def.percent_loss);
     }
 
     return trigger;
@@ -186,12 +193,17 @@ export interface GunshootController {
 
 class ChargeController implements GunshootController {
 
-    public percent_per_tick = .02;
-    public percent_loss = .01;
-    public percent = 0;
+    public percent_per_tick: number; // 
+    public percent_loss: number; // How quickly the charge depletes per rick
 
+    public percent = 0;
     public needToLift = false;
     public lifted = true;
+
+    constructor(percent_per_tick: number, percent_loss: number){
+        this.percent_per_tick = percent_per_tick;
+        this.percent_loss = percent_loss;
+    }
 
     holdTrigger(hold: boolean): boolean {
         if(hold){

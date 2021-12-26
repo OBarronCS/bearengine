@@ -1,4 +1,4 @@
-import { LevelRef } from "./assetlinker";
+import { ArtRef, LevelRef } from "./assetlinker";
 import { MIGRATED_ITEMS } from "./items";
 import { RemoteFunctionStruct, SharedNetworkedEntityDefinitions } from "./networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "./packetdefinitions";
@@ -50,7 +50,13 @@ function EnumHash(hash: object): bigint {
 
 function ValueHash(value: number | bigint | string | boolean | object | Function ): bigint {
     if(typeof value === "number"){
-        return BigInt(value);
+        if(Number.isInteger(value)) { 
+            return BigInt(value);
+        } else {
+            // If its a float, multiply it by a large number
+            return BigInt(Math.round(value * 1759))
+        }
+
     } else if(typeof value === "bigint"){
         return value;
     } else if(typeof value === "string"){
@@ -110,6 +116,8 @@ function CreateHash(manual: number): bigint {
     hash += ObjectHash(SharedNetworkedEntityDefinitions);
     
     hash += ObjectHash(MIGRATED_ITEMS);
+
+    hash += ObjectHash(ArtRef);
     // hash += ObjectHash(PROJECTILE_SHOT_DATA);
 
     // Approximate number of bits needed to represent it: 

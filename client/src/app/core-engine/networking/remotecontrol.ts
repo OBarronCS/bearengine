@@ -7,7 +7,7 @@ import { randomInt } from "shared/misc/random";
 import { mix, Vec2 } from "shared/shapes/vec2";
 import { Entity } from "../entity";
 import { GraphicsPart, SpritePart } from "../parts";
-import { InterpolatedVar, net, networkedclass_client } from "./cliententitydecorators";
+import { net, networkedclass_client } from "./cliententitydecorators";
 
 
 export class RemoteLocations extends Attribute {
@@ -56,24 +56,32 @@ export class CItemEntity extends Entity {
     spritepart = this.addPart(new SpritePart(new Sprite()));
 
     @net("item_entity").interpolatedvariable("pos")
-    pos = InterpolatedVar(new Vec2(0,0))
+    pos = new Vec2()
 
-    @net("item_entity").variable("item_id", function(this: CItemEntity, i) {
+    // @net("item_entity").variable("item_id", function(this: CItemEntity, i) {
+    //     console.log("Sprite set");
+    //     this.spritepart.sprite.texture = this.engine.renderer.getTexture(ITEM_LINKER.IDToData(i).item_sprite);
+    // })
+    // item_id: number = 0;
+
+    @net("item_entity").variable("art_path", function(this: CItemEntity, i) {
         console.log("Sprite set");
-        this.spritepart.sprite.texture = this.engine.renderer.getTexture(ITEM_LINKER.IDToData(i).item_sprite);
+        this.spritepart.sprite.texture = this.engine.renderer.getTexture(i);
     })
-    item_id: number = 0;
+    art_path = "";
 
     constructor(){
         super();
         this.g.graphics.beginFill(0xFF0000);
         this.g.graphics.drawCircle(0, 0, 4);
+
+        console.log(this)
     }
 
 
     update(dt: number): void {
-        this.position.set(this.pos.value);
-        this.g.graphics.position.set(this.pos.value.x, this.pos.value.y);
+        this.position.set(this.pos);
+        this.g.graphics.position.set(this.pos.x, this.pos.y);
     }
 
 }

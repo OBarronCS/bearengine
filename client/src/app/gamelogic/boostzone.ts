@@ -12,16 +12,20 @@ export class BoostDirection extends Attribute {
 
 export class BoostZone extends DrawableEntity {
 
-    constructor(rect: Rect){
+    private collider: ColliderPart
+    private dir: BoostDirection;
+
+    constructor(rect: Rect, dir: Vec2){
         super();
 
         this.collider = (this.addPart(new ColliderPart(dimensions(rect.width, rect.height),new Vec2(),"BoostZone")));
+        this.dir = this.addPart(new BoostDirection(dir));
+        
         this.position.set(rect);
         this.redraw();
     }
 
-    private collider: ColliderPart
-    private dir = this.addPart(new BoostDirection(Vec2.random().scale(1)));
+
 
     update(dt: number): void {
         this.redraw()

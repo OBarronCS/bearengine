@@ -129,6 +129,7 @@ export class ProjectileWeapon extends WeaponItem<"projectile_weapon"> {
     }
 }
 
+/** Does not insert the bullet into a scene. Just returns the entity */
 export function ShootProjectileWeapon(game: NetworkPlatformGame, bullet_effects: BulletEffects[], position: Vec2, velocity: Vec2): ModularProjectileBullet {
     const bullet = new ModularProjectileBullet();
 
@@ -263,7 +264,7 @@ export class Hitscan extends WeaponItem {
     shoot(game: NetworkPlatformGame): void {
         const ray = new Line(this.position, Vec2.add(this.position, this.direction.extend(1000)));
 
-        ShootHitscanWeapon(game, ray);
+        ShootHitscanWeapon_C(game, ray);
 
         game.networksystem.enqueueStagePacket(
             new ServerBoundHitscanPacket(0,game.networksystem.getLocalShotID(), ray.A, ray.B)
@@ -295,13 +296,18 @@ export class ServerBoundHitscanPacket extends PacketWriter {
     }
 }
 
-export function ShootHitscanWeapon(game: NetworkPlatformGame, line: Line): void {
+export function ShootHitscanWeapon_C(game: NetworkPlatformGame, line: Line): void {
+
+    const terrain = game.terrain.lineCollision(line.A, line.B);
+    if(terrain) line.B = terrain.point;
 
     const canvas = game.engine.renderer.createCanvas();
     line.draw(canvas, 0x346eeb);
     const tween = new NumberTween(canvas, "alpha",.4).from(1).to(0).go().onFinish(() => canvas.destroy());
 
     game.entities.addEntity(tween);
+
+    game.engine.renderer.addEmitter("particle.png", PARTICLE_CONFIG.BULLET_HIT_WALL, line.B.x, line.B.y);
 }
 
 
@@ -478,5 +484,8 @@ export class LaserTripmine_C extends DrawableEntity {
 }
 
 
-
+@networkedclass_client("swap_item")
+export class PlayerSwapItem_C extends Entity {
+    update(dt: number): void {}
+}
 

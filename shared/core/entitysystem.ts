@@ -378,6 +378,8 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         }
 
         if(this.deleteEntityQueue.length > 0) this.deleteEntityQueue = [];
+
+        for(const s of this.subsets) s.process_delete_queue();
     }
 
     
@@ -401,13 +403,14 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
 
         // Does it afterwards to clear all internally held entities
         for(const sub of this.subsets){
-            sub.clear();
+            sub.clear_subset();
         }
     }
 
-    createSubset<T extends TEntity>(): EntitySystemSubset<this> {
+    createSubset<T extends EntitySystemEntityType<this>>(): EntitySystemSubset<this,T> {
 
-        const subset = new EntitySystemSubset<this>(this);
+
+        const subset = new EntitySystemSubset<this,T>(this);
 
         this.subsets.push(subset);
 
@@ -428,6 +431,8 @@ class EntitySystemSubset<TSystem extends EntitySystem<AbstractEntity>, TEntity e
 
     private parentEntitySystem: TSystem;
     private subset: SparseSet<TEntity> = new SparseSet<TEntity>();
+    
+    private deleteEntityQueue: EntityID[] = [];
 
     get entities(): readonly TEntity[] {
         return this.subset.values();
@@ -473,6 +478,17 @@ class EntitySystemSubset<TSystem extends EntitySystem<AbstractEntity>, TEntity e
         return e;
     }
 
+    process_delete_queue(){
+        for(const id of this.deleteEntityQueue){
+            if(this.subset.contains(id)){
+                this.subset.remove(id);
+            } else {
+                console.log("Trying to delete from subset when we don't have it")
+            }
+        }
+
+        if(this.deleteEntityQueue.length > 0) this.deleteEntityQueue = [];
+    }
 
     /** Null if entity has already been deleted */
     getEntity<T extends TEntity = TEntity>(entityID: EntityID): T | null {
@@ -481,15 +497,13 @@ class EntitySystemSubset<TSystem extends EntitySystem<AbstractEntity>, TEntity e
 
     /** Queues the destroyal of an entity, end of scene system tick */
     destroyEntity<T extends TEntity>(e: T): void {
-        this.parentEntitySystem.destroyEntity(e);
-
         this.destroyEntityID(e.entityID);
     }
-
+    
     /** Queues the destroyal of an entity, end of scene system tick */
     destroyEntityID(id: EntityID): void {
+        this.deleteEntityQueue.push(id);
         this.parentEntitySystem.destroyEntityID(id);
-
     }
 
 
@@ -500,6 +514,11 @@ class EntitySystemSubset<TSystem extends EntitySystem<AbstractEntity>, TEntity e
 
         this.subset.clear();
     }
+
+    clear_subset(){
+        this.subset.clear();
+    }
+
 }
 
 
