@@ -5,14 +5,11 @@ import { round } from "shared/misc/mathutils";
 import { randomChar } from "shared/misc/random";
 import { NetworkPlatformGame } from "../core-engine/bearengine";
 import { Coordinate, Vec2 } from "shared/shapes/vec2";
-import { ExpandingTextPanel } from "../ui/widget";
+import { ExpandingTextPanel, LabelWidget, PanelWidget, WidgetGroup } from "../ui/widget";
+import { Color } from "shared/datastructures/color";
 
 
 export class DebugScreen extends Subsystem<NetworkPlatformGame> {
-    
-
-    otherClientInfo = new Graphics();
-    otherClientText = new Text("");
 
     private left_panel = new ExpandingTextPanel(new Vec2(0,5));
 
@@ -23,31 +20,30 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
     private bytesPerSecond = this.left_panel.addTextField("");
     private ping = this.left_panel.addTextField("");
 
-    // container = new Container();
 
-    // y = 5;
-    // private mouse_position = this.addTextField();
-    // private mouse_screen_position = this.addTextField();
-    // private connected_to_network = this.addTextField();
-    // private gamemode = this.addTextField();
-    // private bytesPerSecond = this.addTextField();
-    // private ping = this.addTextField();
-
-    // addTextField(): Text {
-    //     const t = new Text("");
-    //     t.y = this.y;
-    //     this.y += t.height + 1;
-
-    //     this.container.addChild(t);
-    //     return t;
-    // }
+    private other_client_info_panel: PanelWidget;
+    private other_client_info_text: LabelWidget;
 
     init(): void {
-        // this.engine.renderer.addGUI(this.container);
         this.game.ui.addWidget(this.left_panel);
 
-        this.engine.renderer.addGUI(this.otherClientInfo);
-        this.engine.renderer.addGUI(this.otherClientText);
+        const width = 480;
+        const height = 300
+
+        const x_percent = .26;
+        const y = 200;
+
+        this.other_client_info_panel = new PanelWidget(new Vec2(), width, height);
+        this.other_client_info_panel.setPosition({type:"percent", percent: x_percent}, {type:"pixels", pixels:y});
+        this.other_client_info_panel.center();
+        this.other_client_info_panel.background_color = Color.fromNumber(0x0000FF);
+        this.other_client_info_panel.background_color.a = .1
+
+        this.other_client_info_text = this.other_client_info_panel.addChild(new LabelWidget(new Vec2(), ""));
+
+        this.other_client_info_panel.setVisible(false)
+
+        this.game.ui.addWidget(this.other_client_info_panel);
     }
 
 
@@ -63,32 +59,21 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
             this.left_panel.toggleVisible();
         }
         
-        this.otherClientInfo.clear();
-        this.otherClientText.text = "";
+        if(this.engine.keyboard.wasPressed("Digit1")){
+            this.other_client_info_panel.setVisible(true);
 
-        if(this.engine.keyboard.isDown("Digit1")){
-            this.otherClientInfo.beginFill(0x0000FF,.1);
-
-            const width = 480;
-            const height = 300
-            const x = this.engine.renderer.getPercentWidth(.26) - (width / 2);
-            const y = 50;
-
-
-            this.otherClientText.position.set(x,y);
-
-            this.otherClientInfo.drawRect(x, y, width, height);
-
+            let txt = "";
+           
             for(const client of this.game.networksystem.otherClients.values()){
-                this.otherClientText.text += client.toString() + "\n"
+                txt += client.toString() + "\n"
             }
+
+            this.other_client_info_text.setText(txt);
+        } else if(this.engine.keyboard.wasReleased("Digit1")) {
+            this.other_client_info_panel.setVisible(false);
         }
     }
     
-
-
-
-
     dump_state(): GameStateDump {
 
         return {

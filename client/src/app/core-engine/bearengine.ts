@@ -326,7 +326,7 @@ export class MainMenuScene extends BearScene<NetworkPlatformGame> {
 
     }
 
-    group = new WidgetGroup(new Vec2(0,0));
+    group = new WidgetGroup(new Vec2());
 
     on_enable(): void {
         

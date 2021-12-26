@@ -81,7 +81,7 @@ export class UIManager extends Subsystem<BearGame<BearEngine>> {
             w.mouse_leave();
             w.markDirty();
             for(const c of w.children) { 
-                console.log("NOT RECURSIVE")
+                console.log("NOT RECURSIVE");
                 w.mouse_leave() 
             };
         }
@@ -168,7 +168,7 @@ abstract class BearWidget {
 
         this.size_info = {
             width:{type:"pixels", pixels:width},
-            height: {type:"pixels", pixels:height},
+            height:{type:"pixels", pixels:height},
         }
     }
 
@@ -198,7 +198,6 @@ abstract class BearWidget {
 
         this.container.addChild(widget.container);
         widget.container.zIndex = this.container.zIndex + 1;
-        
         this.container.sortChildren();
 
         this.markDirty();
@@ -243,11 +242,13 @@ abstract class BearWidget {
         return this;
     }
     
-    center(){
+    center(): this {
         this.position_info.horz_centered = true;
         this.position_info.vert_centered = true;
         this.position.x -= this.width / 2;
         this.position.y -= this.height / 2;
+
+        return this;
     }
 
 
@@ -277,6 +278,8 @@ abstract class BearWidget {
         if(this.position_info.horz_centered) this.center()
         
         this.dirty = false;
+
+        this.container.position.copyFrom(this.position)
         
         this.children.forEach(c => c.resolvePosition());
     }
@@ -324,14 +327,20 @@ export class PanelWidget extends BearWidgetAdapter {
     
     protected draw(): void {
         this.graphics.beginFill(this.background_color.hex(), this.background_color.a);
-        this.graphics.drawRect(this.x, this.y, this.width, this.height);
+        this.graphics.drawRect(0, 0, this.width, this.height);
     }
 }
 
 
 export class LabelWidget extends BearWidgetAdapter {
     
-    text: string;
+    private text: string;
+
+    setText(str: string){
+        this.markDirty();
+        this.text = str;
+    }
+
     // font: FontType
     private text_style = new TextStyle({
         fontFamily: "Tahoma",
@@ -354,17 +363,16 @@ export class LabelWidget extends BearWidgetAdapter {
 
     override setPosition(x: UISizeType, y: UISizeType): this {
         super.setPosition(x, y);
-        this.text_render.position.copyFrom(this.position);
         return this;
     }
 
-    override center(): void {
+    override center(): this {
         super.center();
         const metrics = TextMetrics.measureText(this.text_render.text, this.text_style);
         this.position.x -= metrics.width / 2;
         this.position.y -= (metrics.height / 2) + 3 ;
-
-        this.text_render.position.copyFrom(this.position);
+        
+        return this;
     }
 
     setFontColor(color: Color){
@@ -373,7 +381,7 @@ export class LabelWidget extends BearWidgetAdapter {
 
  
     protected draw(): void {
-        // this.text_render.text = this.text;
+        this.text_render.text = this.text;
         // drawPoint(this.graphics, this.position)
     }
 }
@@ -428,7 +436,7 @@ export class ButtonWidget extends BearWidgetAdapter {
 
     protected draw(): void {
         this.graphics.beginFill(this.draw_color.hex(), this.draw_color.a);
-        this.graphics.drawRect(this.x, this.y, this.width, this.height);
+        this.graphics.drawRect(0,0, this.width, this.height);
     }
 }
 
