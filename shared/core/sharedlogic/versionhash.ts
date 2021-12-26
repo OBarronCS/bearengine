@@ -50,7 +50,13 @@ function EnumHash(hash: object): bigint {
 
 function ValueHash(value: number | bigint | string | boolean | object | Function ): bigint {
     if(typeof value === "number"){
-        return BigInt(value);
+        if(Number.isInteger(value)) { 
+            return BigInt(value);
+        } else {
+            // If its a float, multiply it by a large number
+            return BigInt(Math.round(value * 1759))
+        }
+
     } else if(typeof value === "bigint"){
         return value;
     } else if(typeof value === "string"){
