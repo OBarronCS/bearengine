@@ -35,7 +35,7 @@ import { random, randomInt, random_range } from "shared/misc/random";
 import { Effect, Effect2 } from "shared/core/effects";
 import { BeamActionType, ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { LevelRefLinker, LevelRef } from "shared/core/sharedlogic/assetlinker";
-import { shuffle } from "shared/datastructures/arrayutils";
+import { choose, shuffle } from "shared/datastructures/arrayutils";
 import { DEG_TO_RAD, floor, RAD_TO_DEG } from "shared/misc/mathutils";
 
 const MAX_BYTES_PER_PACKET = 2048;
@@ -333,6 +333,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         const spawn_points = shuffle([...levelData.spawn_points])
 
+
+
         //  this.collisionManager.setupGrid(width, height);
         //#endregion
 
@@ -340,6 +342,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
 
         this.activeScene = new ServerScene(levelID, new Rect(0,0,width,height));
+        this.activeScene.item_spawn_points.push(...levelData.item_spawn_points);
 
         for(let i = 0; i < this.clients.length; i++){
             const clientID = this.clients[i];
@@ -743,13 +746,17 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                                 const end = new Vec2(stream.getFloat32(), stream.getFloat32());
 
                                 if(player_info.playerEntity.item_in_hand instanceof SHitscanWeapon){
+                                    const item = player_info.playerEntity.item_in_hand;
 
-                                    const end_point = ServerShootHitscanWeapon(this, pos, end, clientID);
-                            
-                                    this.enqueueGlobalPacket(
-                                        new ActionDo_HitscanShotPacket(clientID, createServerTick, pos, end_point)
-                                    );
-                                        
+                                    if(item.ammo > 0){
+                                        item.ammo -= 1;
+
+                                        const end_point = ServerShootHitscanWeapon(this, pos, end, clientID);
+                                
+                                        this.enqueueGlobalPacket(
+                                            new ActionDo_HitscanShotPacket(clientID, createServerTick, pos, end_point,item.item_id)
+                                        );
+                                    }
                                         
                                 }
 
@@ -981,7 +988,16 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
                     const item = new ItemEntity(item_instance);
 
-                    item.pos.x = randomInt(100, this.activeScene.map_bounds.width - 100);
+                    
+                    if(this.activeScene.item_spawn_points.length > 0){
+                        const location = choose(this.activeScene.item_spawn_points);
+                        item.pos.set(location);
+                    } else {
+                        item.pos.x = randomInt(100, this.activeScene.map_bounds.width - 100);
+                    }
+
+                    
+
                     this.createRemoteEntity(item);
                 }
 
@@ -1075,6 +1091,7 @@ class ServerScene {
 
     // The bounds of the map defined in the Tiled Map
     public readonly map_bounds: Rect;
+    public readonly item_spawn_points: Vec2[] = [];
 
     public readonly levelbbox: Rect;
     public readonly deadplayers: ConnectionID[] = [];

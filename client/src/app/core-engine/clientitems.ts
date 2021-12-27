@@ -3,13 +3,13 @@ import { Sprite, Graphics, Text } from "shared/graphics/graphics";
 import { Effect } from "shared/core/effects";
 import { PacketWriter, SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
-import { CreateShootController, GunshootController, ItemActionType, BulletEffects, PROJECTILE_SHOT_DATA, SHOT_LINKER, BeamActionType } from "shared/core/sharedlogic/weapondefinitions";
+import { CreateShootController, GunshootController, ItemActionType, ProjectileBulletEffects, PROJECTILE_SHOT_DATA, SHOT_LINKER, BeamActionType, HitscanRayEffects } from "shared/core/sharedlogic/weapondefinitions";
 import { NumberTween } from "shared/core/tween";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable } from "shared/misc/assertstatements";
-import { random_range } from "shared/misc/random";
+import { chance, random_range } from "shared/misc/random";
 import { Line } from "shared/shapes/line";
-import { Vec2 } from "shared/shapes/vec2";
+import { Coordinate, mix, Vec2 } from "shared/shapes/vec2";
 import { BearEngine, NetworkPlatformGame } from "./bearengine";
 import { DrawableEntity, Entity } from "./entity";
 import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparticles";
@@ -25,6 +25,7 @@ import { EMOJIS } from "./emojis";
 import { Player, RemotePlayer } from "./../gamelogic/player"
 import { netv, SerializeTypedArray } from "shared/core/sharedlogic/serialization";
 import { DEG_TO_RAD, floor } from "shared/misc/mathutils";
+import { TickTimer } from "shared/datastructures/ticktimer";
 
 
 
@@ -181,7 +182,7 @@ export class ShotgunWeapon extends ProjectileWeapon<"shotgun_weapon"> {
 }
 
 /** Does not insert the bullet into a scene. Just returns the entity */
-export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bullet_effects: BulletEffects[], position: Vec2, velocity: Vec2, sprite_path: string): ModularProjectileBullet {
+export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bullet_effects: ProjectileBulletEffects[], position: Vec2, velocity: Vec2, sprite_path: string): ModularProjectileBullet {
     const bullet = new ModularProjectileBullet();
 
     bullet.position.set(position);
@@ -333,14 +334,15 @@ export class ServerBoundShotgunShotPacket extends PacketWriter {
 
 //@ts-expect-error
 @networkedclass_client("hitscan_weapon")
-export class Hitscan extends WeaponItem {
+//@ts-expect-error
+export class HitscanWeapon_C extends WeaponItem<"hitscan_weapon"> {
 
-
+    readonly hitscan_effects: HitscanRayEffects[] = this.GetStaticValue("hitscan_effects");
 
     shoot(game: NetworkPlatformGame): void {
         const ray = new Line(this.position, Vec2.add(this.position, this.direction.extend(1000)));
 
-        ShootHitscanWeapon_C(game, ray);
+        ShootHitscanWeapon_C(game, ray, this.hitscan_effects);
 
         game.networksystem.enqueueStagePacket(
             new ServerBoundHitscanPacket(0,game.networksystem.getLocalShotID(), ray.A, ray.B)
@@ -372,18 +374,42 @@ export class ServerBoundHitscanPacket extends PacketWriter {
     }
 }
 
-export function ShootHitscanWeapon_C(game: NetworkPlatformGame, line: Line): void {
+export function ShootHitscanWeapon_C(game: NetworkPlatformGame, line: Line, effects: HitscanRayEffects[]): void {
 
     const terrain = game.terrain.lineCollision(line.A, line.B);
     if(terrain) line.B = terrain.point;
 
-    const canvas = game.engine.renderer.createCanvas();
-    line.draw(canvas, 0x346eeb);
-    const tween = new NumberTween(canvas, "alpha",.4).from(1).to(0).go().onFinish(() => canvas.destroy());
+    for(const effect of effects){
+        const effect_type = effect.type;
+        switch(effect_type){
+            case "lightning": {
+                const lines = CreateLightningLines(line.A, line.B);
 
-    game.entities.addEntity(tween);
+                const canvas = game.engine.renderer.createCanvas();
+                for(const line of lines){
+                    line.draw(canvas,0xFFFFFF);
+                }
+                
+                const tween = new NumberTween(canvas, "alpha",.4).from(1).to(0).go().onFinish(() => canvas.destroy());
+            
+                game.entities.addEntity(tween);
+                game.engine.renderer.addEmitter("particle.png", PARTICLE_CONFIG.BULLET_HIT_WALL, line.B.x, line.B.y);
 
-    game.engine.renderer.addEmitter("particle.png", PARTICLE_CONFIG.BULLET_HIT_WALL, line.B.x, line.B.y);
+                break;
+            }
+            default: AssertUnreachable(effect_type);
+        }
+    }
+    
+    if(effects.length === 0){
+        const canvas = game.engine.renderer.createCanvas();
+        line.draw(canvas, 0x346eeb);
+        const tween = new NumberTween(canvas, "alpha",.4).from(1).to(0).go().onFinish(() => canvas.destroy());
+    
+        game.entities.addEntity(tween);
+        game.engine.renderer.addEmitter("particle.png", PARTICLE_CONFIG.BULLET_HIT_WALL, line.B.x, line.B.y);
+    }
+
 }
 
 //@ts-expect-error
@@ -700,6 +726,108 @@ class LocalBeamEffect extends DrawableEntity {
         
         this.game.engine.renderer.addEmitter("particle.png", PARTICLE_CONFIG.BULLET_HIT_WALL, this.line.B.x, this.line.B.y);
     }
+}
+
+
+function CreateLightningLines(start_point: Coordinate, end_point: Coordinate, iterations: number = 5): Line[] {
+    let lines = [];
+
+    lines.push(new Line(start_point, end_point));
+    
+    // the longer the distance, the bigger this needs to be
+    // so the lightning looks natural
+    let offset =150;
+
+   
+    // how many times do we cut the segment in half?
+    for (let i = 0; i < 5; i++) {
+
+        const newLines: Line[] = [];
+
+        for(const line of lines){
+            const midPoint = mix(line.A, line.B, .5);
+            
+            midPoint.add(Line.normal(line.A, line.B).extend(random_range(-offset,offset)));
+
+            newLines.push(new Line(line.A, midPoint))
+            newLines.push(new Line(midPoint, line.B));
+
+            /// sometimes, split!
+            if(chance(18)){
+                const dir = Vec2.subtract(midPoint, line.A);
+                dir.drotate(random_range(-30,30)).scale(.7).add(midPoint);
+                newLines.push(new Line(midPoint, dir));
+            }
+        }
+
+        lines = newLines;
+        offset /= 2;
+    }
+
+    return lines;
+}
+
+class LightningTest extends DrawableEntity {
+
+    private startPoint = Vec2.ZERO;
+
+    private lines: Line[] = [];
+
+    private ticker = new TickTimer(6);
+
+    update(dt: number): void {
+        if(!this.ticker.tick()) return;
+        this.lines = [];
+        if(this.mouse.wasPressed("left")){
+            this.startPoint = this.mouse.position.clone();
+        }
+        const mousePoint = this.mouse.position.clone();
+
+        this.lines.push(new Line(this.startPoint, mousePoint));
+        
+        // the longer the distance, the bigger this needs to be
+        // so the lightning looks natural
+        let offset =150;
+
+       
+        // how many times do we cut the segment in half?
+        for (let i = 0; i < 5; i++) {
+
+            const newLines: Line[] = [];
+
+            for(const line of this.lines){
+                const midPoint = mix(line.A, line.B, .5);
+                
+                midPoint.add(Line.normal(line.A, line.B).extend(random_range(-offset,offset)));
+
+                newLines.push(new Line(line.A, midPoint))
+                newLines.push(new Line(midPoint, line.B));
+
+                /// sometimes, split!
+                if(chance(18)){
+                    const dir = Vec2.subtract(midPoint, line.A);
+                    dir.drotate(random_range(-30,30)).scale(.7).add(midPoint);
+                    newLines.push(new Line(midPoint, dir));
+                }
+            }
+
+            this.lines = newLines;
+            offset /= 2;
+        }
+
+        
+
+        this.redraw();
+    }
+
+
+    draw(g: Graphics): void {
+        g.clear();
+        for(const line of this.lines){
+            line.draw(g,0xFFFFFF);
+        }
+    }
+
 }
 
 

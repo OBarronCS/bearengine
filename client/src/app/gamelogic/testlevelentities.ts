@@ -2133,69 +2133,6 @@ export function loadTestLevel(engine: BearEngine): void {
     }
     //this.addEntity(new conwaytest())
 
-    class LightningTest extends DrawableEntity {
-
-        private startPoint = Vec2.ZERO;
-
-        private lines: Line[] = [];
-
-        private ticker = new TickTimer(6);
-
-        update(dt: number): void {
-            if(!this.ticker.tick()) return;
-            this.lines = [];
-            if(this.mouse.wasPressed("left")){
-                this.startPoint = this.mouse.position.clone();
-            }
-            const mousePoint = this.mouse.position.clone();
-
-            this.lines.push(new Line(this.startPoint, mousePoint));
-            
-            // the longer the distance, the bigger this needs to be
-            // so the lightning looks natural
-            let offset =150;
-
-           
-            // how many times do we cut the segment in half?
-            for (let i = 0; i < 5; i++) {
-
-                const newLines: Line[] = [];
-
-                for(const line of this.lines){
-                    const midPoint = mix(line.A, line.B, .5);
-                    
-                    midPoint.add(Line.normal(line.A, line.B).extend(random_range(-offset,offset)));
-
-                    newLines.push(new Line(line.A, midPoint))
-                    newLines.push(new Line(midPoint, line.B));
-
-                    /// sometimes, split!
-                    if(chance(18)){
-                        const dir = Vec2.subtract(midPoint, line.A);
-                        dir.drotate(random_range(-30,30)).scale(.7).add(midPoint);
-                        newLines.push(new Line(midPoint, dir));
-                    }
-                }
-
-                this.lines = newLines;
-                offset /= 2;
-            }
-
-            
-
-            this.redraw();
-        }
-
-
-        draw(g: Graphics): void {
-            g.clear();
-            for(const line of this.lines){
-                line.draw(g,0xFFFFFF);
-            }
-        }
-
-    }
-    //this.addEntity(new LightningTest());
     
     // Quadtree drawing test
     class SpatialTest extends DrawableEntity {

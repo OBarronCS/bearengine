@@ -26,7 +26,7 @@ export enum BeamActionType {
 }
 
 
-export type BulletEffects = {
+export type ProjectileBulletEffects = {
     type:"terrain_hit_boom",
     radius: number
 } | {
@@ -41,6 +41,9 @@ export type BulletEffects = {
     type: "emoji"
 }
 
+export type HitscanRayEffects = {
+    type: "lightning",
+}
 
 
 
@@ -50,6 +53,19 @@ function CreateShot<T extends keyof SharedNetworkedEntities, K extends Test<T>>(
 }
 
 export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<"projectile_bullet"/*keyof SharedNetworkedEntities*/>} >()({
+
+    COOL_SHOT_2: CreateShot({
+        type:"projectile_bullet",
+        item_name:"Doesn't matter",
+        item_sprite:"cool_bullet.png",
+        velocity: new Vec2(),
+        bullet_effects:[
+            {
+                type:"particle_system",
+                particle:"BLUE_TRAIL"
+            },
+        ],
+    }),
 
     COOL_SHOT: CreateShot({
         type:"projectile_bullet",

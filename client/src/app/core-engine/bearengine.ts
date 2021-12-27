@@ -23,9 +23,12 @@ import { DebugScreen } from "../gamelogic/debugoverlay";
 import { Chatbox } from "../gamelogic/chatbox";
 import { ButtonWidget, LabelWidget, SpriteWidget, UIManager, WidgetGroup } from "../ui/widget";
 import { Color } from "shared/datastructures/color";
-import { Vec2 } from "shared/shapes/vec2";
+import { mix, Vec2 } from "shared/shapes/vec2";
 import { LevelRef } from "shared/core/sharedlogic/assetlinker";
 import { DrawableEntity } from "./entity";
+import { TickTimer } from "shared/datastructures/ticktimer";
+import { random_range, chance } from "shared/misc/random";
+import { Line } from "shared/shapes/line";
 
 
 

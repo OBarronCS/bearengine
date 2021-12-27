@@ -369,7 +369,7 @@ export class TerrainCarveCirclePacket extends PacketWriter {
 
 export class ActionDo_HitscanShotPacket extends PacketWriter {
 
-    constructor(public playerID: number, public createServerTick: number, public start: Vec2, public end: Vec2){
+    constructor(public playerID: number, public createServerTick: number, public start: Vec2, public end: Vec2, public prefab_id: number){
         super(false);
     }
 
@@ -386,6 +386,8 @@ export class ActionDo_HitscanShotPacket extends PacketWriter {
 
         stream.setFloat32(this.end.x);
         stream.setFloat32(this.end.y);
+
+        stream.setUint8(this.prefab_id);
 
     }
 }

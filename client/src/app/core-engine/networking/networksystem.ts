@@ -26,7 +26,7 @@ import { BeamEffect_C, ForceFieldEffect_C, ModularProjectileBullet, ShootHitscan
 import { Line } from "shared/shapes/line";
 import { EmitterAttach } from "../particles";
 import { PARTICLE_CONFIG } from "../../../../../shared/core/sharedlogic/sharedparticles";
-import { BeamActionType, ItemActionAck, ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
+import { BeamActionType, HitscanRayEffects, ItemActionAck, ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { DeserializeTypedArray, DeserializeTypedVar, netv, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { Trie } from "shared/datastructures/trie";
 import { LevelRefLinker } from "shared/core/sharedlogic/assetlinker";
@@ -902,9 +902,14 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 }
                                 case ItemActionType.HIT_SCAN:{
                                     const end = new Vec2(stream.getFloat32(), stream.getFloat32());
+                                    const prefab_id = stream.getUint8();
+
                                     const ray = new Line(pos, end);
                                     if(this.MY_CLIENT_ID !== creator_id){
-                                        ShootHitscanWeapon_C(this.game, ray);
+                                        //@ts-expect-error
+                                        const effects: HitscanRayEffects[] = ITEM_LINKER.IDToData(prefab_id).hitscan_effects;
+
+                                        ShootHitscanWeapon_C(this.game, ray, effects);
                                     }
                                     break;
                                 }

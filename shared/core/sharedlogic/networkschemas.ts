@@ -3,7 +3,7 @@ import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bu
 import { GamePacket } from "./packetdefinitions";
 import { areEqualSorted, arrayDifference, arrayDuplicates, containsDuplicates } from "shared/datastructures/arrayutils";
 import { DefineSchema, DeserializeTypedVar, netv, NetworkVariableTypes, SerializeTypedVar, SharedTemplates, TypescriptTypeOfNetVar } from "./serialization";
-import { BulletEffects, SimpleWeaponControllerDefinition } from "./weapondefinitions";
+import { HitscanRayEffects, ProjectileBulletEffects, SimpleWeaponControllerDefinition } from "./weapondefinitions";
 
 
 export abstract class PacketWriter {
@@ -81,6 +81,9 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
     },
     "hitscan_weapon": {
         extends: "weapon_item",
+        static: {
+            hitscan_effects: null as HitscanRayEffects[],
+        },
         variables: {
             
         },
@@ -93,7 +96,7 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
     },
     "projectile_bullet":{
         static:{
-            bullet_effects: null as BulletEffects[],
+            bullet_effects: null as ProjectileBulletEffects[],
         },
         variables:{
             

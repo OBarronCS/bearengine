@@ -12,6 +12,7 @@ export interface CustomMapFormat {
         backgroundcolor:string
     },
     spawn_points: Vec2[],
+    item_spawn_points: Vec2[],
     boostzones: {
         rect: Rect,
         dir: Vec2
@@ -41,7 +42,7 @@ ellipse = [{info}];
 sprite = []
 */
 const IGNORE_ITERATION_STRING = "__IGNORE_ITERATION";
-type CustomPropertyNames = "boost" | "boost_dir" | "spawn" | typeof IGNORE_ITERATION_STRING;
+type CustomPropertyNames = "boost" | "boost_dir" | "spawn" | "item" | typeof IGNORE_ITERATION_STRING;
 
 // Infinite maps have additional properties
 export interface TiledMap  {
@@ -170,7 +171,7 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
     const sprites: CustomMapFormat["sprites"] = [];
     const boostzones: CustomMapFormat["boostzones"] = [];
     const spawn_points: CustomMapFormat["spawn_points"] = [];
-
+    const item_spawn_points: CustomMapFormat["item_spawn_points"] = [];
 
 
     const property_set = new SparseSet<{ 
@@ -277,7 +278,12 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
                     })
 
                 } else if(isPoint(obj)) {
-                    spawn_points.push(new Vec2(obj.x, obj.y));
+                    if(property_set.get(obj.id).properties.has("spawn")){
+                        spawn_points.push(new Vec2(obj.x, obj.y));
+                    } else if(property_set.get(obj.id).properties.has("item")){
+                        item_spawn_points.push(new Vec2(obj.x, obj.y));
+                    }
+
                 } else if(isRectangle(obj)){
 
                     const rect = new Rect(obj.x,obj.y,obj.width,obj.height);
@@ -315,7 +321,8 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
         boostzones,
         bodies,
         sprites,
-        spawn_points
+        spawn_points,
+        item_spawn_points
     }
 }
 
