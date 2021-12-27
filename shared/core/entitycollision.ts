@@ -24,7 +24,8 @@ import { Vec2, Coordinate } from "shared/shapes/vec2";
 const tags = [
     "Unnamed",
     "Player",
-    "BoostZone"
+    "BoostZone",
+    "SlowZone"
 ] as const
 
 export type TagName = typeof tags[number]

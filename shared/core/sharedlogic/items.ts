@@ -65,6 +65,18 @@ interface CommonItemData {
 // Each of these is assigned a unique ItemID
 export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetworkedEntities>} >()({
 
+    ice_slow_weapon: CreateItem({
+        type:"projectile_weapon",
+        item_name:"AHH",
+        item_sprite:"NOPE",
+        ammo: 100,
+        capacity: 100,
+        initial_speed: 20,
+        reload_time: 100,
+        shoot_controller: {type:"semiauto", time_between_shots: 32},
+        shot_name:"ICE_SHOT" 
+    }),
+
     second_shotgun: CreateItem({
         type: "shotgun_weapon",
         item_name: "SHOTGUN",

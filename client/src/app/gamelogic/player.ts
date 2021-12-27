@@ -23,6 +23,7 @@ import { PhysicsDotEntity } from "./firstlevel";
 import { NumberTween } from "shared/core/tween";
 import { BoostDirection } from "./boostzone";
 import { InterpolatedVar } from "../core-engine/networking/cliententitydecorators";
+import { SlowAttribute } from "shared/core/sharedlogic/sharedattributes";
 
 
 
@@ -204,6 +205,8 @@ export class Player extends DrawableEntity {
 
     private ghost = false;
     health = 100;
+
+    slow_factor = 1;
 
     // Item graphics
     itemInHand: ItemDrawer = new ItemDrawer();
@@ -673,12 +676,24 @@ export class Player extends DrawableEntity {
 
         if(this.keyboard.wasPressed("KeyW")) this.timeSincePressedJumpedButton = 0;
 
+        this.slow_factor = 1;
+
+        const slow_zone = this.game.collisionManager.first_tagged_collider_on_point(this.position, "SlowZone");
+        if(slow_zone){
+            const slow = slow_zone.owner.getAttribute(SlowAttribute);
+            if(Vec2.distanceSquared(this.position, slow.owner.position) < slow.radius**2){
+                this.slow_factor = slow.slow_factor;
+            }
+
+
+        }
+
+
         const zone = this.game.collisionManager.first_tagged_collider_on_point(this.position, "BoostZone");
         if(zone){
             const dir = zone.owner.getAttribute(BoostDirection).dir;
             this.xspd += dir.x;
             this.yspd += dir.y;
-
         }
 
         
@@ -769,7 +784,7 @@ export class Player extends DrawableEntity {
             this.yspd = lerp(this.yspd,3.6,.1);
         }
 
-        this.y += this.yspd;
+        this.y += this.yspd / this.slow_factor;
 
         let myWallNormal: Vec2;
 
@@ -917,8 +932,8 @@ export class Player extends DrawableEntity {
         }
 
         // Move player
-        this.position.x += this.xspd;
-        this.position.y += this.yspd;
+        this.position.x += this.xspd / this.slow_factor;
+        this.position.y += this.yspd / this.slow_factor;
 
         // Now that player has moved, clamp them to the ground
         this.setSensorLocations();
@@ -1035,8 +1050,8 @@ export class Player extends DrawableEntity {
         
         // In air, collision checking is different than on ground.
         // First MOVE player, then snap player out of walls
-        this.position.x += this.xspd;
-        this.position.y += this.yspd;
+        this.position.x += this.xspd / this.slow_factor;
+        this.position.y += this.yspd / this.slow_factor; 
 
 
         // WALLS, and wall sliding

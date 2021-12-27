@@ -379,6 +379,10 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
 
                 break;
             }
+            case "ice_slow": {
+                
+                break;
+            }
             case "laser_mine_on_hit": {
                 bullet.effect.onUpdate(function(){
                     

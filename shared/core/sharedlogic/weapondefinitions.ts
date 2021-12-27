@@ -39,6 +39,8 @@ export type ProjectileBulletEffects = {
     type:"laser_mine_on_hit"
 } | {
     type: "emoji"
+} | {
+    type:"ice_slow"
 }
 
 export type HitscanRayEffects = {
@@ -53,6 +55,16 @@ function CreateShot<T extends keyof SharedNetworkedEntities, K extends Test<T>>(
 }
 
 export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<"projectile_bullet"/*keyof SharedNetworkedEntities*/>} >()({
+
+    ICE_SHOT: CreateShot({
+        type:"projectile_bullet",
+        item_name: "BULLET",
+        item_sprite:"vector.png",
+        bullet_effects:[
+            {type:"ice_slow"},
+        ],
+        velocity: new Vec2()
+    }),
 
     COOL_SHOT_2: CreateShot({
         type:"projectile_bullet",

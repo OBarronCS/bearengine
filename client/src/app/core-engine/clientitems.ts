@@ -26,6 +26,9 @@ import { Player, RemotePlayer } from "./../gamelogic/player"
 import { netv, SerializeTypedArray } from "shared/core/sharedlogic/serialization";
 import { DEG_TO_RAD, floor } from "shared/misc/mathutils";
 import { TickTimer } from "shared/datastructures/ticktimer";
+import { SlowAttribute } from "shared/core/sharedlogic/sharedattributes"
+import { ColliderPart } from "shared/core/entitycollision";
+import { dimensions } from "shared/shapes/rectangle";
 
 
 
@@ -240,6 +243,18 @@ export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bullet_effect
                     this.game.engine.renderer.addEmitter("particle.png", PARTICLE_CONFIG.EMOJI_HIT_WALL, this.x, this.y)
                 });
 
+
+                break;
+            }
+            case "ice_slow": {
+
+                bullet.onFinish(function(){
+                
+                    const effect = new LocalIceEffect(2.6);
+                    effect.position.set(this.position);
+                    game.entities.addEntity(effect);
+
+                });
 
                 break;
             }
@@ -729,6 +744,46 @@ class LocalBeamEffect extends DrawableEntity {
 }
 
 
+
+class LocalIceEffect extends DrawableEntity {
+    
+    
+    readonly radius = 100;
+    bbox = this.addPart(new ColliderPart(dimensions(this.radius,this.radius), new Vec2(this.radius/2),"SlowZone"))
+    slow_attribute: SlowAttribute
+
+    private seconds_alive = 0;
+
+    constructor(public lifetime_s: number){
+        super();
+
+        this.slow_attribute = this.addPart(new SlowAttribute(this.radius, 5))
+    }
+
+    override onAdd(): void {
+        const canvas = this.game.engine.renderer.createCanvas();
+        drawCircle(canvas, this.position, this.radius, 0x346eeb);
+        const tween = new NumberTween(canvas, "alpha",this.lifetime_s).from(1).to(0).go().onFinish(() => canvas.destroy());
+
+        this.game.entities.addEntity(tween)
+    }
+
+    update(dt: number): void {
+        this.seconds_alive += dt;
+        if(this.seconds_alive > this.lifetime_s){
+            this.destroy();
+        }
+    }
+
+    draw(g: Graphics): void {
+
+    }
+
+
+}
+
+
+
 function CreateLightningLines(start_point: Coordinate, end_point: Coordinate, iterations: number = 5): Line[] {
     let lines = [];
 
@@ -767,6 +822,9 @@ function CreateLightningLines(start_point: Coordinate, end_point: Coordinate, it
     return lines;
 }
 
+
+
+
 class LightningTest extends DrawableEntity {
 
     private startPoint = Vec2.ZERO;
@@ -783,39 +841,7 @@ class LightningTest extends DrawableEntity {
         }
         const mousePoint = this.mouse.position.clone();
 
-        this.lines.push(new Line(this.startPoint, mousePoint));
-        
-        // the longer the distance, the bigger this needs to be
-        // so the lightning looks natural
-        let offset =150;
-
-       
-        // how many times do we cut the segment in half?
-        for (let i = 0; i < 5; i++) {
-
-            const newLines: Line[] = [];
-
-            for(const line of this.lines){
-                const midPoint = mix(line.A, line.B, .5);
-                
-                midPoint.add(Line.normal(line.A, line.B).extend(random_range(-offset,offset)));
-
-                newLines.push(new Line(line.A, midPoint))
-                newLines.push(new Line(midPoint, line.B));
-
-                /// sometimes, split!
-                if(chance(18)){
-                    const dir = Vec2.subtract(midPoint, line.A);
-                    dir.drotate(random_range(-30,30)).scale(.7).add(midPoint);
-                    newLines.push(new Line(midPoint, dir));
-                }
-            }
-
-            this.lines = newLines;
-            offset /= 2;
-        }
-
-        
+        this.lines = CreateLightningLines(this.startPoint, mousePoint);
 
         this.redraw();
     }
@@ -829,5 +855,7 @@ class LightningTest extends DrawableEntity {
     }
 
 }
+
+
 
 
