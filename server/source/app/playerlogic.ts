@@ -4,7 +4,7 @@ import { ServerEntity } from "./entity";
 import { ConnectionID } from "./networking/serversocket";
 
 import "./networking/networkedentities";
-import { SBaseItem } from "./weapons/serveritems";
+import { BeamEffect_S, SBaseItem } from "./weapons/serveritems";
 
 export class ServerPlayerEntity extends ServerEntity {
 
@@ -39,8 +39,9 @@ export class ServerPlayerEntity extends ServerEntity {
     flipped = false;
 
     mouse: Vec2 = new Vec2(0,0);
-
     readonly look_dir: Vec2 = new Vec2(1,0);
+
+    current_beam: BeamEffect_S = null;
 
     setLookDirection(): void {
         const dir = Vec2.subtract(this.mouse, this.position);
@@ -54,7 +55,9 @@ export class ServerPlayerEntity extends ServerEntity {
 
     mousedown = false;
 
-
+    override onDestroy(): void {
+        this.game.endPlayerBeam_Player(this);
+    }
 
     update(dt: number): void {
         // if(this.item !== null){

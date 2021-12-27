@@ -21,19 +21,19 @@ import { Rect } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { DeserializeShortString, DeserializeTypedArray, netv, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
-import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet, ActionDo_ProjectileShotPacket, ActionDo_HitscanShotPacket, ActionDo_ShotgunShotPacket, AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet } from "./networking/gamepacketwriters";
+import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet, ActionDo_ProjectileShotPacket, ActionDo_HitscanShotPacket, ActionDo_ShotgunShotPacket, AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet, ActionDo_BeamPacket } from "./networking/gamepacketwriters";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
 
 
-import { ForceFieldEffect, ForceFieldItem_S, ItemActivationType, ItemEntity, ItemEntityPhysicsMode, PlayerSwapperItem, SBaseItem, ServerShootHitscanWeapon, ServerShootProjectileWeapon, SHitscanWeapon, ShotgunWeapon_S, SProjectileWeaponItem } from "./weapons/serveritems";
+import { BeamEffect_S, ForceFieldEffect, ForceFieldItem_S, ItemActivationType, ItemEntity, ItemEntityPhysicsMode, PlayerSwapperItem, SBaseItem, ServerShootHitscanWeapon, ServerShootProjectileWeapon, SHitscanWeapon, ShotgunWeapon_S, SProjectileWeaponItem } from "./weapons/serveritems";
 import { commandDispatcher } from "./servercommands";
 
 import "server/source/app/weapons/serveritems.ts"
 import { random, randomInt, random_range } from "shared/misc/random";
 import { Effect, Effect2 } from "shared/core/effects";
-import { ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
+import { BeamActionType, ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { LevelRefLinker, LevelRef } from "shared/core/sharedlogic/assetlinker";
 import { shuffle } from "shared/datastructures/arrayutils";
 import { DEG_TO_RAD, floor, RAD_TO_DEG } from "shared/misc/mathutils";
@@ -539,7 +539,12 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 
     dropPlayerItem(p: PlayerInformation): ItemEntity {
-        console.log("Dropping item")
+        console.log("Dropping item");
+        
+        this.endPlayerBeam(p)
+
+
+
         const item = new ItemEntity(p.playerEntity.item_in_hand);
 
         item.pos.set(p.playerEntity.position);
@@ -552,6 +557,23 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         p.playerEntity.clearItem();
 
         return item;
+    }
+
+    endPlayerBeam(player_info: PlayerInformation){
+        this.endPlayerBeam_Player(player_info.playerEntity);
+    }
+
+    endPlayerBeam_Player(playerEntity: ServerPlayerEntity){
+        if(playerEntity.current_beam !== null){
+            this.entities.destroyEntity(playerEntity.current_beam);
+
+            this.enqueueGlobalPacket(
+                new ActionDo_BeamPacket(playerEntity.connectionID,0,playerEntity.position, BeamActionType.END_BEAM,playerEntity.current_beam.beam_id)
+            );
+
+            playerEntity.current_beam = null;
+
+        }
     }
 
     notifyItemRemove(p: PlayerInformation){
@@ -802,6 +824,35 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                                     }
                                 }
 
+                                break;
+                            }
+                            case ItemActionType.BEAM: {
+                                const beam_action_type: BeamActionType = stream.getUint8();
+
+
+                                switch(beam_action_type){
+                                    case BeamActionType.START_BEAM: {
+
+                                        const beam = new BeamEffect_S(player_info.playerEntity);
+
+                                        this.enqueueGlobalPacket(
+                                            new ActionDo_BeamPacket(clientID,0,player_info.playerEntity.position, BeamActionType.START_BEAM,beam.beam_id)
+                                        );
+
+                                        player_info.playerEntity.current_beam = beam;
+
+                                        this.entities.addEntity(beam);
+                                        break;
+                                    }
+                                    case BeamActionType.END_BEAM: {
+
+
+                                        this.endPlayerBeam(player_info);
+
+                                        break;
+                                    }
+                                    default: AssertUnreachable(beam_action_type);
+                                }
                                 break;
                             }
                             default: AssertUnreachable(item_type);

@@ -10,6 +10,7 @@ export enum ItemActionType {
     PROJECTILE_SHOT,
     FORCE_FIELD_ACTION,
     SHOTGUN_SHOT,
+    BEAM,
 }
 
 /** Success/failure state of a requested action */
@@ -17,6 +18,11 @@ export enum ItemActionAck {
     SUCCESS,
     INVALID_STATE, // CANNOT_DO_RIGHT_NOW
     DO_NOT_HAVE_ITEM
+}
+
+export enum BeamActionType {
+    START_BEAM,
+    END_BEAM,
 }
 
 

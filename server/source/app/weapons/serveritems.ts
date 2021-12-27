@@ -18,6 +18,7 @@ import { SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas"
 import { EntityID } from "shared/core/abstractentity";
 import { Ellipse } from "shared/shapes/ellipse";
 import { TerrainManager } from "shared/core/terrainmanager";
+import { ServerEntity } from "../entity";
 
 export enum ItemActivationType {
     GIVE_ITEM,
@@ -241,7 +242,7 @@ export function ServerShootHitscanWeapon(game: ServerBearEngine, position: Vec2,
         if(ray.pointDistance(pEntity.position) < 30){
             pEntity.health -= 16;
         }
-    } 
+    }
 
     return ray.B;
 
@@ -645,7 +646,56 @@ export class LaserTripmine_S extends NetworkedEntity<"laser_tripmine"> {
 }
 
 
+//@ts-expect-error
+@networkedclass_server("beam_weapon")
+export class BeamWeapon_S extends SBaseItem<"beam_weapon"> {
 
+}
+
+export class BeamEffect_S extends ServerEntity {
+    
+    private static nextID = 0;
+    static getNextID(){
+        return this.nextID++;
+    }
+
+    direction = new Vec2(1,0);
+    beam_id = 0;
+    line = new Line(new Vec2(),new Vec2());
+
+    constructor(public player: ServerPlayerEntity){
+        super();
+        this.beam_id = BeamEffect_S.getNextID();
+    }
+
+    update(dt: number): void {
+        if(this.player.entityID !== NULL_ENTITY_INDEX){
+            this.position.set(this.player.position);
+            this.direction.set(this.player.look_dir).extend(1000);
+
+
+
+            const end = Vec2.add(this.position, this.direction);
+
+            this.line.A = this.position.clone();
+            this.line.B = end;
+            
+            const terrain = this.game.terrain.lineCollision(this.position, end);
+            if(terrain) this.line.B = terrain.point;
+
+            // Check each players distance to the line.
+            for(const pEntity of this.game.activeScene.activePlayerEntities.values()){
+                if(pEntity.connectionID === this.player.connectionID) continue;
+
+                if(this.line.pointDistance(pEntity.position) < 30){
+                    pEntity.health -= .9;
+                }
+            } 
+
+        }
+    }
+
+}
 
 
 

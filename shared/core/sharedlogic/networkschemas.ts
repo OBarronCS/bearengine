@@ -86,6 +86,11 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
         },
         events: {},
     },
+    "beam_weapon": {
+        extends:null,
+        variables:{},
+        events:{},
+    },
     "projectile_bullet":{
         static:{
             bullet_effects: null as BulletEffects[],

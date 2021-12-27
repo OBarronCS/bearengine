@@ -3,7 +3,7 @@ import { Sprite, Graphics, Text } from "shared/graphics/graphics";
 import { Effect } from "shared/core/effects";
 import { PacketWriter, SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
-import { CreateShootController, GunshootController, ItemActionType, BulletEffects, PROJECTILE_SHOT_DATA, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
+import { CreateShootController, GunshootController, ItemActionType, BulletEffects, PROJECTILE_SHOT_DATA, SHOT_LINKER, BeamActionType } from "shared/core/sharedlogic/weapondefinitions";
 import { NumberTween } from "shared/core/tween";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable } from "shared/misc/assertstatements";
@@ -22,7 +22,7 @@ import { drawCircle, drawCircleOutline, drawLineArray, drawLineBetweenPoints } f
 import { EmitterAttach } from "./particles";
 import { choose } from "shared/datastructures/arrayutils";
 import { EMOJIS } from "./emojis";
-import { Player } from "./../gamelogic/player"
+import { Player, RemotePlayer } from "./../gamelogic/player"
 import { netv, SerializeTypedArray } from "shared/core/sharedlogic/serialization";
 import { DEG_TO_RAD, floor } from "shared/misc/mathutils";
 
@@ -386,6 +386,63 @@ export function ShootHitscanWeapon_C(game: NetworkPlatformGame, line: Line): voi
     game.engine.renderer.addEmitter("particle.png", PARTICLE_CONFIG.BULLET_HIT_WALL, line.B.x, line.B.y);
 }
 
+//@ts-expect-error
+@networkedclass_client("beam_weapon")
+export class BeamWeapon extends UsableItem<"beam_weapon"> {
+    
+    active = false;
+
+    beam_effect: LocalBeamEffect = null;
+
+    operate(dt: number, position: Vec2, mouse: Vec2, mouse_down: boolean, game: NetworkPlatformGame, player: Player): boolean {
+        if(!this.active){
+            if(mouse_down) {
+                this.active = true;
+                game.networksystem.enqueueStagePacket(
+                    new ServerBoundBeamPacket(0,game.networksystem.getLocalShotID(), this.position, BeamActionType.START_BEAM)
+                );      
+
+                this.beam_effect = this.game.entities.addEntity(new LocalBeamEffect(player));
+            }
+        }
+        if(this.active && !mouse_down){
+            this.active = false;
+
+            game.networksystem.enqueueStagePacket(
+                new ServerBoundBeamPacket(0,game.networksystem.getLocalShotID(), this.position, BeamActionType.END_BEAM)
+            );
+
+            if(this.beam_effect){
+                this.game.entities.destroyEntity(this.beam_effect);
+                this.beam_effect = null;
+            }
+        }
+              
+        
+        return false;
+    }
+}
+
+export class ServerBoundBeamPacket extends PacketWriter {
+
+    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public action_type: BeamActionType){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(ServerBoundPacket.REQUEST_ITEM_ACTION);
+        stream.setUint8(ItemActionType.BEAM);
+
+        stream.setUint32(this.localShotID);
+        
+        stream.setFloat32(this.createServerTick);
+
+        stream.setFloat32(this.start.x);
+        stream.setFloat32(this.start.y);
+
+        stream.setUint8(this.action_type);
+    }
+}
 
 
 interface GunAddon {
@@ -564,4 +621,85 @@ export class LaserTripmine_C extends DrawableEntity {
 export class PlayerSwapItem_C extends Entity {
     update(dt: number): void {}
 }
+
+
+export class BeamEffect_C extends DrawableEntity {
+
+    direction = new Vec2(1,0);
+    line = new Line(new Vec2(), new Vec2());
+
+    constructor(public player: RemotePlayer){
+        super();
+        
+    }
+
+    update(dt: number): void {
+        if(this.player.entityID !== NULL_ENTITY_INDEX){
+            this.position.set(this.player.position);
+            this.direction.set(this.player.look_angle.value).extend(1000);
+
+            const end = Vec2.add(this.position, this.direction);
+
+            this.line.A = this.position.clone();
+            this.line.B = end;
+            
+            const terrain = this.game.terrain.lineCollision(this.position, end);
+            if(terrain) this.line.B = terrain.point;
+
+
+            this.redraw(true);
+            
+
+        }
+    }
+
+    draw(g: Graphics): void {
+        
+        this.line.draw(g, 0x346eeb, 7);
+        
+        
+        this.game.engine.renderer.addEmitter("particle.png", PARTICLE_CONFIG.BULLET_HIT_WALL, this.line.B.x, this.line.B.y);
+    }
+    
+}
+
+
+class LocalBeamEffect extends DrawableEntity {
+    direction = new Vec2(1,0);
+    line = new Line(new Vec2(), new Vec2());
+
+    constructor(public player: Player){
+        super();
+        
+    }
+
+    update(dt: number): void {
+        if(this.player.entityID !== NULL_ENTITY_INDEX){
+            this.position.set(this.player.position);
+            this.direction.set(Vec2.subtract(this.mouse, this.player.position).extend(1000));
+
+            const end = Vec2.add(this.position, this.direction);
+
+            this.line.A = this.position.clone();
+            this.line.B = end;
+            
+            const terrain = this.game.terrain.lineCollision(this.position, end);
+            if(terrain) this.line.B = terrain.point;
+
+
+            this.redraw(true);
+            
+
+        }
+    }
+
+    draw(g: Graphics): void {
+        
+        this.line.draw(g, 0x346eeb, 7);
+        
+        
+        this.game.engine.renderer.addEmitter("particle.png", PARTICLE_CONFIG.BULLET_HIT_WALL, this.line.B.x, this.line.B.y);
+    }
+}
+
 

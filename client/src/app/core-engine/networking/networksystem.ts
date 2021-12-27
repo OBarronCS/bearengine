@@ -22,11 +22,11 @@ import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
 import { ITEM_LINKER } from "shared/core/sharedlogic/items";
-import { ForceFieldEffect_C, ModularProjectileBullet, ShootHitscanWeapon_C, ShootProjectileWeapon_C } from "../clientitems";
+import { BeamEffect_C, ForceFieldEffect_C, ModularProjectileBullet, ShootHitscanWeapon_C, ShootProjectileWeapon_C } from "../clientitems";
 import { Line } from "shared/shapes/line";
 import { EmitterAttach } from "../particles";
 import { PARTICLE_CONFIG } from "../../../../../shared/core/sharedlogic/sharedparticles";
-import { ItemActionAck, ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
+import { BeamActionType, ItemActionAck, ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { DeserializeTypedArray, DeserializeTypedVar, netv, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { Trie } from "shared/datastructures/trie";
 import { LevelRefLinker } from "shared/core/sharedlogic/assetlinker";
@@ -148,7 +148,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
     // Predicted values exist here while shot awaiting acknowledgement from the server
     public readonly localShotIDToEntity: Map<number,AbstractEntity> = new Map();
-
+    public readonly beamIDToEntity: Map<number, BeamEffect_C> = new Map();
     
 
     constructor(engine: NetworkPlatformGame, settings: NetworkSettings){
@@ -965,6 +965,36 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     }
                                     break;
                                 }
+                                case ItemActionType.BEAM: {
+                                    const action_type: BeamActionType = stream.getUint8();
+                                    const beam_id = stream.getUint32();
+
+                                    if(this.MY_CLIENT_ID === creator_id) continue;
+
+                                    switch(action_type){
+                                        case BeamActionType.START_BEAM:{
+                                            
+                                            const beam = new BeamEffect_C(this.remotePlayerEntities.get(creator_id));
+                                            
+                                            this.beamIDToEntity.set(beam_id,beam);
+
+                                            this.game.entities.addEntity(beam);
+
+                                            break;
+                                        }
+                                        case BeamActionType.END_BEAM:{
+                                            console.log("END BEAM")
+                                            const get = this.beamIDToEntity.get(beam_id);
+                                            if(get){
+                                                this.game.entities.destroyEntity(get);
+                                            }
+                                        
+                                            break;
+                                        }
+                                        default: AssertUnreachable(action_type);
+                                    }
+                                    break;
+                                }
                                 default: AssertUnreachable(item_type);
                             }
 
@@ -1041,6 +1071,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                             }
                                         }
                                     }
+                                    break;
+                                }
+                                case ItemActionType.BEAM: {
+                                    throw new Error("NOT IMPLEMENTED");
                                     break;
                                 }
                                 default: AssertUnreachable(action_type);

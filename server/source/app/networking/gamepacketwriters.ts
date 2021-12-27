@@ -3,7 +3,7 @@ import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, 
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { GetTemplateRealType, netv, SerializeTypedArray, SerializeTypedVar, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums";
-import { ItemActionAck, ItemActionType } from "shared/core/sharedlogic/weapondefinitions";
+import { BeamActionType, ItemActionAck, ItemActionType } from "shared/core/sharedlogic/weapondefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { Vec2 } from "shared/shapes/vec2";
 import { SBaseItem } from "../weapons/serveritems";
@@ -445,6 +445,28 @@ export class ActionDo_ShotgunShotPacket extends PacketWriter {
         // ENTITY SERIALIZE
         SerializeTypedArray(stream, netv.uint32(), this.entity_id_list);
         // StreamWriteEntityID(stream, this.entity_id);
+    }
+}
+
+export class ActionDo_BeamPacket extends PacketWriter {
+
+    constructor(public playerID: number, public createServerTick: number, public start: Vec2, public action_type: BeamActionType, public beam_id: number){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.GENERAL_DO_ITEM_ACTION);
+        
+        stream.setUint8(this.playerID);
+        stream.setUint8(ItemActionType.BEAM);
+        
+        stream.setFloat32(this.createServerTick);
+
+        stream.setFloat32(this.start.x);
+        stream.setFloat32(this.start.y);
+
+        stream.setUint8(this.action_type);
+        stream.setUint32(this.beam_id);
     }
 }
 

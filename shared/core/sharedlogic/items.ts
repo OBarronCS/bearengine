@@ -167,11 +167,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
     auto_beam: CreateItem({
         item_name:"beam",
         item_sprite:"vector.jpg",
-        type:"hitscan_weapon",
-        ammo: 100,
-        capacity: 100,
-        reload_time: 100,
-        shoot_controller: {type:"auto", time_between_shots:1}
+        type:"beam_weapon",
     }),
 
 

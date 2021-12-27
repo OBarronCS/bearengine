@@ -154,8 +154,8 @@ export class Line {
         return null;
     }
 
-    draw(g: Graphics, color?: number){
-        drawLineBetweenPoints(g, this.A, this.B, color);
+    draw(g: Graphics, color?: number, width?: number){
+        drawLineBetweenPoints(g, this.A, this.B, color, 1, width);
     }
 
 }

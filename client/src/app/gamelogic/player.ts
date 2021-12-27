@@ -1246,6 +1246,7 @@ export class RemotePlayer extends Entity {
     private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
 
     update(dt: number): void {
+        this.look_angle.value.set(this.look_angle.buffer.getValue(this.game.networksystem["getServerTickToSimulate"]()))
 
         this.draw_item.position.set({x: this.x, y: this.y});
         this.draw_item.image.angle = this.look_angle.value.angle();
@@ -1255,7 +1256,6 @@ export class RemotePlayer extends Entity {
         this.idleAnimation.setPosition(this.position);
         this.climbAnimation.setPosition(this.position);
 
-        this.look_angle.value.set(this.look_angle.buffer.getValue(this.game.networksystem["getServerTickToSimulate"]()))
 
         if(!this.ghost){
             this.runAnimation.tick();
