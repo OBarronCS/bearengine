@@ -369,6 +369,112 @@ export const PARTICLE_CONFIG = DefineSchema<{ [key: string]: EmitterConfigV1 | E
             "r": 0
         }
     },
+    EMOJI_HIT_WALL:{
+        "alpha": {
+            "start": 1,
+            "end": 0.06
+        },
+        "scale": {
+            "start": 0.1,
+            "end": 0.05,
+            "minimumScaleMultiplier": 1
+        },
+        "color": {
+            "start": "#000000",
+            "end": "#575959"
+        },
+        "speed": {
+            "start": 50,
+            "end": 37,
+            "minimumSpeedMultiplier": 1
+        },
+        "acceleration": {
+            "x": 0,
+            "y": 0
+        },
+        "maxSpeed": 0,
+        "startRotation": {
+            "min": 0,
+            "max": 360
+        },
+        "noRotation": false,
+        "rotationSpeed": {
+            "min": 0,
+            "max": 0
+        },
+        "lifetime": {
+            "min": 0.2,
+            "max": 0.69
+        },
+        "blendMode": "normal",
+        "frequency": 0.01,
+        "emitterLifetime": 0.4,
+        "maxParticles": 50,
+        "pos": {
+            "x": 0,
+            "y": 0
+        },
+        "addAtBack": false,
+        "spawnType": "circle",
+        "spawnCircle": {
+            "x": 0,
+            "y": 0,
+            "r": 0
+        }
+    },
+    BLUE_TRAIL:{
+        "alpha": {
+            "start": 1,
+            "end": 0.33
+        },
+        "scale": {
+            "start": 0.4,
+            "end": 0.01,
+            "minimumScaleMultiplier": 1
+        },
+        "color": {
+            "start": "#00478a",
+            "end": "#003a91"
+        },
+        "speed": {
+            "start": 10,
+            "end": 30,
+            "minimumSpeedMultiplier": 1
+        },
+        "acceleration": {
+            "x": 0,
+            "y": 0
+        },
+        "maxSpeed": 0,
+        "startRotation": {
+            "min": 0,
+            "max": 360
+        },
+        "noRotation": false,
+        "rotationSpeed": {
+            "min": 0,
+            "max": 0
+        },
+        "lifetime": {
+            "min": 0.16,
+            "max": 0.28
+        },
+        "blendMode": "normal",
+        "frequency": 0.001,
+        "emitterLifetime": -1,
+        "maxParticles": 300,
+        "pos": {
+            "x": 0,
+            "y": 0
+        },
+        "addAtBack": false,
+        "spawnType": "circle",
+        "spawnCircle": {
+            "x": 0,
+            "y": 0,
+            "r": 0
+        }
+    },
 });
 
 

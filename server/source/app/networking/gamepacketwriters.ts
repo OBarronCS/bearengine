@@ -419,6 +419,35 @@ export class ActionDo_ProjectileShotPacket extends PacketWriter {
     }
 }
 
+export class ActionDo_ShotgunShotPacket extends PacketWriter {
+
+    constructor(public creator_player_id: number, public createServerTick: number, public start: Vec2, public velocity: Vec2, public shot_prefab_id: number, public shotgun_prefab_id: number, public entity_id_list: number[]){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.GENERAL_DO_ITEM_ACTION);
+        
+        stream.setUint8(this.creator_player_id);
+        stream.setUint8(ItemActionType.SHOTGUN_SHOT);
+        
+        stream.setFloat32(this.createServerTick);
+
+        stream.setFloat32(this.start.x);
+        stream.setFloat32(this.start.y);
+
+        stream.setFloat32(this.velocity.x);
+        stream.setFloat32(this.velocity.y);
+
+        stream.setUint8(this.shot_prefab_id);
+        stream.setUint8(this.shotgun_prefab_id);
+
+        // ENTITY SERIALIZE
+        SerializeTypedArray(stream, netv.uint32(), this.entity_id_list);
+        // StreamWriteEntityID(stream, this.entity_id);
+    }
+}
+
 
 // ForceFields are created through entities, so this is not needed
 // export class ForceFieldEffectPacket extends PacketWriter {
@@ -469,6 +498,24 @@ export class AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet extends Packet
         stream.setUint32(this.clientside_action_id);
 
         StreamWriteEntityID(stream, this.bullet_entity_id);
+    }
+}
+
+export class AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet extends PacketWriter {
+
+    constructor(public clientside_action_id: number, public local_ids: number[], public bullet_entity_id_list: number[]){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.ACKNOWLEDGE_ITEM_ACTION);
+        stream.setUint8(ItemActionType.SHOTGUN_SHOT);
+        stream.setUint8(ItemActionAck.SUCCESS);
+        stream.setUint32(this.clientside_action_id);
+
+        SerializeTypedArray(stream, netv.uint32(), this.local_ids);
+        SerializeTypedArray(stream, netv.uint32(), this.bullet_entity_id_list);
+        //StreamWriteEntityID(stream, this.bullet_entity_id);
     }
 }
 

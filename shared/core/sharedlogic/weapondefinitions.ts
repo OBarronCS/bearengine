@@ -9,6 +9,7 @@ export enum ItemActionType {
     HIT_SCAN,
     PROJECTILE_SHOT,
     FORCE_FIELD_ACTION,
+    SHOTGUN_SHOT,
 }
 
 /** Success/failure state of a requested action */
@@ -42,15 +43,31 @@ function CreateShot<T extends keyof SharedNetworkedEntities, K extends Test<T>>(
     return i;
 }
 
-// Make it Test<"projectile_bullet"> ?
-export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<keyof SharedNetworkedEntities>} >()({
+export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<"projectile_bullet"/*keyof SharedNetworkedEntities*/>} >()({
+
+    COOL_SHOT: CreateShot({
+        type:"projectile_bullet",
+        item_name:"Doesn't matter",
+        item_sprite:"cool_bullet.png",
+        velocity: new Vec2(),
+        bullet_effects:[
+            {
+                type:"particle_system",
+                particle:"BLUE_TRAIL"
+            },
+            {
+                type:"gravity",
+                force:new Vec2(0,.15)
+            }
+        ],
+    }),
 
     EMOJI_SHOT: CreateShot({
         type:"projectile_bullet",
         item_name:"First example bullet",
-        item_sprite:"tree.gif",
-        pos: new Vec2(0,0),
-        velocity: new Vec2(0,0),
+        item_sprite:"bullet.png",
+        pos: new Vec2(),
+        velocity: new Vec2(),
         bullet_effects:[
             {
                 type:"emoji"
@@ -61,9 +78,9 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<keyof Shar
     SIMPLE_TERRAIN_HIT: CreateShot({
         type:"projectile_bullet",
         item_name:"First example bullet",
-        item_sprite:"tree.gif",
-        pos: new Vec2(0,0),
-        velocity: new Vec2(0,0),
+        item_sprite:"bullet.png",
+        pos: new Vec2(),
+        velocity: new Vec2(),
         bullet_effects:[
             {
                 type:"terrain_hit_boom",
@@ -83,9 +100,9 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<keyof Shar
     NOSEDIVE: CreateShot({
         type:"projectile_bullet",
         item_name:"First example bullet",
-        item_sprite:"tree.gif",
-        pos: new Vec2(0,0),
-        velocity: new Vec2(0,0),
+        item_sprite:"bullet.png",
+        pos: new Vec2(),
+        velocity: new Vec2(),
         bullet_effects:[
             {
                 type:"terrain_hit_boom",
@@ -105,9 +122,9 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<keyof Shar
     LASER_ON_HIT: CreateShot({
         type:"projectile_bullet",
         item_name:"First example bullet",
-        item_sprite:"tree.gif",
-        pos: new Vec2(0,0),
-        velocity: new Vec2(0,0),
+        item_sprite:"bullet.png",
+        pos: new Vec2(),
+        velocity: new Vec2(),
         bullet_effects:[
             {
                 type:"laser_mine_on_hit",

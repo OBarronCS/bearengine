@@ -65,6 +65,34 @@ interface CommonItemData {
 // Each of these is assigned a unique ItemID
 export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetworkedEntities>} >()({
 
+    first_shotgun: CreateItem({
+        type: "shotgun_weapon",
+        item_name: "SHOTGUN",
+        item_sprite: "tree.gif",
+        ammo: 100,
+        capacity: 100,
+        reload_time:10,
+        
+        shoot_controller: {type: "semiauto", time_between_shots: 20},
+        spread: 10,
+        count: 4,
+        initial_speed: 10,
+        shot_name:"COOL_SHOT",
+
+    }),
+
+    cool_fast: CreateItem({
+        type:"projectile_weapon",
+        item_name:"Cool",
+        item_sprite:"cool_bullet.png",
+        ammo:100,
+        capacity:100,
+        initial_speed: 34,
+        reload_time: 10,
+        shoot_controller:{type:"auto", time_between_shots:7},
+        shot_name: "COOL_SHOT"
+    }),
+
     swap_item: CreateItem({
         item_name: "Swapper",
         item_sprite: "fireball.png",
@@ -134,6 +162,16 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         item_name:"Force Field",
         item_sprite:"forcefield_item.png",
         radius: 50,
+    }),
+
+    auto_beam: CreateItem({
+        item_name:"beam",
+        item_sprite:"vector.jpg",
+        type:"hitscan_weapon",
+        ammo: 100,
+        capacity: 100,
+        reload_time: 100,
+        shoot_controller: {type:"auto", time_between_shots:1}
     }),
 
 

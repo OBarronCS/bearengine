@@ -66,7 +66,16 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
             initial_speed: null as number
         },
         variables: {
-            
+        },
+        events: {},
+    },
+    "shotgun_weapon": {
+        extends: "projectile_weapon",
+        static:{
+            spread: null as number,
+            count: null as number,
+        },
+        variables: {
         },
         events: {},
     },

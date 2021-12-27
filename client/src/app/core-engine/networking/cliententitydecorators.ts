@@ -339,6 +339,14 @@ export const SharedEntityClientTable = {
         eventDefinition: NetworkedEventList,
     }[],
 
+    FINAL_REGISTERED_NETWORKED_ENTITIES: [] as {
+        create: EntityConstructor, 
+        name: keyof SharedNetworkedEntities,
+        varDefinition: NetworkedVariablesList
+        eventDefinition: NetworkedEventList,
+    }[],
+
+    /* Only includes variables from PARENTS */
     GetParentSharedEntityVariables(con: EntityConstructor): NetworkedVariablesList {
 
         const vars: NetworkedVariablesList = [];
@@ -346,6 +354,7 @@ export const SharedEntityClientTable = {
         // If the type for this class inherits from something, make sure this does too
         if(SharedNetworkedEntityDefinitions[con["SHARED_NAME"]]["extends"]) {
             const shouldBe = SharedNetworkedEntityDefinitions[con["SHARED_NAME"]]["extends"];
+            
             // The super class of this class
             const parentConstructor = Object.getPrototypeOf(con);
             
@@ -400,21 +409,34 @@ export const SharedEntityClientTable = {
                     throw new Error(`Class '${data.create.name}' should extend the class that implements shared type '${shouldBe}'`);
                 }
 
-                data.varDefinition.push(...this.GetParentSharedEntityVariables(data.create));
+                // If I have a parent class, do the recursive search
+                const ALL_VARS = data.varDefinition.concat(...this.GetParentSharedEntityVariables(data.create));
+                ALL_VARS.sort((a,b) => a.variablename.localeCompare(b.variablename));
 
-                data.varDefinition.sort((a,b) => a.variablename.localeCompare(b.variablename));
+                // console.log(A::)
+
+                this.FINAL_REGISTERED_NETWORKED_ENTITIES.push(
+                    {
+                        create: data.create,
+                        eventDefinition: data.eventDefinition,
+                        name: data.name,
+                        varDefinition: ALL_VARS,
+                    }
+                )
+            } else {
+                this.FINAL_REGISTERED_NETWORKED_ENTITIES.push(data);
             }
         }        
     },
 
     getEntityClass(sharedID: number): EntityConstructor {
-        return this.REGISTERED_NETWORKED_ENTITIES[sharedID].create;
+        return this.FINAL_REGISTERED_NETWORKED_ENTITIES[sharedID].create;
     },
 
     callRemoteEvent(stream: BufferStreamReader, sharedID: number, eventID: number, entity: BaseEntityType){
         
 
-        const eventDefinition = this.REGISTERED_NETWORKED_ENTITIES[sharedID].eventDefinition[eventID];
+        const eventDefinition = this.FINAL_REGISTERED_NETWORKED_ENTITIES[sharedID].eventDefinition[eventID];
 
         const args = []
         
@@ -427,7 +449,7 @@ export const SharedEntityClientTable = {
     },
 
     readThroughRemoteEventStream(stream: BufferStreamReader, sharedID: number, eventID: number, entity: BaseEntityType){
-        const eventDefinition = this.REGISTERED_NETWORKED_ENTITIES[sharedID].eventDefinition[eventID];
+        const eventDefinition = this.FINAL_REGISTERED_NETWORKED_ENTITIES[sharedID].eventDefinition[eventID];
         
         for(const functionArgumentType of eventDefinition.argumenttypes){
             DeserializeTypedVar(stream, functionArgumentType)
@@ -443,7 +465,7 @@ export const SharedEntityClientTable = {
             DeserializeVec2(stream, "float", new Vec2());
         }
 
-        const variableslist = this.REGISTERED_NETWORKED_ENTITIES[sharedID].varDefinition
+        const variableslist = this.FINAL_REGISTERED_NETWORKED_ENTITIES[sharedID].varDefinition
         
         for(let i = 1; i < variableslist.length + 1; i++){
             if((dirty_bits & (1 << i)) !== 0) {

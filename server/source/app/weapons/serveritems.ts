@@ -78,6 +78,16 @@ export class SProjectileWeaponItem extends SWeaponItem {
 }
 
 //@ts-expect-error
+@networkedclass_server("shotgun_weapon")
+export class ShotgunWeapon_S extends SProjectileWeaponItem {
+    //@ts-expect-error
+    count: number = this.GetStaticValue("count");
+
+    //@ts-expect-error
+    spread: number = this.GetStaticValue("spread");
+}
+
+//@ts-expect-error
 @networkedclass_server("hitscan_weapon")
 export class SHitscanWeapon extends SWeaponItem {
 
@@ -304,6 +314,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
 
     // Bouncing off of forcefields, damaging players
     bullet.effect.onUpdate(function(dt){
+
 
         const line = this.forward_line;
         

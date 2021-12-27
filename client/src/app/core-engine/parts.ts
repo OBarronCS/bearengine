@@ -1,4 +1,4 @@
-import { DEG_TO_RAD, Graphics, Sprite } from "shared/graphics/graphics";
+import { DEG_TO_RAD, Graphics, Sprite, Texture } from "shared/graphics/graphics";
 import { abs, angleDifference, min, sign } from "shared/misc/mathutils"
 import { angleBetween, Coordinate } from "shared/shapes/vec2";
 import { Attribute } from "shared/core/entityattribute"
@@ -21,6 +21,10 @@ export class SpritePart extends Attribute {
             this.file_path = ""
             this.sprite = spr_source;
         }
+    }
+
+    setTexture(t: Texture){
+        this.sprite.texture = t;
     }
 
     /** Sets point on the sprite that sits on position vector */

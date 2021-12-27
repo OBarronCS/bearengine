@@ -19,15 +19,15 @@ import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
 import { AbstractEntity } from "shared/core/abstractentity";
-import { DeserializeShortString, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
+import { DeserializeShortString, DeserializeTypedArray, netv, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
-import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet, ActionDo_ProjectileShotPacket, ActionDo_HitscanShotPacket } from "./networking/gamepacketwriters";
+import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet, ActionDo_ProjectileShotPacket, ActionDo_HitscanShotPacket, ActionDo_ShotgunShotPacket, AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet } from "./networking/gamepacketwriters";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
 
 
-import { ForceFieldEffect, ForceFieldItem_S, ItemActivationType, ItemEntity, ItemEntityPhysicsMode, PlayerSwapperItem, SBaseItem, ServerShootHitscanWeapon, ServerShootProjectileWeapon, SHitscanWeapon, SProjectileWeaponItem } from "./weapons/serveritems";
+import { ForceFieldEffect, ForceFieldItem_S, ItemActivationType, ItemEntity, ItemEntityPhysicsMode, PlayerSwapperItem, SBaseItem, ServerShootHitscanWeapon, ServerShootProjectileWeapon, SHitscanWeapon, ShotgunWeapon_S, SProjectileWeaponItem } from "./weapons/serveritems";
 import { commandDispatcher } from "./servercommands";
 
 import "server/source/app/weapons/serveritems.ts"
@@ -36,6 +36,7 @@ import { Effect, Effect2 } from "shared/core/effects";
 import { ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { LevelRefLinker, LevelRef } from "shared/core/sharedlogic/assetlinker";
 import { shuffle } from "shared/datastructures/arrayutils";
+import { DEG_TO_RAD, floor, RAD_TO_DEG } from "shared/misc/mathutils";
 
 const MAX_BYTES_PER_PACKET = 2048;
 
@@ -697,10 +698,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
                                         const shot_prefab_id = item.shot_id;
 
-                                        // const shotID = this.getServerShotID();
-
-
-
                                         const velocity = direction.extend(item.initial_speed);
     
                                         const b = ServerShootProjectileWeapon(this, clientID, pos, velocity, shot_prefab_id);
@@ -753,6 +750,56 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                                     this.notifyItemRemove(player_info);
                             
                                     player_info.playerEntity.clearItem();
+                                }
+
+                                break;
+                            }
+                            case ItemActionType.SHOTGUN_SHOT: {
+
+                                const client_ids = DeserializeTypedArray(stream, netv.uint32());
+
+                                if(player_info.playerEntity.item_in_hand instanceof ShotgunWeapon_S){
+                                    const item = player_info.playerEntity.item_in_hand;
+                                    assert(client_ids.length === item.count);
+
+                                    if(item.ammo > 0){
+                                        item.ammo -= 1;
+
+                                        const entity_id_list: number[] = [];
+
+                                        const shot_prefab_id = item.shot_id;
+
+                                        const spread_rad = item.spread * DEG_TO_RAD;
+                                        const count = item.count;
+
+                                        const pEntity = player_info.playerEntity;
+
+                                        const player_dir = Vec2.subtract(pEntity.mouse, pEntity.position);
+
+                                        let current_dir = player_dir.angle() - (floor(count / 2)*spread_rad);
+                                        if(count % 2 === 0) current_dir += (spread_rad / 2);
+
+                                        for(let i = 0; i < count; i++){
+
+                                            const velocity = new Vec2(1,1).setDirection(current_dir).extend(item.initial_speed);
+
+                                            const b = ServerShootProjectileWeapon(this, clientID, pos, velocity, shot_prefab_id);
+
+                                            entity_id_list.push(b.entityID);
+                                            
+                                            current_dir += spread_rad;
+                                        }
+
+                                       
+                                        this.enqueueGlobalPacket(
+                                            new ActionDo_ShotgunShotPacket(clientID, createServerTick, pos, player_dir.clone().extend(item.initial_speed), shot_prefab_id, item.item_id, entity_id_list)
+                                        );
+
+                                        player_info.personalPackets.enqueue(
+                                            new AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet(clientShotID, client_ids, entity_id_list)
+                                        );
+
+                                    }
                                 }
 
                                 break;

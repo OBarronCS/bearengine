@@ -10,7 +10,7 @@ import { CallbackNetwork, NetworkSettings } from "./clientsocket";
 import { Entity } from "../entity";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AnimationState, Player, RemotePlayer } from "../../gamelogic/player";
-import { abs, ceil } from "shared/misc/mathutils";
+import { abs, ceil, DEG_TO_RAD, floor } from "shared/misc/mathutils";
 import { LinkedQueue } from "shared/datastructures/queue";
 import { BearEngine, NetworkPlatformGame } from "../bearengine";
 import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
@@ -22,7 +22,7 @@ import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
 import { ITEM_LINKER } from "shared/core/sharedlogic/items";
-import { ForceFieldEffect_C, ModularProjectileBullet, ShootHitscanWeapon_C, ShootProjectileWeapon } from "../clientitems";
+import { ForceFieldEffect_C, ModularProjectileBullet, ShootHitscanWeapon_C, ShootProjectileWeapon_C } from "../clientitems";
 import { Line } from "shared/shapes/line";
 import { EmitterAttach } from "../particles";
 import { PARTICLE_CONFIG } from "../../../../../shared/core/sharedlogic/sharedparticles";
@@ -830,15 +830,15 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             //@ts-expect-error
                             const item_instance = (new item_class(item_id));
 
-                            console.log(item_instance)
 
         
                             const shared_id = SharedEntityLinker.nameToSharedID(item_data.type);
 
                              
-                            const variableslist = SharedEntityClientTable.REGISTERED_NETWORKED_ENTITIES[shared_id].varDefinition;
+                            const variableslist = SharedEntityClientTable.FINAL_REGISTERED_NETWORKED_ENTITIES[shared_id].varDefinition;
 
                             for(const variableinfo of variableslist){
+                                console.log(variableinfo.variabletype);
                                 const value = DeserializeTypedVar(stream, variableinfo.variabletype);
 
                                 item_instance[variableinfo.variablename] = value
@@ -848,6 +848,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 }
                             }
 
+                            
+                            console.log("Created item:" + item_instance)
 
                             if(this.currentPlayState === ClientPlayState.ACTIVE){
                                 this.game.player.setItem(item_instance, item_data.item_sprite);
@@ -884,9 +886,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     if(this.MY_CLIENT_ID !== creator_id){
 
                                         const bullet_effects = SHOT_LINKER.IDToData(shot_prefab_id).bullet_effects;
+                                        const sprite = SHOT_LINKER.IDToData(shot_prefab_id).item_sprite;
 
                                         // Creates bullet, links it to make it a shared entity
-                                        const b = ShootProjectileWeapon(this.game, bullet_effects, pos, velocity);
+                                        const b = ShootProjectileWeapon_C(this.game, bullet_effects, pos, velocity, sprite);
 
 
                                         // It's now a networked entity
@@ -914,6 +917,52 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     //     this.game.entities.addEntity(new ForceFieldEffect_C(p));
                                     // }
                                     
+                                    break;
+                                }
+                                case ItemActionType.SHOTGUN_SHOT: {
+                                    const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
+
+                                    const shot_prefab_id = stream.getUint8();
+                                    const shotgun_id = stream.getUint8();
+
+
+
+                                    const remote_entity_id_list = DeserializeTypedArray(stream, netv.uint32());
+
+                                    // Only create it if someone else shot it
+                                    if(this.MY_CLIENT_ID !== creator_id){
+
+                                        const count = remote_entity_id_list.length;
+
+                                        //@ts-expect-error
+                                        const spread_rad = DEG_TO_RAD * ITEM_LINKER.IDToData(shotgun_id).spread;
+                                        //@ts-expect-error
+                                        const speed = ITEM_LINKER.IDToData(shotgun_id).initial_speed;
+                                        
+
+                                        let current_dir = velocity.angle() - (floor(count / 2)*spread_rad);
+                                        if(count % 2 === 0) current_dir += (spread_rad / 2);
+                                
+                                        for(let i = 0; i < count; i++){
+                                            const e = remote_entity_id_list[i];
+
+                                            const dir = new Vec2(1,1).setDirection(current_dir).extend(speed);
+
+                                            const bullet_effects = SHOT_LINKER.IDToData(shot_prefab_id).bullet_effects;
+                                            const sprite = SHOT_LINKER.IDToData(shot_prefab_id).item_sprite;
+    
+                                            // Creates bullet, links it to make it a shared entity
+                                            const b = ShootProjectileWeapon_C(this.game, bullet_effects, pos, dir, sprite);
+    
+    
+                                            // It's now a networked entity
+                                            //@ts-expect-error
+                                            this.remoteEntities.set(e, b);
+                                            this.networked_entity_subset.addEntity(b);
+
+                                            current_dir += spread_rad;
+                                        }
+                                    }
                                     break;
                                 }
                                 default: AssertUnreachable(item_type);
@@ -963,7 +1012,37 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     }
                                     break;
                                 }
+                                case ItemActionType.SHOTGUN_SHOT: {
+                                    if(success_state === ItemActionAck.SUCCESS){
 
+                                        const local_ids = DeserializeTypedArray(stream, netv.uint32());
+                                        const remote_entity_id_list = DeserializeTypedArray(stream, netv.uint32());
+                                        // const clientside_action_id: never;;
+                                        for(let i = 0; i < local_ids.length; i++){
+                                            const local_id = local_ids[i];
+                                            const remote_id = remote_entity_id_list[i];
+                         
+                                            // Is an effect
+                                            const bullet = this.localShotIDToEntity.get(local_id) as ModularProjectileBullet;
+                                                                                    
+                                            // May not exist, for some reason...
+                                            if(bullet !== undefined){
+                                                if(bullet.entityID !== NULL_ENTITY_INDEX){
+                                                    
+                                                    this.localShotIDToEntity.delete(local_id);
+
+                                                    //@ts-expect-error
+                                                    this.remoteEntities.set(remote_id, bullet);
+                                                    this.networked_entity_subset.forceAddEntityFromMain(bullet);
+
+                                                } else {
+
+                                                }
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
                                 default: AssertUnreachable(action_type);
                             }
 

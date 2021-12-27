@@ -191,7 +191,6 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
 
                         for(const prop of obj.properties){
                             map.set(prop.name, prop);
-                            console.log(prop)
                         }
 
                         if(map.has("boost_dir")){

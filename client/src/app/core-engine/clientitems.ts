@@ -23,6 +23,8 @@ import { EmitterAttach } from "./particles";
 import { choose } from "shared/datastructures/arrayutils";
 import { EMOJIS } from "./emojis";
 import { Player } from "./../gamelogic/player"
+import { netv, SerializeTypedArray } from "shared/core/sharedlogic/serialization";
+import { DEG_TO_RAD, floor } from "shared/misc/mathutils";
 
 
 
@@ -99,22 +101,22 @@ export abstract class WeaponItem<T extends "weapon_item" = "weapon_item"> extend
 
 //@ts-expect-error
 @networkedclass_client("projectile_weapon") //@ts-expect-error
-export class ProjectileWeapon extends WeaponItem<"projectile_weapon"> {
+export class ProjectileWeapon<T extends "projectile_weapon" = "projectile_weapon"> extends WeaponItem<T> {
 
 
     // private addons: GunAddon[] = TerrainCarverAddons;
 
-    private readonly shot_name = this.GetStaticValue("shot_name");
-    private readonly shot_id = SHOT_LINKER.NameToID(this.shot_name);
+    protected readonly shot_name = this.GetStaticValue("shot_name");
+    protected readonly shot_id = SHOT_LINKER.NameToID(this.shot_name);
 
     
-    private readonly bullet_effects = SHOT_LINKER.IDToData(this.shot_id).bullet_effects;
+    protected readonly bullet_effects = SHOT_LINKER.IDToData(this.shot_id).bullet_effects;
     
 
     protected shoot(game: NetworkPlatformGame): void {
         const dir = this.direction.normalize();
         
-        const b = ShootProjectileWeapon(game, this.bullet_effects, this.position, dir.clone().extend(this.GetStaticValue("initial_speed")));
+        const b = ShootProjectileWeapon_C(game, this.bullet_effects, this.position, dir.clone().extend(this.GetStaticValue("initial_speed")), SHOT_LINKER.IDToData(this.shot_id).item_sprite);
 
         game.entities.addEntity(b);
 
@@ -125,16 +127,64 @@ export class ProjectileWeapon extends WeaponItem<"projectile_weapon"> {
             new ServerBoundProjectileShotPacket(0, localID, this.position.clone(), dir)
         )
 
-        game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"))
+        game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"));
+    }
+}
+
+//@ts-expect-error
+@networkedclass_client("shotgun_weapon")
+//@ts-expect-error 
+export class ShotgunWeapon extends ProjectileWeapon<"shotgun_weapon"> {
+    
+    spread: number = this.GetStaticValue("spread");
+    count: number = this.GetStaticValue("count")
+
+    override shoot(game: NetworkPlatformGame): void {
+
+
+        const local_id_list: number[] = [];
+
+        const spread_rad = this.spread * DEG_TO_RAD;
+
+            
+        let current_dir = this.direction.angle() - (floor(this.count / 2)*spread_rad);
+        if(this.count % 2 === 0) current_dir += (spread_rad / 2);
+
+        for(let i = 0; i < this.count; i++){
+
+            const dir = new Vec2(1,1).setDirection(current_dir).extend(this.GetStaticValue("initial_speed"));
+
+            const b = ShootProjectileWeapon_C(game, this.bullet_effects, this.position, dir, SHOT_LINKER.IDToData(this.shot_id).item_sprite);
+
+
+            console.log(b);
+
+            game.entities.addEntity(b);
+            game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"));
+
+            
+            const localID = game.networksystem.getLocalShotID();
+            game.networksystem.localShotIDToEntity.set(localID,b);
+
+            local_id_list.push(localID);
+            current_dir += spread_rad;
+        }
+    
+        
+
+        game.networksystem.enqueueStagePacket(
+            new ServerBoundShotgunShotPacket(0, -1, this.position.clone(), local_id_list)
+        )
+
+        
     }
 }
 
 /** Does not insert the bullet into a scene. Just returns the entity */
-export function ShootProjectileWeapon(game: NetworkPlatformGame, bullet_effects: BulletEffects[], position: Vec2, velocity: Vec2): ModularProjectileBullet {
+export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bullet_effects: BulletEffects[], position: Vec2, velocity: Vec2, sprite_path: string): ModularProjectileBullet {
     const bullet = new ModularProjectileBullet();
 
     bullet.position.set(position);
-
     bullet.velocity.set(velocity);
 
 
@@ -185,6 +235,10 @@ export function ShootProjectileWeapon(game: NetworkPlatformGame, bullet_effects:
                     text.angle = this.velocity.dangle()
                 });
 
+                bullet.onFinish(function(){
+                    this.game.engine.renderer.addEmitter("particle.png", PARTICLE_CONFIG.EMOJI_HIT_WALL, this.x, this.y)
+                });
+
 
                 break;
             }
@@ -194,7 +248,8 @@ export function ShootProjectileWeapon(game: NetworkPlatformGame, bullet_effects:
     }
 
 
-
+    bullet.sprite.file_path = sprite_path;
+    bullet.sprite.sprite.anchor.set(.5, .5);
 
     // for(const addon of addons){
     //     addon.modifyShot(bullet);
@@ -218,6 +273,7 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
 
         this.onUpdate(function(dt: number){
             this.position.add(this.velocity);
+            this.sprite.angle = this.velocity.angle();
         });
 
     }
@@ -249,6 +305,26 @@ export class ServerBoundProjectileShotPacket extends PacketWriter {
 
         stream.setFloat32(this.direction.x);
         stream.setFloat32(this.direction.y);
+    }
+}
+
+export class ServerBoundShotgunShotPacket extends PacketWriter {
+
+    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public local_ids: number[]){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(ServerBoundPacket.REQUEST_ITEM_ACTION);
+        stream.setUint8(ItemActionType.SHOTGUN_SHOT);
+        stream.setUint32(this.localShotID);
+
+        stream.setFloat32(this.createServerTick);
+
+        stream.setFloat32(this.start.x);
+        stream.setFloat32(this.start.y);
+
+        SerializeTypedArray(stream, netv.uint32(), this.local_ids);
     }
 }
 

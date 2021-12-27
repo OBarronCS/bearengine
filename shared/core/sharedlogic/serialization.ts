@@ -268,7 +268,7 @@ export function DeserializeTypedVar<T extends NetworkVariableTypes>(stream: Buff
 
 
 
-
+/** [16-bit length, ...elements] */
 export function SerializeTypedArray<T extends NetworkVariableTypes>(stream: BufferStreamWriter, def: T, arr: TypescriptTypeOfNetVar<T>[]): void {
     const length = arr.length;
     assert(length <= ((1 << 16) - 1), "Array must be less than 65536 values long --> " + arr);

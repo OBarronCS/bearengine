@@ -91,10 +91,10 @@ ITEM ACTION EXTRA DATA DEFINITIONS:
 
 
 // SERVERBOUND
-    // NOT CORRENT
-    PROJECTILE_SHOT: [dir_x: float32, dir_y: float32, entityIDofBullet];
+    PROJECTILE_SHOT: [dir_x: float32, dir_y: float32];
     HIT_SCAN: [end_x: float32, end_y: float32];
     FORCE_FIELD: [],
+    SHOTGUN_SHOT: [Array of count [clientside_bullet_id] for each bullet created]
 
 
 */
