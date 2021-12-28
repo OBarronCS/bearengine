@@ -18,7 +18,7 @@ export class SpritePart extends Attribute {
             this.file_path = spr_source;
             this.sprite = new Sprite();
         } else {
-            this.file_path = ""
+            this.file_path = "";
             this.sprite = spr_source;
         }
     }
