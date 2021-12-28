@@ -1,6 +1,3 @@
-import { SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
-import { Coordinate, Vec2 } from "shared/shapes/vec2";
-import { ServerEntity } from "../entity";
 import { networkedclass_server, NetworkedEntity, sync } from "./serverentitydecorators";
 
 

@@ -15,7 +15,8 @@ type RegisterVariablesList = {
 
 export abstract class NetworkedEntity<T extends keyof SharedNetworkedEntities> extends ServerEntity {
 
-    dirty_bits: number;
+    lifetime_dirty_bits: number = 0;
+    dirty_bits: number = 0;
 
     mark_dirty<K extends keyof SharedNetworkedEntities[T]["variables"]>(key: K){
         const id = SharedEntityLinker.sharedIDToVariableMap(this.constructor["SHARED_ID"]).get(key as string);
@@ -161,8 +162,7 @@ export class SharedEntityServerTable {
         }        
     }
 
-    static serialize(stream: BufferStreamWriter, entity: TEntity){
-
+    static serialize_with_dirty_bits(stream: BufferStreamWriter, entity: TEntity, dirty_bits: number){
         // Could make this a getter on the prototype,
         const SHARED_ID = entity.constructor["SHARED_ID"];
 
@@ -172,20 +172,48 @@ export class SharedEntityServerTable {
         stream.setUint8(SHARED_ID);
         StreamWriteEntityID(stream, entity.entityID);
 
-        stream.setUint32(entity.dirty_bits);
+        stream.setUint32(dirty_bits);
 
-        if(entity.dirty_bits & 1){
+        if(dirty_bits & 1){
             SerializeVec2(stream, "float", entity.position);
         }
 
         // Position is always implicitely the 1st var
         for(let i = 1; i < variableslist.length + 1; i++){
-            if((entity.dirty_bits & (1 << i)) !== 0) {
+            if((dirty_bits & (1 << i)) !== 0) {
                 const variable = variableslist[i - 1];
                 //@ts-expect-error
                 SerializeTypedVar(stream, variable.type, entity[variable.variableName]);
             }
         }
+    }
+
+    static serialize(stream: BufferStreamWriter, entity: TEntity){
+        this.serialize_with_dirty_bits(stream, entity, entity.dirty_bits);
+
+        // // Could make this a getter on the prototype,
+        // const SHARED_ID = entity.constructor["SHARED_ID"];
+
+        // const variableslist = SharedEntityLinker.sharedIDToVariables(SHARED_ID);
+
+        
+        // stream.setUint8(SHARED_ID);
+        // StreamWriteEntityID(stream, entity.entityID);
+
+        // stream.setUint32(entity.dirty_bits);
+
+        // if(entity.dirty_bits & 1){
+        //     SerializeVec2(stream, "float", entity.position);
+        // }
+
+        // // Position is always implicitely the 1st var
+        // for(let i = 1; i < variableslist.length + 1; i++){
+        //     if((entity.dirty_bits & (1 << i)) !== 0) {
+        //         const variable = variableslist[i - 1];
+        //         //@ts-expect-error
+        //         SerializeTypedVar(stream, variable.type, entity[variable.variableName]);
+        //     }
+        // }
 
         // for(const variable of variableslist){
 

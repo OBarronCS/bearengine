@@ -296,7 +296,7 @@ export class RemoteFunctionPacket<T extends keyof RemoteFunction> extends Packet
 export class RemoteEntityCreatePacket extends PacketWriter {
 
     constructor(public sharedID: number, public entityID: number){
-        super(true);
+        super(false);
     }
 
     write(stream: BufferStreamWriter){
@@ -310,7 +310,7 @@ export class RemoteEntityCreatePacket extends PacketWriter {
 export class RemoteEntityDestroyPacket extends PacketWriter {
 
     constructor(public sharedID: number, public entityID: number){
-        super(true);
+        super(false);
     }
 
     write(stream: BufferStreamWriter){
@@ -328,7 +328,7 @@ export class RemoteEntityEventPacket<TSharedName extends keyof SharedNetworkedEn
 
     //@ts-expect-error
     constructor(public sharedName: TSharedName, public eventName: TEventName, public sharedID: number, public entityID: number, ...argument_data: Parameters<NetCallbackTypeV1<SharedNetworkedEntities[TSharedName]["events"][TEventName]>>){
-        super(true);
+        super(false);
         this.argument_data = argument_data;
     }
 
