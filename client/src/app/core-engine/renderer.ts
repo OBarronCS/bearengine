@@ -264,7 +264,7 @@ export class RendererSystem {
  
 
     getTexture(_name: string){
-        const _str = _name;
+        const _str = _name === "" ? "blank_string_sprite.png" : _name;
 
         const tex_data = this.engine.getResource(_str);
 

@@ -50,7 +50,7 @@ export class Ogre extends Entity {
 
 
 @networkedclass_client("item_entity")
-export class CItemEntity extends Entity {
+export class ItemEntity_C extends Entity {
 
     g = this.addPart(new GraphicsPart());
     spritepart = this.addPart(new SpritePart(new Sprite()));
@@ -58,7 +58,7 @@ export class CItemEntity extends Entity {
     @net("item_entity").interpolatedvariable("pos")
     pos = new Vec2()
 
-    @net("item_entity").variable("art_path", function(this: CItemEntity, i) {
+    @net("item_entity").variable("art_path", function(this: ItemEntity_C, i) {
         this.spritepart.sprite.texture = this.engine.renderer.getTexture(i);
     })
     art_path = "";

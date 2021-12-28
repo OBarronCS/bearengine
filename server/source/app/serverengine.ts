@@ -18,7 +18,7 @@ import { TerrainManager } from "shared/core/terrainmanager";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
-import { AbstractEntity } from "shared/core/abstractentity";
+import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { DeserializeShortString, DeserializeTypedArray, netv, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
 import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet, ActionDo_ProjectileShotPacket, ActionDo_HitscanShotPacket, ActionDo_ShotgunShotPacket, AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet, ActionDo_BeamPacket } from "./networking/gamepacketwriters";
@@ -57,10 +57,14 @@ export class PlayerInformation {
         this.connectionID = connectionID;
     }
 
+
     
     readonly personalStream = new BufferStreamWriter(new ArrayBuffer(MAX_BYTES_PER_PACKET * 2));
     
     readonly personalPackets: Queue<PacketWriter> = new LinkedQueue<PacketWriter>();
+
+    // Currently only for players joining late
+    dirty_entities: EntityID[] = [];
 
     serializePersonalPackets(stream: BufferStreamWriter){
         while(this.personalPackets.size() > 0 && this.personalStream.size() < MAX_BYTES_PER_PACKET){
@@ -144,6 +148,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 
     // Set of all packets that should be sent to any player joining mid-game
+    // Cleared at start and end of each round 
     private savedPackets: Queue<PacketWriter> = new LinkedQueue<PacketWriter>();
 
 
@@ -242,6 +247,21 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
             // Gives the client all the data from the current level
             clientInfo.personalPackets.addAllQueue(this.savedPackets);
+
+            // Tell them to create everything that is currently alive
+            for(const e of this.networked_entity_subset.entities){
+                clientInfo.personalPackets.enqueue(
+                    new RemoteEntityCreatePacket(e.constructor["SHARED_ID"], e.entityID)
+                );
+            }
+
+            for(const entity of this.networked_entity_subset.entities){
+                if(entity.lifetime_dirty_bits !== 0){
+                    clientInfo.dirty_entities.push(entity.entityID);
+                }
+            }
+
+
         } else {
 
             this.createPlayerEntity(clientInfo);
@@ -924,6 +944,20 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                 }
             }
             
+            // This loop is only called if the client has joined late
+            if(connection.dirty_entities.length !== 0){
+                for(const entityID of connection.dirty_entities){
+                    let e: NetworkedEntity<any>;
+                    if(e = this.networked_entity_subset.getEntity(entityID)){
+                        stream.setUint8(GamePacket.REMOTE_ENTITY_VARIABLE_CHANGE);
+                        SharedEntityServerTable.serialize_with_dirty_bits(stream, e, e.lifetime_dirty_bits);
+                    }
+                }
+
+
+                connection.dirty_entities = [];
+            }
+
             for(const entity of entitiesToSerialize){
                 stream.setUint8(GamePacket.REMOTE_ENTITY_VARIABLE_CHANGE);
                 SharedEntityServerTable.serialize(stream, entity);
@@ -942,6 +976,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         }
         
         for(const e of entitiesToSerialize){
+            e.lifetime_dirty_bits |= e.dirty_bits;
             e.dirty_bits = 0;
         }
 

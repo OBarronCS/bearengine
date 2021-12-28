@@ -307,8 +307,6 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
     _finalPosition(pos: Vec2, ticks: number){
         this.continue_moving = false;
         this.position.set(pos);
-
-        console.log("POS: " + this.position);
     }
 
 }

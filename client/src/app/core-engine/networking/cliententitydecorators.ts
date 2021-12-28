@@ -57,47 +57,72 @@ abstract class AbstractInterpolatedVariable<T> implements InterpVariableBuffer<T
 
     protected abstract default_value: T;
     
-    private values = new Map<number, T>();
-
-    private latest_value: {
-        frame:number,
-        value:T
-    }
+    private buffer: {frame: number, data:T}[] = [];
 
     addValue(frame: number, value: T): void {
-        this.latest_value = {frame, value};
-
-        this.values.set(frame, value);
+        this.buffer.push({
+            frame: frame,
+            data: value,
+        });
     }
 
+    /**
+     * Use cases for interpolation:
+        Position, angle.
+            These are things that should be sent every tick if value is different. Else, not sent
+     * The values are stored stored sequentially
+            [{tick: integer, data: T}, data_1, data_2, data_3];
+
+            To grab a piece of data. Go from right to left. 
+
+                Find an an item with a tick that is LESS than passed in frame (float) tick.
+                If you don't find two data points exactly surrounding the tick, it means the server did not send a value for that tick because the value did not change.
+                    Edge cases:
+                        0,1 values;
+                            If 0 values, return default.
+                            If 1 value, return that value.
+
+                        No value exists that is new enough; (at the right)
+                            Return the newest
+
+                        No value exists that is old enough; (at the left)
+                            Return oldest
+                                Could make it return default (like offscreen)
+     */
     getValue(frame: number): T {
-        if(this.values.size > 0){
-            if(frame > this.latest_value.frame){
-                return this.latest_value.value;
+        if(this.buffer.length === 0) return this.default_value;
+        if(this.buffer.length === 1) return this.buffer[0].data;
+
+        for(let i = this.buffer.length - 1; i > 0; --i){
+            if(this.buffer[i].frame < frame){
+                
+                
+                if(i === this.buffer.length - 1){
+                    // If this branch is taken, it means we are missing the latest tick to interpolate
+                    return this.buffer[i].data;
+                } else {
+                    //If the two data values were received in back to back frames
+                    if(this.buffer[i+1].frame === this.buffer[i].frame + 1){
+                        return this.getInterpolatedValue(this.buffer[i].data, this.buffer[i+1].data, frame % 1);
+                    } else {
+                        // If the next frame is a new value, interp between that and the last value received
+                        // This is under the assumption that if the value does not change, then we do we not add anything to the buffer
+                        if(this.buffer[i+1].frame === floor(frame) + 1){
+                            return this.getInterpolatedValue(this.buffer[i].data, this.buffer[i+1].data, frame % 1);
+                        } else {
+                            return this.buffer[i].data;
+                        }
+                    }
+                }
             }
         }
 
-        const first = this.values.get(floor(frame));
-        const second = this.values.get(ceil(frame));
-
-        if(first !== undefined && second === undefined) {
-            console.log("Cannot lerp");
-            
-            // Only have first value
-            return first;
-        }
-
-        if(first === undefined || second === undefined){
-            console.log("Cannot lerp 2");
-
-            if(this.latest_value) return this.latest_value.value;
-            return this.default_value;
-        } 
-
-        return this.getInterpolatedValue(first, second, frame);
+        // If function has not returned, it means we don't have old enough values to interpolate 
+        // return this.default_value;
+        return this.buffer[0].data;
     }
 
-    abstract getInterpolatedValue(a: T, b: T, frame: number): T;
+    abstract getInterpolatedValue(a: T, b: T, t: number): T;
 
 }
 
@@ -111,8 +136,8 @@ export function InterpolatedVar<T>(default_value: T): InterpolatedVarType<T> {
 class InterpNumberVariable extends AbstractInterpolatedVariable<number> {
     protected default_value: number = 0;
     
-    getInterpolatedValue(a: number, b: number, frame: number): number {
-        return lerp(a, b, frame % 1)
+    getInterpolatedValue(a: number, b: number, t: number): number {
+        return lerp(a, b, t)
     }
 
 
@@ -121,8 +146,8 @@ class InterpNumberVariable extends AbstractInterpolatedVariable<number> {
 class InterpVecVariable extends AbstractInterpolatedVariable<Vec2> {
     protected default_value: Vec2 = new Vec2(0,0);
 
-    getInterpolatedValue(a: Vec2, b: Vec2, frame: number): Vec2 {
-        return mix(a,b,frame % 1);
+    getInterpolatedValue(a: Vec2, b: Vec2, t: number): Vec2 {
+        return mix(a,b,t);
     }
 
   
