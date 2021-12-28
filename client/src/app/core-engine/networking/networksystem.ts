@@ -838,7 +838,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const variableslist = SharedEntityClientTable.FINAL_REGISTERED_NETWORKED_ENTITIES[shared_id].varDefinition;
 
                             for(const variableinfo of variableslist){
-                                console.log(variableinfo.variabletype);
+                                // console.log(variableinfo.variabletype);
                                 const value = DeserializeTypedVar(stream, variableinfo.variabletype);
 
                                 item_instance[variableinfo.variablename] = value
@@ -1101,8 +1101,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             // console.log(frameToSimulate);
 
             for(const obj of this.remotelocations){
-                obj.setPosition(frameToSimulate)
+                obj.setPosition(frameToSimulate);
+
             }
+
 
             for(const obj of this.remoteEntities.values()){
                 const list = obj.constructor["INTERP_LIST"] as string[]; // List of variables that are interpolated

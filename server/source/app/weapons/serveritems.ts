@@ -254,9 +254,13 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
 
     allow_move = true;
 
+    private readonly player_dmg_radius = 30;
+
     forward_line = new Line(this.position,this.position);
     terrain_test: ReturnType<TerrainManager["lineCollision"]> | null = null;
-
+    
+    // List of all players that the projectile will hit this tick
+    player_test: ServerPlayerEntity[] = [];
 
     effect = new Effect2(this);
 
@@ -293,13 +297,27 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
             this.forward_line.B = Vec2.add(this.position, this.velocity);
 
             this.terrain_test = this.game.terrain.lineCollision(this.forward_line.A, this.forward_line.B);
-        })
+        
+            
+            for(const player of this.game.activeScene.activePlayerEntities.values()){
+                if(player.connectionID === this.creatorID) continue;
+                const point = Line.PointClosestToLine(this.forward_line.A, this.forward_line.B, player.position);
+                if(Vec2.distanceSquared(player.position, point) < this.player_dmg_radius**2){
+                    this.player_test.push(player);
+                }
+            }
+        });
 
         // Is immediately destroyed if starts at (0,0)
         this.position.add({x:1,y:1});
     }
 
+    _destroyed = false;
     override destroy(){
+        // This might be called multiple times
+        if(this._destroyed) return;
+        this._destroyed = true;
+        
         this.game.callEntityEvent(this, "projectile_bullet", "finalPosition", this.position, 0);
         this.allow_move = false;
         this.game.destroyRemoteEntity(this);
@@ -314,7 +332,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
     bullet.position.set(position);
     bullet.velocity.set(velocity);
 
-    // Bouncing off of forcefields, damaging players
+    // Bouncing off of forcefields, damaging players in radius on hit
     bullet.effect.onUpdate(function(dt){
 
 
@@ -341,24 +359,19 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
 
                     this.game.callEntityEvent(bullet, "projectile_bullet", "changeTrajectory",0,this.position.clone(), this.velocity.clone());
 
-                    // this.game.enqueueGlobalPacket(
-                    //     new ProjectileShotPacket(-1, shotID, 0, this.position.clone(), this.velocity.clone(), shot_prefab_id)
-                    // );
-
                     break;
                 }
             }
         }
 
-        for(const player of this.game.activeScene.activePlayerEntities.values()){
-            if(player.connectionID === this.creatorID) continue;
-            const point = Line.PointClosestToLine(line.A, line.B, player.position);
-            if(Vec2.distanceSquared(player.position, point) < 30 * 30 ){
-                player.health -= 10;
-                bullet.position.set(point);
+        if(this.player_test.length !== 0){
+            for(const p of this.player_test){
+                p.health -= 10;
+                this.position.set(p.position);
                 this.destroy();
             }
         }
+        
     })
 
     const shot_data = SHOT_LINKER.IDToData(shot_prefab_id);
@@ -371,6 +384,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
         switch(type){
             case "emoji": break;
             case "particle_system": break;
+            case "ice_slow": break;
             case "gravity": {
 
                 const grav = new Vec2().set(effect.force);
@@ -381,10 +395,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
 
                 break;
             }
-            case "ice_slow": {
-                
-                break;
-            }
+            
             case "laser_mine_on_hit": {
                 bullet.effect.onUpdate(function(){
                     
@@ -418,19 +429,36 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
                             new TerrainCarveCirclePacket(testTerrain.point.x, testTerrain.point.y, RADIUS)
                         );
             
-                        const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
+                        //const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
+                        // // Check in radius to see if any players are hurt
+                        // for(const pEntity of this.game.activeScene.activePlayerEntities.values()){
             
-                        // Check in radius to see if any players are hurt
-                        for(const pEntity of this.game.activeScene.activePlayerEntities.values()){
-            
-                            if(Vec2.distanceSquared(pEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
-                                pEntity.health -= 16;
-                            }
-                        } 
+                        //     if(Vec2.distanceSquared(pEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
+                        //         pEntity.health -= 16;
+                        //     }
+                        // } 
 
                         bullet.position.set(testTerrain.point); 
                         this.destroy();
+                    } else if(this.player_test.length !== 0){
+
+                        const x = this.player_test[0].x;
+                        const y = this.player_test[0].y;
+
+                        for(const p of this.player_test){
+                            p.health -= 25;
+                            this.position.set(p.position);
+                        }
+
+                        this.game.terrain.carveCircle(x, y, RADIUS);
+                        this.game.enqueueGlobalPacket(
+                            new TerrainCarveCirclePacket(x, y, RADIUS)
+                        );
+
+                        bullet.position.set({x,y}); 
+                        this.destroy();
                     }
+
                 });
                 break;
             }
@@ -463,7 +491,7 @@ const item_gravity = new Vec2(0,3.8);
 export enum ItemEntityPhysicsMode {
     ASLEEP,
     FLOATING,
-    BOUNCING
+    BOUNCING,
 }
 
 //@ts-expect-error
@@ -487,7 +515,9 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
     mode: ItemEntityPhysicsMode = ItemEntityPhysicsMode.FLOATING;
     velocity = new Vec2();
         
-    private slow_factor = 0.7;
+    // 0 means it completely stops after bounce, 1 means no change in velocity
+    private slow_factor = 0.5;
+    private bouncing_gravity = new Vec2(0, .4);
 
     constructor(item: SBaseItem<keyof SharedNetworkedEntities>){
         super();
@@ -497,13 +527,10 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
 
         // this.mark_dirty("item_id");
         this.mark_dirty("pos");
-        this.mark_dirty("art_path")
+        this.mark_dirty("art_path");
     }
 
-
     update(dt: number): void {
-
-        const pos = this.pos.clone();
 
         switch(this.mode){
             case ItemEntityPhysicsMode.ASLEEP: break;
@@ -525,10 +552,9 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
                 // THIS SIMULATES SUPER FAST, IDK WHY
                 // It should be equal to client side, but...
                 this.mark_dirty("pos");
+                
                 // Gravity
-                this.velocity.add(item_gravity);
-
-
+                this.velocity.add(this.bouncing_gravity);
 
                 const destination = Vec2.add(this.velocity,this.pos);
 
@@ -539,7 +565,7 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
                     this.pos.add(this.velocity);
                 } else {
 
-                    if(this.velocity.length() <= 1){
+                    if(this.velocity.length() <= 3){
                         this.mode = ItemEntityPhysicsMode.ASLEEP;
                     }
                     // Could potentially bounce multiple times;
@@ -547,14 +573,15 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
                     let last_test = test;
                     let distanceToMove = this.velocity.length();
 
-                    const max_iter = 20;
+                    const max_iter = 10;
                     let i = 0;
-                    while(distanceToMove > 0 && i++ < max_iter){
 
+                    while(distanceToMove > 0 && i++ < max_iter){
+                        // console.log("Tick: " + this.game.tick, " " + distanceToMove)
 
                         const distanceToPoint = Vec2.subtract(last_test.point,this.pos).length();
 
-                        const distanceAfterBounce = distanceToMove - distanceToPoint;
+                        // const distanceAfterBounce = distanceToMove - distanceToPoint;
 
                         // Set my position to colliding point, then do more logic later
                         this.pos.set(last_test.point);
@@ -562,7 +589,7 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
                         // Bounce off of wall, set velocity
                         Vec2.bounce(this.velocity, last_test.normal, this.velocity);
 
-                        const lastStretchVel = this.velocity.clone().normalize().scale(distanceAfterBounce);
+                        
 
                         // Slows done
                         this.velocity.scale(this.slow_factor);
@@ -570,15 +597,15 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
                         distanceToMove -= distanceToPoint;
                         distanceToMove *= this.slow_factor;
 
-
+                        // const lastStretchVel = this.velocity.clone().normalize().scale(distanceAfterBounce);
+                        const lastStretchVel = this.velocity.clone().normalize().scale(distanceToMove);
                         // Move forward
                         const bounce_test = this.game.terrain.lineCollisionExt(this.pos, Vec2.add(this.pos, lastStretchVel));
 
-                        if(bounce_test === null || bounce_test.normal.equals(last_test.normal) ){
+                        if(bounce_test === null || bounce_test.normal.equals(last_test.normal)){
                             this.pos.add(lastStretchVel);
 
                             if(this.game.terrain.pointInTerrain(this.pos)) this.mode = ItemEntityPhysicsMode.ASLEEP;
-                            // console.log(Vec2.distance(pos, this.pos))
                             break;
                         }
 
@@ -594,8 +621,9 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
             default: AssertUnreachable(this.mode);
         }
 
-
-
+        if(!this.game.activeScene.levelbbox.contains(this.pos)){
+            this.game.destroyRemoteEntity(this);
+        }
     }
 
 }

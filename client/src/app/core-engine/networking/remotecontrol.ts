@@ -67,8 +67,6 @@ export class ItemEntity_C extends Entity {
         super();
         this.g.graphics.beginFill(0xFF0000);
         this.g.graphics.drawCircle(0, 0, 4);
-
-        console.log(this)
     }
 
 

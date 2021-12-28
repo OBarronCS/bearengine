@@ -25,10 +25,11 @@ import { ButtonWidget, LabelWidget, SpriteWidget, UIManager, WidgetGroup } from 
 import { Color } from "shared/datastructures/color";
 import { mix, Vec2 } from "shared/shapes/vec2";
 import { LevelRef } from "shared/core/sharedlogic/assetlinker";
-import { DrawableEntity } from "./entity";
+import { DrawableEntity, Entity } from "./entity";
 import { TickTimer } from "shared/datastructures/ticktimer";
 import { random_range, chance } from "shared/misc/random";
 import { Line } from "shared/shapes/line";
+import { PhysicsDotEntity } from "../gamelogic/firstlevel";
 
 
 
@@ -282,7 +283,8 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         this.levelLoaded = true;
 
         //this.entities.addEntity(new Debug());
-         // this.player = this.entities.addEntity(new Player())
+        // this.player = this.entities.addEntity(new Player())
+        // this.entities.addEntity(new EntityTest())
     }
 
     endCurrentLevel(){
@@ -413,3 +415,15 @@ export class LevelScene extends BearScene<NetworkPlatformGame> {
 
 }
 
+
+
+class EntityTest extends Entity {
+    update(dt: number): void {
+        if(this.engine.mouse.isDown("left")){
+            const e = new PhysicsDotEntity(this.engine.mouse, "vector.jpg");
+            e.velocity.set(this.engine.mouse.velocity.clone().extend(20))
+            this.game.entities.addEntity(e)
+        }
+
+    }
+}

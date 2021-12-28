@@ -562,7 +562,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 
     dropPlayerItem(p: PlayerInformation): ItemEntity {
-        console.log("Dropping item");
+        // console.log("Dropping item");
         
         this.endPlayerBeam(p)
 
@@ -665,8 +665,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         if(isQDown){
                             if(p.item_in_hand !== null){
                                 const item = this.dropPlayerItem(player_info);
-                                // item.velocity.set(Vec2.subtract(p.mouse,p.position).extend(17));
-                                // item.mode = ItemEntityPhysicsMode.BOUNCING;
+                                item.velocity.set(Vec2.subtract(p.mouse,p.position).extend(17));
+                                item.mode = ItemEntityPhysicsMode.BOUNCING;
                             }
                         }
                         
@@ -1016,7 +1016,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             // Round logic
             if(this.serverState === ServerGameState.ROUND_ACTIVE){
 
-                if(random() > .94){
+                if(random() > 1.94){
                     const random_itemprefab_id = RandomItemID();
 
                     const item_instance = this.createItemFromPrefab(random_itemprefab_id);
