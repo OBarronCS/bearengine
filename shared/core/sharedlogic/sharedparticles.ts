@@ -371,21 +371,21 @@ export const PARTICLE_CONFIG = DefineSchema<{ [key: string]: EmitterConfigV1 | E
     },
     EMOJI_HIT_WALL:{
         "alpha": {
-            "start": 1,
-            "end": 0.06
+            "start": 0.62,
+            "end": 0.45
         },
         "scale": {
-            "start": 0.1,
-            "end": 0.05,
+            "start": 0.3,
+            "end": 0.01,
             "minimumScaleMultiplier": 1
         },
         "color": {
-            "start": "#000000",
-            "end": "#575959"
+            "start": "#090a0a",
+            "end": "#080a0a"
         },
         "speed": {
-            "start": 50,
-            "end": 37,
+            "start": 100,
+            "end": 10,
             "minimumSpeedMultiplier": 1
         },
         "acceleration": {
@@ -404,23 +404,18 @@ export const PARTICLE_CONFIG = DefineSchema<{ [key: string]: EmitterConfigV1 | E
         },
         "lifetime": {
             "min": 0.2,
-            "max": 0.69
+            "max": 0.8
         },
         "blendMode": "normal",
-        "frequency": 0.01,
-        "emitterLifetime": 0.4,
-        "maxParticles": 50,
+        "frequency": 0.001,
+        "emitterLifetime": 0.3,
+        "maxParticles": 40,
         "pos": {
             "x": 0,
             "y": 0
         },
         "addAtBack": false,
-        "spawnType": "circle",
-        "spawnCircle": {
-            "x": 0,
-            "y": 0,
-            "r": 0
-        }
+        "spawnType": "point"
     },
     BLUE_TRAIL:{
         "alpha": {

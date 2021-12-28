@@ -300,6 +300,7 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
     }
 
     override destroy(){
+        this.game.callEntityEvent(this, "projectile_bullet", "finalPosition", this.position, 0);
         this.allow_move = false;
         this.game.destroyRemoteEntity(this);
     }
@@ -354,6 +355,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
             const point = Line.PointClosestToLine(line.A, line.B, player.position);
             if(Vec2.distanceSquared(player.position, point) < 30 * 30 ){
                 player.health -= 10;
+                bullet.position.set(point);
                 this.destroy();
             }
         }
@@ -394,6 +396,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
                         
                         this.game.createRemoteEntity(new LaserTripmine_S(testTerrain.point, testTerrain.normal));
 
+                        bullet.position.set(testTerrain.point);
                         this.destroy();
                     }
                 });
@@ -424,7 +427,8 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
                                 pEntity.health -= 16;
                             }
                         } 
-                         
+
+                        bullet.position.set(testTerrain.point); 
                         this.destroy();
                     }
                 });

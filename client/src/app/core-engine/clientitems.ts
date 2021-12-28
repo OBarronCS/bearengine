@@ -243,7 +243,6 @@ export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bullet_effect
                     this.game.engine.renderer.addEmitter("particle.png", PARTICLE_CONFIG.EMOJI_HIT_WALL, this.x, this.y)
                 });
 
-
                 break;
             }
             case "ice_slow": {
@@ -252,6 +251,7 @@ export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bullet_effect
                 
                     const effect = new LocalIceEffect(2.6);
                     effect.position.set(this.position);
+                    console.log("ICE: "+this.position);
                     game.entities.addEntity(effect);
 
                 });
@@ -281,15 +281,18 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
     @net("projectile_bullet").variable("velocity")
     readonly velocity = new Vec2();
 
-
     readonly sprite = this.addPart(new SpritePart("bullet.png"));
+
+    continue_moving = true;
 
     constructor(){
         super();
 
         this.onUpdate(function(dt: number){
-            this.position.add(this.velocity);
-            this.sprite.angle = this.velocity.angle();
+            if(this.continue_moving){
+                this.position.add(this.velocity);
+                this.sprite.angle = this.velocity.angle();
+            }
         });
 
     }
@@ -298,6 +301,14 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
     _onChangeTrajectory(server_time: number, position: Vec2, velocity: Vec2){
         this.position.set(position);
         this.velocity.set(velocity);
+    }
+
+    @net("projectile_bullet").event("finalPosition")
+    _finalPosition(pos: Vec2, ticks: number){
+        this.continue_moving = false;
+        this.position.set(pos);
+
+        console.log("POS: " + this.position);
     }
 
 }

@@ -443,7 +443,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const sharedClassID = stream.getUint8();
                             const entityID = StreamReadEntityID(stream);
 
-                            console.log("CREATE: ", sharedClassID, " ", entityID);
+                            // console.log("CREATE: ", sharedClassID, " ", entityID);
 
                             const check = this.remoteEntities.get(entityID);
 

@@ -107,6 +107,10 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
             changeTrajectory: {
                 argTypes:[netv.uint32(),netv.vec2("double"), netv.vec2("double")],
                 callback:(server_time, position, velocity) => void 0
+            },
+            finalPosition: {
+                argTypes:[netv.vec2("double"), netv.uint16()],
+                callback:(position, tick_of_death) => void 0
             }
         }
     },
