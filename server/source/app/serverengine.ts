@@ -981,7 +981,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             // Round logic
             if(this.serverState === ServerGameState.ROUND_ACTIVE){
 
-                if(random() > .90){
+                if(random() > .94){
                     const random_itemprefab_id = RandomItemID();
 
                     const item_instance = this.createItemFromPrefab(random_itemprefab_id);
@@ -996,6 +996,9 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         item.pos.x = randomInt(100, this.activeScene.map_bounds.width - 100);
                     }
 
+                    if(random() > .99){
+                        item.art_path = "mystery_box.png";
+                    }
                     
 
                     this.createRemoteEntity(item);
