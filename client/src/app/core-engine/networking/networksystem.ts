@@ -889,7 +889,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                         const sprite = SHOT_LINKER.IDToData(shot_prefab_id).item_sprite;
 
                                         // Creates bullet, links it to make it a shared entity
-                                        const b = ShootProjectileWeapon_C(this.game, bullet_effects, pos, velocity, sprite);
+                                        const b = ShootProjectileWeapon_C(this.game, SHOT_LINKER.IDToData(shot_prefab_id).bounce, bullet_effects, pos, velocity, sprite);
 
 
                                         // It's now a networked entity
@@ -957,7 +957,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                             const sprite = SHOT_LINKER.IDToData(shot_prefab_id).item_sprite;
     
                                             // Creates bullet, links it to make it a shared entity
-                                            const b = ShootProjectileWeapon_C(this.game, bullet_effects, pos, dir, sprite);
+                                            const b = ShootProjectileWeapon_C(this.game, SHOT_LINKER.IDToData(shot_prefab_id).bounce, bullet_effects, pos, dir, sprite);
     
     
                                             // It's now a networked entity

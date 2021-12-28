@@ -97,9 +97,10 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
     "projectile_bullet":{
         static:{
             bullet_effects: null as ProjectileBulletEffects[],
+            bounce: null as boolean,
+            damage: null as number,
         },
         variables:{
-            
             velocity: netv.vec2("float"),
         },
         extends:null,

@@ -995,10 +995,11 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         // If we have made it far enough to TICK THE GAME
         if (this.previousTickTime + (1000 / this.TICK_RATE) <= now) {
-            const dt = 1000 / this.TICK_RATE;
-
+            
+            
             // console.log(this.__useless_calls_test)
             // this.__useless_calls_test = 0;
+            const dt = 1 / this.TICK_RATE;
 
             this.tick += 1;
             this.totalTime += dt;
@@ -1009,7 +1010,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             this.readNetwork();
 
             for(let i = 0; i < 60/this.TICK_RATE; i++){
-                this.entities.update(dt);
+                this.entities.update(dt/(60/this.TICK_RATE));
             }
 
 

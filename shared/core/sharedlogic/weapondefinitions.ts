@@ -56,14 +56,35 @@ function CreateShot<T extends keyof SharedNetworkedEntities, K extends Test<T>>(
 
 export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<"projectile_bullet"/*keyof SharedNetworkedEntities*/>} >()({
 
+    BOUNCING_SHOT: CreateShot({
+        type:"projectile_bullet",
+        item_name:"",
+        item_sprite:"bullet.png",
+        bounce: true,
+        velocity: new Vec2(),
+        damage: 10,
+        bullet_effects:[
+            {
+                type:"terrain_hit_boom",
+                radius: 100
+            },
+            {
+                type:"particle_system",
+                particle:"ROCKET"
+            }
+        ]
+    }),
+
     ICE_SHOT: CreateShot({
         type:"projectile_bullet",
         item_name: "BULLET",
         item_sprite:"vector.jpg",
+        damage: 10,
         bullet_effects:[
             {type:"ice_slow"},
         ],
-        velocity: new Vec2()
+        velocity: new Vec2(),
+        bounce:false,
     }),
 
     COOL_SHOT_2: CreateShot({
@@ -71,12 +92,14 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<"projectil
         item_name:"Doesn't matter",
         item_sprite:"cool_bullet.png",
         velocity: new Vec2(),
+        damage: 10,
         bullet_effects:[
             {
                 type:"particle_system",
                 particle:"BLUE_TRAIL"
             },
         ],
+        bounce:false,
     }),
 
     COOL_SHOT: CreateShot({
@@ -84,6 +107,7 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<"projectil
         item_name:"Doesn't matter",
         item_sprite:"cool_bullet.png",
         velocity: new Vec2(),
+        damage: 10,
         bullet_effects:[
             {
                 type:"particle_system",
@@ -94,6 +118,7 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<"projectil
                 force:new Vec2(0,.15)
             }
         ],
+        bounce:false,
     }),
 
     EMOJI_SHOT: CreateShot({
@@ -102,11 +127,13 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<"projectil
         item_sprite:"bullet.png",
         pos: new Vec2(),
         velocity: new Vec2(),
+        damage: 10,
         bullet_effects:[
             {
                 type:"emoji"
             }
-        ]
+        ],
+        bounce:false,
     }),
 
     SIMPLE_TERRAIN_HIT: CreateShot({
@@ -115,6 +142,7 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<"projectil
         item_sprite:"bullet.png",
         pos: new Vec2(),
         velocity: new Vec2(),
+        damage: 0,
         bullet_effects:[
             {
                 type:"terrain_hit_boom",
@@ -128,7 +156,8 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<"projectil
                 type:"particle_system",
                 particle:"ROCKET"
             }
-        ]
+        ],
+        bounce:false,
     }),
 
     NOSEDIVE: CreateShot({
@@ -137,6 +166,7 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<"projectil
         item_sprite:"bullet.png",
         pos: new Vec2(),
         velocity: new Vec2(),
+        damage: 0,
         bullet_effects:[
             {
                 type:"terrain_hit_boom",
@@ -150,7 +180,8 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<"projectil
                 type:"particle_system",
                 particle:"ROCKET"
             }
-        ]
+        ],
+        bounce:false,
     }),
 
     LASER_ON_HIT: CreateShot({
@@ -159,6 +190,7 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<"projectil
         item_sprite:"bullet.png",
         pos: new Vec2(),
         velocity: new Vec2(),
+        damage: 0,
         bullet_effects:[
             {
                 type:"laser_mine_on_hit",
@@ -172,7 +204,8 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<"projectil
                 type:"particle_system",
                 particle:"ROCKET"
             }
-        ]
+        ],
+        bounce:false,
     }),
 })
 
