@@ -1,12 +1,13 @@
 import { Container, Graphics, Text, TilingSprite } from "shared/graphics/graphics";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums";
 import { Subsystem } from "shared/core/subsystem";
-import { round } from "shared/misc/mathutils";
+import { E, round } from "shared/misc/mathutils";
 import { randomChar } from "shared/misc/random";
 import { NetworkPlatformGame } from "../core-engine/bearengine";
 import { Coordinate, Vec2 } from "shared/shapes/vec2";
 import { ExpandingTextPanel, LabelWidget, PanelWidget, WidgetGroup } from "../ui/widget";
 import { Color } from "shared/datastructures/color";
+import { DrawableEntity } from "../core-engine/entity";
 
 
 export class DebugScreen extends Subsystem<NetworkPlatformGame> {
@@ -47,6 +48,8 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
     }
 
 
+    private collision_drawer: Debug = null;
+
     update(delta: number): void {
         this.mouse_position.text = `${round(this.engine.mouse.position.x, 1)},${round( this.engine.mouse.position.y, 1)}`;
         this.mouse_screen_position.text = `${round(this.engine.mouse.guiPosition.x, 1)},${round( this.engine.mouse.guiPosition.y, 1)}`;
@@ -72,6 +75,15 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
         } else if(this.engine.keyboard.wasReleased("Digit1")) {
             this.other_client_info_panel.setVisible(false);
         }
+        
+        if(this.engine.keyboard.wasReleased("Digit0")){
+            if(this.collision_drawer){
+                this.game.entities.destroyEntity(this.collision_drawer);
+                this.collision_drawer = null;
+            } else {   
+                this.collision_drawer = this.game.entities.addEntity(new Debug());
+            }
+        }
     }
     
     dump_state(): GameStateDump {
@@ -94,6 +106,17 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
         }
     }
 } 
+
+// Drawing the collision grid
+class Debug extends DrawableEntity {
+    update(dt: number): void {
+        this.redraw();
+    }
+    draw(g: Graphics): void {
+        g.clear();
+        this.game.collisionManager.draw(g);
+    }
+}
 
 interface GameStateDump {
     log: string[];

@@ -172,6 +172,9 @@ export class SharedEntityServerTable {
 
         const variableslist = SharedEntityLinker.sharedIDToVariables(SHARED_ID);
 
+        if(variableslist === undefined){
+            console.log(entity);
+        }
         
         stream.setUint8(SHARED_ID);
         StreamWriteEntityID(stream, entity.entityID);

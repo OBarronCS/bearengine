@@ -65,10 +65,24 @@ interface CommonItemData {
 // Each of these is assigned a unique ItemID
 export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetworkedEntities>} >()({
 
+    bouncing_weapon:CreateItem({
+        type:"projectile_weapon",
+        item_name:"",
+        item_sprite:"",
+        ammo: 111,
+        capacity: 100,
+        reload_time: 100,
+        
+        shoot_controller: {type:"pulse", time_between_shots:56, time_between_bullet: 12, submode:"semiauto", shots_per_burst: 2 },
+        shot_name: "BOUNCING_SHOT",
+        
+        initial_speed: 33,
+    }),
+    
     ice_slow_weapon: CreateItem({
         type:"projectile_weapon",
         item_name:"AHH",
-        item_sprite:"NOPE",
+        item_sprite:"ice_slow_weapon.png",
         ammo: 100,
         capacity: 100,
         initial_speed: 20,
@@ -80,7 +94,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
     second_shotgun: CreateItem({
         type: "shotgun_weapon",
         item_name: "SHOTGUN",
-        item_sprite: "tree.gif",
+        item_sprite: "second_shotgun.png",
         ammo: 100,
         capacity: 100,
         reload_time:10,
@@ -95,7 +109,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
     first_shotgun: CreateItem({
         type: "shotgun_weapon",
         item_name: "SHOTGUN",
-        item_sprite: "tree.gif",
+        item_sprite: "second_shotgun.png",
         ammo: 100,
         capacity: 100,
         reload_time:10,
@@ -207,7 +221,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
 
     auto_beam: CreateItem({
         item_name:"beam",
-        item_sprite:"vector.jpg",
+        item_sprite:"beam_weapon.png",
         type:"beam_weapon",
     }),
 

@@ -93,9 +93,8 @@ abstract class AbstractInterpolatedVariable<T> implements InterpVariableBuffer<T
         if(this.buffer.length === 0) return this.default_value;
         if(this.buffer.length === 1) return this.buffer[0].data;
 
-        for(let i = this.buffer.length - 1; i > 0; --i){
+        for(let i = this.buffer.length - 1; i >= 0; --i){
             if(this.buffer[i].frame < frame){
-                
                 
                 if(i === this.buffer.length - 1){
                     // If this branch is taken, it means we are missing the latest tick to interpolate
@@ -110,6 +109,7 @@ abstract class AbstractInterpolatedVariable<T> implements InterpVariableBuffer<T
                         if(this.buffer[i+1].frame === floor(frame) + 1){
                             return this.getInterpolatedValue(this.buffer[i].data, this.buffer[i+1].data, frame % 1);
                         } else {
+                            // else use the same value, because we haven't recevied a new value yet that this frame needs to be aware of
                             return this.buffer[i].data;
                         }
                     }

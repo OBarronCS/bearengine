@@ -29,6 +29,7 @@ import { TickTimer } from "shared/datastructures/ticktimer";
 import { SlowAttribute } from "shared/core/sharedlogic/sharedattributes"
 import { ColliderPart } from "shared/core/entitycollision";
 import { dimensions } from "shared/shapes/rectangle";
+import { SimpleBouncePhysics } from "shared/core/sharedlogic/sharedphysics"
 
 
 
@@ -120,7 +121,7 @@ export class ProjectileWeapon<T extends "projectile_weapon" = "projectile_weapon
     protected shoot(game: NetworkPlatformGame): void {
         const dir = this.direction.normalize();
         
-        const b = ShootProjectileWeapon_C(game, this.bullet_effects, this.position, dir.clone().extend(this.GetStaticValue("initial_speed")), SHOT_LINKER.IDToData(this.shot_id).item_sprite);
+        const b = ShootProjectileWeapon_C(game, SHOT_LINKER.IDToData(this.shot_id).bounce, this.bullet_effects, this.position, dir.clone().extend(this.GetStaticValue("initial_speed")), SHOT_LINKER.IDToData(this.shot_id).item_sprite);
 
         game.entities.addEntity(b);
 
@@ -158,7 +159,7 @@ export class ShotgunWeapon extends ProjectileWeapon<"shotgun_weapon"> {
 
             const dir = new Vec2(1,1).setDirection(current_dir).extend(this.GetStaticValue("initial_speed"));
 
-            const b = ShootProjectileWeapon_C(game, this.bullet_effects, this.position, dir, SHOT_LINKER.IDToData(this.shot_id).item_sprite);
+            const b = ShootProjectileWeapon_C(game, SHOT_LINKER.IDToData(this.shot_id).bounce,this.bullet_effects, this.position, dir, SHOT_LINKER.IDToData(this.shot_id).item_sprite);
 
 
             console.log(b);
@@ -185,8 +186,8 @@ export class ShotgunWeapon extends ProjectileWeapon<"shotgun_weapon"> {
 }
 
 /** Does not insert the bullet into a scene. Just returns the entity */
-export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bullet_effects: ProjectileBulletEffects[], position: Vec2, velocity: Vec2, sprite_path: string): ModularProjectileBullet {
-    const bullet = new ModularProjectileBullet();
+export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bounce: boolean, bullet_effects: ProjectileBulletEffects[], position: Vec2, velocity: Vec2, sprite_path: string): ModularProjectileBullet {
+    const bullet = new ModularProjectileBullet(bounce);
 
     bullet.position.set(position);
     bullet.velocity.set(velocity);
@@ -251,7 +252,7 @@ export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bullet_effect
                 
                     const effect = new LocalIceEffect(2.6);
                     effect.position.set(this.position);
-                    console.log("ICE: "+this.position);
+                    // console.log("ICE: "+this.position);
                     game.entities.addEntity(effect);
 
                 });
@@ -274,7 +275,8 @@ export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bullet_effect
     return bullet
 }
 
-
+// Bullets are special, don't follow normal shared entity rules, are not created normally
+//@ts-expect-error
 @networkedclass_client("projectile_bullet")
 export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
     
@@ -285,12 +287,16 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
 
     continue_moving = true;
 
-    constructor(){
+    constructor(public bounce: boolean){
         super();
 
         this.onUpdate(function(dt: number){
             if(this.continue_moving){
-                this.position.add(this.velocity);
+                if(this.bounce){
+                    SimpleBouncePhysics(this.game.terrain, this.position, this.velocity, new Vec2(0, .4), .6);
+                } else {
+                    this.position.add(this.velocity);
+                }
                 this.sprite.angle = this.velocity.angle();
             }
         });
@@ -772,7 +778,7 @@ class LocalIceEffect extends DrawableEntity {
     override onAdd(): void {
         const canvas = this.game.engine.renderer.createCanvas();
         drawCircle(canvas, this.position, this.radius, 0x346eeb);
-        const tween = new NumberTween(canvas, "alpha",this.lifetime_s).from(1).to(0).go().onFinish(() => canvas.destroy());
+        const tween = new NumberTween(canvas, "alpha",this.lifetime_s + .2).from(1).to(0).go().onFinish(() => canvas.destroy());
 
         this.game.entities.addEntity(tween)
     }

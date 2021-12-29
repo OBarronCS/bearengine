@@ -4,7 +4,7 @@ import { Coordinate, mix } from "shared/shapes/vec2";
 import { Effect } from "./effects";
 
 
-abstract class Tween<T> extends Effect  {
+export abstract class Tween<T> extends Effect  {
     public object: object
     public property: string
 

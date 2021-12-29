@@ -157,8 +157,10 @@ export class CameraSystem  {
 
             const newMousePoint = con.toLocal(new Point(point.x, point.y));
 
-            this.center.x += mousePoint.x - newMousePoint.x
-            this.center.y += mousePoint.y - newMousePoint.y
+            if(this.mode === "free"){    
+                this.center.x += mousePoint.x - newMousePoint.x
+                this.center.y += mousePoint.y - newMousePoint.y
+            }
         });
     }
 

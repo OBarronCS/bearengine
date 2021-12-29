@@ -562,7 +562,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 
     dropPlayerItem(p: PlayerInformation): ItemEntity {
-        console.log("Dropping item");
+        // console.log("Dropping item");
         
         this.endPlayerBeam(p)
 
@@ -665,8 +665,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         if(isQDown){
                             if(p.item_in_hand !== null){
                                 const item = this.dropPlayerItem(player_info);
-                                // item.velocity.set(Vec2.subtract(p.mouse,p.position).extend(17));
-                                // item.mode = ItemEntityPhysicsMode.BOUNCING;
+                                item.velocity.set(Vec2.subtract(p.mouse,p.position).extend(17));
+                                item.mode = ItemEntityPhysicsMode.BOUNCING;
                             }
                         }
                         
@@ -995,10 +995,11 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         // If we have made it far enough to TICK THE GAME
         if (this.previousTickTime + (1000 / this.TICK_RATE) <= now) {
-            const dt = 1000 / this.TICK_RATE;
-
+            
+            
             // console.log(this.__useless_calls_test)
             // this.__useless_calls_test = 0;
+            const dt = 1 / this.TICK_RATE;
 
             this.tick += 1;
             this.totalTime += dt;
@@ -1009,7 +1010,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             this.readNetwork();
 
             for(let i = 0; i < 60/this.TICK_RATE; i++){
-                this.entities.update(dt);
+                this.entities.update(dt/(60/this.TICK_RATE));
             }
 
 

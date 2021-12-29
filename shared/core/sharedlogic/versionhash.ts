@@ -116,7 +116,7 @@ function CreateHash(manual: number): bigint {
     hash += ObjectHash(SharedNetworkedEntityDefinitions);
     
     hash += ObjectHash(MIGRATED_ITEMS);
-
+    hash += ObjectHash(PROJECTILE_SHOT_DATA);
     hash += ObjectHash(ArtRef);
     // hash += ObjectHash(PROJECTILE_SHOT_DATA);
 

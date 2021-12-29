@@ -101,20 +101,40 @@ export class BufferStreamReader  {
     }
 }
 
-enum ReadError {
+const UINT8_MAX = (1 << 8) - 1;
+const INT8_MIN = -(1 << 7); 
+const INT8_MAX = (1 << 7) - 1;
+
+const UINT16_MAX = (1 << 16) - 1;
+const INT16_MIN = -(1 << 15); 
+const INT16_MAX = (1 << 15) - 1;
+
+const UINT32_MAX = ((-1)>>>0);
+const INT32_MIN = -((1 << 31)>>>0); 
+const INT32_MAX = (((1 << 31)>>>0) - 1);
+
+
+export enum ReadError {
     RANGE_ERROR,
     NO_MEMORY_LEFT
 }
 
 type ReadResult<T> = CheckedResult<T, ReadError>;
 
-// A wrapper for BufferStreamReader that allows error checking
+/** 
+ *  A wrapper for BufferStreamReader that allows error checking
+ *  Pass in optional [min,max] integer values for checking range
+ *  Max is inclusive
+ */
 export class CheckedBufferStreamReader {
 
     private stream: BufferStreamReader;
 
+    public readonly size: number;
+
     constructor(buffer: ArrayBufferLike){
         this.stream = new BufferStreamReader(buffer);
+        this.size = this.stream.size;
     }
 
     getBuffer(){
@@ -132,12 +152,66 @@ export class CheckedBufferStreamReader {
         return this.stream.hasNMoreBytes(n);
     }
 
-    getBigInt64(): ReadResult<bigint> {
-        if(!this.hasNMoreBytes(8)){
+
+
+    getUint8(min = 0, max = UINT8_MAX): ReadResult<number> {
+        if(!this.hasNMoreBytes(1)){
             return ErrorResult(ReadError.NO_MEMORY_LEFT);
         }
 
-        const val = this.stream.getBigInt64();
+        const val = this.stream.getUint8();
+        if(val < min || val > max) return ErrorResult(ReadError.RANGE_ERROR);
+        return ValidResult(val);
+    }
+
+    getInt8(min = INT8_MIN, max = INT8_MAX): ReadResult<number> {
+        if(!this.hasNMoreBytes(1)){
+            return ErrorResult(ReadError.NO_MEMORY_LEFT);
+        }
+
+        const val = this.stream.getInt8();
+        if(val < min || val > max) return ErrorResult(ReadError.RANGE_ERROR);
+        return ValidResult(val);
+    }
+
+
+    getUint16(min = 0, max = UINT16_MAX): ReadResult<number> {
+        if(!this.hasNMoreBytes(2)){
+            return ErrorResult(ReadError.NO_MEMORY_LEFT);
+        }
+
+        const val = this.stream.getUint16();
+        if(val < min || val > max) return ErrorResult(ReadError.RANGE_ERROR);
+        return ValidResult(val);
+    }
+
+    getInt16(min = INT16_MIN, max = INT16_MAX): ReadResult<number> {
+        if(!this.hasNMoreBytes(2)){
+            return ErrorResult(ReadError.NO_MEMORY_LEFT);
+        }
+
+        const val = this.stream.getInt16();
+        if(val < min || val > max) return ErrorResult(ReadError.RANGE_ERROR);
+        return ValidResult(val);
+    }
+    
+    getUint32(min = 0, max = UINT32_MAX): ReadResult<number> {
+        if(!this.hasNMoreBytes(4)){
+            return ErrorResult(ReadError.NO_MEMORY_LEFT);
+        }
+
+        const val = this.stream.getUint32();
+        if(val < min || val > max) return ErrorResult(ReadError.RANGE_ERROR);
+        return ValidResult(val);
+    }
+
+    getInt32(min = INT32_MIN, max = INT32_MAX): ReadResult<number> {
+        if(!this.hasNMoreBytes(4)){
+            return ErrorResult(ReadError.NO_MEMORY_LEFT);
+        }
+
+        const val = this.stream.getInt32();
+        if(val < min || val > max) return ErrorResult(ReadError.RANGE_ERROR);
         return ValidResult(val);
     }
 
@@ -149,6 +223,16 @@ export class CheckedBufferStreamReader {
         const val = this.stream.getBigUint64()
         return ValidResult(val);
     }
+    
+    getBigInt64(): ReadResult<bigint> {
+        if(!this.hasNMoreBytes(8)){
+            return ErrorResult(ReadError.NO_MEMORY_LEFT);
+        }
+
+        const val = this.stream.getBigInt64();
+        return ValidResult(val);
+    }
+    
 
     getFloat32(): ReadResult<number> {
         if(!this.hasNMoreBytes(4)){
@@ -168,42 +252,6 @@ export class CheckedBufferStreamReader {
         return ValidResult(val);
     }
 
-    getInt8(): ReadResult<number> {
-        if(!this.hasNMoreBytes(1)){
-            return ErrorResult(ReadError.NO_MEMORY_LEFT);
-        }
-
-        const val = this.stream.getInt8();
-        return ValidResult(val);
-    }
-
-    getInt16(): ReadResult<number> {
-        if(!this.hasNMoreBytes(2)){
-            return ErrorResult(ReadError.NO_MEMORY_LEFT);
-        }
-
-        const val = this.stream.getInt16();
-        return ValidResult(val);
-    }
-
-    getInt32(): ReadResult<number> {
-        if(!this.hasNMoreBytes(4)){
-            return ErrorResult(ReadError.NO_MEMORY_LEFT);
-        }
-
-        const val = this.stream.getInt32();
-        return ValidResult(val);
-    }
-
-    getUint8(): ReadResult<number> {
-        if(!this.hasNMoreBytes(1)){
-            return ErrorResult(ReadError.NO_MEMORY_LEFT);
-        }
-
-        const val = this.stream.getUint8();
-        return ValidResult(val);
-    }
-
     getBool(): ReadResult<boolean> {
         if(!this.hasNMoreBytes(1)){
             return ErrorResult(ReadError.NO_MEMORY_LEFT);
@@ -213,23 +261,6 @@ export class CheckedBufferStreamReader {
         return ValidResult(val);
     }
 
-    getUint16(): ReadResult<number> {
-        if(!this.hasNMoreBytes(2)){
-            return ErrorResult(ReadError.NO_MEMORY_LEFT);
-        }
-
-        const val = this.stream.getUint16();
-        return ValidResult(val);
-    }
-
-    getUint32(): ReadResult<number> {
-        if(!this.hasNMoreBytes(4)){
-            return ErrorResult(ReadError.NO_MEMORY_LEFT);
-        }
-
-        const val = this.stream.getUint32();
-        return ValidResult(val);
-    }
 }
 
 export class BufferStreamWriter {
