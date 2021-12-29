@@ -27,23 +27,15 @@ import { BoostZone } from "./boostzone";
 //     // subset = this.game.entities.createSubset();
 
 //     update(dt: number): void {
-//         // if(this.engine.mouse.isDown("left")){
-//         //     const e = new PhysicsDotEntity(this.engine.mouse, "vector.jpg");
-//         //     e.velocity.set(this.engine.mouse.velocity.clone().extend(20))//scale(.2))
-//         //     console.log(e.velocity.length())
-//         //     this.game.entities.addEntity(e)
-//         // }
 //     }
 
 //     start(): void {
 
 //     }
 
-
 //     end(): void {
 
 //     }
-   
 // }
 
 

@@ -78,7 +78,7 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<"projectil
     ICE_SHOT: CreateShot({
         type:"projectile_bullet",
         item_name: "BULLET",
-        item_sprite:"vector.jpg",
+        item_sprite:"cool_bullet.png",
         damage: 10,
         bullet_effects:[
             {type:"ice_slow"},

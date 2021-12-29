@@ -5,6 +5,8 @@ import { Rect } from "shared/shapes/rectangle";
 import { Subsystem } from "shared/core/subsystem";
 import { BearGame } from "shared/core/abstractengine";
 import { BearEngine } from "../core-engine/bearengine";
+import { Tween } from "shared/core/tween";
+import { lerp } from "shared/misc/mathutils";
 
 export class UIManager extends Subsystem<BearGame<BearEngine>> {
     
@@ -298,6 +300,10 @@ abstract class BearWidget {
         this.markDirty();
     }
 
+    setAlpha(a: number){
+        this.container.alpha = a;
+        this.markDirty();
+    }
 }
 
 /** Null implementation */
@@ -462,3 +468,16 @@ export class SpriteWidget extends BearWidgetAdapter {
 // Checkbox, ColorPicker/ColorWheel, ProgressBar, Slider, WriteableTextBox
 // Input for Array, Boolean, Vector
 
+
+export class WidgetAlphaTween extends Tween<number> {
+
+    __anon = this.onFinish(() => { 
+        (this.object as BearWidget).parent.removeChild(this.object as BearWidget);
+    })
+
+    setValueAt(t: number): void {
+        (this.object as BearWidget).setAlpha(lerp(this.initialValue, this.finalValue, t));
+    }
+
+    
+}

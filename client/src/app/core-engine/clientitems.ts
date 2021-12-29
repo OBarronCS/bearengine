@@ -296,8 +296,8 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
                     SimpleBouncePhysics(this.game.terrain, this.position, this.velocity, new Vec2(0, .4), .6);
                 } else {
                     this.position.add(this.velocity);
-                    this.sprite.angle = this.velocity.angle();
                 }
+                this.sprite.angle = this.velocity.angle();
             }
         });
 

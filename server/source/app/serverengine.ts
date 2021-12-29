@@ -1017,7 +1017,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             // Round logic
             if(this.serverState === ServerGameState.ROUND_ACTIVE){
 
-                if(random() > 1.94){
+                if(random() > .94){
                     const random_itemprefab_id = RandomItemID();
 
                     const item_instance = this.createItemFromPrefab(random_itemprefab_id);

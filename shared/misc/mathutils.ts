@@ -179,7 +179,3 @@ function angleClosestTo(angle: number, roundToAngle: number, offset: number = 0)
 
 
 
-export function EnumCount(obj: object): number {
-    return (Object.keys(obj).length / 2)
-}
-

@@ -69,7 +69,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         type:"projectile_weapon",
         item_name:"",
         item_sprite:"",
-        ammo: 100,
+        ammo: 111,
         capacity: 100,
         reload_time: 100,
         
@@ -82,7 +82,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
     ice_slow_weapon: CreateItem({
         type:"projectile_weapon",
         item_name:"AHH",
-        item_sprite:"NOPE",
+        item_sprite:"ice_slow_weapon.png",
         ammo: 100,
         capacity: 100,
         initial_speed: 20,
@@ -94,7 +94,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
     second_shotgun: CreateItem({
         type: "shotgun_weapon",
         item_name: "SHOTGUN",
-        item_sprite: "tree.gif",
+        item_sprite: "second_shotgun.png",
         ammo: 100,
         capacity: 100,
         reload_time:10,
@@ -109,7 +109,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
     first_shotgun: CreateItem({
         type: "shotgun_weapon",
         item_name: "SHOTGUN",
-        item_sprite: "tree.gif",
+        item_sprite: "second_shotgun.png",
         ammo: 100,
         capacity: 100,
         reload_time:10,
@@ -221,7 +221,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
 
     auto_beam: CreateItem({
         item_name:"beam",
-        item_sprite:"vector.jpg",
+        item_sprite:"beam_weapon.png",
         type:"beam_weapon",
     }),
 

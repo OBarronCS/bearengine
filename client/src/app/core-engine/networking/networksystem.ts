@@ -30,6 +30,7 @@ import { BeamActionType, HitscanRayEffects, ItemActionAck, ItemActionType, SHOT_
 import { DeserializeTypedArray, DeserializeTypedVar, netv, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { Trie } from "shared/datastructures/trie";
 import { LevelRefLinker } from "shared/core/sharedlogic/assetlinker";
+import { LabelWidget, WidgetAlphaTween } from "../../ui/widget";
 
 class ClientInfo {
     uniqueID: number;
@@ -109,6 +110,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     public currentPlayState: ClientPlayState = ClientPlayState.SPECTATING;
 
 
+    public ALLOWED_TO_CONNECT = true;
 
     public SERVER_IS_TICKING: boolean = false;
     private SERVER_SEND_RATE: number = -1;
@@ -287,9 +289,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
     /**  Read from network, apply packets */
     readPackets(): void {
-        if(this.network.CONNECTED){
+        if(this.network.CONNECTED && this.ALLOWED_TO_CONNECT){
 
-            // send ping packet every 2 seconds
+
 
             const now = Date.now();
 
@@ -297,7 +299,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             this._serverTime = now + this.CLOCK_DELTA;
             this._serverTick = this.calculateCurrentServerTick();
 
-
+            // Send ping packet periodically
             if(now >= this.timeOfLastPing + MS_PER_PING){
                 this.sendPing();
                 this.timeOfLastPing = now;
@@ -308,7 +310,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             while(!this.byteAmountReceived.isEmpty() && this.byteAmountReceived.peekLeft().time < (now - 1000)){
                 this.byteAmountReceived.popLeft();
             }
-
 
             if(!this.byteAmountReceived.isEmpty()){
                 if(this.byteAmountReceived.size() === 1){
@@ -329,9 +330,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             }
 
 
-            
             const packets = this.packets;
-
             while(!packets.isEmpty()){
 
                 const packet = packets.dequeue();
@@ -347,8 +346,22 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         case GamePacket.INIT: {
                             
                             const hash = stream.getBigUint64();
+
                             if(hash !== NETWORK_VERSION_HASH){
-                                throw new Error("Network protocol out of date");
+                                console.log("%c Network protocol incompatible with server! ", "background: #FFA500; color: #000000");
+                                
+                                this.ALLOWED_TO_CONNECT = false;
+                                
+                                
+                                const alpha_panel = new LabelWidget(new Vec2(), "Network protocol incompatible with server");
+                                alpha_panel.setPosition({type: "percent", percent: .5}, {type: "percent", percent: .20}).center();
+                                
+                                this.game.entities.addEntity(new WidgetAlphaTween(alpha_panel, "",3.5).from(1).to(0).go().delay(4));
+
+                                this.game.ui.addWidget(alpha_panel);
+
+                                this.network.disconnect();
+                                return;
                             }
 
                             const rate = stream.getUint8();
@@ -1091,7 +1104,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         default: AssertUnreachable(type);
                     }
                 }
-                
             }
 
 
