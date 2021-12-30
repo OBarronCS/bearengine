@@ -20,6 +20,7 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
     private gamemode = this.left_panel.addTextField("");
     private bytesPerSecond = this.left_panel.addTextField("");
     private ping = this.left_panel.addTextField("");
+    private camera = this.left_panel.addTextField("");
 
 
     private other_client_info_panel: PanelWidget;
@@ -51,13 +52,14 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
     private collision_drawer: Debug = null;
 
     update(delta: number): void {
-        this.mouse_position.text = `${round(this.engine.mouse.position.x, 1)},${round( this.engine.mouse.position.y, 1)}`;
-        this.mouse_screen_position.text = `${round(this.engine.mouse.guiPosition.x, 1)},${round( this.engine.mouse.guiPosition.y, 1)}`;
+        this.mouse_position.text = `World: ${round(this.engine.mouse.position.x, 1)},${round( this.engine.mouse.position.y, 1)}`;
+        this.mouse_screen_position.text = `GUI: ${round(this.engine.mouse.guiPosition.x, 1)},${round( this.engine.mouse.guiPosition.y, 1)}`;
         this.connected_to_network.text = "Connected: " + (this.game.networksystem["network"].CONNECTED ? "True" : "False");
         this.gamemode.text = "Gamemode: " + ClientPlayState[this.game.networksystem.currentPlayState];
         this.bytesPerSecond.text = "B/s: " + this.game.networksystem.bytesPerSecond;
         this.ping.text = "Ping: " + this.game.networksystem["ping"]
-        
+        this.camera.text = "Zoom: " + this.game.engine.camera.zoom;
+
         if(this.engine.keyboard.wasPressed("Digit3")){
             this.left_panel.toggleVisible();
         }

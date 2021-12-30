@@ -92,8 +92,9 @@ export abstract class WeaponItem<T extends "weapon_item" = "weapon_item"> extend
                 this.ammo -= 1;
 
                 this.shoot(game);
-                // this.game.engine.camera.shake(this.juice.shake);
-                // p.knockback(this.direction.clone().negate().extend(this.juice.knockback))
+                
+                this.game.engine.camera.shake(.25);
+                p.knockback(this.direction.clone().negate().extend(10))
             }
         }
 

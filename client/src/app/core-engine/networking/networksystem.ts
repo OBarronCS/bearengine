@@ -71,6 +71,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
         return this.incShotID++;
     }
 
+    isConnected(){
+        return this.network.CONNECTED;
+    }
 
     private network: CallbackNetwork;
     /** Packets from the server are queued here */

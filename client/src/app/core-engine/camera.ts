@@ -3,12 +3,15 @@ import { Coordinate, mix, Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
 
 import { RendererSystem } from "./renderer";
-import { EngineKeyboard } from "../input/keyboard";
 import { clamp, lerp, round } from "shared/misc/mathutils";
 import { smoothNoise } from "shared/misc/random";
 import { Subsystem } from "shared/core/subsystem";
 import { EngineMouse } from "../input/mouse";
 import { BearEngine } from "./bearengine";
+
+        
+const MAX_ANGLE_SHAKE = 2; //degrees
+const MAX_OFFSET_SHAKE = 14;
 
 export class CameraSystem  {
     
@@ -32,8 +35,18 @@ export class CameraSystem  {
     // Used for camera shake [0,1]
     private trauma = 0;
 
+    bounds: {min: Coordinate, max: Coordinate} = null;
+
     shake(n: number){
         this.trauma = clamp(this.trauma + n,0,1);
+    }
+
+    setBounds(x: {min: Coordinate, max: Coordinate}){
+        this.bounds = x;
+    }
+
+    setDangle(degrees: number){
+        this.container.angle = degrees;
     }
 
     // I couldn't get this to work well so just reverted to original DOM events
@@ -172,28 +185,37 @@ export class CameraSystem  {
     }
 
     update(delta: number){
-        
-        const maxAngle = 15;
-        const maxOffset = 35;
+
         
         const seed = Date.now();
 
-        const shake =  (this.trauma**2);
+        const shake =  (this.trauma**3);
 
-        const shakeAngle = maxAngle * shake * smoothNoise(seed);
-        const dx = maxOffset * shake * smoothNoise(seed + 1000);
-        const dy = maxOffset * shake * smoothNoise(seed + 2000);
+        const shakeAngle = MAX_ANGLE_SHAKE * shake * smoothNoise(seed);
+        const dx = MAX_OFFSET_SHAKE * shake * smoothNoise(seed + 1000);
+        const dy = MAX_OFFSET_SHAKE * shake * smoothNoise(seed + 2000);
 
         this.container.angle = this.baseDangle + shakeAngle;
         this.container.pivot.copyFrom({x: this.center.x + dx,y: this.center.y + dy});
+
+        if(this.bounds !== null){
+            if(this.left < this.bounds.min.x) this.container.pivot.x = this.viewWidth / 2;
+            if(this.top < this.bounds.min.y) this.container.pivot.y = this.viewHeight / 2;
+            if(this.right > this.bounds.max.x) this.container.pivot.x = this.bounds.max.x - this.viewWidth / 2;
+            if(this.bot > this.bounds.max.y) this.container.pivot.y = this.bounds.max.y - this.viewHeight / 2;
+        }
 
         this.trauma -= .007;
         if(this.trauma < 0) this.trauma = 0;
         if(this.mode === "follow") this.center = mix(this.center, this.targetMiddle, .40);
     }
     
-    public zoom(factor: Coordinate){
-        this.container.scale.copyFrom(factor);
+    get zoom(){
+        return this.container.scale.x;
+    }
+
+    public setZoom(factor: number){
+        this.container.scale.set(factor);
     }
 
 

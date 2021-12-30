@@ -203,6 +203,27 @@ export class Player extends DrawableEntity {
     private readonly idleAnimation = new PlayerAnimationState(this.engine.getResource("player/idle.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
     private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
 
+    
+    // last_ground_xspd = 0;
+    // last_ground_yspd = 0;
+
+    last_ground_velocity = new Vec2(0,0)
+    velocity = new Vec2(0,0);
+    // yspd = 0;
+    // xspd = 0;
+
+    gspd = 0;
+
+    private readonly gravity = new Vec2(0, 1.2);
+    // private readonly gravity_normalized = this.gravity.clone().normalize();
+
+    private readonly acc = 0.9;
+    private readonly dec = 1.6;
+    private readonly frc = 0.9
+
+    private readonly top = 7; //6
+    private readonly jump_power = -15; //-14
+
     private ghost = false;
     health = 100;
 
@@ -239,20 +260,6 @@ export class Player extends DrawableEntity {
         this.itemInHand.clear();
     }
 
-    last_ground_xspd = 0;
-    last_ground_yspd = 0;
-
-    yspd = 0;
-    xspd = 0;
-
-    gspd = 0;
-
-    acc = 0.9;
-    dec = 1.6;
-    frc = 0.9
-    top = 6;
-    
-    jump_power = -14;
     
 
     // Normal of the slope I'm making contact with. Is (0,-1) if in air
@@ -319,8 +326,6 @@ export class Player extends DrawableEntity {
 
     private colliderPart: ColliderPart;
 
-
-  
 
     constructor(){
         super();
@@ -419,23 +424,39 @@ export class Player extends DrawableEntity {
     private setSensorLocationsAndRotate(){
         this.setSensorLocations();
 
-        // Ground sensors
-        rotatePoint(this.leftDownRay.A,this.position,this.slope_normal);
-        rotatePoint(this.leftDownRay.B,this.position,this.slope_normal);
+        const unit_vector = this.gravity.clone().negate().normalize();
 
-        rotatePoint(this.rightDownRay.A,this.position,this.slope_normal);
-        rotatePoint(this.rightDownRay.B,this.position,this.slope_normal);
+        // Ground sensors
+        rotatePoint(this.leftDownRay.A,this.position,unit_vector);
+        rotatePoint(this.leftDownRay.B,this.position,unit_vector);
+
+        rotatePoint(this.rightDownRay.A,this.position,unit_vector);
+        rotatePoint(this.rightDownRay.B,this.position,unit_vector);
+
+        rotatePoint(this.midDownRay.A,this.position,unit_vector);
+        rotatePoint(this.midDownRay.B,this.position,unit_vector);
 
         // Head rays
-        rotatePoint(this.leftHeadRay.A,this.position,this.slope_normal);
-        rotatePoint(this.leftHeadRay.B,this.position,this.slope_normal);
+        rotatePoint(this.leftHeadRay.A,this.position,unit_vector);
+        rotatePoint(this.leftHeadRay.B,this.position,unit_vector);
 
-        rotatePoint(this.rightHeadRay.A,this.position,this.slope_normal);
-        rotatePoint(this.rightHeadRay.B,this.position,this.slope_normal);
+        rotatePoint(this.rightHeadRay.A,this.position,unit_vector);
+        rotatePoint(this.rightHeadRay.B,this.position,unit_vector);
 
         // LEFT AND RIGHT sensors
-        rotatePoint(this.rightWallRay.B,this.position,this.slope_normal);
-        rotatePoint(this.leftWallRay.B,this.position,this.slope_normal);
+        //rotatePoint(this.rightWallRay.A,this.position,unit_vector);
+        rotatePoint(this.rightWallRay.B,this.position,unit_vector);
+
+        //rotatePoint(this.leftWallRay.A,this.position,unit_vector);
+        rotatePoint(this.leftWallRay.B,this.position,unit_vector);
+
+        rotatePoint(this.rightClimbRay.B,this.position,unit_vector);
+        rotatePoint(this.rightClimbRay.B,this.position,unit_vector);
+
+        rotatePoint(this.leftClimbRay.B,this.position,unit_vector);
+        rotatePoint(this.leftClimbRay.B,this.position,unit_vector);
+
+
     }
 
     private setSensorLocations(){
@@ -608,14 +629,23 @@ export class Player extends DrawableEntity {
 
     manualUpdate(dt: number): void {
         // Lock camera on me
+
+        if(this.keyboard.isDown("KeyJ")) this.gravity.drotate(1)
+        if(this.keyboard.isDown("KeyL")) this.gravity.drotate(-1)
+
         if(this.keyboard.wasPressed("KeyC")){
             this.followCam = !this.followCam;
             if(this.followCam){
                 this.engine.camera.follow(this.position);
+                this.engine.camera.setZoom(1.25);
+                this.engine.camera.setBounds({min: new Vec2(), max: {x: this.game.activeLevel.bbox.x2, y: this.game.activeLevel.bbox.y2 } });
             } else {
                 this.engine.camera.free();
             }
         }
+
+        this.engine.camera.setDangle(-this.gravity.dangle() + 90)
+
         
         if(this.keyboard.wasPressed("KeyP")){
             this.position.set({x : 600, y: 100});
@@ -692,8 +722,9 @@ export class Player extends DrawableEntity {
         const zone = this.game.collisionManager.first_tagged_collider_on_point(this.position, "BoostZone");
         if(zone){
             const dir = zone.owner.getAttribute(BoostDirection).dir;
-            this.xspd += dir.x;
-            this.yspd += dir.y;
+            this.velocity.add(dir);
+            //this.xspd += dir.x;
+            // this.yspd += dir.y;
         }
 
         
@@ -711,9 +742,28 @@ export class Player extends DrawableEntity {
         this.redraw();
     }
 
-    knockback(dir: Coordinate){
-        this.xspd += dir.x;
-        this.yspd += dir.y;
+    knockback(dir: Vec2){
+        this.state = PlayerState.AIR;
+        this.velocity.add(dir);
+        // this.xspd += dir.x;
+        // this.yspd += dir.y;
+        // This works, because once I hit the ground (like if go sideways),
+        // gspd is calculated based on the xspd and yspd, 
+    }  
+
+    private wallSlideNormalIsValid(normal: Vec2): boolean {
+        //The dot product tests the difference in normals, makes sure doesn't go into too steep terrain
+        return (-.44 < normal.y) && (normal.y < .25);
+    }
+
+    private doRightSlideSensorsHit(): boolean {
+        this.setWallSensorsEven(this.slideSensorLength);
+        return this.getRightWallCollisionPoint().collision;
+    }
+
+    private doLeftSlideSensorsHit(): boolean {
+        this.setWallSensorsEven(this.slideSensorLength);
+        return this.getLeftWallCollisionPoint().collision;
     }
 
     private Climb_State(): void {
@@ -742,20 +792,6 @@ export class Player extends DrawableEntity {
         }
     }
 
-    private wallSlideNormalIsValid(normal: Vec2): boolean {
-        return (-.44 < normal.y) && (normal.y < .25);
-    }
-
-    private doRightSlideSensorsHit(): boolean {
-        this.setWallSensorsEven(this.slideSensorLength);
-        return this.getRightWallCollisionPoint().collision;
-    }
-
-    private doLeftSlideSensorsHit(): boolean {
-        this.setWallSensorsEven(this.slideSensorLength);
-        return this.getLeftWallCollisionPoint().collision;
-    }
-
     private Wall_Slide_State(): void {
         this.slideStateData.timeSliding++;
 
@@ -766,8 +802,8 @@ export class Player extends DrawableEntity {
         // Wall jump
         if(this.timeSincePressedJumpedButton <= this.timeSincePressedAllowed){
             this.state = PlayerState.AIR;
-            this.yspd = -14
-            this.xspd = this.slideStateData.right ? -9 : 9;
+            this.velocity.y = -14
+            this.velocity.x = this.slideStateData.right ? -9 : 9;
             this.timeSincePressedJumpedButton = 10000;
 
             this.setAnimationSprite(AnimationState.RUN)
@@ -779,12 +815,12 @@ export class Player extends DrawableEntity {
 
         //while below timer, slow yspd to 0
         if(this.slideStateData.timeSliding < this.timeToSlide){
-            this.yspd = lerp(this.yspd,0,.3);
+            this.velocity.y = lerp(this.velocity.y,0,.3);
         } else {
-            this.yspd = lerp(this.yspd,3.6,.1);
+            this.velocity.y = lerp(this.velocity.y,3.6,.1);
         }
 
-        this.y += this.yspd / this.slow_factor;
+        this.position.y += this.velocity.y / this.slow_factor;
 
         let myWallNormal: Vec2;
 
@@ -798,7 +834,7 @@ export class Player extends DrawableEntity {
                 if(!this.wallSlideNormalIsValid(rightWall.normal)){
                     console.log("To Steep")
                     this.state = PlayerState.AIR;
-                    this.xspd = 0;
+                    this.velocity.x = 0;
                     this.setAnimationSprite(AnimationState.RUN)
                     return;
                 } 
@@ -809,8 +845,8 @@ export class Player extends DrawableEntity {
 
             if(!rightWall.both){
                 this.state = PlayerState.AIR;
-                this.yspd = 2;
-                this.xspd = 0;
+                this.velocity.y = 2;
+                this.velocity.x = 0;
                 this.setAnimationSprite(AnimationState.RUN);
             }
         } else {
@@ -820,7 +856,7 @@ export class Player extends DrawableEntity {
                 if(!this.wallSlideNormalIsValid(leftWall.normal)){
                     console.log("To Steep")
                     this.state = PlayerState.AIR;
-                    this.xspd = 0;
+                    this.velocity.x = 0;
                     this.setAnimationSprite(AnimationState.RUN);
                     return;
                 } 
@@ -830,7 +866,7 @@ export class Player extends DrawableEntity {
 
             if(!leftWall.both){
                 this.state = PlayerState.AIR;
-                this.xspd = 0;
+                this.velocity.x = 0;
                 this.setAnimationSprite(AnimationState.RUN);
             }
         }
@@ -854,8 +890,8 @@ export class Player extends DrawableEntity {
             // this.gspd = this.yspd * this.slope_normal.x
             // this.gspd = this.xspd * -this.slope_normal.y
             this.gspd = 0;
-            this.yspd = 0;
-            this.xspd = 0;
+            this.velocity.y = 0;
+            this.velocity.x = 0;
         }
 
     }
@@ -863,11 +899,12 @@ export class Player extends DrawableEntity {
     private Ground_State(): void {
     
         this.ticksSinceGroundState = 0;
-        this.last_ground_xspd = this.xspd;
-        this.last_ground_yspd = this.yspd;
+        this.last_ground_velocity.set(this.velocity);
+        // this.last_ground_xspd = this.xspd;
+        // this.last_ground_yspd = this.yspd;
 
+        // Change gspd based on input
         const horz_move = +this.keyboard.isDown("KeyD") - +this.keyboard.isDown("KeyA");
-
 
         // Set ground speed
         if (horz_move === -1) { // Left
@@ -894,49 +931,55 @@ export class Player extends DrawableEntity {
         if(Math.abs(this.gspd) > this.top){
             this.gspd -= Math.min(Math.abs(this.gspd), this.frc) * Math.sign(this.gspd);
         }
+
         
-        this.xspd = this.gspd*-this.slope_normal.y;
-        this.yspd = this.gspd*this.slope_normal.x;
+        this.velocity.x = this.gspd*-this.slope_normal.y;
+        this.velocity.y = this.gspd*this.slope_normal.x;
+        
+        // this.xspd = this.gspd*-this.slope_normal.y;
+        // this.yspd = this.gspd*this.slope_normal.x;
 
         // Before moving, check walls
         const gdir = sign(this.gspd);
 
-        //If going right. The dot product tests the difference in normals, makes sure doesn't go into too steep terrain
-
+        
         this.setWallSensorsEven();
         
 
         if(gdir > 0){
-            this.rightWallRay.B.x += this.xspd;
-            this.rightClimbRay.B.x += this.xspd
+            this.rightWallRay.B.x += this.velocity.x;
+            this.rightClimbRay.B.x += this.velocity.x
             const rightWall = this.getRightWallCollisionPoint();
 
             // If hit wall, adjust speed so don't hit wall
             if(rightWall.collision){ //  || Vec2.dot(wall_test.normal, this.slope_normal) > .3
                 // this.rightWalRay.B.x is the same as climbRay. Maybe make it another variable
                 const distanceInWall = this.rightWallRay.B.x - rightWall.point.x;
-                this.xspd -= distanceInWall;
+                this.velocity.x -= distanceInWall;
                 this.gspd = 0;
             }
         } else if(gdir < 0) {
-            this.leftWallRay.B.x += this.xspd;
-            this.leftClimbRay.B.x += this.xspd
+            this.leftWallRay.B.x += this.velocity.x;
+            this.leftClimbRay.B.x += this.velocity.x
 
             const leftWall = this.getLeftWallCollisionPoint();
 
             if(leftWall.collision){
                 const distanceInWall = leftWall.point.x - this.leftWallRay.B.x;
-                this.xspd += distanceInWall;
+                this.velocity.x += distanceInWall;
                 this.gspd = 0;
             }
         }
 
         // Move player
-        this.position.x += this.xspd / this.slow_factor;
-        this.position.y += this.yspd / this.slow_factor;
+        this.position.add(this.velocity)
+        
+        // this.position.x += this.xspd / this.slow_factor;
+        // this.position.y += this.yspd / this.slow_factor;
 
         // Now that player has moved, clamp them to the ground
         this.setSensorLocations();
+
         const downray = this.getFeetCollisionPoint();
 
         if(downray.collision){
@@ -954,6 +997,7 @@ export class Player extends DrawableEntity {
         }
 
 
+        // ANIMATION
         if(this.gspd === 0) this.setAnimationSprite(AnimationState.IDLE);
         else this.setAnimationSprite(AnimationState.RUN);
 
@@ -972,7 +1016,9 @@ export class Player extends DrawableEntity {
         if(jumpButtonDown || (this.timeSincePressedJumpedButton <= this.timeSincePressedAllowed)){
             //yspd = jump_power;
             // this.xspd = this.last_ground_xspd - this.jump_power * this.slope_normal.x;
-            this.yspd = /** this.last_ground_yspd + */ this.jump_power // * this.slope_normal.y;
+            // this.yspd = /** this.last_ground_yspd + */ this.jump_power // * this.slope_normal.y;
+
+            this.velocity.y = this.jump_power;
             
             this.timeSincePressedJumpedButton = 10000;
 
@@ -988,10 +1034,10 @@ export class Player extends DrawableEntity {
     private Air_State(): void {
         this.idleAnimation.setPosition(this.position);
 
-        if(this.xspd !== 0) this.setAnimationSprite(AnimationState.RUN)
+        if(this.velocity.x !== 0) this.setAnimationSprite(AnimationState.RUN)
         this.runAnimation.setPosition(this.position);
         this.runAnimation.tick();
-        this.runAnimation.xFlip(this.xspd)
+        this.runAnimation.xFlip(this.velocity.x)
         
         // gravity
         this.ticksSinceGroundState += 1;
@@ -1000,59 +1046,64 @@ export class Player extends DrawableEntity {
             if(this.timeSincePressedJumpedButton <= this.timeSincePressedAllowed){
                 this.timeSincePressedJumpedButton = 10000;
                 // this.xspd = this.last_ground_xspd - this.jump_power * this.slope_normal.x;
-                this.yspd = /** this.last_ground_yspd + */ this.jump_power // * this.slope_normal.y;
+                // this.yspd = /** this.last_ground_yspd + */ this.jump_power // * this.slope_normal.y;
+                this.velocity.y = this.jump_power;
             }
         }
 
-        const grav = 1.2;
         const horz_move = +this.keyboard.isDown("KeyD") - +this.keyboard.isDown("KeyA");   
 
-        if (horz_move == -1) {
-            if (this.xspd > 0) {
-                this.xspd -= this.dec;
-            } else if (this.xspd > -this.top) {
-                this.xspd -= this.acc;
-                if (this.xspd <= -this.top)
-                    this.xspd = -this.top;
+        if (horz_move === -1) {
+            if (this.velocity.x > 0) {
+                this.velocity.x -= this.dec;
+            } else if (this.velocity.x > -this.top) {
+                this.velocity.x -= this.acc;
+                if (this.velocity.x <= -this.top)
+                    this.velocity.x = -this.top;
             }
-        } else if (horz_move == 1) {
-            if (this.xspd < 0) {
-                this.xspd += this.dec;
-            } else if (this.xspd < this.top) {
-                this.xspd += this.acc;
-                if (this.xspd >= this.top)
-                    this.xspd = this.top;
+        } else if (horz_move === 1) {
+            if (this.velocity.x < 0) {
+                this.velocity.x += this.dec;
+            } else if (this.velocity.x < this.top) {
+                this.velocity.x += this.acc;
+                if (this.velocity.x >= this.top)
+                    this.velocity.x = this.top;
             }
         } else {
-            this.xspd -= Math.min(Math.abs(this.xspd), this.frc/7) * Math.sign(this.xspd);
+            this.velocity.x -= Math.min(Math.abs(this.velocity.x), this.frc/7) * Math.sign(this.velocity.x);
         }
         
-        // This implies that sideways is the default left and right --> have to rethink the jumping mechanics of sides to side ..
-        // Maybe make the loop-de-loop a special case and a special walltypes
 
         // Drag
-        if(Math.abs(this.xspd) > this.top){
-            this.xspd -= Math.min(Math.abs(this.xspd), this.frc/7) * Math.sign(this.xspd);
+        if(Math.abs(this.velocity.x) > this.top){
+            this.velocity.x -= Math.min(Math.abs(this.velocity.x), this.frc/7) * Math.sign(this.velocity.x);
         }
         
         // Gravity
-        if(Math.sign(this.yspd) >= 0){
-            this.yspd += .7 * grav
+        if(Math.sign(this.velocity.y) >= 0){
+            // Going down
+            this.velocity.add(this.gravity.clone().scale(.72));
+            // this.velocity.y += .72 * this.gravity.y
         } else {
-            this.yspd += .65 * grav;
+            this.velocity.add(this.gravity.clone().scale(.65));
+            // this.velocity.y += .65 * this.gravity.y;
         }
         
         // Clamp yspd
-        this.yspd = clamp(this.yspd, -100, 20);
+        this.velocity.y = clamp(this.velocity.y, -100, 20);
 
-        const xdir = sign(this.xspd);
-        const ydir = sign(this.yspd);
         
         // In air, collision checking is different than on ground.
         // First MOVE player, then snap player out of walls
-        this.position.x += this.xspd / this.slow_factor;
-        this.position.y += this.yspd / this.slow_factor; 
 
+        this.position.add(this.velocity);
+
+        // this.position.x += this.xspd / this.slow_factor;
+        // this.position.y += this.yspd / this.slow_factor; 
+
+        const xdir = sign(this.velocity.x);
+        const ydir = sign(this.velocity.y);
+        
 
         // WALLS, and wall sliding
         this.setWallSensorsEven();
@@ -1094,7 +1145,7 @@ export class Player extends DrawableEntity {
             }
         }
 
-        // CLIMBING
+        // Check for CLIMBING
         this.setSensorLocations();
         if(horz_move > 0){
             const climbTest = this.game.terrain.lineCollision(this.rightClimbRay.A, this.rightClimbRay.B);
@@ -1156,14 +1207,14 @@ export class Player extends DrawableEntity {
             }
         }
 
-        // UP AND DOWN
+        // Check head and feet collision
         this.setSensorLocations();
         if(ydir < 0){
             const headTest = this.getHeadCollisionPoint();
 
             if(headTest.collision === true){
                 // Hit head!
-                this.yspd = 0;
+                this.velocity.y = 0;
                 this.position.y = headTest.point.y + this.player_height / 2;
             }
         } else if (ydir > 0){ 
@@ -1195,10 +1246,10 @@ export class Player extends DrawableEntity {
                     this.setAnimationSprite(AnimationState.RUN);
                     // Set GSPD here
                     // this.gspd = this.yspd * this.slope_normal.x
-                    this.gspd = this.xspd * -this.slope_normal.y
+                    this.gspd = this.velocity.x * -this.slope_normal.y
 
-                    this.yspd = 0;
-                    this.xspd = 0;
+                    this.velocity.y = 0;
+                    this.velocity.x = 0;
                 }
             }
         }
@@ -1209,6 +1260,10 @@ export class Player extends DrawableEntity {
         // drawCircleOutline(g, this.position, 50)
         
         drawPoint(g,this.position);
+
+        if(!this.ghost){
+            drawHealthBar(g, this.x - 20, this.y - 40, 40, 7, this.health / 100, 1);
+        }
 
         // g.beginFill(0xFF00FF,.4)
         // g.drawRect(this.x - this.player_width / 2, this.y - this.player_height / 2, this.player_width, this.player_height)
@@ -1226,8 +1281,7 @@ export class Player extends DrawableEntity {
 
         // this.leftClimbRay.draw(g,0x00000)
         // this.rightClimbRay.draw(g, 0xFFFFFF)
-        if(!this.ghost)
-            drawHealthBar(g, this.x - 20, this.y - 40, 40, 7, this.health / 100, 1);
+
     }
 }
 
