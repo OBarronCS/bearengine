@@ -185,14 +185,14 @@ export class PlayerEntitySpawnPacket extends PacketWriter {
     }
 }
 
-export class PlayerEntityGhostPacket extends PacketWriter {
+export class PlayerEntityDeathPacket extends PacketWriter {
 
     constructor(public clientID: number){
         super(false);
     }
 
     write(stream: BufferStreamWriter): void {
-        stream.setUint8(GamePacket.PLAYER_ENTITY_GHOST);
+        stream.setUint8(GamePacket.PLAYER_ENTITY_DEATH);
         stream.setUint8(this.clientID);
     }
 }
@@ -546,6 +546,7 @@ export class AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet extends PacketWri
 
 
 
+/** Personal packet */
 export class ForcePositionPacket extends PacketWriter {
 
     constructor(public x: number, public y: number){

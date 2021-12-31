@@ -15,11 +15,11 @@ export class CollisionManager extends Subsystem {
     init(): void {}
 
     // With lots of entities, this will probably become a bottleneck, because it rebuilds the grid every step, but it works fine for now
-    private grid: SpatialGrid<AbstractEntity> = new SpatialGrid(1,1,1,1,(v) => Rect.fromPoints(v.position));
+    private grid: SpatialGrid<AbstractEntity> = new SpatialGrid(1,1,1,1,(v) => Rect.from_points(v.position));
 
 
     setupGrid(worldWidth: number, worldHeight: number){
-        this.grid = new SpatialGrid<AbstractEntity>(worldWidth,worldHeight,6,6,(v) => Rect.fromPoints(v.position));
+        this.grid = new SpatialGrid<AbstractEntity>(worldWidth,worldHeight,6,6,(v) => Rect.from_points(v.position));
     }
 
     update(dt: number): void {

@@ -45,6 +45,10 @@ export class CameraSystem  {
         this.bounds = x;
     }
 
+    clearBounds(){
+        this.bounds = null;
+    }
+
     setDangle(degrees: number){
         this.container.angle = degrees;
     }
@@ -202,10 +206,11 @@ export class CameraSystem  {
         this.container.pivot.copyFrom(pivot);
 
         if(this.bounds !== null){
-            if(this.left < this.bounds.min.x) this.container.pivot.x = this.viewWidth / 2;
-            if(this.top < this.bounds.min.y) this.container.pivot.y = this.viewHeight / 2;
             if(this.right > this.bounds.max.x) this.container.pivot.x = this.bounds.max.x - this.viewWidth / 2;
             if(this.bot > this.bounds.max.y) this.container.pivot.y = this.bounds.max.y - this.viewHeight / 2;
+
+            if(this.left < this.bounds.min.x) this.container.pivot.x = this.viewWidth / 2;
+            if(this.top < this.bounds.min.y) this.container.pivot.y = this.viewHeight / 2;
         }
 
         this.trauma -= .007;
@@ -248,6 +253,7 @@ export class CameraSystem  {
 
     free(){
         this.mode = "free"
+        this.clearBounds();
     }
 
     inView(point: Coordinate){

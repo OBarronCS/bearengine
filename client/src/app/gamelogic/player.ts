@@ -653,18 +653,6 @@ export class Player extends DrawableEntity {
         }
 
 
-
-        
-        // if(!this.ghost) {
-
-        //     drawProgressBar(this.healthbar, x, y, health_width, health_height, this.health / 100, 1);
-        // }
-
-        
-    
-        if(this.y > this.level.bbox.height + 800) this.y = 0;
-
-
         // Weapon logic
         this.itemInHand.position.set({x: this.x, y: this.y});
         rotatePoint(this.itemInHand.position,this.position,this.slope_normal);
@@ -688,22 +676,11 @@ export class Player extends DrawableEntity {
             }
         } 
 
-        // if(this.itemInHand.operate(this.mouse.isDown("left"))){
-        //     if(this.state === PlayerState.GROUND) this.state = PlayerState.AIR;
-
-        //     if(this.state === PlayerState.AIR) this.knockback(kb);
-            
-        //     // else if (this.state === PlayerState.GROUND) {
-        //     //     this.gspd += -kb.x * this.slope_normal.y
-        //     //     this.gspd += kb.y * this.slope_normal.x
-        //     // }
-        // }
 
         // Adjust drawing angle 
         const angle = Math.atan2(this.slope_normal.y, this.slope_normal.x) * RAD_TO_DEG;
 
-        if(this.keyboard.wasPressed("KeyW")) this.timeSincePressedJumpedButton = 0;
-
+ 
         this.slow_factor = 1;
 
         const slow_zone = this.game.collisionManager.first_tagged_collider_on_point(this.position, "SlowZone");
@@ -712,8 +689,6 @@ export class Player extends DrawableEntity {
             if(Vec2.distanceSquared(this.position, slow.owner.position) < slow.radius**2){
                 this.slow_factor = slow.slow_factor;
             }
-
-
         }
 
 
@@ -725,6 +700,7 @@ export class Player extends DrawableEntity {
             // this.yspd += dir.y;
         }
 
+        if(this.keyboard.wasPressed("KeyW")) this.timeSincePressedJumpedButton = 0;
         
         switch(this.state){
             case PlayerState.AIR: this.Air_State(); break;
@@ -745,8 +721,6 @@ export class Player extends DrawableEntity {
         this.velocity.add(dir);
         // this.xspd += dir.x;
         // this.yspd += dir.y;
-        // This works, because once I hit the ground (like if go sideways),
-        // gspd is calculated based on the xspd and yspd, 
     }  
 
     private wallSlideNormalIsValid(normal: Vec2): boolean {
@@ -1335,69 +1309,70 @@ export class RemotePlayer extends Entity {
         }
     }
 
-    setGhost(ghost: boolean){
-        this.ghost = ghost;
+    play_death_animation(){
+        this.ghost = true;
 
-        if(ghost){
-            this.graphics.graphics.clear();
+        this.graphics.graphics.clear();
 
-            this.runAnimation.container.visible = false;
-            this.wallslideAnimation.container.visible = false;
-            this.idleAnimation.container.visible = false;
-            this.climbAnimation.container.visible = false;
+        this.runAnimation.container.visible = false;
+        this.wallslideAnimation.container.visible = false;
+        this.idleAnimation.container.visible = false;
+        this.climbAnimation.container.visible = false;
 
-            this.scene.addEntity(new EmitterAttach(this,"BOOM", "particle.png"));
-            const {
-                headSprite,
-                bodySprite,
-                leftHandSprite,
-                rightHandSprite, 
-                leftFootSprite,
-                rightFootSprite
-            } = this.idleAnimation;
+        this.scene.addEntity(new EmitterAttach(this,"BOOM", "particle.png"));
+        const {
+            headSprite,
+            bodySprite,
+            leftHandSprite,
+            rightHandSprite, 
+            leftFootSprite,
+            rightFootSprite
+        } = this.idleAnimation;
 
 
-            const iter = [
-                headSprite,
-                bodySprite,
-                leftHandSprite,
-                rightHandSprite,
-                leftFootSprite,
-                rightFootSprite
-            ]
+        const iter = [
+            headSprite,
+            bodySprite,
+            leftHandSprite,
+            rightHandSprite,
+            leftFootSprite,
+            rightFootSprite
+        ]
 
+        
+        for(const i of iter){
+            const spr = new Sprite(i.texture);
+            spr.scale.set(2,2);
+
+            const e = new PhysicsDotEntity(this.engine.mouse, spr);
+
+            e.position.set(this.position);
+
+            e.velocity.set(new Vec2(random_range(-20, 20), random_range(-20, 20)));
             
-            for(const i of iter){
-                const spr = new Sprite(i.texture);
-                spr.scale.set(2,2);
+            this.game.entities.addEntity(e);
 
-                const e = new PhysicsDotEntity(this.engine.mouse, spr);
+            const tween = new NumberTween(e["sprite"],"alpha",6).from(1).to(.1).go();
 
-                e.position.set(this.position);
+            // tween.easingfunction
+            tween.delay(2)
 
-                e.velocity.set(new Vec2(random_range(-20, 20), random_range(-20, 20)));
-                
-                this.game.entities.addEntity(e);
+            tween.onFinish(() => {
+                e.destroy();
+            });
 
-                const tween = new NumberTween(e["sprite"],"alpha",6).from(1).to(.1).go();
-
-                // tween.easingfunction
-                tween.delay(2)
-
-                tween.onFinish(() => {
-                    e.destroy();
-                });
-
-                this.scene.addEntity(tween);
-            }
-            
-            
-        } else {
-            this.runAnimation.container.visible = true;
-            this.wallslideAnimation.container.visible = true;
-            this.idleAnimation.container.visible = true;
-            this.climbAnimation.container.visible = true;
+            this.scene.addEntity(tween);
         }
+        
+    }
+
+    make_visible(){
+        this.ghost = false;
+
+        this.runAnimation.container.visible = true;
+        this.wallslideAnimation.container.visible = true;
+        this.idleAnimation.container.visible = true;
+        this.climbAnimation.container.visible = true;
     }
 
     override onAdd(){

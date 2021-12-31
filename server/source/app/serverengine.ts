@@ -21,7 +21,7 @@ import { Rect } from "shared/shapes/rectangle";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { DeserializeShortString, DeserializeTypedArray, netv, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame } from "shared/core/abstractengine";
-import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityGhostPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet, ActionDo_ProjectileShotPacket, ActionDo_HitscanShotPacket, ActionDo_ShotgunShotPacket, AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet, ActionDo_BeamPacket } from "./networking/gamepacketwriters";
+import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, JoinLatePacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityDeathPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet, ActionDo_ProjectileShotPacket, ActionDo_HitscanShotPacket, ActionDo_ShotgunShotPacket, AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet, ActionDo_BeamPacket, ForcePositionPacket } from "./networking/gamepacketwriters";
 import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
@@ -619,6 +619,44 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 
 
+    kill_player(player_entity: ServerPlayerEntity){
+        player_entity.health = 0;
+        player_entity.dead = true;
+        
+        const playerID = player_entity.connectionID;
+        const connection = this.players.get(playerID);
+
+        console.log(`Player ${playerID} died!`);
+
+        this.activeScene.deadplayers.push(playerID);
+        this.entities.destroyEntity(player_entity);
+        this.activeScene.activePlayerEntities.remove(playerID);
+        
+        
+        connection.gamemode = ClientPlayState.GHOST;
+
+        // Tells the player that they are dead
+        connection.personalPackets.enqueue(
+            new SetGhostStatusPacket(true)
+        );
+
+        this.enqueueGlobalPacket(
+            new OtherPlayerInfoUpdateGamemodePacket(playerID, ClientPlayState.GHOST)
+        );
+
+        // Tells other players of this players' death
+        this.enqueueGlobalPacket(
+            new PlayerEntityDeathPacket(playerID)
+        );
+
+        // Tells them to teleport to another player, is a ghost
+        const pos = this.activeScene.activePlayerEntities.values().length > 0 ? choose(this.activeScene.activePlayerEntities.values()).position : new Vec2(this.activeScene.map_bounds.width / 2, 0);
+
+        connection.personalPackets.enqueue(
+            new ForcePositionPacket(pos.x,pos.y)
+        )
+    }
+
     // Reads from queue of data since last tick
     private readNetwork(){
         const packets = this.network.getPacketQueue();
@@ -986,6 +1024,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 
 
+
+
     private _boundLoop = this.loop.bind(this);
 
     // private __useless_calls_test = 0;
@@ -1043,34 +1083,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                 // Check for dead players
                 for(const playerEntity of this.activeScene.activePlayerEntities.values()){
 
-                    if(playerEntity.health <= 0){
-                        
-                        playerEntity.health = 0;
-                        playerEntity.dead = true;
-                        
-                        const playerID = playerEntity.connectionID;
-                        const connection = this.players.get(playerID);
-
-                        console.log(`Player ${playerID} died!`);
-
-                        this.activeScene.deadplayers.push(playerID);
-                        this.entities.destroyEntity(playerEntity);
-                        this.activeScene.activePlayerEntities.remove(playerID);
-                        
-                        
-                        connection.gamemode = ClientPlayState.GHOST;
-
-                        connection.personalPackets.enqueue(
-                            new SetGhostStatusPacket(true)
-                        );
-
-                        this.enqueueGlobalPacket(
-                            new OtherPlayerInfoUpdateGamemodePacket(playerID, ClientPlayState.GHOST)
-                        );
-
-                        this.enqueueGlobalPacket(
-                            new PlayerEntityGhostPacket(playerID)
-                        );   
+                    if(playerEntity.health <= 0 || !this.activeScene.player_death_bbox.contains(playerEntity.position)){
+                        this.kill_player(playerEntity);
                     }
                 }
 
@@ -1133,6 +1147,7 @@ class ServerScene {
     public readonly item_spawn_points: Vec2[] = [];
 
     public readonly levelbbox: Rect;
+    public readonly player_death_bbox: Rect;
     public readonly deadplayers: ConnectionID[] = [];
     
     // Set of player entities that are ALIVE!
@@ -1141,7 +1156,8 @@ class ServerScene {
     constructor(levelID: number, map_bounds: Rect){
         this.levelID = levelID;
         this.map_bounds = map_bounds;
-        this.levelbbox = new Rect(-100,-1000, map_bounds.width + 200, map_bounds.height + 1000);
+        this.levelbbox = Rect.from_corners(-400, -1000, map_bounds.width + 400, map_bounds.height + 600);
+        this.player_death_bbox = Rect.from_corners(-350, -1000, map_bounds.width + 350, map_bounds.height + 600);
     }
 
 

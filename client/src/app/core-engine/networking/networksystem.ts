@@ -694,11 +694,11 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
 
                             // If already exists locally, set its position at spawn spot
-                            const checkIfExists = this.remotePlayerEntities.get(pID);
-                            if(checkIfExists !== undefined){
+                            const other_player = this.remotePlayerEntities.get(pID);
+                            if(other_player !== undefined){
 
-                                checkIfExists.setGhost(false);
-                                checkIfExists.position.set({x,y});
+                                other_player.make_visible();
+                                other_player.position.set({x,y});
                                 continue;
                             }
 
@@ -713,7 +713,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             break;
                         }
-                        case GamePacket.PLAYER_ENTITY_GHOST:{
+                        case GamePacket.PLAYER_ENTITY_DEATH:{
                             // Find correct entity
                             const pId = stream.getUint8();
 
@@ -725,7 +725,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             if(e !== undefined){
                                 console.log(`Player ${pId} is now a ghost!`);
 
-                                e.setGhost(true);
+                                e.play_death_animation();
 
                                 // this.remotePlayerEntities.delete(pId);
                                 // this.game.entities.destroyEntity(e);

@@ -74,7 +74,7 @@ export class TerrainManager extends Subsystem {
     }
 
     pointInTerrain(point: Coordinate): boolean {
-        for(const p of this.grid.region(Rect.fromPoints(point))) {
+        for(const p of this.grid.region(Rect.from_points(point))) {
             if(p.polygon.contains(point)) return true;
         }
         
