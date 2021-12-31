@@ -161,9 +161,40 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
         this.network = new CallbackNetwork(settings, this.onmessage.bind(this));
     }
 
-    public connect(){
+    connect(){
         this.network.connect();
     }
+
+    quit_server(){
+        this.incShotID = 0;
+        this.packets.clear();
+        this.sendStream.clear_to_zero();
+        this.stagePacketsToSerialize = [];
+        this.generalPacketsToSerialize = [];
+
+        this.otherClients.clear();
+        this.remotePlayerEntities.clear();
+        this.remoteEntities.clear();
+
+        this.networked_entity_subset.clear();
+
+        this.MY_CLIENT_ID = -1;
+
+        this.currentPlayState = ClientPlayState.SPECTATING;
+
+        this.SERVER_IS_TICKING = false;
+
+        this.byteAmountReceived.clear();
+        this.bytesPerSecond = 0;
+
+        this.localShotIDToEntity.clear();
+        this.beamIDToEntity.clear();
+
+
+        this.network.disconnect();
+    }
+
+
 
     private onmessage(buffer: ArrayBuffer){
 
@@ -294,10 +325,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     readPackets(): void {
         if(this.network.CONNECTED && this.ALLOWED_TO_CONNECT){
 
-
-
             const now = Date.now();
-
 
             this._serverTime = now + this.CLOCK_DELTA;
             this._serverTick = this.calculateCurrentServerTick();
@@ -309,7 +337,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             }
 
 
-            // Calculation bytes per second
+            // Calculating bytes per second
             while(!this.byteAmountReceived.isEmpty() && this.byteAmountReceived.peekLeft().time < (now - 1000)){
                 this.byteAmountReceived.popLeft();
             }
@@ -384,7 +412,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             break;
 
                         }
-
                         // Other player connected to server
                         case GamePacket.OTHER_PLAYER_INFO_ADD: {
                             const uniqueID = stream.getUint8();
@@ -453,8 +480,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             break;
                         }
-
-
                         case GamePacket.REMOTE_ENTITY_CREATE: {
                             const sharedClassID = stream.getUint8();
                             const entityID = StreamReadEntityID(stream);
@@ -531,7 +556,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             break;
                         }
-
                         case GamePacket.REMOTE_FUNCTION_CALL:{
                             const functionID = stream.getUint8();
                             const functionName = RemoteFunctionLinker.getStringFromID(functionID)
@@ -542,7 +566,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             break;
                         }
-
                         case GamePacket.JOIN_LATE_INFO: {
                             const level = LevelRefLinker.IDToData(stream.getUint8());
 
@@ -1203,7 +1226,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                 stream.setFloat32(this.engine.mouse.x);
                 stream.setFloat32(this.engine.mouse.y);
                 stream.setUint8(player.animation_state);
-                stream.setBool(player.xspd < 0);
+                stream.setBool(player.velocity.x < 0);
                 stream.setBool(this.engine.mouse.isDown("left"));
                 stream.setBool(this.engine.keyboard.wasPressed("KeyF"));
                 stream.setBool(this.engine.keyboard.wasPressed("KeyQ"));       
@@ -1221,7 +1244,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             this.stagePacketsToSerialize = [];
 
 
-            // Only send if we actually wrong something to the stream
+            // Only send if we actually write something to the stream
             if(stream.size() > 1){
                 this.network.send(stream.cutoff());
             }

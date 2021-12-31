@@ -21,14 +21,11 @@ import { Player } from "../gamelogic/player";
 import { DummyLevel, GameLevel } from "./gamelevel";
 import { DebugScreen } from "../gamelogic/debugoverlay";
 import { Chatbox } from "../gamelogic/chatbox";
-import { ButtonWidget, LabelWidget, SpriteWidget, UIManager, WidgetAlphaTween, WidgetGroup } from "../ui/widget";
+import { ButtonWidget, LabelWidget, PanelWidget, SpriteWidget, UIManager, uisize, WidgetAlphaTween, WidgetGroup } from "../ui/widget";
 import { Color } from "shared/datastructures/color";
 import { mix, Vec2 } from "shared/shapes/vec2";
 import { LevelRef } from "shared/core/sharedlogic/assetlinker";
 import { DrawableEntity, Entity } from "./entity";
-import { TickTimer } from "shared/datastructures/ticktimer";
-import { random_range, chance } from "shared/misc/random";
-import { Line } from "shared/shapes/line";
 import { PhysicsDotEntity } from "../gamelogic/firstlevel";
 
 
@@ -217,6 +214,7 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
 
     // Scenes
     public mainmenu_scene: MainMenuScene;
+    public level_scene: LevelScene;
 
     initSystems(): void {
         this.networksystem = this.registerSystem(new NetworkSystem(this, {port:80}));
@@ -229,6 +227,7 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         this.debug = this.registerSystem(new DebugScreen(this));
 
         this.mainmenu_scene = this.addScene(new MainMenuScene(this));
+        this.level_scene = this.addScene(new LevelScene(this));
     }
 
     onStart(): void {
@@ -281,10 +280,6 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         level.internalStart();
 
         this.levelLoaded = true;
-
-
-        this.player = this.entities.addEntity(new Player())
-        // this.entities.addEntity(new EntityTest())
     }
 
     endCurrentLevel(){
@@ -315,51 +310,34 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
 export class MainMenuScene extends BearScene<NetworkPlatformGame> {
 
     init(): void {
-        
-    }
-
-    update(dt: number): void {
-
-    }
-
-    group = new WidgetGroup(new Vec2());
-
-    on_enable(): void {
-        
-        const bgColor = Color.fromNumber(0xd9f9ff);
-        bgColor.a = 1;
-        this.game.ui.setBackgroundColor(bgColor);
 
 
         const b = this.group.addChild((() => { 
+            
             const b = new ButtonWidget(new Vec2(), 200,100, () => {
+
+                console.log(this.game.ui["parent_widget"].children)
 
                 this.game.loadLevel(new DummyLevel(this.game, LevelRef.LEVEL_ONE));
                 this.game.disable_scene(this);
+
+                this.game.enable_scene(this.game.level_scene);
 
                 this.game.networksystem.connect();
             });
 
 
-            b.background_color.copyFrom(Color.fromNumber(0xdeadbeef));
+            b.background_color.copyFrom(Color.from(0xdeadbeef));
             b.draw_color.copyFrom(b.background_color);
             b.setPosition({type: "percent", percent: .50}, {type: "percent", percent: .50});
             b.center();
             return b;
         })());
 
-        
-
-        // this.game.ui.addWidget((() =>  { 
-        //     const b = new ButtonWidget(new Vec2(300,50), 100,50, () => console.log("123"));
-        //     b.background_color.copyFrom(Color.fromNumber(0xdeadbeef)) 
-        //     b.draw_color.copyFrom(b.background_color)
-        //     return b;
-        // })());
-        // const spr = this.game.ui.addWidget(new SpriteWidget(new Vec2(400,60), this.game.engine.renderer.getTexture("flower.png")))
+    
         {
             const label = new LabelWidget(new Vec2(), "Play");
-            label.setFontColor(Color.fromNumber(0x000000));
+            label.setFontColor(Color.from(0x000000));
             label.setPosition({type: "percent", percent: .50}, {type: "percent", percent: .50});
             label.center();
             
@@ -368,14 +346,39 @@ export class MainMenuScene extends BearScene<NetworkPlatformGame> {
 
         {
             const label = new LabelWidget(new Vec2(), "Networked Platform Game");
-            label.setFontColor(Color.fromNumber(0x000000));
+            label.setFontColor(Color.from(0x000000));
             label.setPosition({type: "percent", percent: .50}, {type: "percent", percent: .20});
             label.center();
             
             this.group.addChild(label);
         }
 
+    }
+
+    update(dt: number): void {
+        if(this.game.engine.keyboard.wasPressed("KeyH")){
+            this.game.player = this.game.entities.addEntity(new Player())
+        }
+    }
+
+    group = new WidgetGroup(new Vec2());
+
+    on_enable(): void {
+        const bgColor = Color.from(0xd9f9ff);
+        bgColor.a = 1;
+
+        this.game.ui.setBackgroundColor(bgColor);
         this.game.ui.addWidget(this.group);
+
+        // this.game.ui.addWidget((() =>  { 
+        //     const b = new ButtonWidget(new Vec2(300,50), 100,50, () => console.log("123"));
+        //     b.background_color.copyFrom(Color.fromNumber(0xdeadbeef)) 
+        //     b.draw_color.copyFrom(b.background_color)
+        //     return b;
+        // })());
+        // const spr = this.game.ui.addWidget(new SpriteWidget(new Vec2(400,60), this.game.engine.renderer.getTexture("flower.png")))
+
+
 
     }
 
@@ -389,17 +392,51 @@ export class MainMenuScene extends BearScene<NetworkPlatformGame> {
 
 export class LevelScene extends BearScene<NetworkPlatformGame> {
     
+    quit_to_main_menu(){
+        this.game.entities.clear();
+        this.game.player = null;
+
+        this.game.networksystem.quit_server();
+
+        this.game.endCurrentLevel();
+
+
+        this.game.disable_scene(this);
+        this.game.enable_scene(this.game.mainmenu_scene);
+        
+    }
+    
     init(): void {
-        throw new Error("Method not implemented.");
+
     }
+
+    escape_widget = new PanelWidget(new Vec2(),0,0).setSize(uisize.percent(1), uisize.percent(1)).setBackgroundColor(new Color([0,0,0,.25]));
+    exit_button = this.escape_widget.addChild(new ButtonWidget(new Vec2(20,20), 200, 98, ()=>{
+
+        this.quit_to_main_menu()
+
+    }).setHoverColor(Color.from(0x676e73)));
+    exit_text = this.exit_button.addChild(new LabelWidget(new Vec2(),"Exit").setPosition(uisize.percent(.5), uisize.percent(.5)).center().setFontColor(Color.WHITE));
+
     update(dt: number): void {
-        throw new Error("Method not implemented.");
+        if(this.game.engine.keyboard.wasPressed("Escape")){
+            if(this.escape_widget.parent === null){    
+                this.game.ui.addWidget(this.escape_widget);
+            } else {
+                this.game.ui.removeWidget(this.escape_widget)
+            }
+        }
     }
+
+    subset = this.game.entities.createSubset();
+
     on_enable(): void {
-        throw new Error("Method not implemented.");
+        // this.subset.addEntity(new PhysicsEntityTest())
     }
+
     on_disable(): void {
-        throw new Error("Method not implemented.");
+        this.subset.clear();
+        this.game.ui.removeWidget(this.escape_widget)
     }
 
 
@@ -407,7 +444,7 @@ export class LevelScene extends BearScene<NetworkPlatformGame> {
 
 
 
-class EntityTest extends Entity {
+class PhysicsEntityTest extends Entity {
     update(dt: number): void {
         if(this.engine.mouse.isDown("left")){
             const e = new PhysicsDotEntity(this.engine.mouse, "blank_string_sprite.png");

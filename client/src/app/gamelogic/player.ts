@@ -4,7 +4,7 @@ import { ColliderPart } from "shared/core/entitycollision";
 import { clamp, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/misc/mathutils";
 import { Line } from "shared/shapes/line";
 import { dimensions } from "shared/shapes/rectangle";
-import { drawCircle, drawCircleOutline, drawHealthBar, drawPoint } from "shared/shapes/shapedrawing";
+import { drawCircle, drawCircleOutline, drawProgressBar, drawPoint } from "shared/shapes/shapedrawing";
 import { angleBetween, Coordinate, rotatePoint, Vec2 } from "shared/shapes/vec2";
 import { TickTimer } from "shared/datastructures/ticktimer";
 
@@ -24,6 +24,7 @@ import { NumberTween } from "shared/core/tween";
 import { BoostDirection } from "./boostzone";
 import { InterpolatedVar } from "../core-engine/networking/cliententitydecorators";
 import { SlowAttribute } from "shared/core/sharedlogic/sharedattributes";
+import { ProgressBarWidget, uisize } from "../ui/widget";
 
 
 
@@ -196,7 +197,7 @@ class PlayerAnimationState {
 
 export class Player extends DrawableEntity {
 
-    private healthbar: Graphics;
+    private healthbar_widget = new ProgressBarWidget(new Vec2(),500,40);
     
     private readonly runAnimation = new PlayerAnimationState(this.engine.getResource("player/run.json").data as SavePlayerAnimation, 4, new Vec2(40,16));
     private readonly wallslideAnimation = new PlayerAnimationState(this.engine.getResource("player/wallslide.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
@@ -352,7 +353,9 @@ export class Player extends DrawableEntity {
     }
 
     override onAdd(){
-        this.healthbar = this.engine.renderer.createGUICanvas();
+
+        this.game.ui.addWidget(this.healthbar_widget.setPosition(uisize.percent(.5), uisize.pixels(30)).center());
+
 
 
         this.scene.addEntity(this.itemInHand);
@@ -371,7 +374,7 @@ export class Player extends DrawableEntity {
     }
 
     override onDestroy(){
-        this.healthbar.destroy();
+        this.game.ui.removeWidget(this.healthbar_widget);
 
         this.scene.destroyEntity(this.itemInHand)
         this.engine.renderer.removeSprite(this.runAnimation.container);
@@ -629,9 +632,7 @@ export class Player extends DrawableEntity {
 
     manualUpdate(dt: number): void {
         // Lock camera on me
-
-        if(this.keyboard.isDown("KeyJ")) this.gravity.drotate(1)
-        if(this.keyboard.isDown("KeyL")) this.gravity.drotate(-1)
+        this.healthbar_widget.percent = this.health / 100;
 
         if(this.keyboard.wasPressed("KeyC")){
             this.followCam = !this.followCam;
@@ -651,16 +652,13 @@ export class Player extends DrawableEntity {
             this.position.set({x : 600, y: 100});
         }
 
-        const health_width = 500;
-        const health_height = 40;
-        const x = this.engine.renderer.getPercentWidth(.5) - (health_width / 2);
-        const y = this.engine.renderer.getPercentHeight(0) + 20// - 60;
 
-        this.healthbar.clear();
+
         
-        if(!this.ghost) {
-            drawHealthBar(this.healthbar, x, y, health_width, health_height, this.health / 100, 1);
-        }
+        // if(!this.ghost) {
+
+        //     drawProgressBar(this.healthbar, x, y, health_width, health_height, this.health / 100, 1);
+        // }
 
         
     
@@ -1262,7 +1260,7 @@ export class Player extends DrawableEntity {
         drawPoint(g,this.position);
 
         if(!this.ghost){
-            drawHealthBar(g, this.x - 20, this.y - 40, 40, 7, this.health / 100, 1);
+            drawProgressBar(g, this.x - 20, this.y - 40, 40, 7, this.health / 100, 1);
         }
 
         // g.beginFill(0xFF00FF,.4)
@@ -1333,7 +1331,7 @@ export class RemotePlayer extends Entity {
             this.climbAnimation.tick();
 
             this.graphics.graphics.clear();
-            drawHealthBar(this.graphics.graphics, this.x - 20, this.y - 40, 40, 7, this.health / 100);
+            drawProgressBar(this.graphics.graphics, this.x - 20, this.y - 40, 40, 7, this.health / 100);
         }
     }
 

@@ -3,7 +3,7 @@ import { ITEM_LINKER } from "shared/core/sharedlogic/items";
 import { NetArg } from "shared/core/sharedlogic/networkschemas";
 import { Sprite } from "shared/graphics/graphics";
 import { ceil, floor } from "shared/misc/mathutils";
-import { randomInt } from "shared/misc/random";
+import { random_int } from "shared/misc/random";
 import { mix, Vec2 } from "shared/shapes/vec2";
 import { Entity } from "../entity";
 import { GraphicsPart, SpritePart } from "../parts";

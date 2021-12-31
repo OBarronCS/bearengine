@@ -3,7 +3,7 @@ import { SharedNetworkedEntities, SharedEntityLinker, SharedNetworkedEntityDefin
 import { NetworkVariableTypes, SerializeTypedVar, SerializeVec2, TypescriptTypeOfNetVar } from "shared/core/sharedlogic/serialization";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { TickTimer } from "shared/datastructures/ticktimer";
-import { randomChar, randomInt } from "shared/misc/random";
+import { randomChar, random_int } from "shared/misc/random";
 import { ServerEntity } from "../entity";
 
 
@@ -221,7 +221,7 @@ export class S_T_Sub extends S_T_Super {
     override update(dt: number): void {
         if(this.timer.tick()){
             this.subvar = randomChar();
-            this.supervar = randomInt(0,100000)
+            this.supervar = random_int(0,100000)
         }
     }
 }

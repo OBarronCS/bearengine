@@ -26,7 +26,10 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
     private other_client_info_panel: PanelWidget;
     private other_client_info_text: LabelWidget;
 
+    private collision_drawer: Debug = null;
+
     init(): void {
+        this.left_panel.setVisible(false);
         this.game.ui.addWidget(this.left_panel);
 
         const width = 480;
@@ -38,7 +41,7 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
         this.other_client_info_panel = new PanelWidget(new Vec2(), width, height);
         this.other_client_info_panel.setPosition({type:"percent", percent: x_percent}, {type:"pixels", pixels:y});
         this.other_client_info_panel.center();
-        this.other_client_info_panel.background_color = Color.fromNumber(0x0000FF);
+        this.other_client_info_panel.setBackgroundColor(Color.from(0x0000FF));
         this.other_client_info_panel.background_color.a = .1
 
         this.other_client_info_text = this.other_client_info_panel.addChild(new LabelWidget(new Vec2(), ""));
@@ -49,7 +52,7 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
     }
 
 
-    private collision_drawer: Debug = null;
+
 
     update(delta: number): void {
         this.mouse_position.text = `World: ${round(this.engine.mouse.position.x, 1)},${round( this.engine.mouse.position.y, 1)}`;

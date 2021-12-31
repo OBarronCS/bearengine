@@ -8,7 +8,7 @@ import { GraphNode, LiveGridGraph } from "shared/datastructures/graphs";
 import { SparseGrid } from "shared/datastructures/hashtable";
 import { HermiteCurve } from "shared/datastructures/paths";
 import { GridQuadNode, GridQuadTree, LiveGridQuadTree, QuadTree } from "shared/datastructures/quadtree";
-import { chance, fillFunction, random, randomInt, randomRangeSet, random_range } from "shared/misc/random";
+import { randomRangeSet } from "shared/misc/random";
 import { Ellipse } from "shared/shapes/ellipse";
 import { Line } from "shared/shapes/line";
 import { Polygon } from "shared/shapes/polygon";

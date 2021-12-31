@@ -824,7 +824,7 @@ function CreateLightningLines(start_point: Coordinate, end_point: Coordinate, it
             newLines.push(new Line(midPoint, line.B));
 
             /// sometimes, split!
-            if(chance(18)){
+            if(chance(.18)){
                 const dir = Vec2.subtract(midPoint, line.A);
                 dir.drotate(random_range(-30,30)).scale(.7).add(midPoint);
                 newLines.push(new Line(midPoint, dir));

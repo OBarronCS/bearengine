@@ -1,7 +1,7 @@
 import { Effect, Effect2 } from "shared/core/effects";
 import { Clip, CreateShootController, GunshootController, SHOT_LINKER, SimpleWeaponControllerDefinition } from "shared/core/sharedlogic/weapondefinitions";
 import { TickTimer } from "shared/datastructures/ticktimer";
-import { randomInt, random_range } from "shared/misc/random";
+import { random_int, random_range } from "shared/misc/random";
 import { Line } from "shared/shapes/line";
 import { Coordinate, Vec2 } from "shared/shapes/vec2";
 
@@ -154,7 +154,7 @@ export class PlayerSwapperItem extends SBaseItem<"swap_item"> {
         }
         
         // Pick a random other player to swap with
-        const other_player = all_players.filter(p => p !== creator.playerEntity)[randomInt(0,all_players.length - 1)];
+        const other_player = all_players.filter(p => p !== creator.playerEntity)[random_int(0,all_players.length - 1)];
 
         creator.personalPackets.enqueue(
             new ForcePositionPacket(other_player.x, other_player.y)
@@ -627,68 +627,6 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
                 this.mark_dirty("pos");
                 const status = SimpleBouncePhysics(this.game.terrain,this.pos, this.velocity, this.bouncing_gravity, this.slow_factor);
                 if(status.stopped) this.mode = ItemEntityPhysicsMode.ASLEEP;
-                // // Gravity
-                // this.velocity.add(this.bouncing_gravity);
-
-                // const destination = Vec2.add(this.velocity,this.pos);
-
-                // // If no terrain hit, proceed
-                // const test = this.game.terrain.lineCollisionExt(this.pos, destination);
-
-                // if(test === null){
-                //     this.pos.add(this.velocity);
-                // } else {
-
-                //     if(this.velocity.length() <= 3){
-                //         this.mode = ItemEntityPhysicsMode.ASLEEP;
-                //     }
-                //     // Could potentially bounce multiple times;
-
-                //     let last_test = test;
-                //     let distanceToMove = this.velocity.length();
-
-                //     const max_iter = 10;
-                //     let i = 0;
-
-                //     while(distanceToMove > 0 && i++ < max_iter){
-                //         // console.log("Tick: " + this.game.tick, " " + distanceToMove)
-
-                //         const distanceToPoint = Vec2.subtract(last_test.point,this.pos).length();
-
-                //         // const distanceAfterBounce = distanceToMove - distanceToPoint;
-
-                //         // Set my position to colliding point, then do more logic later
-                //         this.pos.set(last_test.point);
-
-                //         // Bounce off of wall, set velocity
-                //         Vec2.bounce(this.velocity, last_test.normal, this.velocity);
-
-                        
-
-                //         // Slows done
-                //         this.velocity.scale(this.slow_factor);
-
-                //         distanceToMove -= distanceToPoint;
-                //         distanceToMove *= this.slow_factor;
-
-                //         // const lastStretchVel = this.velocity.clone().normalize().scale(distanceAfterBounce);
-                //         const lastStretchVel = this.velocity.clone().normalize().scale(distanceToMove);
-                //         // Move forward
-                //         const bounce_test = this.game.terrain.lineCollisionExt(this.pos, Vec2.add(this.pos, lastStretchVel));
-
-                //         if(bounce_test === null || bounce_test.normal.equals(last_test.normal)){
-                //             this.pos.add(lastStretchVel);
-
-                //             if(this.game.terrain.pointInTerrain(this.pos)) this.mode = ItemEntityPhysicsMode.ASLEEP;
-                //             break;
-                //         }
-
-                //         last_test = bounce_test   
-                //     }
-
-
-                // }
-
 
                 break;
             }

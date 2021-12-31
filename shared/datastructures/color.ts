@@ -36,7 +36,7 @@ has hsl conversion algorithm
 https://drafts.csswg.org/css-color/#funcdef-hsl
 */
 
-import { randomInt } from "shared/misc/random";
+import { random_int } from "shared/misc/random";
 import { floor, lerp, string2hex } from "shared/misc/mathutils";
 
 
@@ -44,23 +44,25 @@ export function rgb(r: number,g: number,b: number,a = 1): Color{
     return new Color([r,g,b,a]);
 }
 
+/** r,g,a are integers in range [0,255]. a is a float in range [0,1] */
 export class Color {
 
     static RED: Readonly<Color> = new Color([255,0,0,1]);
     static GREEN: Readonly<Color> = new Color([0,255,0,1]);
     static BLUE: Readonly<Color> = new Color([0,0,255,1]);
+    static WHITE: Readonly<Color> = new Color([255,255,255,1]);
 
     static random(): Color {
-        return new Color([randomInt(0,256), randomInt(0,256), randomInt(0,256), 1]);
+        return new Color([random_int(0,256), random_int(0,256), random_int(0,256), 1]);
     }
 
     /** "[#]RRGGBB" */
-    static fromString(str: string): Color {
-        return this.fromNumber(string2hex(str));
+    static from_string(str: string): Color {
+        return this.from(string2hex(str));
     }
 
     /** 0xRRGGBB */
-    static fromNumber(num: number): Color {
+    static from(num: number): Color {
         const r = (num & 0xFF0000) >>> 16;
         const g = (num & 0x00FF00) >>> 8;
         const b = num & 0x0000FF;
@@ -76,7 +78,7 @@ export class Color {
         return new Color([...this.values])
     }
 
-    copyFrom(color: Color): this {
+    copyFrom(color: Readonly<Color>): this {
         this.values[0] = color.values[0];
         this.values[1] = color.values[1];
         this.values[2] = color.values[2];

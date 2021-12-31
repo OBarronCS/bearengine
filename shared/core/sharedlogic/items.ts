@@ -1,6 +1,6 @@
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable } from "shared/misc/assertstatements";
-import { randomInt, random_hash } from "shared/misc/random";
+import { random_int, random_hash } from "shared/misc/random";
 import { Vec2 } from "shared/shapes/vec2";
 import { SharedNetworkedEntities } from "./networkschemas";
 import { DefineSchema, GenerateLinker, TypescriptTypeOfNetVar } from "./serialization";
@@ -232,7 +232,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
 export const ITEM_LINKER = GenerateLinker(MIGRATED_ITEMS);
 
 export function RandomItemID(): number {
-    return randomInt(0,ITEM_LINKER.count);
+    return random_int(0,ITEM_LINKER.count);
 }
 
 

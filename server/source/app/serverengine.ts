@@ -30,13 +30,13 @@ import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
 import { BeamEffect_S, ForceFieldEffect, ForceFieldItem_S, ItemActivationType, ItemEntity, ItemEntityPhysicsMode, PlayerSwapperItem, SBaseItem, ServerShootHitscanWeapon, ServerShootProjectileWeapon, SHitscanWeapon, ShotgunWeapon_S, SProjectileWeaponItem } from "./weapons/serveritems";
 import { commandDispatcher } from "./servercommands";
 
-import "server/source/app/weapons/serveritems.ts"
-import { random, randomInt, random_range } from "shared/misc/random";
+import { random, random_int, random_range } from "shared/misc/random";
 import { Effect, Effect2 } from "shared/core/effects";
 import { BeamActionType, ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { LevelRefLinker, LevelRef } from "shared/core/sharedlogic/assetlinker";
 import { choose, shuffle } from "shared/datastructures/arrayutils";
 import { DEG_TO_RAD, floor, RAD_TO_DEG } from "shared/misc/mathutils";
+import "server/source/app/weapons/serveritems.ts"
 
 const MAX_BYTES_PER_PACKET = 2048;
 
@@ -1029,7 +1029,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         const location = choose(this.activeScene.item_spawn_points);
                         item.pos.set(location);
                     } else {
-                        item.pos.x = randomInt(100, this.activeScene.map_bounds.width - 100);
+                        item.pos.x = random_int(100, this.activeScene.map_bounds.width - 100);
                     }
 
                     if(random() > .99){

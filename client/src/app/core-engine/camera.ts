@@ -196,7 +196,10 @@ export class CameraSystem  {
         const dy = MAX_OFFSET_SHAKE * shake * smoothNoise(seed + 2000);
 
         this.container.angle = this.baseDangle + shakeAngle;
-        this.container.pivot.copyFrom({x: this.center.x + dx,y: this.center.y + dy});
+
+        const pivot = mix({x: this.center.x + dx,y: this.center.y + dy}, this.engine.mouse.position, 0);
+
+        this.container.pivot.copyFrom(pivot);
 
         if(this.bounds !== null){
             if(this.left < this.bounds.min.x) this.container.pivot.x = this.viewWidth / 2;

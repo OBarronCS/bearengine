@@ -1,4 +1,4 @@
-import { randomInt } from "./random";
+import { random_int } from "./random";
 
 export function clamp(value: number, min: number, max: number){
     return Math.min(Math.max(value, min), max);
@@ -153,7 +153,7 @@ const colors = [
 ]
 
 export function niceColor(): number {
-    const index = randomInt(0,colors.length)
+    const index = random_int(0,colors.length)
     return string2hex(colors[index]);
 }
 

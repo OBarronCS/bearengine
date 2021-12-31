@@ -1,6 +1,6 @@
 
 
-import { randomInt } from "shared/misc/random";
+import { random_int } from "shared/misc/random";
 import { shuffle } from "./arrayutils";
 
 
@@ -28,7 +28,7 @@ export class RandomizedBag<T> {
     public random(): T {
         if (this.isEmpty()) return null;
 
-        const index = randomInt(0,this.items.length);
+        const index = random_int(0,this.items.length);
         const item: T = this.items[index];
 
         // put the end of the array value to this index
@@ -43,7 +43,7 @@ export class RandomizedBag<T> {
     public sample(): T {
         if (this.isEmpty()) return null;
 
-        const index = randomInt(0,this.items.length);
+        const index = random_int(0,this.items.length);
         return this.items[index];
     }
 

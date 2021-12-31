@@ -7,6 +7,7 @@ import { BearGame } from "shared/core/abstractengine";
 import { BearEngine } from "../core-engine/bearengine";
 import { Tween } from "shared/core/tween";
 import { lerp } from "shared/misc/mathutils";
+import { drawProgressBar } from "shared/shapes/shapedrawing";
 
 export class UIManager extends Subsystem<BearGame<BearEngine>> {
     
@@ -83,8 +84,10 @@ export class UIManager extends Subsystem<BearGame<BearEngine>> {
             w.mouse_leave();
             w.markDirty();
             for(const c of w.children) { 
-                console.log("NOT RECURSIVE");
-                w.mouse_leave() 
+                c.mouse_leave();
+                // Will call mouse_leave of all of its children, because they are all inside of this
+                this.mouse_hit_test(c, mouse_position, mouse_down, mouse_pressed, mouse_released, mouse_clicked);
+
             };
         }
     }
@@ -122,7 +125,7 @@ type SizeInfo = {
 
 // widget --> parent-width
 
-const uisize = {
+export const uisize = {
     pixels(p:number){ return { type: "pixels", pixels: p } as const },
     percent(p: number){ return { type: "percent", percent: p } as const },
 }
@@ -146,7 +149,7 @@ abstract class BearWidget {
 
 
 
-    background_color: Color = new Color([0,0,0,1]);
+    readonly background_color: Color = new Color([0,0,0,1]);
 
     container: Container = new Container();
     graphics: Graphics = new Graphics();
@@ -212,8 +215,10 @@ abstract class BearWidget {
         if(index !== -1){
             this.container.removeChild(w.container);
         
-            this.children.splice(index,1)
+            this.children.splice(index,1);
     
+            w.parent = null;
+
             this.markDirty();
         }
         
@@ -233,6 +238,11 @@ abstract class BearWidget {
         this.position_info.x = x;
         this.position_info.y = y;
 
+        return this;
+    }
+
+    setBackgroundColor(c: Color): this {
+        this.background_color.copyFrom(c);
         return this;
     }
 
@@ -330,7 +340,7 @@ export class WidgetGroup extends BearWidgetAdapter {
 
 /* Groups Widgets Together */
 export class PanelWidget extends BearWidgetAdapter {
-    
+
     protected draw(): void {
         this.graphics.beginFill(this.background_color.hex(), this.background_color.a);
         this.graphics.drawRect(0, 0, this.width, this.height);
@@ -367,11 +377,6 @@ export class LabelWidget extends BearWidgetAdapter {
         this.text_render.position.set(pos.x, pos.y);
     }
 
-    override setPosition(x: UISizeType, y: UISizeType): this {
-        super.setPosition(x, y);
-        return this;
-    }
-
     override center(): this {
         super.center();
         const metrics = TextMetrics.measureText(this.text_render.text, this.text_style);
@@ -381,8 +386,9 @@ export class LabelWidget extends BearWidgetAdapter {
         return this;
     }
 
-    setFontColor(color: Color){
+    setFontColor(color: Readonly<Color>): this {
         this.text_render.style.fill = color.hex();
+        return this;
     }
 
  
@@ -418,14 +424,19 @@ export class ExpandingTextPanel extends BearWidgetAdapter {
 
 export class ButtonWidget extends BearWidgetAdapter {
     
-    draw_color = this.background_color.clone();
-    hover_color = new Color([0,255,0,1])
+    draw_color: Color = new Color([0,0,0,1]);
+    hover_color: Color = new Color([0,255,0,1])
 
     on_click_cb: () => void;
 
     constructor(pos: Vec2, width: number, height: number, cb: () => void){
         super(pos,width,height);
         this.on_click_cb = cb;
+    }
+
+    setHoverColor(c: Readonly<Color>): this {
+        this.hover_color.copyFrom(c);
+        return this;
     }
 
     override mouse_pressed(){
@@ -460,6 +471,21 @@ export class SpriteWidget extends BearWidgetAdapter {
 
     protected draw(): void {
 
+    }
+
+}
+
+export class ProgressBarWidget extends BearWidgetAdapter {
+
+    _percent = 0;
+    
+    set percent(n: number){
+        this._percent = n;
+        this.markDirty();
+    }
+
+    protected draw(): void {
+        drawProgressBar(this.graphics, 0, 0, this.width, this.height, this._percent, 1);
     }
 
 }

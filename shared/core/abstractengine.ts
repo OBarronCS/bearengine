@@ -42,31 +42,32 @@ export abstract class BearGame<TEngine extends {}, TEntity extends AbstractEntit
         return system;
     }
 
-    private scenes: BearScene<any>[] = [];
+    private iterated_scenes: BearScene<any>[] = [];
 
     protected updateScenes(dt: number){
-        for(const scene of this.scenes){
+        for(const scene of this.iterated_scenes){
             scene.update(dt);
         }
     }
 
+    // Adds it to the list of scenes being iterated
     enable_scene(scene: BearScene<any>){
-        this.scenes.push(scene);
+        this.iterated_scenes.push(scene);
         scene.on_enable();
         scene.enabled = true;
     }
 
     disable_scene(scene: BearScene<any>){
         let i: number;
-        if((i = this.scenes.indexOf(scene)) !== -1 ){
-            this.scenes.splice(i,1);
+        if((i = this.iterated_scenes.indexOf(scene)) !== -1 ){
+            this.iterated_scenes.splice(i,1);
 
             scene.on_disable();
         }
     }
 
     protected addScene<T extends BearScene<any>>(scene: T): T {
-        this.scenes.push(scene);
+        // this.scenes.push(scene);
         scene.init();
         return scene;
     }
@@ -83,6 +84,7 @@ export abstract class BearScene<TGame extends BearGame<any, any>> {
 
     abstract init(): void;
     abstract update(dt: number): void;
+    // Called EVERY TIME the scene is enabled.
     abstract on_enable(): void;
     abstract on_disable(): void;
     // enable()

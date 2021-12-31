@@ -1,6 +1,6 @@
 
 
-import { randomInt } from "shared/misc/random";
+import { random_int } from "shared/misc/random";
 import { filledArray } from "./arrayutils";
 
 
@@ -40,8 +40,8 @@ export class Grid {
         const height = grid[0].length;
         for (let i = width - 1; i > 0; i--) {
             for (let j = height - 1; j > 0; j--) {
-                const x = randomInt(0,i + 1);
-                const y = randomInt(0,j + 1);
+                const x = random_int(0,i + 1);
+                const y = random_int(0,j + 1);
     
                 const temp = grid[i][j];
                 grid[i][j] = grid[x][y];
