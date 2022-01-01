@@ -11,7 +11,6 @@ class KeyPressInfo {
     toString(): string {
         return `code:'${this.code}', char:'${this.char}'`;
     }
-
 }
 
 export class EngineKeyboard {

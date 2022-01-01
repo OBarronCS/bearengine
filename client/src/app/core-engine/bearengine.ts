@@ -17,7 +17,7 @@ import { CameraSystem } from "./camera";
 import { NetworkSystem } from "./networking/networksystem";
 import { DefaultEntityRenderer, RendererSystem } from "./renderer";
 import { TestMouseDownEventDispatcher } from "./mouseevents";
-import { Player } from "../gamelogic/player";
+import { Player, player_controls_map } from "../gamelogic/player";
 import { DummyLevel, GameLevel } from "./gamelevel";
 import { DebugScreen } from "../gamelogic/debugoverlay";
 import { Chatbox } from "../gamelogic/chatbox";
@@ -27,6 +27,7 @@ import { mix, Vec2 } from "shared/shapes/vec2";
 import { LevelRef } from "shared/core/sharedlogic/assetlinker";
 import { DrawableEntity, Entity } from "./entity";
 import { PhysicsDotEntity } from "../gamelogic/firstlevel";
+import { DefaultInputController } from "../input/inputcontroller";
 
 
 
@@ -216,6 +217,12 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
     public mainmenu_scene: MainMenuScene;
     public level_scene: LevelScene;
 
+    //
+
+    public player_controller = new DefaultInputController(this.engine.keyboard, this.engine.mouse, player_controls_map);
+
+
+
     initSystems(): void {
         this.networksystem = this.registerSystem(new NetworkSystem(this, {port:80}));
         this.terrain = this.registerSystem(new TerrainManager(this));
@@ -308,6 +315,7 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
 
 
 export class MainMenuScene extends BearScene<NetworkPlatformGame> {
+    group = new WidgetGroup(new Vec2());
 
     init(): void {
 
@@ -355,14 +363,9 @@ export class MainMenuScene extends BearScene<NetworkPlatformGame> {
 
     }
 
-    update(dt: number): void {
-        if(this.game.engine.keyboard.wasPressed("KeyH")){
-            this.game.player = this.game.entities.addEntity(new Player())
-        }
-    }
+    update(dt: number): void {}
 
-    group = new WidgetGroup(new Vec2());
-
+    
     on_enable(): void {
         const bgColor = Color.from(0xd9f9ff);
         bgColor.a = 1;
@@ -422,9 +425,15 @@ export class LevelScene extends BearScene<NetworkPlatformGame> {
         if(this.game.engine.keyboard.wasPressed("Escape")){
             if(this.escape_widget.parent === null){    
                 this.game.ui.addWidget(this.escape_widget);
+                this.game.player_controller.disable();
             } else {
-                this.game.ui.removeWidget(this.escape_widget)
+                this.game.ui.removeWidget(this.escape_widget);
+                this.game.player_controller.enable();
             }
+        }
+
+        if(this.game.engine.keyboard.wasPressed("KeyH")){
+            this.game.player = this.game.entities.addEntity(new Player())
         }
     }
 
@@ -436,7 +445,8 @@ export class LevelScene extends BearScene<NetworkPlatformGame> {
 
     on_disable(): void {
         this.subset.clear();
-        this.game.ui.removeWidget(this.escape_widget)
+        this.game.ui.removeWidget(this.escape_widget);
+        this.game.player_controller.enable();
     }
 
 

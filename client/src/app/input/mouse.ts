@@ -14,8 +14,7 @@ export interface MouseInput {
     readonly screenPosition: Vec2;
     // movement of mouse from last step to this step
     readonly velocity: Vec2;
-    // Use it a bit and see if the sign should be automatically flipped
-    /** Either -1, 0, or 1 to indicate how the direction of the current mouse scroll*/
+    /** Either -1, 0, or 1 to indicate the direction of the current mouse scroll */
     readonly scroll: number,
 
 
@@ -29,7 +28,7 @@ export interface MouseInput {
     onmousemove(func: (worldPoint:Vec2,screenPoint:Vec2) => void): void,
 }
 
-export class EngineMouse {
+export class EngineMouse implements MouseInput {
 
     public engine: BearEngine;
     constructor(engine: BearEngine){
@@ -59,7 +58,7 @@ export class EngineMouse {
     // holds buttons that are currently being held down (true as long as still down)
     private down: [boolean, boolean, boolean] = [false, false,false];
 
-    private stringToKey = {"left":0,"middle":1,"right":2}
+    private readonly stringToKey = {"left":0,"middle":1,"right":2}
 
     // click --> called once when left mouse button down and up
     private _click: ((worldPoint:Vec2,screenPoint:Vec2) => void)[] = [];

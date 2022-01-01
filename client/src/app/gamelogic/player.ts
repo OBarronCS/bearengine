@@ -25,6 +25,7 @@ import { BoostDirection } from "./boostzone";
 import { InterpolatedVar } from "../core-engine/networking/cliententitydecorators";
 import { SlowAttribute } from "shared/core/sharedlogic/sharedattributes";
 import { ProgressBarWidget, uisize } from "../ui/widget";
+import { CreateInputConverter, inputv } from "../input/inputcontroller";
 
 
 
@@ -192,6 +193,16 @@ class PlayerAnimationState {
         this.rightFootSprite.y = this.rightFootTextures[frame].y
     }
 }
+
+export const player_controls_map = CreateInputConverter(
+    {
+        jump: inputv.key("KeyW"),
+        move_left:inputv.key("KeyA"),
+        move_right:inputv.key("KeyD"),
+        shoot:inputv.mouse("left"),
+    }
+);
+
 
 
 
@@ -671,7 +682,7 @@ export class Player extends DrawableEntity {
         
         if(this.usable_item !== null){
             if(!this.usable_item.consumed){
-                const consumed = this.usable_item.operate(dt, this.position, this.mouse.position, this.mouse.isDown("left"), this.game, this);
+                const consumed = this.usable_item.operate(dt, this.position, this.mouse.position, this.game.player_controller.isDown("shoot"), this.game, this);
                 this.usable_item.consumed = consumed;
             }
         } 
@@ -700,7 +711,7 @@ export class Player extends DrawableEntity {
             // this.yspd += dir.y;
         }
 
-        if(this.keyboard.wasPressed("KeyW")) this.timeSincePressedJumpedButton = 0;
+        if(this.game.player_controller.wasPressed("jump")) this.timeSincePressedJumpedButton = 0;
         
         switch(this.state){
             case PlayerState.AIR: this.Air_State(); break;
@@ -876,7 +887,7 @@ export class Player extends DrawableEntity {
         // this.last_ground_yspd = this.yspd;
 
         // Change gspd based on input
-        const horz_move = +this.keyboard.isDown("KeyD") - +this.keyboard.isDown("KeyA");
+        const horz_move = +this.game.player_controller.isDown("move_right") - +this.game.player_controller.isDown("move_left");
 
         // Set ground speed
         if (horz_move === -1) { // Left
@@ -982,7 +993,7 @@ export class Player extends DrawableEntity {
         this.runAnimation.xFlip(horz_move);
 
         // Check for jumping
-        const jumpButtonDown = this.keyboard.isDown("KeyW");
+        const jumpButtonDown = this.game.player_controller.isDown("jump");
         
         // JUMP
         if(jumpButtonDown || (this.timeSincePressedJumpedButton <= this.timeSincePressedAllowed)){
@@ -1023,7 +1034,7 @@ export class Player extends DrawableEntity {
             }
         }
 
-        const horz_move = +this.keyboard.isDown("KeyD") - +this.keyboard.isDown("KeyA");   
+        const horz_move = +this.game.player_controller.isDown("move_right") - +this.game.player_controller.isDown("move_left");  
 
         if (horz_move === -1) {
             if (this.velocity.x > 0) {

@@ -120,8 +120,6 @@ export class PhysicsDotEntity extends DrawableEntity {
 
 // scene.addEntity(new CircleLineIntersectionTest);
 
-// this.p = scene.addEntity(new Player());
-
 // this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["BOOM"], 0,0);
 
 // scene.addEntity(new PolygonExpandTest)

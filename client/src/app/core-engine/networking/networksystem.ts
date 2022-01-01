@@ -610,6 +610,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             this.networked_entity_subset.clear();
                             this.remoteEntities.clear();
 
+                            this.beamIDToEntity.forEach(v => v.destroy());
+                            this.beamIDToEntity.clear();
+
                             
                             const x = stream.getFloat32();
                             const y = stream.getFloat32();
