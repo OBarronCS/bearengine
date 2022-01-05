@@ -285,20 +285,20 @@ export class Player extends DrawableEntity {
     leftHeadRay: Line;
     rightHeadRay: Line;
 
-    downRayAdditionalLength = 6;
+    private readonly downRayAdditionalLength = 6;
     leftDownRay: Line;
     midDownRay: Line;
     rightDownRay: Line;
 
     
 
-    wallSensorLength = 16 + 5;
+    private readonly wallSensorLength = 16 + 5;
     rightWallRay: Line;
     leftWallRay: Line;
 
-    slideSensorLength = this.wallSensorLength + 16;
+    private readonly slideSensorLength = this.wallSensorLength + 16;
 
-    climbSensorLength = this.wallSensorLength + 5;
+    private readonly climbSensorLength = this.wallSensorLength + 5;
     
     rightClimbRay: Line = new Line(new Vec2(0,0), new Vec2(0,0));
     leftClimbRay: Line = new Line(new Vec2(0,0), new Vec2(0,0));
@@ -798,7 +798,7 @@ export class Player extends DrawableEntity {
 
         //while below timer, slow yspd to 0
         if(this.slideStateData.timeSliding < this.timeToSlide){
-            this.velocity.y = lerp(this.velocity.y,0,.3);
+            this.velocity.y = lerp(this.velocity.y,0,.25);
         } else {
             this.velocity.y = lerp(this.velocity.y,3.6,.1);
         }
@@ -832,6 +832,16 @@ export class Player extends DrawableEntity {
                 this.velocity.x = 0;
                 this.setAnimationSprite(AnimationState.RUN);
             }
+
+            if(this.game.player_controller.isDown("move_left")){
+                this.state = PlayerState.AIR;
+                // this.velocity.y = -14
+                this.velocity.x = -3
+
+                this.setAnimationSprite(AnimationState.RUN);
+                this.ticksSinceGroundState = -3;
+                // this.timeSincePressedJumpedButton = this.timeSincePressedAllowed
+            }
         } else {
             const leftWall = this.getLeftWallCollisionPoint();
             
@@ -851,6 +861,14 @@ export class Player extends DrawableEntity {
                 this.state = PlayerState.AIR;
                 this.velocity.x = 0;
                 this.setAnimationSprite(AnimationState.RUN);
+            }
+
+            if(this.game.player_controller.isDown("move_right")){
+                this.state = PlayerState.AIR;
+                // this.velocity.y = -14
+                this.velocity.x = 3
+                this.ticksSinceGroundState = -3;
+                this.setAnimationSprite(AnimationState.RUN)
             }
         }
         
@@ -1025,6 +1043,7 @@ export class Player extends DrawableEntity {
         // gravity
         this.ticksSinceGroundState += 1;
 
+        // Coyote time jump
         if(this.ticksSinceGroundState <= this.COYOTE_TIME){
             if(this.timeSincePressedJumpedButton <= this.timeSincePressedAllowed){
                 this.timeSincePressedJumpedButton = 10000;
@@ -1076,16 +1095,75 @@ export class Player extends DrawableEntity {
         this.velocity.y = clamp(this.velocity.y, -100, 20);
 
         
-        // In air, collision checking is different than on ground.
-        // First MOVE player, then snap player out of walls
+        const xdir = sign(this.velocity.x);
+        const ydir = sign(this.velocity.y);
 
-        this.position.add(this.velocity);
+        this.setWallSensorsEven();
+        // Checks wall slide BEFORE movement
+        if(xdir > 0){
+            this.rightWallRay.B.x += this.velocity.x;
+            this.rightClimbRay.B.x += this.velocity.x
+            const rightWall = this.getRightWallCollisionPoint();
+
+            // If hit wall, adjust speed so don't hit wall
+            if(rightWall.collision){ //  || Vec2.dot(wall_test.normal, this.slope_normal) > .3
+
+
+                this.x = rightWall.point.x - this.wallSensorLength;
+                this.velocity.x = 10;
+
+                if(rightWall.both && this.wallSlideNormalIsValid(rightWall.normal)){
+
+                    if(ydir > 0){
+                        this.state = PlayerState.WALL_SLIDE;
+                        this.slideStateData = {
+                            right: true,
+                            timeSliding: 0
+                        }
+
+                        this.setAnimationSprite(AnimationState.WALL);
+                        return;
+                    } else {
+                        const distanceInWall = this.rightWallRay.B.x - rightWall.point.x;
+                        
+                    }
+                }
+
+            }
+        } else if(xdir < 0) {
+            this.leftWallRay.B.x += this.velocity.x;
+            this.leftClimbRay.B.x += this.velocity.x
+
+            const leftWall = this.getLeftWallCollisionPoint();
+
+            if(leftWall.collision){
+                
+                this.x = leftWall.point.x + this.wallSensorLength;
+                this.velocity.x = -10;
+
+                if(leftWall.both && this.wallSlideNormalIsValid(leftWall.normal)){
+                    if(ydir > 0){
+                        this.state = PlayerState.WALL_SLIDE;
+                        this.slideStateData = {
+                            right: false,
+                            timeSliding: 0
+                        }
+                        this.setAnimationSprite(AnimationState.WALL);
+                        return;
+                    } else {
+                        const distanceInWall = leftWall.point.x - this.leftWallRay.B.x;
+                       
+                    }
+                }
+            }
+        }
+
+        // Move player
+        this.position.add(this.velocity)
 
         // this.position.x += this.xspd / this.slow_factor;
         // this.position.y += this.yspd / this.slow_factor; 
 
-        const xdir = sign(this.velocity.x);
-        const ydir = sign(this.velocity.y);
         
 
         // WALLS, and wall sliding
@@ -1130,7 +1208,7 @@ export class Player extends DrawableEntity {
 
         // Check for CLIMBING
         this.setSensorLocations();
-        if(horz_move > 0){
+        if(xdir > 0){
             const climbTest = this.game.terrain.lineCollision(this.rightClimbRay.A, this.rightClimbRay.B);
                 
             if(climbTest === null){
@@ -1159,7 +1237,7 @@ export class Player extends DrawableEntity {
                     }
                 }
             }
-        } else if(horz_move < 0){
+        } else if(xdir < 0){
             // left
             const climbTest = this.game.terrain.lineCollision(this.leftClimbRay.A, this.leftClimbRay.B);
                 
@@ -1252,18 +1330,18 @@ export class Player extends DrawableEntity {
         // g.drawRect(this.x - this.player_width / 2, this.y - this.player_height / 2, this.player_width, this.player_height)
         // g.endFill();
 
-        // this.rightWallRay.draw(g, 0x00FF00);
-        // this.leftWallRay.draw(g);
+        this.rightWallRay.draw(g, 0x00FF00);
+        this.leftWallRay.draw(g);
 
-        // this.leftDownRay.draw(g,0xFF0000);
-        // this.rightDownRay.draw(g, 0xFF00FF);
-        // this.midDownRay.draw(g, 0x0FF00F)
+        this.leftDownRay.draw(g,0xFF0000);
+        this.rightDownRay.draw(g, 0xFF00FF);
+        this.midDownRay.draw(g, 0x0FF00F)
 
-        // this.leftHeadRay.draw(g, 0x00FFFF);
-        // this.rightHeadRay.draw(g, 0xFFFF00);
+        this.leftHeadRay.draw(g, 0x00FFFF);
+        this.rightHeadRay.draw(g, 0xFFFF00);
 
-        // this.leftClimbRay.draw(g,0x00000)
-        // this.rightClimbRay.draw(g, 0xFFFFFF)
+        this.leftClimbRay.draw(g,0x00000)
+        this.rightClimbRay.draw(g, 0xFFFFFF)
 
     }
 }

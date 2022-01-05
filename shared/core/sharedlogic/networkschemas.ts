@@ -51,6 +51,7 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
         extends: null,
         static: {
             shoot_controller: null as SimpleWeaponControllerDefinition,
+            juice: null as {knockback: number, shake: {type: "normal", shake: number} | {type: "kickback", length: number}},
         },
         variables: {
             capacity: netv.uint32(),

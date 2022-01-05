@@ -77,6 +77,8 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         shot_name: "BOUNCING_SHOT",
         
         initial_speed: 33,
+
+        juice:{knockback:10,shake:{type:"normal", shake: .25}},
     }),
     
     ice_slow_weapon: CreateItem({
@@ -88,7 +90,9 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         initial_speed: 20,
         reload_time: 100,
         shoot_controller: {type:"semiauto", time_between_shots: 32},
-        shot_name:"ICE_SHOT" 
+        shot_name:"ICE_SHOT",
+
+        juice:{knockback:10,shake:{type:"normal", shake: .25}},
     }),
 
     second_shotgun: CreateItem({
@@ -104,6 +108,8 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         count: 7,
         initial_speed: 24,
         shot_name:"COOL_SHOT_2",
+
+        juice:{knockback:10,shake:{type:"normal", shake: .25}},
     }),
 
     first_shotgun: CreateItem({
@@ -120,6 +126,8 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         initial_speed: 10,
         shot_name:"COOL_SHOT",
 
+        juice:{knockback:10,shake:{type:"normal", shake: .25}},
+
     }),
 
     cool_fast: CreateItem({
@@ -131,7 +139,9 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         initial_speed: 34,
         reload_time: 10,
         shoot_controller:{type:"auto", time_between_shots:7},
-        shot_name: "COOL_SHOT"
+        shot_name: "COOL_SHOT",
+
+        juice:{knockback:10,shake:{type:"normal", shake: .25}},
     }),
 
     swap_item: CreateItem({
@@ -150,6 +160,8 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         shoot_controller: { type:"auto", time_between_shots: 8 },
         shot_name: "EMOJI_SHOT",
         initial_speed: 11,
+
+        juice:{knockback:10,shake:{type:"normal", shake: .25}},
     }),
 
     circle_terrain_carver: CreateItem({
@@ -162,6 +174,8 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         shoot_controller: { type:"auto", time_between_shots: 15 },
         shot_name: "SIMPLE_TERRAIN_HIT",
         initial_speed: 25,
+
+        juice:{knockback:10,shake:{type:"normal", shake: .25}},
     }),
 
     terrain_nosedive: CreateItem({
@@ -174,6 +188,8 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         shoot_controller: { type:"auto", time_between_shots: 15 },
         shot_name: "NOSEDIVE",
         initial_speed: 50,
+
+        juice:{knockback:10,shake:{type:"normal", shake: .25}},
     }),
 
     laser_shooter: CreateItem({
@@ -186,6 +202,8 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         shoot_controller: { type:"charge", percent_per_tick: .02, percent_loss: .01 },
         shot_name: "LASER_ON_HIT",
         initial_speed: 70,
+
+        juice:{knockback:10,shake:{type:"normal", shake: .25}},
     }),
 
     first_hitscan: CreateItem({
@@ -196,7 +214,9 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         ammo: 25,
         reload_time: 10,
         shoot_controller: { type: "auto", time_between_shots: 6 },
-        hitscan_effects: []
+        hitscan_effects: [],
+
+        juice:{knockback:10,shake:{type:"normal", shake: .25}},
     }),
 
     second_hitscan: CreateItem({
@@ -209,7 +229,9 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         shoot_controller: { type: "auto", time_between_shots: 16 },
         hitscan_effects: [{
             type:"lightning"
-        }]
+        }],
+
+        juice:{knockback:10,shake:{type:"normal", shake: .25}},
     }),
 
     forcefield: CreateItem({

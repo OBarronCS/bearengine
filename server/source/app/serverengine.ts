@@ -984,16 +984,30 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             
             // This loop is only called if the client has joined late
             if(connection.dirty_entities.length !== 0){
-                for(const entityID of connection.dirty_entities){
-                    let e: NetworkedEntity<any>;
-                    if(e = this.networked_entity_subset.getEntity(entityID)){
-                        stream.setUint8(GamePacket.REMOTE_ENTITY_VARIABLE_CHANGE);
-                        SharedEntityServerTable.serialize_with_dirty_bits(stream, e, e.lifetime_dirty_bits);
+                let i = 0;
+                for(; i < connection.dirty_entities.length; i++){
+                    const entityID = connection.dirty_entities[i];
+
+                    // TODO: FIX: This results in a buffer overflow 
+
+                    if(stream.size() < MAX_BYTES_PER_PACKET){
+                        let e: NetworkedEntity<any>;
+                        if(e = this.networked_entity_subset.getEntity(entityID)){
+                            stream.setUint8(GamePacket.REMOTE_ENTITY_VARIABLE_CHANGE);
+                            SharedEntityServerTable.serialize_with_dirty_bits(stream, e, e.lifetime_dirty_bits);
+                        }
+                    } else {
+                        break;
                     }
                 }
 
+                if(i === connection.dirty_entities.length){
+                    connection.dirty_entities = [];
+                } else {
+                    connection.dirty_entities.splice(0,i);
+                }
 
-                connection.dirty_entities = [];
+                
             }
 
             for(const entity of entitiesToSerialize){

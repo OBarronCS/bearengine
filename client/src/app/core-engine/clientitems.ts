@@ -40,7 +40,7 @@ class BaseItem<T extends keyof SharedNetworkedEntities> extends Entity {
         super();
     }
 
-    GetStaticValue(key: keyof Test<T>) {
+    GetStaticValue<U extends keyof Test<T>>(key: U){
         //@ts-expect-error
         return MIGRATED_ITEMS[ITEM_LINKER.IDToName(this.item_id)][key]
     }
@@ -50,9 +50,6 @@ class BaseItem<T extends keyof SharedNetworkedEntities> extends Entity {
 }
 
 export abstract class UsableItem<T extends keyof SharedNetworkedEntities> extends BaseItem<T> {
-
-    // TEMP
-    // juice = {knockback: 10, shake: .15};
 
     consumed: boolean = false;
 
@@ -77,6 +74,8 @@ export abstract class WeaponItem<T extends "weapon_item" = "weapon_item"> extend
     @net("weapon_item").variable("reload_time")
     reload_time: number = this.GetStaticValue("reload_time")
 
+    juice: Test<"weapon_item">["juice"] = this.GetStaticValue("juice");
+
     constructor(item_id: number){
         super(item_id);
         // this.shootController = CreateShootController(item_data.shoot_controller);
@@ -93,8 +92,11 @@ export abstract class WeaponItem<T extends "weapon_item" = "weapon_item"> extend
 
                 this.shoot(game);
                 
-                this.game.engine.camera.shake(.25);
-                p.knockback(this.direction.clone().negate().extend(10))
+                if(this.juice.shake.type === "normal"){
+                    this.game.engine.camera.shake(.25);
+                }
+                
+                p.knockback(this.direction.clone().negate().extend(this.juice.knockback));
             }
         }
 
@@ -142,46 +144,30 @@ export class ProjectileWeapon<T extends "projectile_weapon" = "projectile_weapon
 //@ts-expect-error 
 export class ShotgunWeapon extends ProjectileWeapon<"shotgun_weapon"> {
     
-    spread: number = this.GetStaticValue("spread");
-    count: number = this.GetStaticValue("count")
+    // spread: number = this.GetStaticValue("spread");
+    // count: number = this.GetStaticValue("count")
 
     override shoot(game: NetworkPlatformGame): void {
 
-
+        const bullets = ShootShotgunWeapon_C(game, this.item_id, this.shot_id, this.position, this.direction)
+        
         const local_id_list: number[] = [];
 
-        const spread_rad = this.spread * DEG_TO_RAD;
-
-            
-        let current_dir = this.direction.angle() - (floor(this.count / 2)*spread_rad);
-        if(this.count % 2 === 0) current_dir += (spread_rad / 2);
-
-        for(let i = 0; i < this.count; i++){
-
-            const dir = new Vec2(1,1).setDirection(current_dir).extend(this.GetStaticValue("initial_speed"));
-
-            const b = ShootProjectileWeapon_C(game, SHOT_LINKER.IDToData(this.shot_id).bounce,this.bullet_effects, this.position, dir, SHOT_LINKER.IDToData(this.shot_id).item_sprite);
-
-
-            console.log(b);
+        for(const b of bullets){
 
             game.entities.addEntity(b);
             game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"));
 
-            
             const localID = game.networksystem.getLocalShotID();
             game.networksystem.localShotIDToEntity.set(localID,b);
 
             local_id_list.push(localID);
-            current_dir += spread_rad;
         }
     
         
-
         game.networksystem.enqueueStagePacket(
             new ServerBoundShotgunShotPacket(0, -1, this.position.clone(), local_id_list)
-        )
-
+        );
         
     }
 }
@@ -339,6 +325,40 @@ export class ServerBoundProjectileShotPacket extends PacketWriter {
         stream.setFloat32(this.direction.y);
     }
 }
+
+
+/*  Applies spread, ect; Returns a list of all the created bullets. Does not add to the scene yet */
+export function ShootShotgunWeapon_C(game: NetworkPlatformGame, shotgun_id: number, shot_id: number, position: Vec2, direction: Vec2): ModularProjectileBullet[] {
+    const bullet_data = SHOT_LINKER.IDToData(shot_id);
+    const bullet_effects = bullet_data.bullet_effects;
+    const does_bounce = bullet_data.bounce;
+
+
+    const shotgun_data = ITEM_LINKER.IDToData(shotgun_id) as Test<"shotgun_weapon">;
+    const initial_speed = shotgun_data.initial_speed;
+    const count = shotgun_data.count;
+    const spread_rad = shotgun_data.spread * DEG_TO_RAD;
+
+    let current_dir = direction.angle() - (floor(count / 2)*spread_rad);
+    if(count % 2 === 0) current_dir += (spread_rad / 2);
+
+    const arr: ModularProjectileBullet[] = [];
+
+    for(let i = 0; i < count; i++){
+
+        const velocity = new Vec2(1,1).setDirection(current_dir).extend(initial_speed);
+
+        const b = ShootProjectileWeapon_C(game, does_bounce, bullet_effects, position, velocity, bullet_data.item_sprite);
+
+        arr.push(b);
+
+        current_dir += spread_rad;
+    }
+    
+    return arr;
+
+}
+
 
 export class ServerBoundShotgunShotPacket extends PacketWriter {
 
@@ -801,7 +821,7 @@ class LocalIceEffect extends DrawableEntity {
 
 
 function CreateLightningLines(start_point: Coordinate, end_point: Coordinate, iterations: number = 5): Line[] {
-    let lines = [];
+    let lines: Line[] = [];
 
     lines.push(new Line(start_point, end_point));
     

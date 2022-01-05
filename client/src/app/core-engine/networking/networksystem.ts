@@ -22,7 +22,7 @@ import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
 import { ITEM_LINKER } from "shared/core/sharedlogic/items";
-import { BeamEffect_C, ForceFieldEffect_C, ModularProjectileBullet, ShootHitscanWeapon_C, ShootProjectileWeapon_C } from "../clientitems";
+import { BeamEffect_C, ForceFieldEffect_C, ModularProjectileBullet, ShootHitscanWeapon_C, ShootProjectileWeapon_C, ShootShotgunWeapon_C } from "../clientitems";
 import { Line } from "shared/shapes/line";
 import { EmitterAttach } from "../particles";
 import { PARTICLE_CONFIG } from "../../../../../shared/core/sharedlogic/sharedparticles";
@@ -979,35 +979,16 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     // Only create it if someone else shot it
                                     if(this.MY_CLIENT_ID !== creator_id){
 
-                                        const count = remote_entity_id_list.length;
+                                        const bullets = ShootShotgunWeapon_C(this.game, shotgun_id, shot_prefab_id, pos, velocity);
 
-                                        //@ts-expect-error
-                                        const spread_rad = DEG_TO_RAD * ITEM_LINKER.IDToData(shotgun_id).spread;
-                                        //@ts-expect-error
-                                        const speed = ITEM_LINKER.IDToData(shotgun_id).initial_speed;
-                                        
+                                        if(remote_entity_id_list.length !== bullets.length) throw new Error();
 
-                                        let current_dir = velocity.angle() - (floor(count / 2)*spread_rad);
-                                        if(count % 2 === 0) current_dir += (spread_rad / 2);
-                                
-                                        for(let i = 0; i < count; i++){
-                                            const e = remote_entity_id_list[i];
+                                        for(let i = 0; i < remote_entity_id_list.length; i++) {
+                                            const remote_id = remote_entity_id_list[i];
 
-                                            const dir = new Vec2(1,1).setDirection(current_dir).extend(speed);
-
-                                            const bullet_effects = SHOT_LINKER.IDToData(shot_prefab_id).bullet_effects;
-                                            const sprite = SHOT_LINKER.IDToData(shot_prefab_id).item_sprite;
-    
-                                            // Creates bullet, links it to make it a shared entity
-                                            const b = ShootProjectileWeapon_C(this.game, SHOT_LINKER.IDToData(shot_prefab_id).bounce, bullet_effects, pos, dir, sprite);
-    
-    
-                                            // It's now a networked entity
                                             //@ts-expect-error
-                                            this.remoteEntities.set(e, b);
-                                            this.networked_entity_subset.addEntity(b);
-
-                                            current_dir += spread_rad;
+                                            this.remoteEntities.set(remote_id, bullets[i]);
+                                            this.networked_entity_subset.addEntity(bullets[i]);
                                         }
                                     }
                                     break;
