@@ -64,7 +64,7 @@ export class PlayerInformation {
     readonly personalPackets: Queue<PacketWriter> = new LinkedQueue<PacketWriter>();
 
     // Currently only for players joining late
-    dirty_entities: EntityID[] = [];
+    dirty_entities: Queue<EntityID> = new LinkedQueue<EntityID>();
 
     serializePersonalPackets(stream: BufferStreamWriter){
         while(this.personalPackets.size() > 0 && this.personalStream.size() < MAX_BYTES_PER_PACKET){
@@ -257,7 +257,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
             for(const entity of this.networked_entity_subset.entities){
                 if(entity.lifetime_dirty_bits !== 0){
-                    clientInfo.dirty_entities.push(entity.entityID);
+                    clientInfo.dirty_entities.enqueue(entity.entityID);
                 }
             }
 
@@ -983,31 +983,21 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             }
             
             // This loop is only called if the client has joined late
-            if(connection.dirty_entities.length !== 0){
-                let i = 0;
-                for(; i < connection.dirty_entities.length; i++){
-                    const entityID = connection.dirty_entities[i];
-
-                    // TODO: FIX: This results in a buffer overflow 
-
+            if(connection.dirty_entities.size() !== 0){
+                while(connection.dirty_entities.size() > 0){
+                    // This checks for a likely buffer overflow
                     if(stream.size() < MAX_BYTES_PER_PACKET){
-                        let e: NetworkedEntity<any>;
-                        if(e = this.networked_entity_subset.getEntity(entityID)){
+                        const entity_id = connection.dirty_entities.dequeue();
+
+                        const e = this.networked_entity_subset.getEntity(entity_id);
+                        if(e !== null){
                             stream.setUint8(GamePacket.REMOTE_ENTITY_VARIABLE_CHANGE);
                             SharedEntityServerTable.serialize_with_dirty_bits(stream, e, e.lifetime_dirty_bits);
                         }
                     } else {
                         break;
                     }
-                }
-
-                if(i === connection.dirty_entities.length){
-                    connection.dirty_entities = [];
-                } else {
-                    connection.dirty_entities.splice(0,i);
-                }
-
-                
+                }  
             }
 
             for(const entity of entitiesToSerialize){

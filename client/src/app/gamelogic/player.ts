@@ -1330,19 +1330,21 @@ export class Player extends DrawableEntity {
         // g.drawRect(this.x - this.player_width / 2, this.y - this.player_height / 2, this.player_width, this.player_height)
         // g.endFill();
 
-        this.rightWallRay.draw(g, 0x00FF00);
-        this.leftWallRay.draw(g);
-
-        this.leftDownRay.draw(g,0xFF0000);
-        this.rightDownRay.draw(g, 0xFF00FF);
-        this.midDownRay.draw(g, 0x0FF00F)
-
-        this.leftHeadRay.draw(g, 0x00FFFF);
-        this.rightHeadRay.draw(g, 0xFFFF00);
-
-        this.leftClimbRay.draw(g,0x00000)
-        this.rightClimbRay.draw(g, 0xFFFFFF)
-
+        if(false){
+            this.rightWallRay.draw(g, 0x00FF00);
+            this.leftWallRay.draw(g);
+    
+            this.leftDownRay.draw(g,0xFF0000);
+            this.rightDownRay.draw(g, 0xFF00FF);
+            this.midDownRay.draw(g, 0x0FF00F)
+    
+            this.leftHeadRay.draw(g, 0x00FFFF);
+            this.rightHeadRay.draw(g, 0xFFFF00);
+    
+            this.leftClimbRay.draw(g,0x00000)
+            this.rightClimbRay.draw(g, 0xFFFFFF)
+        }
+        
     }
 }
 

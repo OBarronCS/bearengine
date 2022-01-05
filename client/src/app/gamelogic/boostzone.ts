@@ -15,11 +15,13 @@ export class BoostZone extends DrawableEntity {
     private collider: ColliderPart
     private dir: BoostDirection;
 
+    private readonly str = 2;
+
     constructor(rect: Rect, dir: Vec2){
         super();
 
         this.collider = (this.addPart(new ColliderPart(dimensions(rect.width, rect.height),new Vec2(),"BoostZone")));
-        this.dir = this.addPart(new BoostDirection(dir));
+        this.dir = this.addPart(new BoostDirection(dir.extend(this.str)));
         
         this.position.set(rect);
         this.redraw();
