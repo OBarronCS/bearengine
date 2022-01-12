@@ -2,6 +2,7 @@ import { BindCommandCreator, CommandDatabase, comv } from "shared/core/commands"
 import { ITEM_LINKER, MIGRATED_ITEMS, RandomItemID } from "shared/core/sharedlogic/items";
 import { LevelRef } from "shared/core/sharedlogic/assetlinker";
 import type { PlayerInformation, ServerBearEngine } from "./serverengine";
+import { EnumKeys, MatchGamemode } from "shared/core/sharedlogic/sharedenums";
 
 // What if commands are initiated from a NON player?
 // The script is built from that perspective, so the server could just put a dummy player object
@@ -29,7 +30,7 @@ database.add(
     command("item").args(comv.string_options<keyof typeof MIGRATED_ITEMS>(Object.keys(MIGRATED_ITEMS)))
         .run((context, item_name: keyof typeof MIGRATED_ITEMS) => {
             
-            if(!context.engine.roundIsActive()) {
+            if(!context.engine.matchIsActive()) {
                 console.log("Cannot give items when round is not active");
                 return;
             }
@@ -53,10 +54,20 @@ database.add(
 database.add(
     command("s").args(comv.string_options<keyof typeof LevelRef>(Object.keys(LevelRef)))
         .run((context,arg) => {
-            context.engine.beginRound(arg);
+            if(!context.engine.matchIsActive()){
+                context.engine.start_match(MatchGamemode.INFINITE)
+            }
+            context.engine.start_new_round(arg);
         })
     );
 
+database.add(
+    command("vote").args(comv.string_options<keyof typeof MatchGamemode>(EnumKeys(MatchGamemode)))
+        .run((c,arg) => {
+            c.engine.player_vote(c.targetPlayer, MatchGamemode[arg]);
+        }
+    )
+)
 
 
 

@@ -432,9 +432,9 @@ export class LevelScene extends BearScene<NetworkPlatformGame> {
             }
         }
 
-        if(this.game.engine.keyboard.wasPressed("KeyH")){
-            this.game.player = this.game.entities.addEntity(new Player())
-        }
+        // if(this.game.engine.keyboard.wasPressed("KeyH")){
+        //     this.game.player = this.game.entities.addEntity(new Player())
+        // }
     }
 
     subset = this.game.entities.createSubset();

@@ -146,7 +146,7 @@ export class PlayerSwapperItem extends SBaseItem<"swap_item"> {
     public override activation_type = ItemActivationType.INSTANT;
 
     override do_action(creator: PlayerInformation): void {
-        const all_players = this.game.activeScene.activePlayerEntities.values();
+        const all_players = this.game.active_scene.activePlayerEntities.values();
 
         if(all_players.length <= 1) {
             console.log("Cannot swap");
@@ -237,7 +237,7 @@ export function ServerShootHitscanWeapon(game: ServerBearEngine, position: Vec2,
     if(terrain) ray.B = terrain.point;
 
     // Check each players distance to the line.
-    for(const pEntity of game.activeScene.activePlayerEntities.values()){
+    for(const pEntity of game.active_scene.activePlayerEntities.values()){
         if(pEntity.connectionID === owner) continue;
 
         if(ray.pointDistance(pEntity.position) < 30){
@@ -313,7 +313,7 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
 
             this.terrain_test = this.game.terrain.lineCollision(this.forward_line.A, this.forward_line.B);
 
-            for(const player of this.game.activeScene.activePlayerEntities.values()){
+            for(const player of this.game.active_scene.activePlayerEntities.values()){
                 if(player.connectionID === this.creatorID) continue;
                 const point = Line.PointClosestToLine(this.forward_line.A, this.forward_line.B, player.position);
                 if(Vec2.distanceSquared(player.position, point) < this.player_dmg_radius**2){
@@ -360,7 +360,7 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
 } 
 
 
-export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: number, position: Vec2, velocity: Vec2, shot_prefab_id: number): ServerProjectileBullet {
+export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: number, position: Vec2, velocity: Vec2, shot_prefab_id: number, mouse: Vec2): ServerProjectileBullet {
 
     const bullet = new ServerProjectileBullet(new Ellipse(new Vec2(),20,20), creatorID, SHOT_LINKER.IDToData(shot_prefab_id).bounce);
 
@@ -410,6 +410,28 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
             case "emoji": break;
             case "particle_system": break;
             case "ice_slow": break;
+            case "goto_mouse": {
+
+
+                
+                break;
+            }
+            case "destroy_after":{
+
+                const time = effect.seconds;
+
+                const final_pos = mouse.clone();
+
+                bullet.effect.onUpdate(function(dt){
+                    if(this.seconds_alive >= time){
+
+                        this.position.set(final_pos);
+                        this.destroy();
+                    }
+                });
+
+                break;
+            }
             case "gravity": {
 
                 const grav = new Vec2().set(effect.force);
@@ -549,7 +571,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
             }
         }
 
-        if(!this.game.activeScene.levelbbox.contains(this.position)){
+        if(!this.game.active_scene.levelbbox.contains(this.position)){
             this.destroy();
         }
     });
@@ -633,7 +655,7 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
             default: AssertUnreachable(this.mode);
         }
 
-        if(!this.game.activeScene.levelbbox.contains(this.pos)){
+        if(!this.game.active_scene.levelbbox.contains(this.pos)){
             this.game.destroyRemoteEntity(this);
         }
     }
@@ -668,7 +690,7 @@ export class LaserTripmine_S extends NetworkedEntity<"laser_tripmine"> {
     update(dt: number): void {
 
 
-        for(const pEntity of this.game.activeScene.activePlayerEntities.values()){
+        for(const pEntity of this.game.active_scene.activePlayerEntities.values()){
             
 
             const p = Line.PointClosestToLine(this.line.A, this.line.B, pEntity.position);
@@ -732,7 +754,7 @@ export class BeamEffect_S extends ServerEntity {
             if(terrain) this.line.B = terrain.point;
 
             // Check each players distance to the line.
-            for(const pEntity of this.game.activeScene.activePlayerEntities.values()){
+            for(const pEntity of this.game.active_scene.activePlayerEntities.values()){
                 if(pEntity.connectionID === this.player.connectionID) continue;
 
                 if(this.line.pointDistance(pEntity.position) < 30){

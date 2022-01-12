@@ -201,7 +201,7 @@ export class CameraSystem  {
 
         this.container.angle = this.baseDangle + shakeAngle;
 
-        const pivot = mix({x: this.center.x + dx,y: this.center.y + dy}, this.engine.mouse.position, 0);
+        const pivot = mix({x: this.center.x ,y: this.center.y}, this.engine.mouse.position, 0);
 
         this.container.pivot.copyFrom(pivot);
 
@@ -212,6 +212,10 @@ export class CameraSystem  {
             if(this.left < this.bounds.min.x) this.container.pivot.x = this.viewWidth / 2;
             if(this.top < this.bounds.min.y) this.container.pivot.y = this.viewHeight / 2;
         }
+
+        // apply change AFTER clamping camera position
+        this.container.pivot.x += dx;
+        this.container.pivot.y += dy;
 
         this.trauma -= .007;
         if(this.trauma < 0) this.trauma = 0;

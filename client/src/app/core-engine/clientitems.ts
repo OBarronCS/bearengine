@@ -206,6 +206,14 @@ export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bounce: boole
 
                 break;
             }
+            case "goto_mouse": {
+
+                break;
+            }
+            case "destroy_after":{
+                break;
+            }
+
             case "terrain_hit_boom": {
                 
                 break;
@@ -434,7 +442,7 @@ export function ShootHitscanWeapon_C(game: NetworkPlatformGame, line: Line, effe
         const effect_type = effect.type;
         switch(effect_type){
             case "lightning": {
-                const lines = CreateLightningLines(line.A, line.B);
+                const lines = CreateLightningLines(line.A, line.B, 73);
 
                 const canvas = game.engine.renderer.createCanvas();
                 for(const line of lines){
@@ -820,15 +828,13 @@ class LocalIceEffect extends DrawableEntity {
 
 
 
-function CreateLightningLines(start_point: Coordinate, end_point: Coordinate, iterations: number = 5): Line[] {
+function CreateLightningLines(start_point: Coordinate, end_point: Coordinate, offset: number = 150, iterations: number = 5): Line[] {
     let lines: Line[] = [];
 
     lines.push(new Line(start_point, end_point));
     
     // the longer the distance, the bigger this needs to be
     // so the lightning looks natural
-    let offset =150;
-
    
     // how many times do we cut the segment in half?
     for (let i = 0; i < 5; i++) {
