@@ -3,9 +3,8 @@ import { Coordinate, mix, Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
 
 import { RendererSystem } from "./renderer";
-import { clamp, lerp, round } from "shared/misc/mathutils";
+import { clamp, ease, lerp, round } from "shared/misc/mathutils";
 import { smoothNoise } from "shared/misc/random";
-import { Subsystem } from "shared/core/subsystem";
 import { EngineMouse } from "../input/mouse";
 import { BearEngine } from "./bearengine";
 
@@ -29,18 +28,17 @@ export class CameraSystem  {
     private mode: "free" | "follow" = "free"
     private targetMiddle: Vec2;
     
-    // base degree angle
-    private baseDangle = 0;
+    
 
-    // Used for camera shake [0,1]
-    private trauma = 0;
+    private shakes: CameraShake[] = [];
 
-    bounds: {min: Coordinate, max: Coordinate} = null;
-
-    shake(n: number){
-        this.trauma = clamp(this.trauma + n,0,1);
+    addShake(s: CameraShake){
+        this.shakes.push(s);
     }
 
+
+
+    bounds: {min: Coordinate, max: Coordinate} = null;
     setBounds(x: {min: Coordinate, max: Coordinate}){
         this.bounds = x;
     }
@@ -188,18 +186,7 @@ export class CameraSystem  {
         this.container.position.y = this.renderer.renderer.height / 2;
     }
 
-    update(delta: number){
-
-        
-        const seed = Date.now();
-
-        const shake =  (this.trauma**3);
-
-        const shakeAngle = MAX_ANGLE_SHAKE * shake * smoothNoise(seed);
-        const dx = MAX_OFFSET_SHAKE * shake * smoothNoise(seed + 1000);
-        const dy = MAX_OFFSET_SHAKE * shake * smoothNoise(seed + 2000);
-
-        this.container.angle = this.baseDangle + shakeAngle;
+    update(dt: number){
 
         const pivot = mix({x: this.center.x ,y: this.center.y}, this.engine.mouse.position, 0);
 
@@ -213,12 +200,25 @@ export class CameraSystem  {
             if(this.top < this.bounds.min.y) this.container.pivot.y = this.viewHeight / 2;
         }
 
+
+        const d = new Vec2();
+
+        for(const shake of this.shakes){
+            if(shake.done) continue;
+            shake.update(dt)
+            d.add(shake.displacement);
+        }
+
+        this.container.pivot.x += d.x;
+        this.container.pivot.y += d.y;
+
+        //this.container.angle = this.baseDangle + shakeAngle;
+        
         // apply shake AFTER clamping camera position
         // this.container.pivot.x += dx;
         // this.container.pivot.y += dy;
 
-        this.trauma -= .007;
-        if(this.trauma < 0) this.trauma = 0;
+
         if(this.mode === "follow") this.center = mix(this.center, this.targetMiddle, .40);
     }
     
@@ -269,4 +269,79 @@ export class CameraSystem  {
     }
 }
 
+
+//Screen shake
+
+interface CameraShake {
+    
+    displacement: Vec2;
+
+    done: boolean;
+
+    update(dt: number): void;
+}
+
+export class SmoothShake implements CameraShake {
+    displacement: Vec2 = new Vec2();
+    done: boolean = false;
+
+
+    // Used for camera shake [0,1]
+
+    constructor(private trauma: number){}
+
+    update(dt: number): void {
+
+        const seed = Date.now();
+        
+        const shake = this.trauma**3;
+
+        const shakeAngle = MAX_ANGLE_SHAKE * shake * smoothNoise(seed);
+        const dx = MAX_OFFSET_SHAKE * shake * smoothNoise(seed + 1000);
+        const dy = MAX_OFFSET_SHAKE * shake * smoothNoise(seed + 2000);
+
+        this.displacement.x = dx;
+        this.displacement.y = dy;
+
+        this.trauma -= .007;
+        if(this.trauma < 0) { 
+            this.trauma = 0;
+            this.done = true;
+        }
+    }
+
+
+    addTrauma(n: number){
+        this.trauma = clamp(this.trauma + n,0,1);
+    }
+
+    
+}
+
+
+export class RecoilShake implements CameraShake {
+
+    displacement: Vec2 = new Vec2();
+    done: boolean = false;
+    
+    target: Vec2;
+    
+    t = 0;
+    duration = .1;
+
+    constructor(public direction: Vec2){
+        this.target = direction.clone().normalize().extend(10);
+    }
+
+    update(dt: number): void {
+        this.t += dt / this.duration;
+        if(this.t < 1){
+            this.displacement = mix(Vec2.ZERO, this.target, ease(this.t));
+        } else if(this.t < 2){
+            this.displacement = mix(this.target, Vec2.ZERO, ease(this.t - 1));
+        } else {
+            this.done = true;
+        }
+    }
+}
 

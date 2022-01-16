@@ -30,6 +30,7 @@ import { SlowAttribute } from "shared/core/sharedlogic/sharedattributes"
 import { ColliderPart } from "shared/core/entitycollision";
 import { dimensions } from "shared/shapes/rectangle";
 import { SimpleBouncePhysics } from "shared/core/sharedlogic/sharedphysics"
+import { RecoilShake, SmoothShake } from "./camera";
 
 
 
@@ -93,7 +94,7 @@ export abstract class WeaponItem<T extends "weapon_item" = "weapon_item"> extend
                 this.shoot(game);
                 
                 if(this.juice.shake.type === "normal"){
-                    this.game.engine.camera.shake(.25);
+                    this.game.engine.camera.addShake(new RecoilShake(this.direction.clone().negate()))
                 }
                 
                 p.knockback(this.direction.clone().negate().extend(this.juice.knockback));
@@ -696,8 +697,9 @@ export class LaserTripmine_C extends DrawableEntity {
         drawCircleOutline(g, this.__position, 30);
     }
 
-    override onDestroy(){
-        this.game.engine.camera.shake(.2);
+    @net("laser_tripmine").event("boom")
+    onBoom(){
+        this.game.engine.camera.addShake(new SmoothShake(.8));
     }
 }
 
