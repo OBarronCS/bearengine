@@ -57,7 +57,6 @@ database.add(
             if(!context.engine.matchIsActive()){
                 context.engine.start_match(MatchGamemode.INFINITE)
             }
-            context.engine.start_new_round(arg);
         })
     );
 

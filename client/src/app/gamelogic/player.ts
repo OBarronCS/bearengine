@@ -810,6 +810,8 @@ export class Player extends DrawableEntity {
         // Slide down wall
         this.setWallSensorsEven(this.slideSensorLength);
 
+        const FALL_OFF_SPEED = 2.5;
+
         if(this.slideStateData.right){
             const rightWall = this.getRightWallCollisionPoint();
             
@@ -836,8 +838,7 @@ export class Player extends DrawableEntity {
             if(this.game.player_controller.isDown("move_left")){
                 this.state = PlayerState.AIR;
                 // this.velocity.y = -14
-                this.velocity.x = -3
-
+                this.velocity.x = -FALL_OFF_SPEED
                 this.setAnimationSprite(AnimationState.RUN);
                 this.ticksSinceGroundState = -3;
                 // this.timeSincePressedJumpedButton = this.timeSincePressedAllowed
@@ -866,7 +867,7 @@ export class Player extends DrawableEntity {
             if(this.game.player_controller.isDown("move_right")){
                 this.state = PlayerState.AIR;
                 // this.velocity.y = -14
-                this.velocity.x = 3
+                this.velocity.x = FALL_OFF_SPEED
                 this.ticksSinceGroundState = -3;
                 this.setAnimationSprite(AnimationState.RUN)
             }
@@ -1110,7 +1111,10 @@ export class Player extends DrawableEntity {
 
 
                 this.x = rightWall.point.x - this.wallSensorLength;
-                this.velocity.x = 10;
+                if(rightWall.both){
+                    this.velocity.x = 10;
+                }
+               
 
                 if(rightWall.both && this.wallSlideNormalIsValid(rightWall.normal)){
 
@@ -1139,7 +1143,10 @@ export class Player extends DrawableEntity {
             if(leftWall.collision){
                 
                 this.x = leftWall.point.x + this.wallSensorLength;
-                this.velocity.x = -10;
+                if(leftWall.both){
+                    this.velocity.x = -10;
+                }
+
 
                 if(leftWall.both && this.wallSlideNormalIsValid(leftWall.normal)){
                     if(ydir > 0){

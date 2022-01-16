@@ -571,7 +571,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
             }
         }
 
-        if(!this.game.active_scene.levelbbox.contains(this.position)){
+        if(!this.game.active_scene.level_bbox.contains(this.position)){
             this.destroy();
         }
     });
@@ -655,7 +655,7 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
             default: AssertUnreachable(this.mode);
         }
 
-        if(!this.game.active_scene.levelbbox.contains(this.pos)){
+        if(!this.game.active_scene.level_bbox.contains(this.pos)){
             this.game.destroyRemoteEntity(this);
         }
     }

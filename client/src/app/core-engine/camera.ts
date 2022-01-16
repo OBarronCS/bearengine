@@ -213,9 +213,9 @@ export class CameraSystem  {
             if(this.top < this.bounds.min.y) this.container.pivot.y = this.viewHeight / 2;
         }
 
-        // apply change AFTER clamping camera position
-        this.container.pivot.x += dx;
-        this.container.pivot.y += dy;
+        // apply shake AFTER clamping camera position
+        // this.container.pivot.x += dx;
+        // this.container.pivot.y += dy;
 
         this.trauma -= .007;
         if(this.trauma < 0) this.trauma = 0;
