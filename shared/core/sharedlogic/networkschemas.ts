@@ -42,7 +42,9 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
         variables: {
             art_path: netv.string(),
             // item_id: netv.uint8(),
-            pos: netv.vec2("float")
+            pos: netv.vec2("float"),
+
+            initial_pos: netv.vec2("float")
         },
         events: {}
     },

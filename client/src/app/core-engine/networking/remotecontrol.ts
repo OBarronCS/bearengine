@@ -63,6 +63,11 @@ export class ItemEntity_C extends Entity {
     })
     art_path = "";
 
+    @net("item_entity").variable("initial_pos", function(this: ItemEntity_C, pos) {
+        // this["__pos" + "__BUFFER_"].buffer.addValue(floor(this.game.networksystem.currentServerTick()),pos);
+    })
+    initial_pos: Vec2;
+
     constructor(){
         super();
         this.g.graphics.beginFill(0xFF0000);

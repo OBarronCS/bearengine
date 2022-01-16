@@ -606,6 +606,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         const item = new ItemEntity(p.playerEntity.item_in_hand);
 
         item.pos.set(p.playerEntity.position);
+        item.initial_pos.set(item.pos);
 
         this.createRemoteEntity(item);
 

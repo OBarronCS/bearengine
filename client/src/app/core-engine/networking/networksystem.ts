@@ -128,6 +128,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     private _serverTime = 0;
     currentServerTime(): number { return this._serverTime; }
     
+    // The 
     private _serverTick = 0;
     currentServerTick(): number { return this._serverTick; }
 

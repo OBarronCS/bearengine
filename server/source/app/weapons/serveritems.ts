@@ -558,6 +558,9 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
     @sync("item_entity").var("pos")
     pos = new Vec2(0,0)
 
+    @sync("item_entity").var("initial_pos")
+    initial_pos: Vec2 = new Vec2();
+
     mode: ItemEntityPhysicsMode = ItemEntityPhysicsMode.FLOATING;
     velocity = new Vec2();
         
@@ -568,10 +571,11 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
     constructor(item: SBaseItem<keyof SharedNetworkedEntities>){
         super();
         this.item = item;
-        this.art_path = item.GetStaticValue("item_sprite")
+        this.art_path = item.GetStaticValue("item_sprite");
         //this.item_id = item.item_id;
 
         // this.mark_dirty("item_id");
+        this.mark_dirty("initial_pos")
         this.mark_dirty("pos");
         this.mark_dirty("art_path");
     }
