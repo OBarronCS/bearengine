@@ -371,6 +371,14 @@ export class BufferStreamWriter {
         this.dataview.setUint32(this.byteOffset,value, this.littleEndian);
         this.seekRelative(4);
     }
+
+    clear_to_zero(){
+        for(let i = 0; i < this.dataview.byteLength; i++){
+            this.dataview.setUint8(i, 0);
+        }
+
+        this.refresh();
+    }
 }
 
 

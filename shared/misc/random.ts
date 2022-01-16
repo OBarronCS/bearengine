@@ -11,7 +11,7 @@ export function random_range(min: number, max: number): number {
 }
 
 /** [min, max) */
-export function randomInt(min: number, max: number): number {
+export function random_int(min: number, max: number): number {
     return min + Math.floor(Math.random() * (max - min));
 }
 
@@ -30,16 +30,16 @@ export function smoothNoise(seed: number): number {
 
 /**
  * returns true/or false, with the percent chance of true being the argument
- * @param percent 0-100
+ * @param percent 0-1
  */
 export function chance(percent: number): boolean {
-    return random() < (percent/100);
+    return random() < percent;
 }
 
 
 const allChars = "!@#$%^&*()abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'"; 
 export function randomChar(){
-    return allChars.charAt(randomInt(0,allChars.length));
+    return allChars.charAt(random_int(0,allChars.length));
 }
 
 

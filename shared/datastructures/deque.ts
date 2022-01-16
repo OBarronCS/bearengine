@@ -17,8 +17,6 @@ export class Deque<T> {
         this.dummyRight.left = this.dummyLeft;
     }
     
-    
-
     size(): number {
         return this.count;
     }
@@ -118,6 +116,15 @@ export class Deque<T> {
         }
     }
 
+    clear(){
+        this.dummyLeft = new Node<T>(null, null, null);
+        this.dummyRight = new Node<T>(null, null, null);
+
+        this.dummyLeft.right = this.dummyRight;
+        this.dummyRight.left = this.dummyLeft;
+        
+        this.count = 0;
+    }
 
     toString(): string {
         return [...this].toString();

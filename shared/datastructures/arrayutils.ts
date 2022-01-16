@@ -1,5 +1,5 @@
 
-import { randomInt } from "shared/misc/random";
+import { random_int } from "shared/misc/random";
 
 
 
@@ -63,7 +63,7 @@ export function arrayDifference<T>(A: readonly T[], B: readonly T[]): T[] {
 /** In-place, "Knuth/Fisher-Yates" shuffle */
 export function shuffle<T>(arr: T[]): T[] {
     for(let i = arr.length - 1; i > 0; i--){
-        const r = randomInt(0,i+1);
+        const r = random_int(0,i+1);
         swap(arr, i, r)
     }
 
@@ -88,7 +88,7 @@ export function swap(arr: any[], i: number, j: number): void {
 
 /** Array must contain at least one element */
 export function choose<T>(elements: readonly T[]): T {
-    const index = randomInt(0,elements.length);
+    const index = random_int(0,elements.length);
     return elements[index];
 }
 

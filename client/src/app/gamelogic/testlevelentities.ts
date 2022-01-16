@@ -8,7 +8,7 @@ import { GraphNode, LiveGridGraph } from "shared/datastructures/graphs";
 import { SparseGrid } from "shared/datastructures/hashtable";
 import { HermiteCurve } from "shared/datastructures/paths";
 import { GridQuadNode, GridQuadTree, LiveGridQuadTree, QuadTree } from "shared/datastructures/quadtree";
-import { chance, fillFunction, random, randomInt, randomRangeSet, random_range } from "shared/misc/random";
+import { randomRangeSet } from "shared/misc/random";
 import { Ellipse } from "shared/shapes/ellipse";
 import { Line } from "shared/shapes/line";
 import { Polygon } from "shared/shapes/polygon";
@@ -1797,7 +1797,7 @@ export function loadTestLevel(engine: BearEngine): void {
             g.lineStyle(3, rgb(255,0,0).hex());
             this.rec1.draw(g, 0xFF0000);
     
-            const rec2 = Rect.fromPoints(this.anchorPoint, this.mouse.position);
+            const rec2 = Rect.from_points(this.anchorPoint, this.mouse.position);
             rec2.draw(g, 0x00FF00)
 
             const overlap =  this.rec1.intersection(rec2);

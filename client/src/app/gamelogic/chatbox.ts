@@ -1,10 +1,12 @@
 import { Container, Graphics, Text, TextStyle, TextMetrics } from "shared/graphics/graphics";
-import { PacketWriter } from "shared/core/sharedlogic/networkschemas";
+import { PacketWriter, SharedEntityLinker } from "shared/core/sharedlogic/networkschemas";
 import { ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { SerializeShortString, StringIsPrintableASCII } from "shared/core/sharedlogic/serialization";
 import { Subsystem } from "shared/core/subsystem";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { NetworkPlatformGame } from "../core-engine/bearengine";
+import { ITEM_LINKER } from "shared/core/sharedlogic/items";
+import { SharedEntityClientTable } from "../core-engine/networking/cliententitydecorators";
 
 const MAX_MESSAGE_SIZE = 255;
 
@@ -263,7 +265,20 @@ export class Chatbox extends Subsystem<NetworkPlatformGame> {
                                 if(word.length <= 255){
                                     this.game.networksystem.enqueueGeneralPacket(
                                         new ServerBoundChatRequestPacket(word)
-                                    )
+                                    );
+
+                                    if(!this.game.networksystem.isConnected()){
+                                        const item_id = ITEM_LINKER.NameToID(word as any);
+                                        const raw_item_data = ITEM_LINKER.IDToData(item_id);
+                
+                                        const item_class = SharedEntityClientTable.getEntityClass(SharedEntityLinker.nameToSharedID(raw_item_data.type));
+                                        // console.log("Creating item: ", item_class);
+                                
+                                        //@ts-expect-error
+                                        const item_instance = (new item_class(item_id));
+                                        
+                                        this.game.player.setItem(item_instance, raw_item_data.item_sprite)
+                                    }
                                 }
                                     
                                 this.complete_buffers.push(this.current_text_buffer);

@@ -22,7 +22,7 @@ import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
 import { ITEM_LINKER } from "shared/core/sharedlogic/items";
-import { BeamEffect_C, ForceFieldEffect_C, ModularProjectileBullet, ShootHitscanWeapon_C, ShootProjectileWeapon_C } from "../clientitems";
+import { BeamEffect_C, ForceFieldEffect_C, ModularProjectileBullet, ShootHitscanWeapon_C, ShootProjectileWeapon_C, ShootShotgunWeapon_C } from "../clientitems";
 import { Line } from "shared/shapes/line";
 import { EmitterAttach } from "../particles";
 import { PARTICLE_CONFIG } from "../../../../../shared/core/sharedlogic/sharedparticles";
@@ -71,6 +71,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
         return this.incShotID++;
     }
 
+    isConnected(){
+        return this.network.CONNECTED;
+    }
 
     private network: CallbackNetwork;
     /** Packets from the server are queued here */
@@ -125,6 +128,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     private _serverTime = 0;
     currentServerTime(): number { return this._serverTime; }
     
+    // The 
     private _serverTick = 0;
     currentServerTick(): number { return this._serverTick; }
 
@@ -158,9 +162,40 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
         this.network = new CallbackNetwork(settings, this.onmessage.bind(this));
     }
 
-    public connect(){
+    connect(){
         this.network.connect();
     }
+
+    quit_server(){
+        this.incShotID = 0;
+        this.packets.clear();
+        this.sendStream.clear_to_zero();
+        this.stagePacketsToSerialize = [];
+        this.generalPacketsToSerialize = [];
+
+        this.otherClients.clear();
+        this.remotePlayerEntities.clear();
+        this.remoteEntities.clear();
+
+        this.networked_entity_subset.clear();
+
+        this.MY_CLIENT_ID = -1;
+
+        this.currentPlayState = ClientPlayState.SPECTATING;
+
+        this.SERVER_IS_TICKING = false;
+
+        this.byteAmountReceived.clear();
+        this.bytesPerSecond = 0;
+
+        this.localShotIDToEntity.clear();
+        this.beamIDToEntity.clear();
+
+
+        this.network.disconnect();
+    }
+
+
 
     private onmessage(buffer: ArrayBuffer){
 
@@ -291,10 +326,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     readPackets(): void {
         if(this.network.CONNECTED && this.ALLOWED_TO_CONNECT){
 
-
-
             const now = Date.now();
-
 
             this._serverTime = now + this.CLOCK_DELTA;
             this._serverTick = this.calculateCurrentServerTick();
@@ -306,7 +338,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             }
 
 
-            // Calculation bytes per second
+            // Calculating bytes per second
             while(!this.byteAmountReceived.isEmpty() && this.byteAmountReceived.peekLeft().time < (now - 1000)){
                 this.byteAmountReceived.popLeft();
             }
@@ -381,7 +413,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             break;
 
                         }
-
                         // Other player connected to server
                         case GamePacket.OTHER_PLAYER_INFO_ADD: {
                             const uniqueID = stream.getUint8();
@@ -450,8 +481,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             break;
                         }
-
-
                         case GamePacket.REMOTE_ENTITY_CREATE: {
                             const sharedClassID = stream.getUint8();
                             const entityID = StreamReadEntityID(stream);
@@ -528,7 +557,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             break;
                         }
-
                         case GamePacket.REMOTE_FUNCTION_CALL:{
                             const functionID = stream.getUint8();
                             const functionName = RemoteFunctionLinker.getStringFromID(functionID)
@@ -539,7 +567,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             break;
                         }
-
                         case GamePacket.JOIN_LATE_INFO: {
                             const level = LevelRefLinker.IDToData(stream.getUint8());
 
@@ -583,6 +610,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             // Doesn't really matter as I clear the remoteEntity map which breaks all links between network and the local entity
                             this.networked_entity_subset.clear();
                             this.remoteEntities.clear();
+
+                            this.beamIDToEntity.forEach(v => v.destroy());
+                            this.beamIDToEntity.clear();
 
                             
                             const x = stream.getFloat32();
@@ -668,11 +698,11 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
 
                             // If already exists locally, set its position at spawn spot
-                            const checkIfExists = this.remotePlayerEntities.get(pID);
-                            if(checkIfExists !== undefined){
+                            const other_player = this.remotePlayerEntities.get(pID);
+                            if(other_player !== undefined){
 
-                                checkIfExists.setGhost(false);
-                                checkIfExists.position.set({x,y});
+                                other_player.make_visible();
+                                other_player.position.set({x,y});
                                 continue;
                             }
 
@@ -687,7 +717,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             break;
                         }
-                        case GamePacket.PLAYER_ENTITY_GHOST:{
+                        case GamePacket.PLAYER_ENTITY_DEATH:{
                             // Find correct entity
                             const pId = stream.getUint8();
 
@@ -699,7 +729,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             if(e !== undefined){
                                 console.log(`Player ${pId} is now a ghost!`);
 
-                                e.setGhost(true);
+                                e.play_death_animation();
 
                                 // this.remotePlayerEntities.delete(pId);
                                 // this.game.entities.destroyEntity(e);
@@ -950,35 +980,16 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     // Only create it if someone else shot it
                                     if(this.MY_CLIENT_ID !== creator_id){
 
-                                        const count = remote_entity_id_list.length;
+                                        const bullets = ShootShotgunWeapon_C(this.game, shotgun_id, shot_prefab_id, pos, velocity);
 
-                                        //@ts-expect-error
-                                        const spread_rad = DEG_TO_RAD * ITEM_LINKER.IDToData(shotgun_id).spread;
-                                        //@ts-expect-error
-                                        const speed = ITEM_LINKER.IDToData(shotgun_id).initial_speed;
-                                        
+                                        if(remote_entity_id_list.length !== bullets.length) throw new Error();
 
-                                        let current_dir = velocity.angle() - (floor(count / 2)*spread_rad);
-                                        if(count % 2 === 0) current_dir += (spread_rad / 2);
-                                
-                                        for(let i = 0; i < count; i++){
-                                            const e = remote_entity_id_list[i];
+                                        for(let i = 0; i < remote_entity_id_list.length; i++) {
+                                            const remote_id = remote_entity_id_list[i];
 
-                                            const dir = new Vec2(1,1).setDirection(current_dir).extend(speed);
-
-                                            const bullet_effects = SHOT_LINKER.IDToData(shot_prefab_id).bullet_effects;
-                                            const sprite = SHOT_LINKER.IDToData(shot_prefab_id).item_sprite;
-    
-                                            // Creates bullet, links it to make it a shared entity
-                                            const b = ShootProjectileWeapon_C(this.game, SHOT_LINKER.IDToData(shot_prefab_id).bounce, bullet_effects, pos, dir, sprite);
-    
-    
-                                            // It's now a networked entity
                                             //@ts-expect-error
-                                            this.remoteEntities.set(e, b);
-                                            this.networked_entity_subset.addEntity(b);
-
-                                            current_dir += spread_rad;
+                                            this.remoteEntities.set(remote_id, bullets[i]);
+                                            this.networked_entity_subset.addEntity(bullets[i]);
                                         }
                                     }
                                     break;
@@ -1200,7 +1211,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                 stream.setFloat32(this.engine.mouse.x);
                 stream.setFloat32(this.engine.mouse.y);
                 stream.setUint8(player.animation_state);
-                stream.setBool(player.xspd < 0);
+                stream.setBool(player.velocity.x < 0);
                 stream.setBool(this.engine.mouse.isDown("left"));
                 stream.setBool(this.engine.keyboard.wasPressed("KeyF"));
                 stream.setBool(this.engine.keyboard.wasPressed("KeyQ"));       
@@ -1218,7 +1229,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             this.stagePacketsToSerialize = [];
 
 
-            // Only send if we actually wrong something to the stream
+            // Only send if we actually write something to the stream
             if(stream.size() > 1){
                 this.network.send(stream.cutoff());
             }

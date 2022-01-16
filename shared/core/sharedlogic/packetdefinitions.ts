@@ -28,7 +28,9 @@ export enum GamePacket {
     // Sets client state to ACTIVE, which allows client to send position packets for player
     SPAWN_YOUR_PLAYER_ENTITY, // [x: float32, y: float32]
 
-    // If true, set client state to GHOST. If false set to active
+    // PERSONAL PACKET
+    // If true, set state to GHOST, so stops transmitting position. Used when your player dies
+    // If false set to active, allowing you to transmit position
     SET_GHOST_STATUS, // [ghost: boolean]
 
     //Personal packet.
@@ -59,7 +61,7 @@ export enum GamePacket {
     // spawn creates an entity. Places it at given location --> Used to deghost
     PLAYER_ENTITY_SPAWN, // [playerID: uint8, x: float32, y: float32]
     PLAYER_ENTITY_POSITION, // [playerID: uint8, x: float32, y: float32, look_dir: Vec2(float), uint8: animationstate, bool: flipped, health: uint8];
-    PLAYER_ENTITY_GHOST, // [playerID: uint8]
+    PLAYER_ENTITY_DEATH, // [playerID: uint8]
     PLAYER_ENTITY_COMPLETELY_DELETE, // [playerID: uint8]
     
     PLAYER_ENTITY_SET_ITEM, // [player_id: uint8, ItemID: uint8]
@@ -67,7 +69,7 @@ export enum GamePacket {
 
     // TODO: EXPLOSION: [fromPlayer: uint8, x: float32, y: float32, strength: uint8] // handle knockback on clients
 
-    // Teleports your player to this position
+    // Personal packet, teleports your player to this position
     FORCE_POSITION, // [x: float32, y: float32]
 
         

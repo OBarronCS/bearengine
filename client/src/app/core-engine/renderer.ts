@@ -128,11 +128,12 @@ export class RendererSystem {
     updateParticles(dt: number){
         // To remove emitters once they are dead
         // Should have _destroyWhenComplete() set to true. Or call
-        // for(let i = this.emitters.length - 1; i > 0;i--){
+
+        // for(let i = this.emitters.length - 1; i >= 0; i--){
         //     const e = this.emitters[i];
         //     e.update(dt);
         //     if (!e.emit && !e["_activeParticlesFirst"]) {
-        //          e.destroy()
+        //         e.destroy()
         //         this.emitters.pop();
         //     }
         // }

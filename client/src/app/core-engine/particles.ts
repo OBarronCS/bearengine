@@ -24,13 +24,11 @@ export class EmitterAttach extends Entity {
 
 
     update(dt: number): void {
-        if(this.targetEntity.entityID !== NULL_ENTITY_INDEX){
+        if(!this.emitter.emit && !this.emitter["_activeParticlesFirst"]){
+            this.destroy();
+        } else if(this.targetEntity.entityID !== NULL_ENTITY_INDEX){
             this.emitter.updateSpawnPos(this.targetEntity.x + this.offset.x,this.targetEntity.y + this.offset.y);
         } else {
-            this.destroy();
-        }
-
-        if(!this.emitter.emit && !this.emitter["_activeParticlesFirst"]){
             this.destroy();
         }
     }

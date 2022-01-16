@@ -18,6 +18,7 @@ import { Line } from "shared/shapes/line";
 import { drawCircle, drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "shared/shapes/shapedrawing";
 import { ItemDrawer } from "../core-engine/clientitems";
 import { BoostZone } from "./boostzone";
+import { SimpleBouncePhysics } from "shared/core/sharedlogic/sharedphysics";
 
 
 // export class FirstLevel extends GameLevel {
@@ -45,7 +46,6 @@ export class PhysicsDotEntity extends DrawableEntity {
     private sprite: SpritePart;
     
     private slow_factor = 0.7;
-
 
     velocity = new Vec2(0,0);
     private gravity = new Vec2(0,.4);
@@ -76,66 +76,8 @@ export class PhysicsDotEntity extends DrawableEntity {
     update(dt: number): void {
 
         if(this.grounded) return;
-
-        // Gravity
-        this.velocity.add(this.gravity);
-
-
-        const destination = Vec2.add(this.velocity,this.position);
-
-        // If no terrain hit, proceed
-        const test = this.terrain.lineCollisionExt(this.position, destination);
-
-        if(test === null){
-            this.position.add(this.velocity);
-        } else {
-
-            if(this.velocity.length() <= 1){
-                this.grounded = true;
-            }
-            // Could potentially bounce multiple times;
-
-            let last_test = test;
-            let distanceToMove = this.velocity.length();
-
-            const max_iter = 20;
-            let i = 0;
-            while(distanceToMove > 0 && i++ < max_iter){
-
-
-                const distanceToPoint = Vec2.subtract(last_test.point,this.position).length();
-
-                const distanceAfterBounce = distanceToMove - distanceToPoint;
-
-                // Set my position to colliding point, then do more logic later
-                this.position.set(last_test.point);
-
-                // Bounce off of wall, set velocity
-                Vec2.bounce(this.velocity, last_test.normal, this.velocity);
-
-                const lastStretchVel = this.velocity.clone().normalize().scale(distanceAfterBounce);
-
-                // Slows done
-                this.velocity.scale(this.slow_factor);
-
-                distanceToMove -= distanceToPoint;
-                distanceToMove *= this.slow_factor;
-
-
-                // Move forward
-                const bounce_test = this.terrain.lineCollisionExt(this.position, Vec2.add(this.position, lastStretchVel));
-
-                if(bounce_test === null || bounce_test.normal.equals(last_test.normal) ){
-                    this.position.add(lastStretchVel);
-
-                    if(this.terrain.pointInTerrain(this.position)) this.grounded = true;
-                    break;
-                }
-
-                last_test = bounce_test   
-            }
-        }
-
+        const status = SimpleBouncePhysics(this.game.terrain, this.position, this.velocity, this.gravity, this.slow_factor)
+        if(status.stopped) this.grounded = true;
         
         this.redraw(true);
     }
@@ -177,8 +119,6 @@ export class PhysicsDotEntity extends DrawableEntity {
 // }
 
 // scene.addEntity(new CircleLineIntersectionTest);
-
-// this.p = scene.addEntity(new Player());
 
 // this.emitter = this.engine.renderer.addEmitter("assets/particle.png", PARTICLE_CONFIG["BOOM"], 0,0);
 

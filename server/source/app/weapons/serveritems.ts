@@ -1,7 +1,7 @@
 import { Effect, Effect2 } from "shared/core/effects";
 import { Clip, CreateShootController, GunshootController, SHOT_LINKER, SimpleWeaponControllerDefinition } from "shared/core/sharedlogic/weapondefinitions";
 import { TickTimer } from "shared/datastructures/ticktimer";
-import { randomInt, random_range } from "shared/misc/random";
+import { random_int, random_range } from "shared/misc/random";
 import { Line } from "shared/shapes/line";
 import { Coordinate, Vec2 } from "shared/shapes/vec2";
 
@@ -146,7 +146,7 @@ export class PlayerSwapperItem extends SBaseItem<"swap_item"> {
     public override activation_type = ItemActivationType.INSTANT;
 
     override do_action(creator: PlayerInformation): void {
-        const all_players = this.game.activeScene.activePlayerEntities.values();
+        const all_players = this.game.active_scene.activePlayerEntities.values();
 
         if(all_players.length <= 1) {
             console.log("Cannot swap");
@@ -154,7 +154,7 @@ export class PlayerSwapperItem extends SBaseItem<"swap_item"> {
         }
         
         // Pick a random other player to swap with
-        const other_player = all_players.filter(p => p !== creator.playerEntity)[randomInt(0,all_players.length - 1)];
+        const other_player = all_players.filter(p => p !== creator.playerEntity)[random_int(0,all_players.length - 1)];
 
         creator.personalPackets.enqueue(
             new ForcePositionPacket(other_player.x, other_player.y)
@@ -237,7 +237,7 @@ export function ServerShootHitscanWeapon(game: ServerBearEngine, position: Vec2,
     if(terrain) ray.B = terrain.point;
 
     // Check each players distance to the line.
-    for(const pEntity of game.activeScene.activePlayerEntities.values()){
+    for(const pEntity of game.active_scene.activePlayerEntities.values()){
         if(pEntity.connectionID === owner) continue;
 
         if(ray.pointDistance(pEntity.position) < 30){
@@ -296,6 +296,8 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
 
     seconds_alive = 0;
     
+    // Set this to false soon
+    ignore_creator_id = true;
 
     constructor(circle: Ellipse, public creatorID: number, public bounce: boolean){
         super();
@@ -308,13 +310,19 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
         this.effect.onUpdate(function(dt){
             this.seconds_alive += dt;
 
+            if(this.seconds_alive > 0.1){
+                this.ignore_creator_id = false;
+            }
+
             this.forward_line.A = this.position;
             this.forward_line.B = Vec2.add(this.position, this.velocity);
 
             this.terrain_test = this.game.terrain.lineCollision(this.forward_line.A, this.forward_line.B);
 
-            for(const player of this.game.activeScene.activePlayerEntities.values()){
-                if(player.connectionID === this.creatorID) continue;
+            for(const player of this.game.active_scene.activePlayerEntities.values()){
+
+                if(this.ignore_creator_id && player.connectionID === this.creatorID) continue;
+
                 const point = Line.PointClosestToLine(this.forward_line.A, this.forward_line.B, player.position);
                 if(Vec2.distanceSquared(player.position, point) < this.player_dmg_radius**2){
                     this.player_test.push(player);
@@ -360,7 +368,7 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
 } 
 
 
-export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: number, position: Vec2, velocity: Vec2, shot_prefab_id: number): ServerProjectileBullet {
+export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: number, position: Vec2, velocity: Vec2, shot_prefab_id: number, mouse: Vec2): ServerProjectileBullet {
 
     const bullet = new ServerProjectileBullet(new Ellipse(new Vec2(),20,20), creatorID, SHOT_LINKER.IDToData(shot_prefab_id).bounce);
 
@@ -410,6 +418,25 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
             case "emoji": break;
             case "particle_system": break;
             case "ice_slow": break;
+            case "goto_mouse": {
+                break;
+            }
+            case "destroy_after":{
+
+                const time = effect.seconds;
+
+                const final_pos = mouse.clone();
+
+                bullet.effect.onUpdate(function(dt){
+                    if(this.seconds_alive >= time){
+
+                        this.position.set(final_pos);
+                        this.destroy();
+                    }
+                });
+
+                break;
+            }
             case "gravity": {
 
                 const grav = new Vec2().set(effect.force);
@@ -448,7 +475,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
                 bullet.onfinalAction(function(){
                     
                     const RADIUS = effect.radius;
-                    const DMG_RADIUS = effect.radius * 1.5;
+                    const DMG_RADIUS = effect.radius * 1;
             
                 
                     this.game.terrain.carveCircle(this.position.x, this.position.y, RADIUS);
@@ -457,64 +484,8 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
                         new TerrainCarveCirclePacket(this.position.x, this.position.y, RADIUS)
                     );
             
-    
-                    for(const p of this.player_test){
-                        p.health -= 25;
-                    }
 
-
-                    //const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
-                    // // Check in radius to see if any players are hurt
-                    // for(const pEntity of this.game.activeScene.activePlayerEntities.values()){
-            
-                    //     if(Vec2.distanceSquared(pEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
-                    //         pEntity.health -= 16;
-                    //     }
-                    // } 
-                    
-                    /*
-                    const testTerrain = this.terrain_test;
-                    
-                    const RADIUS = effect.radius;
-                    const DMG_RADIUS = effect.radius * 1.5;
-            
-                    if(testTerrain){
-                        this.game.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
-            
-                        this.game.enqueueGlobalPacket(
-                            new TerrainCarveCirclePacket(testTerrain.point.x, testTerrain.point.y, RADIUS)
-                        );
-            
-                        //const point = new Vec2(testTerrain.point.x,testTerrain.point.y);
-                        // // Check in radius to see if any players are hurt
-                        // for(const pEntity of this.game.activeScene.activePlayerEntities.values()){
-            
-                        //     if(Vec2.distanceSquared(pEntity.position,point) < DMG_RADIUS * DMG_RADIUS){
-                        //         pEntity.health -= 16;
-                        //     }
-                        // } 
-
-                        bullet.position.set(testTerrain.point); 
-                        this.destroy();
-                    } else if(this.player_test.length !== 0){
-
-                        const x = this.player_test[0].x;
-                        const y = this.player_test[0].y;
-
-                        for(const p of this.player_test){
-                            p.health -= 25;
-                            this.position.set(p.position);
-                        }
-
-                        this.game.terrain.carveCircle(x, y, RADIUS);
-                        this.game.enqueueGlobalPacket(
-                            new TerrainCarveCirclePacket(x, y, RADIUS)
-                        );
-
-                        bullet.position.set({x,y}); 
-                        this.destroy();
-                    }
-                    */
+                    this.game.dmg_players_in_radius(this.position, DMG_RADIUS, 25);
 
                 });
                 break;
@@ -549,7 +520,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
             }
         }
 
-        if(!this.game.activeScene.levelbbox.contains(this.position)){
+        if(!this.game.active_scene.level_bbox.contains(this.position)){
             this.destroy();
         }
     });
@@ -587,6 +558,9 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
     @sync("item_entity").var("pos")
     pos = new Vec2(0,0)
 
+    @sync("item_entity").var("initial_pos")
+    initial_pos: Vec2 = new Vec2();
+
     mode: ItemEntityPhysicsMode = ItemEntityPhysicsMode.FLOATING;
     velocity = new Vec2();
         
@@ -597,10 +571,11 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
     constructor(item: SBaseItem<keyof SharedNetworkedEntities>){
         super();
         this.item = item;
-        this.art_path = item.GetStaticValue("item_sprite")
+        this.art_path = item.GetStaticValue("item_sprite");
         //this.item_id = item.item_id;
 
         // this.mark_dirty("item_id");
+        this.mark_dirty("initial_pos")
         this.mark_dirty("pos");
         this.mark_dirty("art_path");
     }
@@ -627,75 +602,13 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
                 this.mark_dirty("pos");
                 const status = SimpleBouncePhysics(this.game.terrain,this.pos, this.velocity, this.bouncing_gravity, this.slow_factor);
                 if(status.stopped) this.mode = ItemEntityPhysicsMode.ASLEEP;
-                // // Gravity
-                // this.velocity.add(this.bouncing_gravity);
-
-                // const destination = Vec2.add(this.velocity,this.pos);
-
-                // // If no terrain hit, proceed
-                // const test = this.game.terrain.lineCollisionExt(this.pos, destination);
-
-                // if(test === null){
-                //     this.pos.add(this.velocity);
-                // } else {
-
-                //     if(this.velocity.length() <= 3){
-                //         this.mode = ItemEntityPhysicsMode.ASLEEP;
-                //     }
-                //     // Could potentially bounce multiple times;
-
-                //     let last_test = test;
-                //     let distanceToMove = this.velocity.length();
-
-                //     const max_iter = 10;
-                //     let i = 0;
-
-                //     while(distanceToMove > 0 && i++ < max_iter){
-                //         // console.log("Tick: " + this.game.tick, " " + distanceToMove)
-
-                //         const distanceToPoint = Vec2.subtract(last_test.point,this.pos).length();
-
-                //         // const distanceAfterBounce = distanceToMove - distanceToPoint;
-
-                //         // Set my position to colliding point, then do more logic later
-                //         this.pos.set(last_test.point);
-
-                //         // Bounce off of wall, set velocity
-                //         Vec2.bounce(this.velocity, last_test.normal, this.velocity);
-
-                        
-
-                //         // Slows done
-                //         this.velocity.scale(this.slow_factor);
-
-                //         distanceToMove -= distanceToPoint;
-                //         distanceToMove *= this.slow_factor;
-
-                //         // const lastStretchVel = this.velocity.clone().normalize().scale(distanceAfterBounce);
-                //         const lastStretchVel = this.velocity.clone().normalize().scale(distanceToMove);
-                //         // Move forward
-                //         const bounce_test = this.game.terrain.lineCollisionExt(this.pos, Vec2.add(this.pos, lastStretchVel));
-
-                //         if(bounce_test === null || bounce_test.normal.equals(last_test.normal)){
-                //             this.pos.add(lastStretchVel);
-
-                //             if(this.game.terrain.pointInTerrain(this.pos)) this.mode = ItemEntityPhysicsMode.ASLEEP;
-                //             break;
-                //         }
-
-                //         last_test = bounce_test   
-                //     }
-
-
-                // }
-
 
                 break;
             }
             default: AssertUnreachable(this.mode);
         }
 
-        if(!this.game.activeScene.levelbbox.contains(this.pos)){
+        if(!this.game.active_scene.level_bbox.contains(this.pos)){
             this.game.destroyRemoteEntity(this);
         }
     }
@@ -727,26 +640,43 @@ export class LaserTripmine_S extends NetworkedEntity<"laser_tripmine"> {
         this.mark_dirty("direction");
     }
 
+    exploded = false;
+
+    boom(){
+        this.exploded = true;
+
+        this.game.terrain.carveCircle(this.__position.x, this.__position.y, 45);
+            
+        this.game.enqueueGlobalPacket(
+            new TerrainCarveCirclePacket(this.__position.x, this.__position.y, 45)
+        );
+
+        this.game.dmg_players_in_radius(this.__position, 50,20);
+        
+        this.game.callEntityEvent(this, "laser_tripmine", "boom");
+
+        
+        for(const entity of this.game.entities.entities){
+            if(entity instanceof LaserTripmine_S){
+                if(Vec2.distanceSquared(this.__position, entity.__position) < (45*2)**2){
+                    if(!entity.exploded) entity.boom();
+                }
+            }
+        }
+
+
+        this.game.destroyRemoteEntity(this);
+    }
+
     update(dt: number): void {
 
-
-        for(const pEntity of this.game.activeScene.activePlayerEntities.values()){
+        for(const pEntity of this.game.active_scene.activePlayerEntities.values()){
             
-
             const p = Line.PointClosestToLine(this.line.A, this.line.B, pEntity.position);
 
             if(Vec2.distanceSquared(p,pEntity.position) < 20 * 20){
-
-                this.game.terrain.carveCircle(this.__position.x, this.__position.y, 45);
+                this.boom();
             
-                this.game.enqueueGlobalPacket(
-                    new TerrainCarveCirclePacket(this.__position.x, this.__position.y, 45)
-                );
-
-                this.game.dmg_players_in_radius(this.__position, 50,20);
-                 
-                this.game.destroyRemoteEntity(this);
-
                 break;
             }
         } 
@@ -794,7 +724,7 @@ export class BeamEffect_S extends ServerEntity {
             if(terrain) this.line.B = terrain.point;
 
             // Check each players distance to the line.
-            for(const pEntity of this.game.activeScene.activePlayerEntities.values()){
+            for(const pEntity of this.game.active_scene.activePlayerEntities.values()){
                 if(pEntity.connectionID === this.player.connectionID) continue;
 
                 if(this.line.pointDistance(pEntity.position) < 30){

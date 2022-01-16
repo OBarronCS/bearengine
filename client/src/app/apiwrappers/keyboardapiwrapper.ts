@@ -124,6 +124,7 @@ const codes= [
     ] as const;
 
 
+/** Keyboard Event Code */
 export type KECode = typeof codes[number]
 
 

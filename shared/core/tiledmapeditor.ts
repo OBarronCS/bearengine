@@ -3,7 +3,7 @@ import { AssertUnreachable } from "shared/misc/assertstatements";
 import { Ellipse } from "shared/shapes/ellipse";
 import { Polygon } from "shared/shapes/polygon";
 import { Rect } from "shared/shapes/rectangle";
-import { Coordinate, coordinateArraytoVec, flattenVecArray, Vec2 } from "shared/shapes/vec2";
+import { Coordinate, coordinateArraytoVec, flattenVecArray, rotatePoint, Vec2 } from "shared/shapes/vec2";
 
 export interface CustomMapFormat {
     world:{
@@ -228,13 +228,23 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
         
                 if(isPolygon(obj)){
                     // Add all polygon points
+                    const rotation_degrees = obj.rotation;
+
                     const rawPoints: number[] = [];
                     for(let i = 0; i < obj.polygon.length; i++){
+
                         rawPoints.push(obj.polygon[i].x + obj.x)
                         rawPoints.push(obj.polygon[i].y + obj.y)
                     }
-                    
+
+                    const obj_pos = new Vec2(obj.x, obj.y);
+                    const rotation_vector = Vec2.from_dangle(rotation_degrees - 90);
+                  
                     const vecArray = coordinateArraytoVec(rawPoints);
+                    vecArray.forEach(e => rotatePoint(e, obj_pos, rotation_vector))
+                   
+
+
                     // Automatically puts everything in clockwise, creates normals.
                     const polygon = Polygon.from(vecArray);
 

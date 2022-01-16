@@ -21,11 +21,15 @@ export class Rect implements Shape<Rect> {
     x2: number;
     y2: number;
 
-    static fromPoints(...points: Coordinate[]): Rect{
+    static from_points(...points: Coordinate[]): Rect {
         const topLeft = minPoint(points);
         const botRight = maxPoint(points);
 
         return new Rect(topLeft.x, topLeft.y, botRight.x - topLeft.x, botRight.y - topLeft.y);
+    }
+
+    static from_corners(x1: number, y1: number, x2: number, y2: number): Rect {
+        return new Rect(x1, y1, x2 - x1, y2 - y1);
     }
     
     static rectContains(x: number, y: number, width: number, height: number, point: Coordinate): boolean {

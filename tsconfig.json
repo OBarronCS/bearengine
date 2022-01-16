@@ -8,6 +8,8 @@
         "experimentalDecorators":true,
         
         //"noImplicitAny" : true,
+        //"strictNullChecks" : true,
+        //"strictPropertyInitialization": false,
         "strictFunctionTypes": true,
         "alwaysStrict":true,
         "noImplicitThis":true,

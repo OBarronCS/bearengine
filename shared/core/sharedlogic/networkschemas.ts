@@ -42,7 +42,9 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
         variables: {
             art_path: netv.string(),
             // item_id: netv.uint8(),
-            pos: netv.vec2("float")
+            pos: netv.vec2("float"),
+
+            initial_pos: netv.vec2("float")
         },
         events: {}
     },
@@ -51,6 +53,7 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
         extends: null,
         static: {
             shoot_controller: null as SimpleWeaponControllerDefinition,
+            juice: null as {knockback: number, shake: {type: "normal", shake: number} | {type: "kickback", length: number}},
         },
         variables: {
             capacity: netv.uint32(),
@@ -148,10 +151,10 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
             direction: netv.vec2("double")
         },
         events:{
-            // stick: {
-            //     argTypes:[netv.vec2("double")],
-            //     callback: (position) => void 0,
-            // }
+            boom: {
+                argTypes: [],
+                callback: () => void 0
+            }
         },
     },
 

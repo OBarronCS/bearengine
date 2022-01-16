@@ -1,7 +1,7 @@
 import type { Graphics } from "shared/graphics/graphics";
 import { Coordinate } from "./vec2";
 
-export function drawHealthBar(g: Graphics, x1: number, y1: number, width: number, height: number, percent: number, alpha = 1){
+export function drawProgressBar(g: Graphics, x1: number, y1: number, width: number, height: number, percent: number, alpha = 1){
     g.beginFill(0x000000, alpha);
     g.drawRect(x1, y1, width, height);
     g.beginFill(0xFF0000, alpha);

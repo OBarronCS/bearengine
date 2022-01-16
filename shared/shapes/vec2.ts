@@ -30,6 +30,11 @@ export class Vec2 {
         return new Vec2(c.x,c.y);
     }
 
+    /** Returns unit vector, n degrees from positive x-axis */
+    static from_dangle(degrees: number){
+        return new Vec2(1,1).setDirection(degrees * DEG_TO_RAD).normalize();
+    }
+
     /** A random vector of a given length */
     static random(length = 1): Vec2 {
         const vec = new Vec2(0,0);
@@ -258,7 +263,8 @@ export function flattenVecArray(array: Coordinate[]){
     return array.flatMap(vec => [vec.x, vec.y]);
 }
 
-export function rotatePoint(_point: Vec2, _center: Coordinate, _unit_circle: Coordinate){
+/** Sets rotation of first input around the second input by the given degree expressed as a normalized vector */
+export function rotatePoint(_point: Vec2, _center: Coordinate, _unit_circle: Coordinate): void {
     const rotatedX = -_unit_circle.y * (_point.x - _center.x) - _unit_circle.x * (_point.y-_center.y) + _center.x;
     const rotatedY = _unit_circle.x * (_point.x - _center.x) + -_unit_circle.y * (_point.y-_center.y) + _center.y;
 	
