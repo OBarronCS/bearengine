@@ -31,6 +31,7 @@ import { ColliderPart } from "shared/core/entitycollision";
 import { dimensions } from "shared/shapes/rectangle";
 import { SimpleBouncePhysics } from "shared/core/sharedlogic/sharedphysics"
 import { RecoilShake, SmoothShake } from "./camera";
+import { BoostDirection } from "../gamelogic/boostzone";
 
 
 
@@ -288,6 +289,15 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
 
         this.onUpdate(function(dt: number){
             if(this.continue_moving){
+
+                const zone = this.game.collisionManager.first_tagged_collider_on_point(this.position, "BoostZone");
+                if(zone){
+                    const dir = zone.owner.getAttribute(BoostDirection).dir;
+                    this.velocity.add(dir);
+                    //this.xspd += dir.x;
+                    // this.yspd += dir.y;
+                }
+
                 if(this.bounce){
                     SimpleBouncePhysics(this.game.terrain, this.position, this.velocity, new Vec2(0, .4), .6);
                 } else {
@@ -901,5 +911,27 @@ class LightningTest extends DrawableEntity {
 }
 
 
+////@ts-expect-error
+@networkedclass_client("instance_death_laser")
+export class InstantDeathLaser_C extends DrawableEntity {
 
+    @net("instance_death_laser").variable("start")
+    start = new Vec2()
+
+    @net("instance_death_laser").variable("end")
+    end = new Vec2()
+
+    constructor(){
+        super();
+    }
+
+    update(dt: number): void {
+        this.redraw();
+    }
+
+    draw(g: Graphics): void {
+        drawLineBetweenPoints(g, this.start, this.end, 0xFF0000, 1, 14)
+    }
+
+}
 

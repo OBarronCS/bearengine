@@ -48,7 +48,16 @@ export const SharedNetworkedEntityDefinitions = DefineSchema<SharedNetworkEntity
         },
         events: {}
     },
-    
+
+    "instance_death_laser":{
+        extends: null,
+        variables: {
+            start: netv.vec2("float"),
+            end: netv.vec2("float")
+        },
+        events: {},
+    },
+
     "weapon_item": {
         extends: null,
         static: {

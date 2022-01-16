@@ -27,7 +27,7 @@ import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
 
 
-import { BeamEffect_S, ForceFieldEffect, ForceFieldItem_S, ItemActivationType, ItemEntity, ItemEntityPhysicsMode, PlayerSwapperItem, SBaseItem, ServerShootHitscanWeapon, ServerShootProjectileWeapon, SHitscanWeapon, ShotgunWeapon_S, SProjectileWeaponItem } from "./weapons/serveritems";
+import { BeamEffect_S, ForceFieldEffect, ForceFieldItem_S, InstantDeathLaser_S, ItemActivationType, ItemEntity, ItemEntityPhysicsMode, PlayerSwapperItem, SBaseItem, ServerShootHitscanWeapon, ServerShootProjectileWeapon, SHitscanWeapon, ShotgunWeapon_S, SProjectileWeaponItem } from "./weapons/serveritems";
 import { commandDispatcher } from "./servercommands";
 
 import { random, random_int, random_range } from "shared/misc/random";
@@ -36,6 +36,7 @@ import { BeamActionType, ItemActionType, SHOT_LINKER } from "shared/core/sharedl
 import { LevelRefLinker, LevelRef } from "shared/core/sharedlogic/assetlinker";
 import { choose, shuffle } from "shared/datastructures/arrayutils";
 import { DEG_TO_RAD, floor, RAD_TO_DEG } from "shared/misc/mathutils";
+import { BoostZone_S } from "./weapons/boostzones";
 
 // Stop writing new info after packet is larger than this
 // Its a soft cap, as the packets can be 2047 + last_packet_written_length long,
@@ -407,10 +408,15 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         });
 
         
+        levelData.boostzones.forEach(b => {
+            this.entities.addEntity(new BoostZone_S(b.rect, b.dir));
+        });
 
         const spawn_points = shuffle([...levelData.spawn_points])
 
-
+        levelData.death_lasers.forEach(line => {
+            this.createRemoteEntity(new InstantDeathLaser_S(line))
+        })
 
         //  this.collisionManager.setupGrid(width, height);
         //#endregion

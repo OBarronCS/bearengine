@@ -20,6 +20,7 @@ import { Ellipse } from "shared/shapes/ellipse";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { ServerEntity } from "../entity";
 import { SimpleBouncePhysics } from "shared/core/sharedlogic/sharedphysics"
+import { BoostDirection, BoostZone_S } from "./boostzones";
 
 export enum ItemActivationType {
     GIVE_ITEM,
@@ -252,10 +253,10 @@ export function ServerShootHitscanWeapon(game: ServerBearEngine, position: Vec2,
 //@ts-expect-error
 @networkedclass_server("projectile_bullet")
 class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
-
-    allow_move = true;
-
+    
     private readonly player_dmg_radius = 30;
+    
+    allow_move = true;
 
     forward_line = new Line(this.position,this.position);
 
@@ -508,8 +509,27 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
     // Move at the very end, if all checks are valid
     bullet.effect.onUpdate(function(dt: number){
         if(this.allow_move){
+
+            for(const entity of this.game.entities.entities){
+                if(entity instanceof BoostZone_S){
+
+                    if(entity.collider.rect.contains(this.position.clone().sub(entity.position))){
+                        const dir = entity.getAttribute(BoostDirection).dir;
+                        this.velocity.add(dir);
+                        //this.xspd += dir.x;
+                        // this.yspd += dir.y;
+                    }
+                }
+            }
+
             if(this.bounce){
+
+                // const zone = this.game.collisionManager.first_tagged_collider_on_point(this.position, "BoostZone");
+
                 const status = SimpleBouncePhysics(this.game.terrain, this.position, this.velocity, new Vec2(0, .4), .6);
+
+                
+
                 // if(status.stopped){
                 //     this.destroy();
                 // }
@@ -741,3 +761,48 @@ export class BeamEffect_S extends ServerEntity {
 
 
 
+@networkedclass_server("ogre")
+export class ServerOgre extends NetworkedEntity<"ogre"> {
+    @sync("ogre").var("_x")
+    _x = 1;
+
+    @sync("ogre").var("asdasd")
+    asdasd = 1;
+    
+    update(dt: number): void {
+
+    }
+}
+
+
+
+//@ts-expect-error
+@networkedclass_server("instance_death_laser")
+export class InstantDeathLaser_S extends NetworkedEntity<"instance_death_laser"> {
+
+    @sync("instance_death_laser").var("start")
+    start = new Vec2()
+
+    @sync("instance_death_laser").var("end")
+    end = new Vec2()
+
+    constructor(public line: Line){
+        super();
+
+        this.start.set(line.A);
+        this.end.set(line.B);
+
+        this.mark_dirty("start")
+        this.mark_dirty("end")
+    }
+
+    update(dt: number): void {
+        
+        for(const p of this.game.active_scene.activePlayerEntities.values()){
+            if(this.line.pointDistance(p.position) < 20){
+                p.health -= 100;
+            }
+        }
+    }
+
+}

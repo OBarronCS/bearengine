@@ -2,8 +2,6 @@
 import { Vec2 } from "shared/shapes/vec2";
 import { ServerEntity } from "./entity";
 import { ConnectionID } from "./networking/serversocket";
-
-import "./networking/networkedentities";
 import { BeamEffect_S, SBaseItem } from "./weapons/serveritems";
 
 export class ServerPlayerEntity extends ServerEntity {

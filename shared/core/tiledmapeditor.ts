@@ -1,6 +1,7 @@
 import { SparseSet } from "shared/datastructures/sparseset";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { Ellipse } from "shared/shapes/ellipse";
+import { Line } from "shared/shapes/line";
 import { Polygon } from "shared/shapes/polygon";
 import { Rect } from "shared/shapes/rectangle";
 import { Coordinate, coordinateArraytoVec, flattenVecArray, rotatePoint, Vec2 } from "shared/shapes/vec2";
@@ -17,6 +18,7 @@ export interface CustomMapFormat {
         rect: Rect,
         dir: Vec2
     }[],
+    death_lasers: Line[],
     // Polygons and Rectangles are turned into this!
     bodies:{
         normals: number[],
@@ -29,7 +31,7 @@ export interface CustomMapFormat {
         file_path: string,
         width: number,
         height: number,
-    }[]
+    }[],
 }
 
 /*
@@ -42,7 +44,7 @@ ellipse = [{info}];
 sprite = []
 */
 const IGNORE_ITERATION_STRING = "__IGNORE_ITERATION";
-type CustomPropertyNames = "boost" | "boost_dir" | "spawn" | "item" | typeof IGNORE_ITERATION_STRING;
+type CustomPropertyNames = "boost" | "boost_dir" | "spawn" | "item" | "death_laser" | typeof IGNORE_ITERATION_STRING;
 
 // Infinite maps have additional properties
 export interface TiledMap  {
@@ -172,6 +174,7 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
     const boostzones: CustomMapFormat["boostzones"] = [];
     const spawn_points: CustomMapFormat["spawn_points"] = [];
     const item_spawn_points: CustomMapFormat["item_spawn_points"] = [];
+    const death_lasers: CustomMapFormat["death_lasers"] = [];
 
 
     const property_set = new SparseSet<{ 
@@ -320,6 +323,13 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
                             points:points
                         });
                     }
+                } else if(isPolyline(obj)){
+                    if(property_set.get(obj.id).properties.has("death_laser")){
+                        const a = new Vec2(obj.x + obj.polyline[0].x,obj.y + obj.polyline[0].y);
+                        const b = new Vec2(obj.x + obj.polyline[1].x,obj.y + obj.polyline[1].y);
+
+                        death_lasers.push(new Line(a,b));
+                    }
                 }
             }
         }
@@ -332,7 +342,8 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
         bodies,
         sprites,
         spawn_points,
-        item_spawn_points
+        item_spawn_points,
+        death_lasers
     }
 }
 
