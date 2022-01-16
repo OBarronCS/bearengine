@@ -1170,7 +1170,7 @@ class ServerScene {
         
         if(!this.round_over){
             // Spawn items
-            if(random() > .94){
+            if(random() > .98){
                 const random_itemprefab_id = RandomItemID();
     
                 const item_instance = this.game.createItemFromPrefab(random_itemprefab_id);

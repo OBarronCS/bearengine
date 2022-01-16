@@ -649,7 +649,7 @@ export class Player extends DrawableEntity {
             this.followCam = !this.followCam;
             if(this.followCam){
                 this.engine.camera.follow(this.position);
-                this.engine.camera.setZoom(1.25);
+                this.engine.camera.setZoom(1.3);
                 this.engine.camera.setBounds({min: new Vec2(), max: {x: this.game.activeLevel.bbox.x2, y: this.game.activeLevel.bbox.y2 } });
             } else {
                 this.engine.camera.free();
