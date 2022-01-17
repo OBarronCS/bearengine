@@ -324,19 +324,20 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                 
                 // For now, only INFINITE is allowed
                 this.start_match(
-                    MatchGamemode.INFINITE
+                    MatchGamemode.INFINITE,
+                    "LEVEL_ONE"
                 );
             }
         }
     }
 
-    start_match(mode: MatchGamemode){
+    start_match(mode: MatchGamemode, map: keyof typeof LevelRef){
         console.log("Match begins");
         this.server_state = ServerGameState.ROUND_ACTIVE;
 
         switch(mode){
             case MatchGamemode.INFINITE:{
-                this.start_new_round("LEVEL_ONE");
+                this.start_new_round(map);
                 break;
             }
             case MatchGamemode.FIRST_TO_N: {

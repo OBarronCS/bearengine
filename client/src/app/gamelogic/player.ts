@@ -29,7 +29,7 @@ import { CreateInputConverter, inputv } from "../input/inputcontroller";
 
 
 
-enum PlayerState {
+export enum PlayerState {
     GROUND,
     AIR,
     CLIMB,
@@ -707,8 +707,6 @@ export class Player extends DrawableEntity {
         if(zone){
             const dir = zone.owner.getAttribute(BoostDirection).dir;
             this.velocity.add(dir);
-            //this.xspd += dir.x;
-            // this.yspd += dir.y;
         }
 
         if(this.game.player_controller.wasPressed("jump")) this.timeSincePressedJumpedButton = 0;

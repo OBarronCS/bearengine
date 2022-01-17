@@ -94,6 +94,10 @@ abstract class AbstractInterpolatedVariable<T> implements InterpVariableBuffer<T
         if(this.buffer.length === 1) return this.buffer[0].data;
 
         for(let i = this.buffer.length - 1; i >= 0; --i){
+            // Fix for edge case of frame being an integer, % == 0
+            // If this is true, the floor(frame) + 1 ends up returning a number we dont want;
+            if(this.buffer[i].frame === frame) return this.buffer[i].data;
+
             if(this.buffer[i].frame < frame){
                 
                 if(i === this.buffer.length - 1){

@@ -9,7 +9,7 @@ import { RemoteLocations } from "./remotecontrol";
 import { CallbackNetwork, NetworkSettings } from "./clientsocket";
 import { Entity } from "../entity";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
-import { AnimationState, Player, RemotePlayer } from "../../gamelogic/player";
+import { AnimationState, Player, PlayerState, RemotePlayer } from "../../gamelogic/player";
 import { abs, ceil, DEG_TO_RAD, floor } from "shared/misc/mathutils";
 import { LinkedQueue } from "shared/datastructures/queue";
 import { BearEngine, NetworkPlatformGame } from "../bearengine";
@@ -856,6 +856,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const x = stream.getFloat32();
                             const y = stream.getFloat32();
 
+                            this.game.player.state = PlayerState.AIR;
                             this.game.player.position.set({x,y});
 
                             break;
@@ -1125,9 +1126,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
             for(const obj of this.remotelocations){
                 obj.setPosition(frameToSimulate);
-
             }
-
+            if(frameToSimulate % 1 === 0){
+                console.log("Frame to simulate: " + frameToSimulate)
+            }
 
             for(const obj of this.remoteEntities.values()){
                 const list = obj.constructor["INTERP_LIST"] as string[]; // List of variables that are interpolated
