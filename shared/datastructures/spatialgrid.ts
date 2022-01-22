@@ -8,12 +8,10 @@ export class SpatialGrid<T> {
 
     private AABBFunction: (object: T) => Rect;
 
-    // 2D array of lists of objects
-    // Could maybe convert this to just a 1d array of lists, by mapping each 2d coord to a 1d location
-    private grid: T[][][] = [];
+
+    private grid: T[][] = [];
 
     // recommened side length of square root of n where n is number of things inserted. 
-
     private worldWidth: number;
     private worldHeight: number;
 
@@ -36,20 +34,14 @@ export class SpatialGrid<T> {
         this.tileWidth = worldWidth / gridWidth;
         this.tileHeight = worldHeight / gridHeight;
 
-        for (let i = 0; i < gridWidth; i++) {
-            this.grid[i] = []
-            
-            for(let j = 0; j < gridHeight; j++){
-                this.grid[i][j] = []
-            }
+        for (let i = 0; i < gridWidth * this.gridHeight; i++) {
+            this.grid[i] = [];
         }
     }
 
     public clear(){
-        for (let i = 0; i < this.gridWidth; i++) {
-            for(let j = 0; j < this.gridHeight; j++){
-                if(this.grid[i][j].length > 0) this.grid[i][j] = [];
-            }
+        for (let i = 0; i < this.gridWidth * this.gridHeight; i++) {
+            if(this.grid[i].length > 0) this.grid[i] = [];
         }
     }
 
@@ -66,7 +58,7 @@ export class SpatialGrid<T> {
                 drawLineBetweenPoints(g,{x: 0, y: j * this.tileHeight},{x: this.worldWidth, y: j * this.tileHeight}, undefined, .01)
 
 
-                const list = this.grid[i][j];
+                const list = this.grid[j + this.gridHeight + i];
                 for(const obj of list)
                     set.add(obj);
             }
@@ -106,9 +98,10 @@ export class SpatialGrid<T> {
         // Used for debugging
         let num = 0;
 
-        for(let j = left_index; j <= right_index; j++){
-            for(let k = top_index; k <= bot_index; k++){
-                const list = this.grid[j][k];
+        for(let j = top_index; j <= bot_index; j++){
+            for(let i = left_index; i <= right_index; i++){
+                const list = this.grid[j*this.gridWidth + i];
+
                 const index = list.indexOf(obj);
                 if(index !== -1){
                     num += 1;
@@ -116,6 +109,17 @@ export class SpatialGrid<T> {
                 }   
             }
         }
+
+        // for(let j = left_index; j <= right_index; j++){
+        //     for(let k = top_index; k <= bot_index; k++){
+        //         const list = this.grid[j][k];
+        //         const index = list.indexOf(obj);
+        //         if(index !== -1){
+        //             num += 1;
+        //             list.splice(index,1);
+        //         }   
+        //     }
+        // }
 
         if(num === 0) console.trace("Deleting unknown object: " + obj);
     }
@@ -134,12 +138,20 @@ export class SpatialGrid<T> {
         top_index = clamp(top_index, 0, this.gridHeight - 1);
         bot_index = clamp(bot_index, 0, this.gridHeight - 1);
         
-        for(let j = left_index; j <= right_index; j++){
-            for(let k = top_index; k <= bot_index; k++){
-                const list = this.grid[j][k];
+        for(let j = top_index; j <= bot_index; j++){
+            for(let i = left_index; i <= right_index; i++){
+                const list = this.grid[j*this.gridWidth + i];
                 list.push(obj);
             }
         }
+
+
+        // for(let j = left_index; j <= right_index; j++){
+        //     for(let k = top_index; k <= bot_index; k++){
+        //         const list = this.grid[j][k];
+        //         list.push(obj);
+        //     }
+        // }
     } 
 
     // Returns an iterable of all the values that lie under a region
@@ -151,15 +163,12 @@ export class SpatialGrid<T> {
         y_index = clamp(y_index, 0, this.gridWidth - 1)
 
 
-        return this.grid[x_index][y_index];
+        return this.grid[y_index * this.gridWidth + x_index];
     }
 
-    // Returns an iterable of all the values that lie in the region
+    /* Returns alls the values that lie in the region. No repeats */
     public region(box: Rect): Iterable<T> {
-        // Its a set so there's no repeats. 
-        // Might just be faster at the end of the day to make it an array
-        // Or when I've implemented a BST use it here.
-        const set = new Set<T>();
+
 
         let left_index = Math.floor(box.left / this.tileWidth);
         let right_index = Math.floor(box.right / this.tileWidth);
@@ -173,16 +182,31 @@ export class SpatialGrid<T> {
             
         // Goes through all grid boxes in the bounding box,
         // adds all items in them to the iterable
-        for(let j = left_index; j <= right_index; j++){
-            for(let k = top_index; k <= bot_index; k++){
-                const list = this.grid[j][k];
-                for(let i = 0; i < list.length; i++){
-                    const obj = list[i];
-                    set.add(obj);
-                }
 
+        // Its a set so there's no repeats. 
+        // Might just be faster at the end of the day to make it an array
+        // Or when I've implemented a BST use it here.
+        const set = new Set<T>();
+
+        for(let j = top_index; j <= bot_index; j++){
+            for(let i = left_index; i <= right_index; i++){
+                const list = this.grid[j*this.gridWidth + i];
+                for(const v of list){
+                    set.add(v);
+                }
             }
         }
+
+        // for(let j = left_index; j <= right_index; j++){
+        //     for(let k = top_index; k <= bot_index; k++){
+        //         const list = this.grid[j][k];
+        //         for(let i = 0; i < list.length; i++){
+        //             const obj = list[i];
+        //             set.add(obj);
+        //         }
+
+        //     }
+        // }
 
         return set;
     }

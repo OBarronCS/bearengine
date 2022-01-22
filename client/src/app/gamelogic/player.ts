@@ -694,20 +694,22 @@ export class Player extends DrawableEntity {
  
         this.slow_factor = 1;
 
-        const slow_zone = this.game.collisionManager.first_tagged_collider_on_point(this.position, "SlowZone");
-        if(slow_zone){
-            const slow = slow_zone.owner.getAttribute(SlowAttribute);
-            if(Vec2.distanceSquared(this.position, slow.owner.position) < slow.radius**2){
-                this.slow_factor = slow.slow_factor;
+        const slow_zones = this.game.collisionManager.colliders_on_point(this.position, "SlowZone");
+
+        for(const slow of slow_zones){
+            const slow_attr = slow.owner.getAttribute(SlowAttribute);
+            if(Vec2.distanceSquared(this.position, slow.owner.position) < slow_attr.radius**2){
+                this.slow_factor = slow_attr.slow_factor;
             }
         }
 
+        const zones = this.game.collisionManager.colliders_on_point(this.position, "BoostZone");
 
-        const zone = this.game.collisionManager.first_tagged_collider_on_point(this.position, "BoostZone");
-        if(zone){
-            const dir = zone.owner.getAttribute(BoostDirection).dir;
+        for(const z of zones){
+            const dir = z.owner.getAttribute(BoostDirection).dir;
             this.velocity.add(dir);
         }
+
 
         if(this.game.player_controller.wasPressed("jump")) this.timeSincePressedJumpedButton = 0;
         
@@ -1083,7 +1085,7 @@ export class Player extends DrawableEntity {
         // Gravity
         if(Math.sign(this.velocity.y) >= 0){
             // Going down
-            this.velocity.add(this.gravity.clone().scale(.72));
+            this.velocity.add(this.gravity.clone().scale(.72)) ;
             // this.velocity.y += .72 * this.gravity.y
         } else {
             this.velocity.add(this.gravity.clone().scale(.65));
@@ -1164,7 +1166,7 @@ export class Player extends DrawableEntity {
         }
 
         // Move player
-        this.position.add(this.velocity)
+        this.position.add(this.velocity.clone().scale(1/this.slow_factor))
 
         // this.position.x += this.xspd / this.slow_factor;
         // this.position.y += this.yspd / this.slow_factor; 

@@ -16,7 +16,7 @@ export class TestMouseDownEventDispatcher extends Subsystem<NetworkPlatformGame>
         const collision = this.game.collisionManager;
 
 
-        const underMouse = collision.circleQuery(mouse.x, mouse.y, 1);
+        const underMouse = collision.circle_query(mouse.x, mouse.y, 1);
 
         const scroll = mouse.scroll;
         if(scroll !== 0){

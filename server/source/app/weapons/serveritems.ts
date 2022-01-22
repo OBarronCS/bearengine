@@ -516,19 +516,13 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
                     if(entity.collider.rect.contains(this.position.clone().sub(entity.position))){
                         const dir = entity.getAttribute(BoostDirection).dir;
                         this.velocity.add(dir);
-                        //this.xspd += dir.x;
-                        // this.yspd += dir.y;
                     }
                 }
             }
 
             if(this.bounce){
 
-                // const zone = this.game.collisionManager.first_tagged_collider_on_point(this.position, "BoostZone");
-
                 const status = SimpleBouncePhysics(this.game.terrain, this.position, this.velocity, new Vec2(0, .4), .6);
-
-                
 
                 // if(status.stopped){
                 //     this.destroy();

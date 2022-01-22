@@ -64,7 +64,8 @@ export abstract class GameLevel {
             });
 
             mapdata.boostzones.forEach(b => {
-                this.game.entities.addEntity(new BoostZone(b.rect, b.dir))
+                this.game.temp_level_subset.addEntity(new BoostZone(b.rect, b.dir));
+                
             });
         }
 
@@ -77,6 +78,8 @@ export abstract class GameLevel {
     }
 
     internalEnd(){
+        
+        this.game.temp_level_subset.clear();
 
         this.game.engine.renderer.removeSprite(this.game.terrain.graphics);
 

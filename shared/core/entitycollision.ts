@@ -19,10 +19,16 @@ import { Attribute } from "./entityattribute";
 import { Vec2, Coordinate } from "shared/shapes/vec2";
 
 
-// Add all tags here!
+/**
+ * Tags are used to identify entities in collisions
+ *  Collider parts are given a tag name.
+ */
 // Help to identify certain entities, like in collision
+
+export const DEFAULT_TAG = "Unnamed";
+
 const tags = [
-    "Unnamed",
+    DEFAULT_TAG,
     "Player",
     "BoostZone",
     "SlowZone"
@@ -41,7 +47,7 @@ export class ColliderPart extends Attribute {
 
     // isTrigger
 
-    constructor(dimensions: Dimension, offset: Coordinate, name: TagName = "Unnamed"){
+    constructor(dimensions: Dimension, offset: Coordinate, name: TagName = DEFAULT_TAG){
         super();
         this.rect = new Rect(0,0,dimensions.width, dimensions.height);
         this.offset = new Vec2(-offset.x,-offset.y);
@@ -91,27 +97,41 @@ export class CollisionManager extends Subsystem {
         this.grid.clear();
     }
 
-    colliders_on_point(point: Coordinate): readonly ColliderPart[] {
+    /** Ignores tag */
+    all_colliders_on_point(point: Coordinate): readonly ColliderPart[] {
         const parts: ColliderPart[] = [];
+
         for(const c of this.grid.point(point)){
-            if(c.rect.contains(point)) parts.push(c)
+            if(c.rect.contains(point)) parts.push(c);
         }
 
         return parts;
     }
 
+    colliders_on_point(point: Coordinate, tag: TagName): readonly ColliderPart[] {
+        const parts: ColliderPart[] = [];
 
-    first_tagged_collider_on_point(point: Coordinate, tag: TagName): ColliderPart | null {
-        const options = this.colliders_on_point(point);
+        for(const c of this.grid.point(point)){
+            if(c.tag === tag){
+                if(c.rect.contains(point)) parts.push(c)
+            }
+        }
 
-        for(const o of options){
-            if(o.tag === tag) return o;
+        return parts;
+    }
+
+    first_collider_on_point(point: Coordinate, tag: TagName): ColliderPart | null {
+        
+        for(const c of this.grid.point(point)){
+            if(c.tag === tag){
+                return c;
+            }
         }
 
         return null;
     }
 
-    // return the first collider that it finds that is collides with 
+    /** Returns the first collider it collides */
     collision(c: ColliderPart): ColliderPart | null {
         const possible = this.grid.region(c.rect);
         for(const p of possible){
@@ -123,7 +143,7 @@ export class CollisionManager extends Subsystem {
         return null;
     }
 
-    collisionList(c: ColliderPart): ColliderPart[] {   
+    collision_list(c: ColliderPart): ColliderPart[] {   
         const all: ColliderPart[] = []
         
         const possible = this.grid.region(c.rect);
@@ -137,7 +157,7 @@ export class CollisionManager extends Subsystem {
         return all;
     }
 
-    circleQuery(x: number, y: number, r: number): AbstractEntity[] {
+    circle_query(x: number, y: number, r: number): AbstractEntity[] {
         const entities: AbstractEntity[] = [];
         const possible = this.grid.region(new Rect(x - r, y - r, r * 2, r * 2));
         for(const p of possible){
@@ -146,11 +166,11 @@ export class CollisionManager extends Subsystem {
         return entities;
     }
 
-    lineQuery(line: Line){
+    line_query(line: Line){
         const entities: AbstractEntity[] = [];
         const possible = this.grid.region(line.getAABB());
         for(const p of possible){
-            if(Rect.CollidesWithLine(p.rect,line.A.x, line.A.y,line.B.x,line.B.y)) entities.push(p.owner);
+            if(Rect.CollidesWithLine(p.rect,line.A.x,line.A.y,line.B.x,line.B.y)) entities.push(p.owner);
         }
         return entities;
     }
@@ -159,10 +179,9 @@ export class CollisionManager extends Subsystem {
     draw(g: Graphics){
         this.grid.draw(g);
 
-        // only for debugging. This is n squared.
         // draw collisions
         for(const collider of this.colliders){
-            const collision = this.collisionList(collider);
+            const collision = this.collision_list(collider);
             for(const c of collision){
                 c.rect.intersection(collider.rect).draw(g,0x0000FF);
             }

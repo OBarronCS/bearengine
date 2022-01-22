@@ -1008,7 +1008,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                             
                                             this.beamIDToEntity.set(beam_id,beam);
 
-                                            this.game.entities.addEntity(beam);
+                                            this.game.temp_level_subset.addEntity(beam);
 
                                             break;
                                         }
@@ -1016,7 +1016,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                             console.log("END BEAM")
                                             const get = this.beamIDToEntity.get(beam_id);
                                             if(get){
-                                                this.game.entities.destroyEntity(get);
+                                                this.game.temp_level_subset.destroyEntity(get);
+                                                this.beamIDToEntity.delete(beam_id);
                                             }
                                         
                                             break;
