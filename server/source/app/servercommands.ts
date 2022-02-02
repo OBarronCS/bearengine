@@ -68,6 +68,12 @@ database.add(
     )
 )
 
+database.add(
+    command("end")
+        .run((c) => {
+            c.engine.end_match();
+        })
+)
 
 
 

@@ -81,8 +81,6 @@ export class PhysicsDotEntity extends DrawableEntity {
         
         this.redraw(true);
     }
-
-
 }
 
 // const scene = this.game.entities;

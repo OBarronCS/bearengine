@@ -62,7 +62,7 @@ rl.on('line', (input: string) => {
             }
 
             case "end": {
-                engine.end_match()
+                engine.end_match();
                 break;
             }
 

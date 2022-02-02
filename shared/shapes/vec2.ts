@@ -31,8 +31,11 @@ export class Vec2 {
     }
 
     /** Returns unit vector, n degrees from positive x-axis */
-    static from_dangle(degrees: number){
-        return new Vec2(1,1).setDirection(degrees * DEG_TO_RAD).normalize();
+    static from_dangle(degrees: number): Vec2 {
+        const x = dcos(degrees);
+        const y = dsin(degrees);
+
+        return new Vec2(x,y);
     }
 
     /** A random vector of a given length */
@@ -100,67 +103,93 @@ export class Vec2 {
         this.y = y;
     }
 
-    public dot(vec: Coordinate): number {
+    dot(vec: Coordinate): number {
         return (this.x * vec.x) + (this.y * vec.y);
     }
 
-    public scale(multiply: number): this {
+    scale(multiply: number): this {
         this.x *= multiply;
         this.y *= multiply;
         return this;
     }
 
-    public set(point: Coordinate): this {
+    set(point: Coordinate): this {
         this.x = point.x;
         this.y = point.y;
         return this;
     }
 
-    public negate(): this {
+    setX(x: number): this {
+        this.x = x;
+        return this;
+    }
+
+    setY(y: number): this {
+        this.y = y;
+        return this;
+    }
+
+    setXY(x: number, y: number): this {
+        this.x = x;
+        this.y = y;
+        return this;
+    }
+
+    negate(): this {
         this.x = -this.x;
         this.y = -this.y
         return this;
     }
 
-    public add(point: Coordinate): this {
+    add(point: Coordinate): this {
         this.x += point.x;
         this.y += point.y;
         return this;
     }
 
-    public sub(point: Coordinate): this {
+    sub(point: Coordinate): this {
         this.x -= point.x;
         this.y -= point.y;
         return this;
     }
 
     /** returns distance between these two points */
-    public distance(point: Coordinate): number {
+    distance(point: Coordinate): number {
         const dx = this.x - point.x;
         const dy = this.y - point.y;
         return Math.sqrt(dx * dx + dy * dy);
     }
 
-    public length(): number {
+    distanceSquared(point: Coordinate): number {
+        const dx = this.x - point.x;
+        const dy = this.y - point.y;
+        return dx * dx + dy * dy;
+    }
+
+    length(): number {
         return Math.sqrt(this.x * this.x + this.y * this.y)
     }
 
-    public lengthSquared(): number {
+    lengthSquared(): number {
         return this.x * this.x + this.y * this.y
     }
 
     /** Radians */
-    public angle(): number {
+    angle(): number {
 		return Math.atan2(this.y, this.x);
     }
     
     /** Degrees */
-    public dangle(): number {
+    dangle(): number {
 		return Math.atan2(this.y, this.x) * RAD_TO_DEG;
 	}
 
-    public setDirection(radians: number): this {
+    setDirection(radians: number): this {
         const length = this.length();
+
+        if(length === 0){
+            throw new Error("Attempting to set direction of zero vector");
+        }
 
 		this.x = length * Math.cos(radians);
 		this.y = length * Math.sin(radians);
@@ -169,28 +198,25 @@ export class Vec2 {
 	}
     
     /** radians */
-    public rotate(radians: number): this {
+    rotate(radians: number): this {
 		const old_x = this.x;
 		this.x = this.x * Math.cos(radians) - this.y * Math.sin(radians);
         this.y = old_x * Math.sin(radians) + this.y * Math.cos(radians);
         return this;
     }
 
-    /**
-     * Rotate vector in degrees
-     * @param degrees 
-     */
-    public drotate(degrees: number): this {
+    /** Rotate vector in degrees */
+    drotate(degrees: number): this {
         return this.rotate(degrees * DEG_TO_RAD);
     }
     
-    public floor(): this {
+    floor(): this {
         this.x = floor(this.x);
         this.y = floor(this.y);
         return this;
     }
  
-    public normalize(): this {
+    normalize(): this {
         const len = this.length();
 		// Don't want to divide by zero!
 	    if (len > 0) {
@@ -200,22 +226,22 @@ export class Vec2 {
         return this;
     }
     
-    public isZero(): boolean {
+    isZero(): boolean {
         return this.x === 0 && this.y === 0;
     }
 
     /** Set the length of the vector
      *  MAYBE: change this to a more intuitive name 
      */
-    public extend(magnitude: number): this {
+    extend(magnitude: number): this {
 		this.normalize();
 		this.x *= magnitude;
 		this.y *= magnitude;
 		return this;
     }
     
-    /** Takes in a NORMALIZED VECTOR, and converts this vector to that bounced vector */
-    public bounce(normal: Coordinate): this {
+    /** Takes in a NORMALIZED VECTOR, and bounce this vector inplace against that vector.*/
+    bounce(normal: Coordinate): this {
         Vec2.bounce(this, normal, this);
         return this;
     }

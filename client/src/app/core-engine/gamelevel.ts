@@ -47,7 +47,7 @@ export abstract class GameLevel {
             const bodies = mapdata.bodies;
             this.game.terrain.setupGrid(width, height);
             bodies.forEach( (body) => {
-                this.game.terrain.addTerrain(body.points, body.normals)
+                this.game.terrain.addTerrain(body.points, body.normals, body.tag)
             });
 
             this.game.collisionManager.setupGrid(width, height);

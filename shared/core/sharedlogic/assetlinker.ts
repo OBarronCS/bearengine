@@ -2,6 +2,7 @@ import { DefineSchema, GenerateLinker } from "./serialization";
 
 
 export const LevelRef = DefineSchema<{ [key: string]: string }>()({
+    LOBBY: "lobby.json",
     LEVEL_ONE: "firsttest.json",
     LEVEL_TWO: "secondlevel.json",
     LEVEL_THREE: "thirdlevel.json",

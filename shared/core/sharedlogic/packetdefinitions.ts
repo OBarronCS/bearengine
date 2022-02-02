@@ -38,7 +38,7 @@ export enum GamePacket {
     START_ROUND, // [x:float32, y:float32, level_enum: uint8]
     
     // Array of players in order of winner, to last place
-    END_ROUND, // [ array_length: uint8, [clientID: uint8] * array_length] 
+    END_ROUND, // [ticks_until_next_round: uint16, array_length: uint8, [clientID: uint8] * array_length] 
 
     DECLARE_COMMANDS, // [Array<CommandHintFormat>]
 
@@ -67,7 +67,7 @@ export enum GamePacket {
     PLAYER_ENTITY_SET_ITEM, // [player_id: uint8, ItemID: uint8]
     PLAYER_ENTITY_CLEAR_ITEM, // [player_id: uint8]
 
-    // TODO: EXPLOSION: [fromPlayer: uint8, x: float32, y: float32, strength: uint8] // handle knockback on clients
+    // TODO: EXPLOSION_JUICE: [x: float32, y: float32, knockback_vector: Vec2<float>] // handle knockback on clients
 
     // Personal packet, teleports your player to this position
     FORCE_POSITION, // [x: float32, y: float32]

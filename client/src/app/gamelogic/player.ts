@@ -20,12 +20,13 @@ import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparti
 import { Effect } from "shared/core/effects";
 import { random_range } from "shared/misc/random";
 import { PhysicsDotEntity } from "./firstlevel";
-import { NumberTween } from "shared/core/tween";
+import { NumberTween, VecTween } from "shared/core/tween";
 import { BoostDirection } from "./boostzone";
 import { InterpolatedVar } from "../core-engine/networking/cliententitydecorators";
 import { SlowAttribute } from "shared/core/sharedlogic/sharedattributes";
 import { ProgressBarWidget, uisize } from "../ui/widget";
 import { CreateInputConverter, inputv } from "../input/inputcontroller";
+import { SimpleBouncePhysics } from "shared/core/sharedlogic/sharedphysics";
 
 
 
@@ -1384,6 +1385,8 @@ export class RemotePlayer extends Entity {
     private readonly idleAnimation = new PlayerAnimationState(this.engine.getResource("player/idle.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
     private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
 
+    private physics_body_parts: BodyPartPhysicsEntity[] = []
+
     update(dt: number): void {
         this.look_angle.value.set(this.look_angle.buffer.getValue(this.game.networksystem["getServerTickToSimulate"]()))
 
@@ -1407,7 +1410,39 @@ export class RemotePlayer extends Entity {
         }
     }
 
+    start_revive_animation(ticks: number){
+
+        for(const part of this.physics_body_parts){
+
+            // POSITION TWEEM
+            {
+                
+                const tween = new VecTween(part,"position",(ticks - 30) / 60).from(part.position).to(Vec2.add(this.position, Vec2.from(part.source_offset).scale(2))).go();
+
+                tween.delay(.2)
+
+                tween.onDelay(1, () => {
+                    part.grounded = true;
+                })
+
+                this.scene.addEntity(tween);
+            } 
+
+            // ALPHA TWEEN
+            {                
+                const tween = new NumberTween(part["sprite"],"alpha",(ticks - 180) / 60).from(.1).to(1).go();
+
+                tween.delay(.2)
+
+                this.scene.addEntity(tween);
+            }
+        }
+    }
+
     play_death_animation(){
+        this.physics_body_parts.forEach(e => e.destroy());
+        this.physics_body_parts = [];
+
         this.ghost = true;
 
         this.graphics.graphics.clear();
@@ -1418,6 +1453,7 @@ export class RemotePlayer extends Entity {
         this.climbAnimation.container.visible = false;
 
         this.scene.addEntity(new EmitterAttach(this,"BOOM", "particle.png"));
+        
         const {
             headSprite,
             bodySprite,
@@ -1426,7 +1462,6 @@ export class RemotePlayer extends Entity {
             leftFootSprite,
             rightFootSprite
         } = this.idleAnimation;
-
 
         const iter = [
             headSprite,
@@ -1442,13 +1477,15 @@ export class RemotePlayer extends Entity {
             const spr = new Sprite(i.texture);
             spr.scale.set(2,2);
 
-            const e = new PhysicsDotEntity(this.engine.mouse, spr);
+            const start_position = Vec2.add(i.position,this.idleAnimation.container.position);
 
-            e.position.set(this.position);
-
+            const e = new BodyPartPhysicsEntity(this.engine.mouse, i.position.clone(), spr);
+            e.position.set(start_position);
             e.velocity.set(new Vec2(random_range(-20, 20), random_range(-20, 20)));
             
             this.game.entities.addEntity(e);
+            this.physics_body_parts.push(e);
+
 
             const tween = new NumberTween(e["sprite"],"alpha",6).from(1).to(.1).go();
 
@@ -1456,7 +1493,7 @@ export class RemotePlayer extends Entity {
             tween.delay(2)
 
             tween.onFinish(() => {
-                e.destroy();
+                e.grounded = true;
             });
 
             this.scene.addEntity(tween);
@@ -1465,6 +1502,9 @@ export class RemotePlayer extends Entity {
     }
 
     make_visible(){
+        this.physics_body_parts.forEach(e => e.destroy());
+        this.physics_body_parts = [];
+
         this.ghost = false;
 
         this.runAnimation.container.visible = true;
@@ -1544,5 +1584,42 @@ export class RemotePlayer extends Entity {
 
 
 
+export class BodyPartPhysicsEntity extends DrawableEntity {
+    private slow_factor = 0.7;
+    private sprite: SpritePart;
+
+    velocity = new Vec2(0,0);
+    private gravity = new Vec2(0,.4);
+
+    grounded = false;
+
+    private drawRadius = 10;
+
+    constructor(point: Coordinate, public source_offset: Coordinate, spr_source: string | Sprite){
+        super();
+        this.position.set(point);
+        this.redraw();
+
+        this.sprite = this.addPart(new SpritePart(spr_source));
+
+
+        this.sprite.originPercent = new Vec2(.5, .5);
+    }
+
+    update(dt: number): void {
+
+        if(this.grounded) return;
+        const status = SimpleBouncePhysics(this.game.terrain, this.position, this.velocity, this.gravity, this.slow_factor)
+        if(status.stopped) this.grounded = true;
+    
+
+        this.redraw(true);
+    }
+
+    draw(g: Graphics): void {
+        //g.beginFill(0x00FF00);
+        //g.drawCircle(this.x, this.y, this.drawRadius);
+    }
+}
 
 

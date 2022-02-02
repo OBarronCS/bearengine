@@ -27,7 +27,7 @@ import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
 
 
-import { BeamEffect_S, ForceFieldEffect, ForceFieldItem_S, InstantDeathLaser_S, ItemActivationType, ItemEntity, ItemEntityPhysicsMode, PlayerSwapperItem, SBaseItem, ServerShootHitscanWeapon, ServerShootProjectileWeapon, SHitscanWeapon, ShotgunWeapon_S, SProjectileWeaponItem } from "./weapons/serveritems";
+import { BeamEffect_S, ForceFieldEffect_S, ForceFieldItem_S, InstantDeathLaser_S, ItemActivationType, ItemEntity, ItemEntityPhysicsMode, PlayerSwapperItem, SBaseItem, ServerShootHitscanWeapon, ServerShootProjectileWeapon, SHitscanWeapon, ShootShotgunWeapon_S, ShotgunWeapon_S, SProjectileWeaponItem } from "./weapons/serveritems";
 import { commandDispatcher } from "./servercommands";
 
 import { random, random_int, random_range } from "shared/misc/random";
@@ -376,6 +376,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         if(this.clients.length < 2){
             this.end_match();
+            console.log("Not enough players connected to start match")
             return;
         }
 
@@ -405,7 +406,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         const bodies = levelData.bodies;
         this.terrain.setupGrid(width, height);
         bodies.forEach(body => {
-            this.terrain.addTerrain(body.points, body.normals)
+            this.terrain.addTerrain(body.points, body.normals, body.tag)
         });
 
         
@@ -451,8 +452,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                 );
             }
 
-            // All players state should be Active at this point
-            
+            // All players state are Active at this point
+    
 
             // Add back player entities to the game world
             const player = new ServerPlayerEntity(clientID);
@@ -829,7 +830,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
                                         const velocity = direction.extend(item.initial_speed);
     
-                                        const b = ServerShootProjectileWeapon(this, clientID, pos, velocity, shot_prefab_id, player_info.playerEntity.mouse);
+                                        const b = ServerShootProjectileWeapon(this, player_info, pos, velocity, shot_prefab_id, player_info.playerEntity.mouse);
 
                                         this.enqueueGlobalPacket(
                                             new ActionDo_ProjectileShotPacket(clientID, createServerTick, pos, velocity, shot_prefab_id, b.entityID)
@@ -878,7 +879,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                                     // Only one exists
                                     const radius = ITEM_LINKER.NameToData("forcefield").radius;
                                     
-                                    this.createRemoteEntity(new ForceFieldEffect(player_info.playerEntity,radius))
+                                    this.createRemoteEntity(new ForceFieldEffect_S(player_info.playerEntity,radius))
     
                                     // this.enqueueGlobalPacket(
                                     //     new ForceFieldEffectPacket(clientID, 0, createServerTick, pos)
@@ -904,34 +905,16 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                                     if(item.ammo > 0){
                                         item.ammo -= 1;
 
-                                        const entity_id_list: number[] = [];
-
-                                        const shot_prefab_id = item.shot_id;
-
-                                        const spread_rad = item.spread * DEG_TO_RAD;
-                                        const count = item.count;
-
+                                        // Get direction that player is looking
                                         const pEntity = player_info.playerEntity;
-
                                         const player_dir = Vec2.subtract(pEntity.mouse, pEntity.position);
 
-                                        let current_dir = player_dir.angle() - (floor(count / 2)*spread_rad);
-                                        if(count % 2 === 0) current_dir += (spread_rad / 2);
+                                        const bullets = ShootShotgunWeapon_S(this, player_info, item.item_id, item.shot_id, pos, player_dir)
 
-                                        for(let i = 0; i < count; i++){
-
-                                            const velocity = new Vec2(1,1).setDirection(current_dir).extend(item.initial_speed);
-
-                                            const b = ServerShootProjectileWeapon(this, clientID, pos, velocity, shot_prefab_id, player_info.playerEntity.mouse);
-
-                                            entity_id_list.push(b.entityID);
-                                            
-                                            current_dir += spread_rad;
-                                        }
-
+                                        const entity_id_list: number[] = bullets.map(b => b.entityID);
                                        
                                         this.enqueueGlobalPacket(
-                                            new ActionDo_ShotgunShotPacket(clientID, createServerTick, pos, player_dir.clone().extend(item.initial_speed), shot_prefab_id, item.item_id, entity_id_list)
+                                            new ActionDo_ShotgunShotPacket(clientID, createServerTick, pos, player_dir.clone().extend(item.initial_speed), item.shot_id, item.item_id, entity_id_list)
                                         );
 
                                         player_info.personalPackets.enqueue(
@@ -1143,7 +1126,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 }
 
-const ROUND_OVER_REST_TIMER_TICKS = 60 * 3;
+const ROUND_OVER_REST_TIMER_TICKS = 60 * 2.5;
 
 class ServerScene {
 
@@ -1218,7 +1201,7 @@ class ServerScene {
     
                 
                 this.game.broadcast_packet_safe(
-                    new EndRoundPacket([...this.deadplayers].reverse())
+                    new EndRoundPacket([...this.deadplayers].reverse(), ROUND_OVER_REST_TIMER_TICKS)
                 );
 
                 this.round_over = true;

@@ -294,8 +294,6 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
                 for(const z of zones){
                     const dir = z.owner.getAttribute(BoostDirection).dir;
                     this.velocity.add(dir);
-                    //this.xspd += dir.x;
-                    // this.yspd += dir.y;
                 }
 
                 if(this.bounce){
