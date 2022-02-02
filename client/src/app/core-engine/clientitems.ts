@@ -290,12 +290,10 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
         this.onUpdate(function(dt: number){
             if(this.continue_moving){
 
-                const zone = this.game.collisionManager.first_tagged_collider_on_point(this.position, "BoostZone");
-                if(zone){
-                    const dir = zone.owner.getAttribute(BoostDirection).dir;
+                const zones = this.game.collisionManager.colliders_on_point(this.position, "BoostZone");
+                for(const z of zones){
+                    const dir = z.owner.getAttribute(BoostDirection).dir;
                     this.velocity.add(dir);
-                    //this.xspd += dir.x;
-                    // this.yspd += dir.y;
                 }
 
                 if(this.bounce){

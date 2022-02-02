@@ -21,6 +21,7 @@ export interface CustomMapFormat {
     death_lasers: Line[],
     // Polygons and Rectangles are turned into this!
     bodies:{
+        tag:string,
         normals: number[],
         points: number[]
     }[],
@@ -44,7 +45,7 @@ ellipse = [{info}];
 sprite = []
 */
 const IGNORE_ITERATION_STRING = "__IGNORE_ITERATION";
-type CustomPropertyNames = "boost" | "boost_dir" | "spawn" | "item" | "death_laser" | typeof IGNORE_ITERATION_STRING;
+type CustomPropertyNames = "tag" | "boost" | "boost_dir" | "spawn" | "item" | "death_laser" | typeof IGNORE_ITERATION_STRING;
 
 // Infinite maps have additional properties
 export interface TiledMap  {
@@ -226,8 +227,8 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
 
             for(const obj of layer.objects){
 
-
-                if(property_set.get(obj.id).properties.has(IGNORE_ITERATION_STRING)) continue;
+                const object_properties = property_set.get(obj.id).properties;
+                if(object_properties.has(IGNORE_ITERATION_STRING)) continue;
         
                 if(isPolygon(obj)){
                     // Add all polygon points
@@ -254,9 +255,14 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
                     const points = flattenVecArray(polygon.points);
                     const normals = flattenVecArray(polygon.normals);
 
+                    
+
+                    const tag = object_properties.has("tag") ? object_properties.get("tag").value as string : "";
+
                     bodies.push({
                         normals:normals,
-                        points:points
+                        points:points,
+                        tag
                     });
                 } else if(isImageObject(obj)){
                     
@@ -285,9 +291,12 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
                     const ellipse = new Ellipse(new Vec2(obj.x + obj.width / 2, obj.y + obj.height / 2), obj.width / 2, obj.height / 2);
                     const polygon = ellipse.toPolygon();
 
+                    const tag = object_properties.has("tag") ? object_properties.get("tag").value as string : "";
+
                     bodies.push({
                         points: flattenVecArray(polygon.points),
                         normals: flattenVecArray(polygon.normals),
+                        tag
                     })
 
                 } else if(isPoint(obj)) {
@@ -306,9 +315,9 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
                     const points = flattenVecArray(polygon.points);
                     const normals = flattenVecArray(polygon.normals);
 
-                    if(property_set.get(obj.id).properties.has("boost")){
+                    if(object_properties.has("boost")){
 
-                        const polyline_id = property_set.get(obj.id).properties.get("boost").value as number;
+                        const polyline_id = object_properties.get("boost").value as number;
                         const polyline = property_set.get(polyline_id).obj as PolylineObject;
 
                         const dir = Vec2.subtract(polyline.polyline[1], polyline.polyline[0]).normalize();
@@ -318,9 +327,12 @@ export function ParseTiledMapData(map: TiledMap): CustomMapFormat {
                             dir
                         });
                     } else {
+                        const tag = object_properties.has("tag") ? object_properties.get("tag").value as string : "";
+
                         bodies.push({
                             normals:normals,
-                            points:points
+                            points:points,
+                            tag
                         });
                     }
                 } else if(isPolyline(obj)){

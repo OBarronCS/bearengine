@@ -27,12 +27,14 @@ export class StartRoundPacket extends PacketWriter {
 
 export class EndRoundPacket extends PacketWriter {
 
-    constructor(public winnerOrder: number[]){
+    constructor(public winnerOrder: number[], public ticks_until_next_round: number){
         super(false);
     }
 
     write(stream: BufferStreamWriter): void {
         stream.setUint8(GamePacket.END_ROUND);
+
+        stream.setUint16(this.ticks_until_next_round);
 
         stream.setUint8(this.winnerOrder.length);
 

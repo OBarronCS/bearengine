@@ -21,6 +21,7 @@ import { TerrainManager } from "shared/core/terrainmanager";
 import { ServerEntity } from "../entity";
 import { SimpleBouncePhysics } from "shared/core/sharedlogic/sharedphysics"
 import { BoostDirection, BoostZone_S } from "./boostzones";
+import { DEG_TO_RAD, floor } from "shared/misc/mathutils";
 
 export enum ItemActivationType {
     GIVE_ITEM,
@@ -106,7 +107,7 @@ export class ForceFieldItem_S extends SBaseItem<"forcefield_item"> {
 
 //@ts-expect-error
 @networkedclass_server("forcefield_effect")
-export class ForceFieldEffect extends NetworkedEntity<"forcefield_effect"> {
+export class ForceFieldEffect_S extends NetworkedEntity<"forcefield_effect"> {
 
     @sync("forcefield_effect").var("radius", true)
     radius: number 
@@ -300,7 +301,7 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
     // Set this to false soon
     ignore_creator_id = true;
 
-    constructor(circle: Ellipse, public creatorID: number, public bounce: boolean){
+    constructor(circle: Ellipse, public creatorID: number, public creatorEntityID: EntityID, public bounce: boolean){
         super();
 
         // Is immediately destroyed if starts at (0,0)
@@ -311,7 +312,7 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
         this.effect.onUpdate(function(dt){
             this.seconds_alive += dt;
 
-            if(this.seconds_alive > 0.1){
+            if(this.seconds_alive > 0.15){
                 this.ignore_creator_id = false;
             }
 
@@ -320,6 +321,7 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
 
             this.terrain_test = this.game.terrain.lineCollision(this.forward_line.A, this.forward_line.B);
 
+            // Check collision with players, add to player_test list;
             for(const player of this.game.active_scene.activePlayerEntities.values()){
 
                 if(this.ignore_creator_id && player.connectionID === this.creatorID) continue;
@@ -369,9 +371,9 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
 } 
 
 
-export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: number, position: Vec2, velocity: Vec2, shot_prefab_id: number, mouse: Vec2): ServerProjectileBullet {
+export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: PlayerInformation, position: Vec2, velocity: Vec2, shot_prefab_id: number, mouse: Vec2): ServerProjectileBullet {
 
-    const bullet = new ServerProjectileBullet(new Ellipse(new Vec2(),20,20), creatorID, SHOT_LINKER.IDToData(shot_prefab_id).bounce);
+    const bullet = new ServerProjectileBullet(new Ellipse(new Vec2(),20,20), creatorID.connectionID, creatorID.playerEntity.entityID, SHOT_LINKER.IDToData(shot_prefab_id).bounce);
 
     bullet.position.set(position);
     bullet.velocity.set(velocity);
@@ -386,7 +388,8 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
         const line = this.forward_line;
         
         for(const entity of this.game.entities.entities){
-            if(entity instanceof ForceFieldEffect){
+            if(entity instanceof ForceFieldEffect_S){
+                if(this.ignore_creator_id && entity.targetPlayer.entityID === this.creatorEntityID) continue;
                 if(entity.entityID === this.last_force_field_id) continue;
 
                 const test = Line.CircleLineIntersection(line.A, line.B, entity.x, entity.y, entity.radius);
@@ -516,19 +519,13 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
                     if(entity.collider.rect.contains(this.position.clone().sub(entity.position))){
                         const dir = entity.getAttribute(BoostDirection).dir;
                         this.velocity.add(dir);
-                        //this.xspd += dir.x;
-                        // this.yspd += dir.y;
                     }
                 }
             }
 
             if(this.bounce){
 
-                // const zone = this.game.collisionManager.first_tagged_collider_on_point(this.position, "BoostZone");
-
                 const status = SimpleBouncePhysics(this.game.terrain, this.position, this.velocity, new Vec2(0, .4), .6);
-
-                
 
                 // if(status.stopped){
                 //     this.destroy();
@@ -550,6 +547,33 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: n
     return bullet;
 }
 
+
+
+export function ShootShotgunWeapon_S(game: ServerBearEngine, creator: PlayerInformation, shotgun_id: number, shot_id: number, position: Vec2, direction: Vec2): ServerProjectileBullet[] {
+
+    const shotgun_data = ITEM_LINKER.IDToData(shotgun_id) as Test<"shotgun_weapon">;
+    const initial_speed = shotgun_data.initial_speed;
+    const count = shotgun_data.count;
+    const spread_rad = shotgun_data.spread * DEG_TO_RAD;
+    
+
+    let current_dir = direction.angle() - (floor(count / 2)*spread_rad);
+    if(count % 2 === 0) current_dir += (spread_rad / 2);
+
+    const arr: ServerProjectileBullet[] = [];
+
+    for(let i = 0; i < count; i++){
+        const velocity = new Vec2(1,1).setDirection(current_dir).extend(initial_speed);
+
+        const b = ServerShootProjectileWeapon(game, creator, position, velocity, shot_id, creator.playerEntity.mouse);
+
+        arr.push(b);
+        
+        current_dir += spread_rad;
+    }
+
+    return arr;
+}
 
 const fall_velocity = new Vec2(0,3.8);
 

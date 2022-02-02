@@ -312,7 +312,6 @@ class ChargeController implements GunshootController {
 
     holdTrigger(hold: boolean): boolean {
         if(hold){
-            console.log(this.percent)
             if(this.lifted){
                 this.percent += this.percent_per_tick;
 

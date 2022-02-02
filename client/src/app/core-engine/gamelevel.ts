@@ -47,7 +47,7 @@ export abstract class GameLevel {
             const bodies = mapdata.bodies;
             this.game.terrain.setupGrid(width, height);
             bodies.forEach( (body) => {
-                this.game.terrain.addTerrain(body.points, body.normals)
+                this.game.terrain.addTerrain(body.points, body.normals, body.tag)
             });
 
             this.game.collisionManager.setupGrid(width, height);
@@ -64,7 +64,8 @@ export abstract class GameLevel {
             });
 
             mapdata.boostzones.forEach(b => {
-                this.game.entities.addEntity(new BoostZone(b.rect, b.dir))
+                this.game.temp_level_subset.addEntity(new BoostZone(b.rect, b.dir));
+                
             });
         }
 
@@ -77,6 +78,8 @@ export abstract class GameLevel {
     }
 
     internalEnd(){
+        
+        this.game.temp_level_subset.clear();
 
         this.game.engine.renderer.removeSprite(this.game.terrain.graphics);
 

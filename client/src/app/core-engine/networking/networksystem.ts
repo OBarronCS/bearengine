@@ -606,6 +606,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         case GamePacket.START_ROUND: {
                             console.log("Round begun");
 
+                            this.stagePacketsToSerialize = [];
+
                             // maybe force deletion immediately?
                             // Doesn't really matter as I clear the remoteEntity map which breaks all links between network and the local entity
                             this.networked_entity_subset.clear();
@@ -622,7 +624,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             this.currentPlayState = ClientPlayState.ACTIVE;
 
-                            this.stagePacketsToSerialize = [];
 
                             this.game.endCurrentLevel();
                             this.game.loadLevel(new DummyLevel(this.game, level));
@@ -642,9 +643,11 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             break;
                         }
                         case GamePacket.END_ROUND: {
-                            console.log("Round ended");
+                            console.log("A winner has been announced!");
                             
                             this.stagePacketsToSerialize = [];
+
+                            const ticks_until_next_round = stream.getUint16();
 
                             const length = stream.getUint8();
 
@@ -652,7 +655,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             for(let i = 0; i < length; i++){
                                 order.push(stream.getUint8());
                             }
-                            console.log(order);
                             
                             if(order.length > 0){
                                 const winnerID = order[0];
@@ -662,6 +664,11 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 const emitter = new EmitterAttach(pEntity,"ROUND_WINNER", "particle.png");
 
                                 this.game.entities.addEntity(emitter);
+                            }
+
+                            for(const p of this.remotePlayerEntities.values()){
+                                p.start_revive_animation(ticks_until_next_round);
+                                p.draw_item.clear();
                             }
 
                             break;
@@ -869,7 +876,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             const item_class = SharedEntityClientTable.getEntityClass(SharedEntityLinker.nameToSharedID(item_data.type));
 
-                            console.log(item_class)
+                            // console.log(item_class)
 
                             //@ts-expect-error
                             const item_instance = (new item_class(item_id));
@@ -893,7 +900,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             }
 
                             
-                            console.log("Created item:" + item_instance)
+                            // console.log("Created item:" + item_instance)
 
                             if(this.currentPlayState === ClientPlayState.ACTIVE){
                                 this.game.player.setItem(item_instance, item_data.item_sprite);
@@ -1008,7 +1015,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                             
                                             this.beamIDToEntity.set(beam_id,beam);
 
-                                            this.game.entities.addEntity(beam);
+                                            this.game.temp_level_subset.addEntity(beam);
 
                                             break;
                                         }
@@ -1016,7 +1023,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                             console.log("END BEAM")
                                             const get = this.beamIDToEntity.get(beam_id);
                                             if(get){
-                                                this.game.entities.destroyEntity(get);
+                                                this.game.temp_level_subset.destroyEntity(get);
+                                                this.beamIDToEntity.delete(beam_id);
                                             }
                                         
                                             break;
@@ -1127,9 +1135,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             for(const obj of this.remotelocations){
                 obj.setPosition(frameToSimulate);
             }
-            if(frameToSimulate % 1 === 0){
-                console.log("Frame to simulate: " + frameToSimulate)
-            }
+            // if(frameToSimulate % 1 === 0){
+            //     console.log("Frame to simulate: " + frameToSimulate)
+            // }
 
             for(const obj of this.remoteEntities.values()){
                 const list = obj.constructor["INTERP_LIST"] as string[]; // List of variables that are interpolated

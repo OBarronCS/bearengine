@@ -67,8 +67,10 @@ export class TerrainManager extends Subsystem {
     }
     
     /// Adds all terrain info --> adds to grid buckets
-    addTerrain(points: number[],normals: number[]): void{
-        const newTerrain = new TerrainMesh(new Polygon(coordinateArraytoVec(points),coordinateArraytoVec(normals)));
+    addTerrain(points: number[],normals: number[], tag: string): void {
+        const poly = new Polygon(coordinateArraytoVec(points),coordinateArraytoVec(normals));
+
+        const newTerrain = new TerrainMesh(poly, tag);
         this.terrains.push(newTerrain);
         this.grid.insert(newTerrain)
     }
@@ -82,7 +84,7 @@ export class TerrainManager extends Subsystem {
     }
     
     /** Terrain Raycast: return null if no collision, otherwise closest point of intersection */
-    lineCollision(A: Coordinate, B: Coordinate): {point:Vec2,normal:Vec2} {
+    lineCollision(A: Coordinate, B: Coordinate): {point:Vec2,normal:Vec2} | null {
         const box = (new Line(A,B)).getAABB();
         
         const possibleCollisions = this.grid.region(box);
@@ -211,10 +213,12 @@ export class TerrainManager extends Subsystem {
 // A polygon wrapper with extra functionality 
 // special for colliding, mostly static, terrain
 class TerrainMesh  {
+    public readonly tag: string;
     public polygon: Polygon;
 
-    constructor(polygon: Polygon){
+    constructor(polygon: Polygon, tag: string){
         this.polygon = polygon;
+        this.tag = tag;
     }
 
     lineCollision(A: Coordinate, B: Coordinate): ReturnType<Polygon["lineIntersection"]> {
@@ -415,7 +419,7 @@ class TerrainMesh  {
 
         const returnMeshes: TerrainMesh[] = [];
         for(let i = 1; i < components.length; i++){
-            returnMeshes.push(new TerrainMesh(Polygon.from(components[i])));
+            returnMeshes.push(new TerrainMesh(Polygon.from(components[i]), this.tag));
         }
 
         return returnMeshes.length === 0 ? null : returnMeshes;
@@ -591,7 +595,7 @@ class TerrainMesh  {
 
         const returnMeshes: TerrainMesh[] = [];
         for(let i = 1; i < components.length; i++){
-            returnMeshes.push(new TerrainMesh(Polygon.from(components[i])));
+            returnMeshes.push(new TerrainMesh(Polygon.from(components[i]), this.tag));
         }
 
         return returnMeshes.length === 0 ? null : returnMeshes;
