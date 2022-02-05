@@ -112,8 +112,8 @@ export class BearEngine {
     }
 
     getResource(path: string): LoaderResource | undefined {
-        if(path.startsWith(ASSET_FOLDER_NAME)) path = path.substr(7);
-        
+        if(path.startsWith(ASSET_FOLDER_NAME)) path = path.substring(ASSET_FOLDER_NAME.length);
+
         const fullPath = ASSET_FOLDER_NAME + path;
         const data = SHARED_RESOURCES[fullPath];
 
@@ -325,11 +325,12 @@ export class MainMenuScene extends BearScene<NetworkPlatformGame> {
             
             const b = new ButtonWidget(new Vec2(), 200,100, () => {
 
-                console.log(this.game.ui["parent_widget"].children)
+                //console.log(this.game.ui["parent_widget"].children)
 
-                this.game.loadLevel(new DummyLevel(this.game, LevelRef.LEVEL_ONE));
+                this.game.loadLevel(new DummyLevel(this.game, LevelRef.LOBBY));
+                
+                
                 this.game.disable_scene(this);
-
                 this.game.enable_scene(this.game.level_scene);
 
                 this.game.networksystem.connect();

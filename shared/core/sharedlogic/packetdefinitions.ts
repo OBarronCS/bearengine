@@ -42,8 +42,7 @@ export enum GamePacket {
 
     DECLARE_COMMANDS, // [Array<CommandHintFormat>]
 
-    // If client joins will game is active, this packet is sent to them
-    JOIN_LATE_INFO, // [level_enum: uint8]
+    LOAD_LEVEL, // [level_enum: uint8]
 
 
     CLEAR_INV_ITEM, // []

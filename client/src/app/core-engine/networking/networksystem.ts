@@ -25,7 +25,7 @@ import { ITEM_LINKER } from "shared/core/sharedlogic/items";
 import { BeamEffect_C, ForceFieldEffect_C, ModularProjectileBullet, ShootHitscanWeapon_C, ShootProjectileWeapon_C, ShootShotgunWeapon_C } from "../clientitems";
 import { Line } from "shared/shapes/line";
 import { EmitterAttach } from "../particles";
-import { PARTICLE_CONFIG } from "../../../../../shared/core/sharedlogic/sharedparticles";
+import { PARTICLE_CONFIG } from "shared/core/sharedlogic/sharedparticles";
 import { BeamActionType, HitscanRayEffects, ItemActionAck, ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { DeserializeTypedArray, DeserializeTypedVar, netv, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { Trie } from "shared/datastructures/trie";
@@ -315,6 +315,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     private spawnLocalPlayer(x: number, y: number){
         const p = (this.game.player = new Player());
 
+        console.log("Spawned local player");
+
         this.game.entities.addEntity(p);
 
         p.x = x;
@@ -567,7 +569,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             
                             break;
                         }
-                        case GamePacket.JOIN_LATE_INFO: {
+                        case GamePacket.LOAD_LEVEL: {
                             const level = LevelRefLinker.IDToData(stream.getUint8());
 
                             this.game.endCurrentLevel();
@@ -604,7 +606,11 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         }
 
                         case GamePacket.START_ROUND: {
-                            console.log("Round begun");
+                            console.log("New round begun");
+                            const x = stream.getFloat32();
+                            const y = stream.getFloat32();
+                            const level = LevelRefLinker.IDToData(stream.getUint8());
+
 
                             this.stagePacketsToSerialize = [];
 
@@ -616,11 +622,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             this.beamIDToEntity.forEach(v => v.destroy());
                             this.beamIDToEntity.clear();
 
-                            
-                            const x = stream.getFloat32();
-                            const y = stream.getFloat32();
-                            const level = LevelRefLinker.IDToData(stream.getUint8());
-
 
                             this.currentPlayState = ClientPlayState.ACTIVE;
 
@@ -631,7 +632,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             if(this.currentPlayState === ClientPlayState.ACTIVE){
                                 // console.log("AHAHAHHA");
-                                this.game.player.position.set({x, y});
+                                this.game.player.force_position({x, y});
                                 this.game.player.clearItem();
                                 this.game.player.setGhost(false);
                             }
@@ -863,8 +864,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const x = stream.getFloat32();
                             const y = stream.getFloat32();
 
-                            this.game.player.state = PlayerState.AIR;
-                            this.game.player.position.set({x,y});
+                            this.game.player.force_position({x,y});
 
                             break;
                         }

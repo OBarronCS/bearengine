@@ -10,6 +10,12 @@ import { Coordinate, coordinateArraytoVec, mix, Vec2 } from "shared/shapes/vec2"
 import { Subsystem } from "./subsystem";
 
 
+interface LineCollisionResult {
+    point: Vec2;
+    normal: Vec2;
+    mesh: Readonly<TerrainMesh>;
+}
+
 export class TerrainManager extends Subsystem {
 
     private grid: SpatialGrid<TerrainMesh> = new SpatialGrid<TerrainMesh>(1,1,1,1,(t) => t.polygon.getAABB());
@@ -84,7 +90,7 @@ export class TerrainManager extends Subsystem {
     }
     
     /** Terrain Raycast: return null if no collision, otherwise closest point of intersection */
-    lineCollision(A: Coordinate, B: Coordinate): {point:Vec2,normal:Vec2} | null {
+    lineCollision(A: Coordinate, B: Coordinate): LineCollisionResult | null {
         const box = (new Line(A,B)).getAABB();
         
         const possibleCollisions = this.grid.region(box);
@@ -104,7 +110,10 @@ export class TerrainManager extends Subsystem {
             // If no answer yet, choose this
             if(answer === null || dist < answer_dist) {
                 answer_dist = dist;
-                answer = collision;
+                answer = {
+                    ...collision,
+                    mesh: terrainMesh
+                }
             }
         }
         
@@ -213,8 +222,8 @@ export class TerrainManager extends Subsystem {
 // A polygon wrapper with extra functionality 
 // special for colliding, mostly static, terrain
 class TerrainMesh  {
-    public readonly tag: string;
-    public polygon: Polygon;
+    readonly tag: string;
+    polygon: Polygon;
 
     constructor(polygon: Polygon, tag: string){
         this.polygon = polygon;

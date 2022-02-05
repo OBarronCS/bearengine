@@ -69,14 +69,14 @@ export class SetGhostStatusPacket extends PacketWriter {
     }
 }
 
-export class JoinLatePacket extends PacketWriter {
+export class LoadLevelPacket extends PacketWriter {
 
     constructor(public level_enum: number){
         super(false);
     }
 
     write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.JOIN_LATE_INFO);
+        stream.setUint8(GamePacket.LOAD_LEVEL);
         stream.setUint8(this.level_enum);
 
     }

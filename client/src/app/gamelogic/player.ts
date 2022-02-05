@@ -436,6 +436,11 @@ export class Player extends DrawableEntity {
         }
     }
     
+    force_position(pos: Coordinate){
+        this.state = PlayerState.AIR;
+        this.position.set(pos);
+    }
+
     private setSensorLocationsAndRotate(){
         this.setSensorLocations();
 
