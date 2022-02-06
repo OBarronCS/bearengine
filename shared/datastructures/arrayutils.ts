@@ -86,6 +86,12 @@ export function swap(arr: any[], i: number, j: number): void {
     arr[j] = val1;
 }
 
+export function swap_with_last(arr: any[], i: number): void {
+    const val1 = arr[i];
+    arr[i] = arr[arr.length - 1];
+    arr[arr.length - 1] = val1;
+}
+
 /** Array must contain at least one element */
 export function choose<T>(elements: readonly T[]): T {
     const index = random_int(0,elements.length);

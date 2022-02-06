@@ -223,6 +223,7 @@ export class TerrainManager extends Subsystem {
 // special for colliding, mostly static, terrain
 class TerrainMesh  {
     readonly tag: string;
+    readonly id: number;
     polygon: Polygon;
 
     constructor(polygon: Polygon, tag: string){
@@ -234,6 +235,7 @@ class TerrainMesh  {
         return this.polygon.lineIntersection(A, B)
     }
 
+    // Returns null if it was completely broken OR not broken at all, else return the list of resulting terrain meshs
     carveCircle(x: number,y: number, r: number): TerrainMesh[] | null{
         // console.log("Polygon is clockwise : "  + Polygon.isClockwise(this.polygon.points));
         //  if this breaks, its because of an edge case with overlapping points and floating point error

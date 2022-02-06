@@ -26,7 +26,7 @@ import { Color } from "shared/datastructures/color";
 import { mix, Vec2 } from "shared/shapes/vec2";
 import { LevelRef } from "shared/core/sharedlogic/assetlinker";
 import { DrawableEntity, Entity } from "./entity";
-import { PhysicsDotEntity } from "../gamelogic/firstlevel";
+import { PhysicsDotEntity, PurePolygonCarveTest } from "../gamelogic/firstlevel";
 import { DefaultInputController } from "../input/inputcontroller";
 
 
@@ -434,6 +434,8 @@ export class LevelScene extends BearScene<NetworkPlatformGame> {
             }
         }
 
+        if(this.game.engine.keyboard.wasPressed("KeyH"))
+            this.game.entities.addEntity(new PurePolygonCarveTest());
         // if(this.game.engine.keyboard.wasPressed("KeyH")){
         //     this.game.player = this.game.entities.addEntity(new Player())
         // }
