@@ -28,6 +28,7 @@ import { LevelRef } from "shared/core/sharedlogic/assetlinker";
 import { DrawableEntity, Entity } from "./entity";
 import { PhysicsDotEntity, PurePolygonCarveTest } from "../gamelogic/firstlevel";
 import { DefaultInputController } from "../input/inputcontroller";
+import { TerrainMeshEventHandler } from "../gamelogic/terraindrawer";
 
 
 
@@ -213,6 +214,8 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
 
     public ui: UIManager;
 
+    private terrain_drawer: TerrainMeshEventHandler;
+
     // Scenes
     public mainmenu_scene: MainMenuScene;
     public level_scene: LevelScene;
@@ -221,7 +224,6 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
     temp_level_subset = this.entities.createSubset();
 
     public player_controller = new DefaultInputController(this.engine.keyboard, this.engine.mouse, player_controls_map);
-
 
 
     initSystems(): void {
@@ -233,9 +235,11 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         this.chatbox = this.registerSystem(new Chatbox(this));
         this.ui = this.registerSystem(new UIManager(this));
         this.debug = this.registerSystem(new DebugScreen(this));
+        this.terrain_drawer = this.registerSystem(new TerrainMeshEventHandler(this));
 
         this.mainmenu_scene = this.addScene(new MainMenuScene(this));
         this.level_scene = this.addScene(new LevelScene(this));
+        
     }
 
     onStart(): void {
@@ -264,11 +268,15 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
 
         this.entities.update(dt);
 
+
+
         this.chatbox.update(dt);
 
         this.networksystem.writePackets();
 
         this.debug.update(dt);
+        
+        this.terrain_drawer.update(dt);
 
         this.ui.update(dt)
 
@@ -434,8 +442,6 @@ export class LevelScene extends BearScene<NetworkPlatformGame> {
             }
         }
 
-        if(this.game.engine.keyboard.wasPressed("KeyH"))
-            this.game.entities.addEntity(new PurePolygonCarveTest());
         // if(this.game.engine.keyboard.wasPressed("KeyH")){
         //     this.game.player = this.game.entities.addEntity(new Player())
         // }

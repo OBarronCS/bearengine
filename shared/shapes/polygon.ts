@@ -15,7 +15,7 @@ import { Ellipse } from "./ellipse";
 
 
 // total === completely gone. missed === completely intact. normal === hit
-type CarveResult = {type:"missed"} | {type:"total"} | {type:"normal", parts: Polygon[]}; 
+export type CarveResult = {type:"missed"} | {type:"total"} | {type:"normal", parts: Polygon[]}; 
 
 // Test for concavity: http://paulbourke.net/geometry/polygonmesh/
 export class Polygon implements Shape<Polygon> {
@@ -599,7 +599,7 @@ export class Polygon implements Shape<Polygon> {
 
     /** Immutable operation! Always check return type to determine what happened */
     carve_polygon(shape: Polygon, shift: Vec2): CarveResult {
-// Every point in 'shape' is translated by 'shift' 
+        // Every point in 'shape' is translated by 'shift' 
 
         //  if this breaks, its because of an edge case with overlapping points and floating point error
         // contains the points of the resulting polygon
@@ -764,7 +764,7 @@ export class Polygon implements Shape<Polygon> {
         }
 
         const returnMeshes: Polygon[] = [];
-        
+
         for(let i = 0; i < components.length; i++){
             returnMeshes.push(Polygon.from(components[i]));
         }

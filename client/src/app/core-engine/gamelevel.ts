@@ -70,9 +70,10 @@ export abstract class GameLevel {
         }
 
         // const graphics = engine.renderer.createCanvas();
-        this.game.terrain.graphics = new Graphics();
-        engine.renderer.addSprite(this.game.terrain.graphics);
-        this.game.terrain.queueRedraw();
+
+        // this.game.terrain.graphics = new Graphics();
+        // engine.renderer.addSprite(this.game.terrain.graphics);
+        // this.game.terrain.queueRedraw();
 
         this.start();
     }
@@ -81,7 +82,7 @@ export abstract class GameLevel {
         
         this.game.temp_level_subset.clear();
 
-        this.game.engine.renderer.removeSprite(this.game.terrain.graphics);
+        // this.game.engine.renderer.removeSprite(this.game.terrain.graphics);
 
         this.end();
     }
