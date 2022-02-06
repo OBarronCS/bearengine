@@ -1,7 +1,7 @@
 import { Shape } from "./shapesinterfaces";
 import { Coordinate, Vec2, mix, flattenVecArray, distanceSquared } from "./vec2";
 import { Rect } from "./rectangle";
-import { abs, atan2, cos, max, min, niceColor, PI, sign, sin, TWO_PI } from "../misc/mathutils";
+import { abs, atan2, ceil, cos, floor, max, min, niceColor, PI, sign, sin, TWO_PI } from "../misc/mathutils";
 
 import type { Graphics, Point } from "shared/graphics/graphics";
 
@@ -414,8 +414,11 @@ export class Polygon implements Shape<Polygon> {
             
             const collisionPoints = Line.CircleLineIntersection(firstPoint, secondPoint, x, y, r);
             
-            //888888888888888888888888888888888888888888888888888888888888888888888888
-            //888888888888888888888888888888888888888888888888888888888888888888888888
+            //*********************************************** */
+            //*********************************************** */
+            // INSTEAD DO firstPoint.clone()! maybe, to avoid them referencing the same point?
+            //*********************************************** */
+            //*********************************************** */
             if(!circle.contains(firstPoint)) newPoints.push(firstPoint);
 
             if(!collisionPoints.tangent){
@@ -594,6 +597,180 @@ export class Polygon implements Shape<Polygon> {
         return { type:"normal", parts:returnMeshes };    
     }
 
+    /** Immutable operation! Always check return type to determine what happened */
+    carve_polygon(shape: Polygon, shift: Vec2): CarveResult {
+// Every point in 'shape' is translated by 'shift' 
+
+        //  if this breaks, its because of an edge case with overlapping points and floating point error
+        // contains the points of the resulting polygon
+        const newPoints: Vec2[] = [];
+
+        // contains the indices in the newPoints array of the new collision points'
+        const addedIndices: {indexInArray: number, orderInShape:number }[] = [];
+
+        for(let i = 0; i < this.points.length; i++){
+            const firstPoint =  this.points[i];
+            const secondPoint = this.points[(i + 1) % this.points.length];
+
+            if(!shape.contains(firstPoint.clone().sub(shift))) newPoints.push(firstPoint);
+
+            const collisions = shape.lineIntersectionExtended(firstPoint, secondPoint,shift);
+
+            for(const c of collisions){
+                newPoints.push(c.point);
+
+                addedIndices.push({ 
+                    indexInArray: newPoints.length - 1,
+                    orderInShape: c.internalT
+                });
+            }
+        }
+
+        // If circle enveloped the entire polygon
+        if(newPoints.length === 0){
+            return { type:"total" };
+        }
+
+        // Circle didn't even collide with lines or points
+        if(addedIndices.length === 0) {
+            return { type:"missed" };
+        }
+
+        // If not even number of collisions on edges, something broke due to edge case with vertex on sphere edge, 
+        // try again with different position
+        if(addedIndices.length % 2 !== 0){
+            return this.carve_polygon(shape, shift.clone().add({x:3, y:4}))
+        }
+
+        // Sort the added indices by the points angle to the center of the sphere 
+        addedIndices.sort((a,b) => a.orderInShape - b.orderInShape);
+
+        // console.log("Indices: ", addedIndices);
+        // console.log("Points: ", newPoints)
+
+        // Algorithm 2.0: Here we go
+
+        // Test the space between the first two points to determine the offset 
+        let offset = 0;
+
+        // Gets the point halfway between the first two points, and tests if it is in the polygon or not
+        let p1 = addedIndices[0].orderInShape;
+        let p2 = addedIndices[1].orderInShape;
+
+        // floating point number
+        const indexToCheck = (p1 + p2) / 2;
+
+        const t = indexToCheck % 1;
+        const finalIndexToCheck = floor(indexToCheck);
+
+        // Modulo might not be needed here.
+        const testPoint = mix(shape.points[finalIndexToCheck % shape.points.length],shape.points[(finalIndexToCheck + 1) % shape.points.length],t);
+        testPoint.add(shift);
+
+        if(!this.contains(testPoint)){
+            // console.log("OFFSET")
+            offset = 1;
+        }
+
+
+        // parralel array of connected components
+        const islands: number[] = [];
+        islands.length = newPoints.length;
+        islands.fill(0);
+
+        let freeIslandNumber = 0;
+
+        // Key is the index where we add the points
+        const addedPointMap: Map<number,Vec2[]> = new Map();
+        
+        // Cycles through points and creates ALL the disconnected components
+        for(let i = 0; i < addedIndices.length; i += 2){
+            const ii = (i + offset) % addedIndices.length;
+            const ii2 = (ii + 1) % addedIndices.length;
+
+            // Index inside of the newPoints array denoting the beginning and end of where points should be filled in
+            // Move clockwise (right) from index until get to index2. Will wrap around array at times.
+            
+            const a = addedIndices[ii].indexInArray;
+            const b = addedIndices[ii2].indexInArray;
+
+            freeIslandNumber += 1;
+
+            // this and islands[index2] should always be equal
+            const islandNumber = islands[a];
+
+            let j = a;
+            while(j !== b){
+                // Essentially, if this point doesn't belong to another group already
+                if(islands[j] === islandNumber){
+                    islands[j] = freeIslandNumber;
+                }
+
+                j = (j + 1) % newPoints.length;
+            }
+
+            // Add b as well. j == b here
+            islands[j] = freeIslandNumber;
+
+           
+            
+            // ADDING POLYGON POINTS
+            const shapeIndexA = addedIndices[ii].orderInShape;
+            let shapeIndexB =  addedIndices[ii2].orderInShape;
+
+            if(shapeIndexB < shapeIndexA) shapeIndexB += shape.points.length;
+
+            const pointsToAdd: Vec2[] = [];
+ 
+            let k = shapeIndexA;
+            while(k < floor(shapeIndexB)){
+
+                const indexOfAddingPoint = ceil(k) % shape.points.length;
+
+                pointsToAdd.push(shape.points[indexOfAddingPoint].clone().add(shift));
+
+                k += 1;
+            }
+
+            // reverse it due to the opposite ordering.
+            addedPointMap.set(b, pointsToAdd.reverse());
+        }
+
+        //Now, we have created all the disconnected 'islands' of points (defined in islands array), we just need to make them seperate polygon objects
+        // And add the points from the circle
+
+        // console.log("Islands: " + islands)
+
+        const components: Vec2[][] = [];
+
+        // Each free number creates either nothing, or it creates an entire 
+        for(let i = 0; i <= freeIslandNumber; i++){
+
+            const points: Vec2[] = [];
+
+            for(let j = 0; j < newPoints.length; j++){
+                // remember, newPoints and island are parralel arrays
+                if(islands[j] === i){
+                    points.push(newPoints[j]);
+
+                    const possibleAddedPoints = addedPointMap.get(j);
+                    if(possibleAddedPoints !== undefined){
+                        points.push(...possibleAddedPoints);
+                    }
+                }
+            }
+
+            if(points.length !== 0) components.push(points);
+        }
+
+        const returnMeshes: Polygon[] = [];
+        
+        for(let i = 0; i < components.length; i++){
+            returnMeshes.push(Polygon.from(components[i]));
+        }
+
+        return { type:"normal", parts:returnMeshes };
+    }
 
 
     toPolygon(): Polygon {
