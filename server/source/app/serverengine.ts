@@ -21,7 +21,7 @@ import { dimensions, Rect } from "shared/shapes/rectangle";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { DeserializeShortString, DeserializeTypedArray, netv, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame, BearScene } from "shared/core/abstractengine";
-import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, LoadLevelPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityDeathPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet, ActionDo_ProjectileShotPacket, ActionDo_HitscanShotPacket, ActionDo_ShotgunShotPacket, AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet, ActionDo_BeamPacket, ForcePositionPacket } from "./networking/gamepacketwriters";
+import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, LoadLevelPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityDeathPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet, ActionDo_ProjectileShotPacket, ActionDo_HitscanShotPacket, ActionDo_ShotgunShotPacket, AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet, ActionDo_BeamPacket, ForcePositionPacket, ConfirmVotePacket } from "./networking/gamepacketwriters";
 import { ClientPlayState, MatchGamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
@@ -116,6 +116,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
     public active_scene: BaseScene;
     
+    private queue_next_round: { mode: MatchGamemode, map: keyof typeof LevelRef} = null;
     // private round_state: RoundState = RoundState.ROUND_PENDING;
     // private current_gamemode: MatchGamemode = MatchGamemode.LOBBY;
 
@@ -196,7 +197,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         
         this.previousTickTime = Date.now();
 
-        this.start_match(MatchGamemode.LOBBY, "LOBBY");
+        this.start_new_round(MatchGamemode.LOBBY, "LOBBY");
 
         this.loop();
     }
@@ -306,7 +307,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
     
     /** If vote for the same thing twice, will turn the vote off 
-     * This is triggered by player shooting the "start" target
+     * This is triggered by player shooting the "vote" target
     */
     player_vote_start(id: number, mode: MatchGamemode){
 
@@ -322,12 +323,34 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         }
 
         if(p.has_voted){
-            p.has_voted = false;
-            p.vote_for_server_gamemode = -1;
+            if(p.vote_for_server_gamemode == mode){
+                // Undos the vote
+                p.has_voted = false;
+                p.vote_for_server_gamemode = -1;
+
+                p.personalPackets.enqueue(
+                    new ConfirmVotePacket(mode,false)
+                );
+            } else {
+                p.personalPackets.enqueue(
+                    new ConfirmVotePacket(p.vote_for_server_gamemode,false)
+                );
+
+                p.vote_for_server_gamemode = mode;
+                console.log(`Player ${id} voted for ${MatchGamemode[mode]}`)
+
+                p.personalPackets.enqueue(
+                    new ConfirmVotePacket(mode,true)
+                );
+            }
         } else {
             console.log(`Player ${id} voted for ${MatchGamemode[mode]}`)
             p.has_voted = true;
             p.vote_for_server_gamemode = mode;
+
+            p.personalPackets.enqueue(
+                new ConfirmVotePacket(mode,true)
+            );
 
 
             if(this.clients.length > 1){
@@ -350,13 +373,20 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 
     end_match(){
-        this.start_new_round(MatchGamemode.LOBBY, "LOBBY");
+        this.queue_start_new_round(MatchGamemode.LOBBY, "LOBBY");
     }
 
     start_match(mode: MatchGamemode, map: keyof typeof LevelRef){
-        console.log("Here we go: " + MatchGamemode[mode]);
+        console.log("Match starting next tick: " + MatchGamemode[mode]); 
+        
+        this.queue_start_new_round(mode, map)
+    }
 
-        this.start_new_round(mode, map);
+    queue_start_new_round(mode: MatchGamemode, map: keyof typeof LevelRef){
+        this.queue_next_round = {
+            mode,
+            map
+        }
     }
 
     set_active_scene(gamemode: MatchGamemode, level_id: number, rect: Rect): void {
@@ -390,7 +420,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
     // Resets everything to prepare for a new level, sends data to clients
     // Everyone who is spectating is now active
-    start_new_round(gamemode: MatchGamemode, map: keyof typeof LevelRef){
+    private start_new_round(gamemode: MatchGamemode, map: keyof typeof LevelRef){
 
         console.log("New round!");
 
@@ -1115,6 +1145,11 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             }
             this.updateScenes(dt);
 
+            if(this.queue_next_round !== null){
+                this.start_new_round(this.queue_next_round.mode, this.queue_next_round.map);
+                this.queue_next_round = null;
+            }
+
 
             this.writeToNetwork()
 
@@ -1236,7 +1271,7 @@ class InfiniteScene extends BaseScene {
             this.round_over_timer++;
             if(this.round_over_timer >= ROUND_OVER_REST_TIMER_TICKS){
                 // This will destroy this object.
-                this.game.start_new_round(this.gamemode, LevelRefLinker.IDToName(this.level_id));
+                this.game.queue_start_new_round(this.gamemode, LevelRefLinker.IDToName(this.level_id));
             }
         }
     }

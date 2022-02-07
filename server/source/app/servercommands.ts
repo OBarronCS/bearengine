@@ -55,10 +55,6 @@ database.add(
     command("s").args(comv.string_options<keyof typeof LevelRef>(Object.keys(LevelRef)))
         .run((context,arg) => {
             context.engine.start_match(MatchGamemode.INFINITE,arg);
-
-            // if(!context.engine.matchIsActive()){
-                
-            // }
         })
     );
 

@@ -2,7 +2,7 @@ import { StreamWriteEntityID } from "shared/core/entitysystem";
 import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { GetTemplateRealType, netv, SerializeTypedArray, SerializeTypedVar, SharedTemplates } from "shared/core/sharedlogic/serialization";
-import { ClientPlayState } from "shared/core/sharedlogic/sharedenums";
+import { ClientPlayState, MatchGamemode } from "shared/core/sharedlogic/sharedenums";
 import { BeamActionType, ItemActionAck, ItemActionType } from "shared/core/sharedlogic/weapondefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { Vec2 } from "shared/shapes/vec2";
@@ -563,3 +563,15 @@ export class ForcePositionPacket extends PacketWriter {
 }
 
 
+export class ConfirmVotePacket extends PacketWriter {
+
+    constructor(public mode: MatchGamemode, public enabled: boolean){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.CONFIRM_VOTE);
+        stream.setUint8(this.mode);
+        stream.setBool(this.enabled);
+    }
+}

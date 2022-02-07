@@ -8,6 +8,7 @@ import { Rect } from "shared/shapes/rectangle";
 import { Coordinate, coordinateArraytoVec, mix, Vec2 } from "shared/shapes/vec2";
 import { Subsystem } from "./subsystem";
 import { EventHub } from "./eventhub";
+import { Color, rgb } from "shared/datastructures/color";
 
 
 interface LineCollisionResult {
@@ -84,6 +85,15 @@ export class TerrainManager extends Subsystem {
         this.grid.insert(new_mesh);
 
         this.mesh_events.dispatch("on_add", new_mesh);
+    }
+
+    get_terrain_by_tag(tag: string): TerrainMesh[] {
+        const terrains: TerrainMesh[] = [];
+        for(const t of this.terrains){
+            if(t.tag === tag) terrains.push(t);
+        }
+
+        return terrains;
     }
 
     pointInTerrain(point: Coordinate): boolean {
@@ -218,6 +228,7 @@ export class TerrainManager extends Subsystem {
 export class TerrainMesh  {
     readonly tag: string;
     readonly id: number;
+    color: Color = rgb(144, 12, 63)
     polygon: Polygon;
 
     constructor(polygon: Polygon, tag: string, id: number){
@@ -230,7 +241,11 @@ export class TerrainMesh  {
         return this.polygon.lineIntersection(A, B)
     }
 
+    reset_color(){
+        this.color.copyFrom(rgb(144, 12, 63));
+    }
+
     draw(g: Graphics){
-        this.polygon.draw(g, 0x900C3F, false, true, false);
+        this.polygon.draw(g, this.color.hex(), false, true, false);
     }
 }

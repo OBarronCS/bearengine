@@ -16,6 +16,8 @@ TODO:
             cached_aabb: AABB,
             value: T
         }
+
+    force_resize() function --> reallocates, moves stuff into new
  */
 
 export class SpatialGrid<T> {

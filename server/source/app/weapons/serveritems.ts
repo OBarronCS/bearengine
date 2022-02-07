@@ -336,7 +336,7 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
 
             // VOTING:
             if(this.terrain_test){
-                if(this.terrain_test.mesh.tag === "start"){
+                if(this.terrain_test.mesh.tag === "vote"){
                     this.game.player_vote_start(this.creatorID, MatchGamemode.INFINITE);
                 }
             }

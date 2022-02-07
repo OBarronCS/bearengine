@@ -18,7 +18,7 @@ import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { DummyLevel } from "../gamelevel";
 import { Vec2 } from "shared/shapes/vec2";
  
-import { ClientPlayState } from "shared/core/sharedlogic/sharedenums"
+import { ClientPlayState, MatchGamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
 import { ITEM_LINKER } from "shared/core/sharedlogic/items";
@@ -1121,6 +1121,29 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             break;
                         }
+
+                        case GamePacket.CONFIRM_VOTE: {
+                            const mode: MatchGamemode = stream.getUint8();
+                            const enabled = stream.getBool();
+
+                            
+                            const all_t = this.game.terrain.get_terrain_by_tag("vote")
+                            for(const t of all_t){
+                                if(enabled){
+                                    console.log("set")
+                                    t.color.set_from_hex(0xFFD700);                                    
+                                } else {
+                                    console.log("no")
+                                    t.reset_color();
+                                }
+
+                                this.game.terrain.mesh_events.dispatch("on_mutate", t);
+                            }
+
+
+                            break;
+                        }
+
                         default: AssertUnreachable(type);
                     }
                 }

@@ -214,7 +214,7 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
 
     public ui: UIManager;
 
-    private terrain_drawer: TerrainMeshEventHandler;
+    public terrain_drawer: TerrainMeshEventHandler;
 
     // Scenes
     public mainmenu_scene: MainMenuScene;

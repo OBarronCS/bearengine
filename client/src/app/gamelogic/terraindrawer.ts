@@ -8,7 +8,9 @@ import { NetworkPlatformGame } from "../core-engine/bearengine";
 export class TerrainMeshEventHandler extends Subsystem<NetworkPlatformGame> {
     
 
-    private drawers = new SparseSet<{redraw:boolean, g:Graphics, m: TerrainMesh }>();
+    private drawers = new SparseSet<{ redraw:boolean, g:Graphics, m: TerrainMesh }>();
+
+
 
     init(): void {
         

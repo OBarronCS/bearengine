@@ -71,6 +71,8 @@ export enum GamePacket {
     // Personal packet, teleports your player to this position
     FORCE_POSITION, // [x: float32, y: float32]
 
+    // Personal packet
+    CONFIRM_VOTE, // [mode: MatchGamemode, enabled: bool]
         
     TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
 
