@@ -2,7 +2,7 @@
 
 // A map when using small positive integer keys. Fast contains() check, Fast iteration of keys and values;
 
-/** Keys must be nonnegative */
+/** Keys must be nonnegative integers */
 export class SparseSet<V> {
 
     private sparse: number[] = [];

@@ -29,6 +29,7 @@ import { BearEngine } from "../core-engine/bearengine";
 import { GUI } from "dat.gui";
 import { BearGame } from "shared/core/abstractengine";
 import { DefaultEntityRenderer } from "../core-engine/renderer";
+import { attribute_is_type } from "shared/core/entityattribute";
 
 class BasicSprite extends SpriteEntity {
 

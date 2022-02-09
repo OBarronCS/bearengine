@@ -1,5 +1,5 @@
-import { AbstractEntity, EntityID } from "./abstractentity";
-import { getEntityIndex } from "./entitysystem";
+import { SparseSet } from "shared/datastructures/sparseset";
+import { AbstractEntity } from "./abstractentity";
 
 
 export const ATTRIBUTE_ID_KEY = "ATTRIBUTE_ID";
@@ -18,86 +18,65 @@ export function get_attribute_id<K extends Attribute>(attr: K): number | -1 {
     return get_attribute_id_from_type(attr.constructor as any);
 }
 
+export function attribute_is_type<K extends new(...args: any[]) => Attribute>(attr: Attribute, attr_constructor: K): attr is InstanceType<K> {
+    const attr_id = get_attribute_id(attr)
+    const test_type = get_attribute_id_from_type(attr_constructor);
+
+    if(attr_id !== -1){ // && test_type !== -1 is unnecessary
+        return attr_id === test_type;
+    } else {
+        return false;
+    }
+}
+
+
+
 export abstract class Attribute {
     public owner: AbstractEntity;
 }
 
 
+// Make sure to pass in the sparse index / entity index of the entity only! Aka the bottom 24 bits
 export class AttributeContainer<T extends Attribute> {
 
-    onAdd: ((part: T) => void)[] = [];
-    onRemove: ((part: T) => void)[] = [];
+    onAdd: ((attr: T) => void)[] = [];
+    onRemove: ((attr: T) => void)[] = [];
 
-    public sparse: number[]= [];
-    public dense: T[] = [];
+    private attributes = new SparseSet<T>();
 
+    get_attributes(): readonly T[] {
+        return this.attributes.values();
+    }
 
-    addPart(part: T, sparseIndex: number){
-        const indexInDense = this.dense.push(part) - 1;
-        this.sparse[sparseIndex] = indexInDense;
+    add_attribute(sparse_index: number, attr: T): void {
+        this.attributes.set(sparse_index, attr);
 
         for(const onAdd of this.onAdd){
-            onAdd(part);
+            onAdd(attr);
         }
     }
-
-    getEntityPart(e: EntityID): T | null {
-        const sparseIndex = getEntityIndex(e);
-
-        if(this.sparse.length <= sparseIndex) return null;
-
-        const value = this.sparse[sparseIndex];
-
-        if(value === -1 || value === undefined){
-            return null;
-        }
-
-        return this.dense[getEntityIndex(value)];
-    }
-
-    contains(e: EntityID): boolean {
-        const sparseIndex = getEntityIndex(e);
-
-        if(this.sparse.length <= sparseIndex) return false;
-
-        const value = this.sparse[sparseIndex];
-
-        if(value === -1 || value === undefined){
-            return false;
-        }
-
-        return true;
-    }
-
-    /** Remove entity at this sparse index. */
-    removePart(sparseIndex: number){
-        const denseIndex = this.sparse[sparseIndex];
-        const part = this.dense[denseIndex];
-
-        // Set the sparse to -1 to signify it's not here
-        this.sparse[sparseIndex] = -1;
-        
-        // Edge case: removing the last part in the list.
-        const lastIndex = this.dense.length - 1;
-        if(denseIndex !== lastIndex){
-            // swap this with last entity in dense
-            this.dense[denseIndex] = this.dense[lastIndex];
-
-            const swappedID = getEntityIndex(this.dense[denseIndex].owner.entityID);
-            this.sparse[swappedID] = denseIndex;
-        }
-
-        this.dense.pop();
+    
+    remove_attribute(sparse_index: number):void {
+        const attr = this.attributes.get(sparse_index);
+        this.attributes.remove(sparse_index);
 
         for(const onRemove of this.onRemove){
-            onRemove(part);
+            onRemove(attr);
         }
+    }
+
+    get_attribute(sparse_index: number): T | null {
+        return this.attributes.get(sparse_index);
+    }
+
+    contains(sparse_index: number): boolean {
+        return this.attributes.contains(sparse_index);
     }
 }
 
 export class AttributeQuery<T extends Attribute>{
     
-    public parts: T[] = [];
+    public parts: readonly T[] = [];
     
     name: string;
     onAdd: (part: T) => void;

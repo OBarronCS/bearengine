@@ -77,7 +77,7 @@ export function StreamReadEntityID(stream: BufferStreamReader): number {
 export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> extends Subsystem implements IEntityScene<TEntity> {
     
     private partQueries: AttributeQuery<Attribute>[] = [];
-    private allEntityEventHandlers: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();;
+    private allEntityEventHandlers: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();
     private subsets: EntitySystemSubset<this>[] = [];
 
 
@@ -130,7 +130,9 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         
         //@ts-expect-error
         const container: AttributeContainer<InstanceType<K>> = this.partContainers[attr_id];
-        return container.dense;
+        
+        return container.get_attributes();
+        //return container.dense;
     }
 
     hasAttribute<K extends new(...args: any[]) => Attribute>(e: EntityID, attr_constructor: K): boolean {
@@ -142,7 +144,7 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         if(attr_id === -1) return false;
         
         const container = this.partContainers[attr_id];
-        return container.contains(e);
+        return container.contains(getEntityIndex(e));
     }
 
     getAttribute<K extends new(...args: any[]) => Attribute, T extends InstanceType<K>>(e: EntityID, attr_constructor: K): T | null {
@@ -155,7 +157,9 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         
         ///@ts-expect-error
         const container: AttributeContainer<T> = this.partContainers[attr_id];
-        return container.getEntityPart(e);
+        
+        return container.get_attribute(getEntityIndex(e));
+        //return container.getEntityPart(e);
     }
 
     private register_new_attribute_type(attr_constructor: typeof Attribute): number {
@@ -176,7 +180,7 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
                 container.onAdd.push(query.onAdd);
                 container.onRemove.push(query.onRemove);
 
-                query.parts = container.dense;
+                query.parts = container.get_attributes();
             }
         }
 
@@ -210,9 +214,9 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         if(e_type_id === -1){
             e_type_id = this.register_new_attribute_type(e.constructor as typeof Attribute);
         }
-
         const e_container = this.partContainers[e_type_id];
-        e_container.addPart(e, sparseIndex);
+        e_container.add_attribute(sparseIndex, e);
+        //e_container.addPart(e, sparseIndex);
 
         e.onAdd();
 
@@ -231,7 +235,8 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
             }
 
             const container = this.partContainers[unique_attr_id];
-            container.addPart(part, sparseIndex);
+            container.add_attribute(sparseIndex, part);
+            //container.addPart(part, sparseIndex);
         }
 
         return e;
@@ -343,8 +348,14 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
 
         for(const part of entity.parts){
             const container = this.partContainers[get_attribute_id(part)]
-            container.removePart(sparseIndex);
+            
+            container.remove_attribute(sparseIndex)
+            //container.removePart(sparseIndex);
         }
+
+        const e_container = this.partContainers[get_attribute_id(entity)];
+        e_container.remove_attribute(sparseIndex);
+        // e_container.removePart(sparseIndex);
 
         this.deleteEvents(entity,sparseIndex);
         
