@@ -1,5 +1,5 @@
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
-import { Attribute, AttributeContainer } from "shared/core/entityattribute";
+import { Attribute, AttributeContainer, ATTRIBUTE_ID_KEY, get_attribute_id, get_attribute_id_from_type } from "shared/core/entityattribute";
 import { AttributeQuery } from "shared/core/entityattribute";
 import { Subsystem } from "shared/core/subsystem";
 import { EntityEventListType, EventRegistry } from "shared/core/bearevents";
@@ -125,41 +125,44 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
 
     }
 
-    view<K extends new(...args: any[]) => Attribute>(partConstructor: K): readonly InstanceType<K>[] {
-        //@ts-expect-error
-        const partID = partConstructor.partID;
+    view<K extends new(...args: any[]) => Attribute>(attr_constructor: K): readonly InstanceType<K>[] {
 
-        if(partID === -1) return [];
+        const attr_id = get_attribute_id_from_type(attr_constructor);
+
+        // const partID = attr_constructor[ATTRIBUTE_ID_KEY];
+
+        if(attr_id === -1) return [];
         
         //@ts-expect-error
-        const container: AttributeContainer<T> = this.partContainers[partID];
+        const container: AttributeContainer<InstanceType<K>> = this.partContainers[attr_id];
         return container.dense;
     }
 
-    hasAttribute<K extends new(...args: any[]) => Attribute>(e: EntityID, partConstructor: K): boolean {
+    hasAttribute<K extends new(...args: any[]) => Attribute>(e: EntityID, attr_constructor: K): boolean {
 
         if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
 
-        //@ts-expect-error
-        const partID = partConstructor.partID;
+        const attr_id = get_attribute_id_from_type(attr_constructor);
+        // const partID = attr_constructor[ATTRIBUTE_ID_KEY];
 
-        if(partID === -1) return false;
+        if(attr_id === -1) return false;
         
-        const container = this.partContainers[partID];
+        const container = this.partContainers[attr_id];
         return container.contains(e);
     }
 
-    getAttribute<K extends new(...args: any[]) => Attribute, T extends InstanceType<K>>(e: EntityID, partConstructor: K): T | null {
+    getAttribute<K extends new(...args: any[]) => Attribute, T extends InstanceType<K>>(e: EntityID, attr_constructor: K): T | null {
 
         if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
         
-        //@ts-expect-error
-        const partID = partConstructor.partID;
-
-        if(partID === -1) return null;
+        const attr_id = get_attribute_id_from_type(attr_constructor);
         
-        //@ts-expect-error
-        const container: AttributeContainer<T> = this.partContainers[partID];
+        //const partID = attr_constructor[ATTRIBUTE_ID_KEY];
+
+        if(attr_id === -1) return null;
+        
+        ///@ts-expect-error
+        const container: AttributeContainer<T> = this.partContainers[attr_id];
         return container.getEntityPart(e);
     }
 
@@ -192,12 +195,15 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
             //@ts-expect-error
             if(this.hasAttribute(entityID, part.constructor)) throw Error("Entity already has this part: " + part.constructor.name + " --> " + e.constructor.name);
             
-            let uniquePartID = part.constructor["partID"];
+            //part.constructor.hasOwnProperty(ATTRIBUTE_ID_KEY);
+            
+            let unique_attr_id = get_attribute_id(part);
+            // let uniquePartID = part.constructor[ATTRIBUTE_ID_KEY];
 
             // First time adding this type of part
-            if(uniquePartID === -1){
+            if(unique_attr_id === -1){
                 // console.log("Adding for the first time: " + part.constructor.name);
-                uniquePartID = part.constructor["partID"] = this.nextPartID++;
+                unique_attr_id = part.constructor[ATTRIBUTE_ID_KEY] = this.nextPartID++;
 
                 const container = new AttributeContainer();
                 this.partContainers.push(container);
@@ -217,7 +223,7 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
                 }
             }
 
-            const container = this.partContainers[uniquePartID];
+            const container = this.partContainers[unique_attr_id];
             container.addPart(part, sparseIndex);
         }
 
@@ -329,7 +335,7 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         this.freeID = sparseIndex;
 
         for(const part of entity.parts){
-            const container = this.partContainers[part.constructor["partID"]]
+            const container = this.partContainers[get_attribute_id(part)]
             container.removePart(sparseIndex);
         }
 

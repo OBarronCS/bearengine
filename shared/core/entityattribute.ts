@@ -1,8 +1,24 @@
 import { AbstractEntity, EntityID } from "./abstractentity";
 import { getEntityIndex } from "./entitysystem";
 
+
+export const ATTRIBUTE_ID_KEY = "ATTRIBUTE_ID";
+
+export function get_attribute_id_from_type<K extends new(...args: any[]) => Attribute>(attr_constructor: K): number | -1 {
+    const has_id = attr_constructor.hasOwnProperty(ATTRIBUTE_ID_KEY);
+
+    if(has_id){
+        return attr_constructor[ATTRIBUTE_ID_KEY];
+    } else {
+        return -1;
+    }
+}
+
+export function get_attribute_id<K extends Attribute>(attr: K): number | -1 {
+    return get_attribute_id_from_type(attr.constructor as any);
+}
+
 export abstract class Attribute {
-    public static partID = -1; 
     public owner: AbstractEntity;
 }
 
