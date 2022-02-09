@@ -26,8 +26,9 @@ import { Color } from "shared/datastructures/color";
 import { mix, Vec2 } from "shared/shapes/vec2";
 import { LevelRef } from "shared/core/sharedlogic/assetlinker";
 import { DrawableEntity, Entity } from "./entity";
-import { PhysicsDotEntity } from "../gamelogic/firstlevel";
+import { PhysicsDotEntity, PurePolygonCarveTest } from "../gamelogic/firstlevel";
 import { DefaultInputController } from "../input/inputcontroller";
+import { TerrainMeshEventHandler } from "../gamelogic/terraindrawer";
 
 
 
@@ -112,8 +113,8 @@ export class BearEngine {
     }
 
     getResource(path: string): LoaderResource | undefined {
-        if(path.startsWith(ASSET_FOLDER_NAME)) path = path.substr(7);
-        
+        if(path.startsWith(ASSET_FOLDER_NAME)) path = path.substring(ASSET_FOLDER_NAME.length);
+
         const fullPath = ASSET_FOLDER_NAME + path;
         const data = SHARED_RESOURCES[fullPath];
 
@@ -213,6 +214,8 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
 
     public ui: UIManager;
 
+    public terrain_drawer: TerrainMeshEventHandler;
+
     // Scenes
     public mainmenu_scene: MainMenuScene;
     public level_scene: LevelScene;
@@ -221,7 +224,6 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
     temp_level_subset = this.entities.createSubset();
 
     public player_controller = new DefaultInputController(this.engine.keyboard, this.engine.mouse, player_controls_map);
-
 
 
     initSystems(): void {
@@ -233,9 +235,11 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         this.chatbox = this.registerSystem(new Chatbox(this));
         this.ui = this.registerSystem(new UIManager(this));
         this.debug = this.registerSystem(new DebugScreen(this));
+        this.terrain_drawer = this.registerSystem(new TerrainMeshEventHandler(this));
 
         this.mainmenu_scene = this.addScene(new MainMenuScene(this));
         this.level_scene = this.addScene(new LevelScene(this));
+        
     }
 
     onStart(): void {
@@ -264,11 +268,15 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
 
         this.entities.update(dt);
 
+
+
         this.chatbox.update(dt);
 
         this.networksystem.writePackets();
 
         this.debug.update(dt);
+        
+        this.terrain_drawer.update(dt);
 
         this.ui.update(dt)
 
@@ -325,11 +333,12 @@ export class MainMenuScene extends BearScene<NetworkPlatformGame> {
             
             const b = new ButtonWidget(new Vec2(), 200,100, () => {
 
-                console.log(this.game.ui["parent_widget"].children)
+                //console.log(this.game.ui["parent_widget"].children)
 
-                this.game.loadLevel(new DummyLevel(this.game, LevelRef.LEVEL_ONE));
+                this.game.loadLevel(new DummyLevel(this.game, LevelRef.LOBBY));
+                
+                
                 this.game.disable_scene(this);
-
                 this.game.enable_scene(this.game.level_scene);
 
                 this.game.networksystem.connect();

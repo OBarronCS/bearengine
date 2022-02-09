@@ -45,7 +45,7 @@ export class Line {
     }
 
     /** Returns points of intersection, and whether or not the line was tangent to the spheres edge */
-    static CircleLineIntersection(p1: Coordinate,p2: Coordinate, x: number, y: number, r: number, infiniteLine = false): {tangent: boolean, points: Vec2[]}{
+    static CircleLineIntersection(p1: Coordinate, p2: Coordinate, x: number, y: number, r: number, infiniteLine = false): {tangent: boolean, points: Vec2[]}{
         //http://paulbourke.net/geometry/circlesphere/
 
         // One more edge case not dealt with: if points on top of eachother. Causes a divide by zero that fails silently

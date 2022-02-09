@@ -4,9 +4,27 @@ import { Rect } from "../shapes/rectangle";
 import { drawLineBetweenPoints, drawPoint } from "shared/shapes/shapedrawing";
 import { Coordinate, Vec2 } from "shared/shapes/vec2";
 
+
+/**
+TODO:
+    Make this cache results, AABB.
+
+    --> Store query_id, and cache AABB --> contract that WILL NOT MUTATE objects.
+        --> AABB recalculated on insert
+        {
+            query_id: number,
+            cached_aabb: AABB,
+            value: T
+        }
+
+    force_resize() function --> reallocates, moves stuff into new
+ */
+
 export class SpatialGrid<T> {
 
     private AABBFunction: (object: T) => Rect;
+
+    
 
     private grid: T[][] = [];
 

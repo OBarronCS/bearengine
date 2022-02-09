@@ -166,7 +166,7 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
     addEntity<T extends TEntity>(e: T): T {
 
         if(e.entityID !== NULL_ENTITY_INDEX) {
-            console.log("trying to add the same entity twice;")
+            console.log("trying to add the same entity twice;");
             return e;
         }
 

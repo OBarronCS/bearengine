@@ -86,6 +86,20 @@ export class Color {
         return this;
     }
 
+    set_from_hex(num: number){
+        this.r = (num & 0xFF0000) >>> 16;
+        this.g = (num & 0x00FF00) >>> 8;
+        this.b = num & 0x0000FF;
+    }
+
+    set(r: number, g: number, b: number): this {
+        this.r = r;
+        this.g = g;
+        this.b = b;
+
+        return this;
+    }
+
     set r(val: number){ this.values[0] = val; }
     set g(val: number){ this.values[1] = val; }
     set b(val: number){ this.values[2] = val; }

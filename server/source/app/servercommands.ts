@@ -30,10 +30,10 @@ database.add(
     command("item").args(comv.string_options<keyof typeof MIGRATED_ITEMS>(Object.keys(MIGRATED_ITEMS)))
         .run((context, item_name: keyof typeof MIGRATED_ITEMS) => {
             
-            if(!context.engine.matchIsActive()) {
-                console.log("Cannot give items when round is not active");
-                return;
-            }
+            // if(!context.engine.matchIsActive()) {
+            //     console.log("Cannot give items when round is not active");
+            //     return;
+            // }
 
             // Only give the item to the player that ran the command
             
@@ -54,16 +54,14 @@ database.add(
 database.add(
     command("s").args(comv.string_options<keyof typeof LevelRef>(Object.keys(LevelRef)))
         .run((context,arg) => {
-            if(!context.engine.matchIsActive()){
-                context.engine.start_match(MatchGamemode.INFINITE,arg);
-            }
+            context.engine.start_match(MatchGamemode.INFINITE,arg);
         })
     );
 
 database.add(
     command("vote").args(comv.string_options<keyof typeof MatchGamemode>(EnumKeys(MatchGamemode)))
         .run((c,arg) => {
-            c.engine.player_vote(c.targetPlayer, MatchGamemode[arg]);
+            c.engine.player_vote_start(c.targetPlayer.connectionID, MatchGamemode[arg]);
         }
     )
 )

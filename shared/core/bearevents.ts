@@ -1,11 +1,14 @@
 import { AbstractEntity } from "shared/core/abstractentity";
+import { SparseSet } from "shared/datastructures/sparseset";
 import { getEntityIndex } from "./entitysystem";
 import { BearEvents } from "./sharedlogic/eventdefinitions";
 
-// Responsible for a single event type, use as member variable of a subsystem
+// Responsible for a single entity event type, use as member variable of a subsystem
 export class EventRegistry<EventName extends keyof BearEvents> {
 
     public eventName: EventName;
+
+    // public _sparseSet = new SparseSet
 
     public eventSparseSet: EventContainer<EventName> = new EventContainer();
 
@@ -113,8 +116,9 @@ type MethodsOfClass<Class> = keyof PickMethods<Class>
 
 
 
-// EVENT CONTAINERS
-
+/** Contains all the entities that are listening to a certain event. 
+ *  Dispatches these events
+ */
 class EventContainer<EventName extends keyof BearEvents> {
 
     // onAdd: ((part: T) => void)[] = [];

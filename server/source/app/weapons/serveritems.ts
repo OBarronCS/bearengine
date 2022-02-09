@@ -22,6 +22,7 @@ import { ServerEntity } from "../entity";
 import { SimpleBouncePhysics } from "shared/core/sharedlogic/sharedphysics"
 import { BoostDirection, BoostZone_S } from "./boostzones";
 import { DEG_TO_RAD, floor } from "shared/misc/mathutils";
+import { MatchGamemode } from "shared/core/sharedlogic/sharedenums";
 
 export enum ItemActivationType {
     GIVE_ITEM,
@@ -298,7 +299,7 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
 
     seconds_alive = 0;
     
-    // Set this to false soon
+    // This is set to false after it has but alive for some seconds
     ignore_creator_id = true;
 
     constructor(circle: Ellipse, public creatorID: number, public creatorEntityID: EntityID, public bounce: boolean){
@@ -331,6 +332,15 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
                     this.player_test.push(player);
                 }
             }
+
+
+            // VOTING:
+            if(this.terrain_test){
+                if(this.terrain_test.mesh.tag === "vote"){
+                    this.game.player_vote_start(this.creatorID, MatchGamemode.INFINITE);
+                }
+            }
+
                     
             if(!this.bounce){
                 if(this.terrain_test || this.player_test.length !== 0){

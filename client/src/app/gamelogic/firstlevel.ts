@@ -15,10 +15,11 @@ import { Emitter } from "shared/graphics/particles";
 import { PARTICLE_CONFIG } from "shared/core/sharedlogic/sharedparticles";
 import { TickTimer } from "shared/datastructures/ticktimer";
 import { Line } from "shared/shapes/line";
-import { drawCircle, drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "shared/shapes/shapedrawing";
+import { drawCircle, drawCircleOutline, drawLineBetweenPoints, drawPoint, drawVecAsArrow } from "shared/shapes/shapedrawing";
 import { ItemDrawer } from "../core-engine/clientitems";
 import { BoostZone } from "./boostzone";
 import { SimpleBouncePhysics } from "shared/core/sharedlogic/sharedphysics";
+import { swap, swap_with_last } from "shared/datastructures/arrayutils";
 
 
 // export class FirstLevel extends GameLevel {
@@ -82,6 +83,66 @@ export class PhysicsDotEntity extends DrawableEntity {
         this.redraw(true);
     }
 }
+
+
+
+
+export class PurePolygonCarveTest extends DrawableEntity {
+        
+    private point: Vec2;
+    private polygons = [Polygon.random(5, 170)];
+    
+    private r = 50;
+
+    constructor(){
+        super();
+    }
+
+    update(dt: number): void {
+        this.point = this.mouse.position.clone()// this.poly.polygon.closestPoint(this.Mouse.position);
+        //console.log(this.point)
+        // if(this.mouse.wasPressed("left")) { 
+        //     this.terrain.carvePolygon(this.polygon, this.point);
+        // }
+
+        if(this.mouse.wasPressed("left")){
+            for(let i = 0; i < this.polygons.length; i++){
+                const p = this.polygons[i];
+
+                const r = p.carve_circle(this.point.x, this.point.y, 50)
+                if(r.type === "normal") {
+                    console.log("carved")
+                    swap_with_last(this.polygons, i);
+                    this.polygons.pop();
+                    this.polygons.push(...r.parts);
+                } else if(r.type === "missed"){
+                    console.log("missed");
+                } else if(r.type == "total"){
+                    console.log("total");
+                    swap_with_last(this.polygons, i);
+                    this.polygons.pop();
+                }
+            }
+
+        }
+
+        if(this.keyboard.wasReleased("KeyY")) this.polygons = [Polygon.random(5, 170)];
+        
+        this.redraw(true);
+    }
+
+    draw(g: Graphics): void {
+        //// @ts-expect-error
+        //g.position = this.point// (this.point.x, this.point.y);
+        this.polygons.forEach(p => p.draw(g, 0x0000FF));
+
+        drawPoint(g,this.point,0xFF0000);
+        drawCircleOutline(g, this.point, 50);
+    }
+}
+
+
+
 
 // const scene = this.game.entities;
 

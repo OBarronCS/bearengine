@@ -42,8 +42,7 @@ export enum GamePacket {
 
     DECLARE_COMMANDS, // [Array<CommandHintFormat>]
 
-    // If client joins will game is active, this packet is sent to them
-    JOIN_LATE_INFO, // [level_enum: uint8]
+    LOAD_LEVEL, // [level_enum: uint8]
 
 
     CLEAR_INV_ITEM, // []
@@ -72,6 +71,8 @@ export enum GamePacket {
     // Personal packet, teleports your player to this position
     FORCE_POSITION, // [x: float32, y: float32]
 
+    // Personal packet
+    CONFIRM_VOTE, // [mode: MatchGamemode, enabled: bool]
         
     TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
 

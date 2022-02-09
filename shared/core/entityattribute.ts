@@ -1,6 +1,4 @@
 import { AbstractEntity, EntityID } from "./abstractentity";
-import { Rect, Dimension } from "shared/shapes/rectangle";
-import { Coordinate, Vec2 } from "shared/shapes/vec2";
 import { getEntityIndex } from "./entitysystem";
 
 export abstract class Attribute {
