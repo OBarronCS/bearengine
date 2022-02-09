@@ -17,7 +17,7 @@ import { CameraSystem } from "./camera";
 import { NetworkSystem } from "./networking/networksystem";
 import { DefaultEntityRenderer, RendererSystem } from "./renderer";
 import { TestMouseDownEventDispatcher } from "./mouseevents";
-import { Player, player_controls_map } from "../gamelogic/player";
+import { Player, player_controls_map, RemotePlayer } from "../gamelogic/player";
 import { DummyLevel, GameLevel } from "./gamelevel";
 import { DebugScreen } from "../gamelogic/debugoverlay";
 import { Chatbox } from "../gamelogic/chatbox";

@@ -81,7 +81,6 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
     private subsets: EntitySystemSubset<this>[] = [];
 
 
-
     private nextPartID = 0;
     private partContainers: AttributeContainer<Attribute>[] = []
 
@@ -122,14 +121,10 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         if(this.sparse.length <= sparseIndex) return false;
 
         return getEntityVersion(this.sparse[sparseIndex]) === getEntityVersion(id);
-
     }
 
     view<K extends new(...args: any[]) => Attribute>(attr_constructor: K): readonly InstanceType<K>[] {
-
         const attr_id = get_attribute_id_from_type(attr_constructor);
-
-        // const partID = attr_constructor[ATTRIBUTE_ID_KEY];
 
         if(attr_id === -1) return [];
         
@@ -143,7 +138,6 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
 
         const attr_id = get_attribute_id_from_type(attr_constructor);
-        // const partID = attr_constructor[ATTRIBUTE_ID_KEY];
 
         if(attr_id === -1) return false;
         
@@ -156,14 +150,37 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
         
         const attr_id = get_attribute_id_from_type(attr_constructor);
-        
-        //const partID = attr_constructor[ATTRIBUTE_ID_KEY];
 
         if(attr_id === -1) return null;
         
         ///@ts-expect-error
         const container: AttributeContainer<T> = this.partContainers[attr_id];
         return container.getEntityPart(e);
+    }
+
+    private register_new_attribute_type(attr_constructor: typeof Attribute): number {
+        // console.log("Adding for the first time: " + part.constructor.name);
+        const unique_attr_id = attr_constructor[ATTRIBUTE_ID_KEY] = this.nextPartID++;
+                
+        const name = attr_constructor.name;
+
+        const container = new AttributeContainer();
+        this.partContainers.push(container);
+
+        // console.log(this.partQueries);
+        for(const query of this.partQueries){
+            // console.log("Query name: " + query.name)
+
+            if(query.name === name){
+                // console.log("Adding to query")
+                container.onAdd.push(query.onAdd);
+                container.onRemove.push(query.onRemove);
+
+                query.parts = container.dense;
+            }
+        }
+
+        return unique_attr_id;
     }
 
     addEntity<T extends TEntity>(e: T): T {
@@ -173,6 +190,7 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
             return e;
         }
 
+        // Add entity to update list
         const entityID: EntityID = this.getNextEntityID();
         //@ts-expect-error --> This is the only time we should be changing it
         e.entityID = entityID;
@@ -186,6 +204,16 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         //Not worried about that right now
         e.scene = this;
 
+        //Register entity;
+
+        let e_type_id = get_attribute_id(e);
+        if(e_type_id === -1){
+            e_type_id = this.register_new_attribute_type(e.constructor as typeof Attribute);
+        }
+
+        const e_container = this.partContainers[e_type_id];
+        e_container.addPart(e, sparseIndex);
+
         e.onAdd();
 
         this.registerEvents(e, sparseIndex);
@@ -195,32 +223,11 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
             //@ts-expect-error
             if(this.hasAttribute(entityID, part.constructor)) throw Error("Entity already has this part: " + part.constructor.name + " --> " + e.constructor.name);
             
-            //part.constructor.hasOwnProperty(ATTRIBUTE_ID_KEY);
-            
             let unique_attr_id = get_attribute_id(part);
-            // let uniquePartID = part.constructor[ATTRIBUTE_ID_KEY];
 
             // First time adding this type of part
             if(unique_attr_id === -1){
-                // console.log("Adding for the first time: " + part.constructor.name);
-                unique_attr_id = part.constructor[ATTRIBUTE_ID_KEY] = this.nextPartID++;
-
-                const container = new AttributeContainer();
-                this.partContainers.push(container);
-
-                const name = part.constructor.name;
-                // console.log(this.partQueries);
-                for(const query of this.partQueries){
-                    // console.log("Query name: " + query.name)
-
-                    if(query.name === name){
-                        // console.log("Adding to query")
-                        container.onAdd.push(query.onAdd);
-                        container.onRemove.push(query.onRemove);
-
-                        query.parts = container.dense;
-                    }
-                }
+                unique_attr_id = this.register_new_attribute_type(part.constructor as typeof Attribute);
             }
 
             const container = this.partContainers[unique_attr_id];
@@ -409,7 +416,7 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
 
         // Does it afterwards to clear all internally held entities
         for(const sub of this.subsets){
-            sub.clear_subset();
+            sub.force_clear_subset();
         }
     }
 
@@ -521,7 +528,7 @@ class EntitySystemSubset<TSystem extends EntitySystem<AbstractEntity>, TEntity e
         this.subset.clear();
     }
 
-    clear_subset(){
+    force_clear_subset(){
         this.subset.clear();
     }
 
