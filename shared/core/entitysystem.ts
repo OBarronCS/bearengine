@@ -1,5 +1,5 @@
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
-import { Attribute, AttributeContainer } from "shared/core/entityattribute";
+import { Attribute, AttributeContainer, ATTRIBUTE_ID_KEY, get_attribute_id, get_attribute_id_from_type } from "shared/core/entityattribute";
 import { AttributeQuery } from "shared/core/entityattribute";
 import { Subsystem } from "shared/core/subsystem";
 import { EntityEventListType, EventRegistry } from "shared/core/bearevents";
@@ -77,9 +77,8 @@ export function StreamReadEntityID(stream: BufferStreamReader): number {
 export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> extends Subsystem implements IEntityScene<TEntity> {
     
     private partQueries: AttributeQuery<Attribute>[] = [];
-    private allEntityEventHandlers: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();;
+    private allEntityEventHandlers: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();
     private subsets: EntitySystemSubset<this>[] = [];
-
 
 
     private nextPartID = 0;
@@ -122,45 +121,70 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         if(this.sparse.length <= sparseIndex) return false;
 
         return getEntityVersion(this.sparse[sparseIndex]) === getEntityVersion(id);
-
     }
 
-    view<K extends new(...args: any[]) => Attribute>(partConstructor: K): readonly InstanceType<K>[] {
-        //@ts-expect-error
-        const partID = partConstructor.partID;
+    view<K extends new(...args: any[]) => Attribute>(attr_constructor: K): readonly InstanceType<K>[] {
+        const attr_id = get_attribute_id_from_type(attr_constructor);
 
-        if(partID === -1) return [];
+        if(attr_id === -1) return [];
         
         //@ts-expect-error
-        const container: AttributeContainer<T> = this.partContainers[partID];
-        return container.dense;
+        const container: AttributeContainer<InstanceType<K>> = this.partContainers[attr_id];
+        
+        return container.get_attributes();
+        //return container.dense;
     }
 
-    hasAttribute<K extends new(...args: any[]) => Attribute>(e: EntityID, partConstructor: K): boolean {
+    hasAttribute<K extends new(...args: any[]) => Attribute>(e: EntityID, attr_constructor: K): boolean {
 
         if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
 
-        //@ts-expect-error
-        const partID = partConstructor.partID;
+        const attr_id = get_attribute_id_from_type(attr_constructor);
 
-        if(partID === -1) return false;
+        if(attr_id === -1) return false;
         
-        const container = this.partContainers[partID];
-        return container.contains(e);
+        const container = this.partContainers[attr_id];
+        return container.contains(getEntityIndex(e));
     }
 
-    getAttribute<K extends new(...args: any[]) => Attribute, T extends InstanceType<K>>(e: EntityID, partConstructor: K): T | null {
+    getAttribute<K extends new(...args: any[]) => Attribute, T extends InstanceType<K>>(e: EntityID, attr_constructor: K): T | null {
 
         if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
         
-        //@ts-expect-error
-        const partID = partConstructor.partID;
+        const attr_id = get_attribute_id_from_type(attr_constructor);
 
-        if(partID === -1) return null;
+        if(attr_id === -1) return null;
         
-        //@ts-expect-error
-        const container: AttributeContainer<T> = this.partContainers[partID];
-        return container.getEntityPart(e);
+        ///@ts-expect-error
+        const container: AttributeContainer<T> = this.partContainers[attr_id];
+        
+        return container.get_attribute(getEntityIndex(e));
+        //return container.getEntityPart(e);
+    }
+
+    private register_new_attribute_type(attr_constructor: typeof Attribute): number {
+        // console.log("Adding for the first time: " + part.constructor.name);
+        const unique_attr_id = attr_constructor[ATTRIBUTE_ID_KEY] = this.nextPartID++;
+                
+        const name = attr_constructor.name;
+
+        const container = new AttributeContainer();
+        this.partContainers.push(container);
+
+        // console.log(this.partQueries);
+        for(const query of this.partQueries){
+            // console.log("Query name: " + query.name)
+
+            if(query.name === name){
+                // console.log("Adding to query")
+                container.onAdd.push(query.onAdd);
+                container.onRemove.push(query.onRemove);
+
+                query.parts = container.get_attributes();
+            }
+        }
+
+        return unique_attr_id;
     }
 
     addEntity<T extends TEntity>(e: T): T {
@@ -170,6 +194,7 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
             return e;
         }
 
+        // Add entity to update list
         const entityID: EntityID = this.getNextEntityID();
         //@ts-expect-error --> This is the only time we should be changing it
         e.entityID = entityID;
@@ -183,6 +208,16 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         //Not worried about that right now
         e.scene = this;
 
+        //Register entity;
+
+        let e_type_id = get_attribute_id(e);
+        if(e_type_id === -1){
+            e_type_id = this.register_new_attribute_type(e.constructor as typeof Attribute);
+        }
+        const e_container = this.partContainers[e_type_id];
+        e_container.add_attribute(sparseIndex, e);
+        //e_container.addPart(e, sparseIndex);
+
         e.onAdd();
 
         this.registerEvents(e, sparseIndex);
@@ -192,33 +227,16 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
             //@ts-expect-error
             if(this.hasAttribute(entityID, part.constructor)) throw Error("Entity already has this part: " + part.constructor.name + " --> " + e.constructor.name);
             
-            let uniquePartID = part.constructor["partID"];
+            let unique_attr_id = get_attribute_id(part);
 
             // First time adding this type of part
-            if(uniquePartID === -1){
-                // console.log("Adding for the first time: " + part.constructor.name);
-                uniquePartID = part.constructor["partID"] = this.nextPartID++;
-
-                const container = new AttributeContainer();
-                this.partContainers.push(container);
-
-                const name = part.constructor.name;
-                // console.log(this.partQueries);
-                for(const query of this.partQueries){
-                    // console.log("Query name: " + query.name)
-
-                    if(query.name === name){
-                        // console.log("Adding to query")
-                        container.onAdd.push(query.onAdd);
-                        container.onRemove.push(query.onRemove);
-
-                        query.parts = container.dense;
-                    }
-                }
+            if(unique_attr_id === -1){
+                unique_attr_id = this.register_new_attribute_type(part.constructor as typeof Attribute);
             }
 
-            const container = this.partContainers[uniquePartID];
-            container.addPart(part, sparseIndex);
+            const container = this.partContainers[unique_attr_id];
+            container.add_attribute(sparseIndex, part);
+            //container.addPart(part, sparseIndex);
         }
 
         return e;
@@ -329,9 +347,15 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         this.freeID = sparseIndex;
 
         for(const part of entity.parts){
-            const container = this.partContainers[part.constructor["partID"]]
-            container.removePart(sparseIndex);
+            const container = this.partContainers[get_attribute_id(part)]
+            
+            container.remove_attribute(sparseIndex)
+            //container.removePart(sparseIndex);
         }
+
+        const e_container = this.partContainers[get_attribute_id(entity)];
+        e_container.remove_attribute(sparseIndex);
+        // e_container.removePart(sparseIndex);
 
         this.deleteEvents(entity,sparseIndex);
         
@@ -403,7 +427,7 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
 
         // Does it afterwards to clear all internally held entities
         for(const sub of this.subsets){
-            sub.clear_subset();
+            sub.force_clear_subset();
         }
     }
 
@@ -515,7 +539,7 @@ class EntitySystemSubset<TSystem extends EntitySystem<AbstractEntity>, TEntity e
         this.subset.clear();
     }
 
-    clear_subset(){
+    force_clear_subset(){
         this.subset.clear();
     }
 

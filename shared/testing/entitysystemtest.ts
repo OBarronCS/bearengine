@@ -1,5 +1,5 @@
 import { AbstractEntity } from "shared/core/abstractentity";
-import { ColliderPart } from "shared/core/entityattribute";
+import { ColliderPart } from "shared/core/entitycollision";
 import { EntitySystem } from "shared/core/entitysystem";
 import { dimensions } from "shared/shapes/rectangle";
 import { Vec2 } from "shared/shapes/vec2";
