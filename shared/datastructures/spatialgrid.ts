@@ -24,6 +24,8 @@ export class SpatialGrid<T> {
 
     private AABBFunction: (object: T) => Rect;
 
+    
+
     private grid: T[][] = [];
 
     // recommened side length of square root of n where n is number of things inserted. 

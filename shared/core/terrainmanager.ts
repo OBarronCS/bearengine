@@ -228,7 +228,7 @@ export class TerrainManager extends Subsystem {
 export class TerrainMesh  {
     readonly tag: string;
     readonly id: number;
-    color: Color = rgb(144, 12, 63)
+    color: Color = rgb(144, 12, 63); // Color.random();
     polygon: Polygon;
 
     constructor(polygon: Polygon, tag: string, id: number){
@@ -238,7 +238,7 @@ export class TerrainMesh  {
     }
 
     lineCollision(A: Coordinate, B: Coordinate): ReturnType<Polygon["lineIntersection"]> {
-        return this.polygon.lineIntersection(A, B)
+        return this.polygon.lineIntersection(A, B);
     }
 
     reset_color(){
