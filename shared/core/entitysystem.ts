@@ -2,10 +2,9 @@ import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { Attribute, AttributeContainer, ATTRIBUTE_ID_KEY, get_attribute_id, get_attribute_id_from_type } from "shared/core/entityattribute";
 import { AttributeQuery } from "shared/core/entityattribute";
 import { Subsystem } from "shared/core/subsystem";
-import { EntityEventListType, EventRegistry } from "shared/core/bearevents";
+import { bearevents, EntityEventRegistrationType, EventDispatcherType } from "shared/core/bearevents";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { assert } from "shared/misc/assertstatements";
-import { BearEvents } from "./sharedlogic/eventdefinitions";
 import { SparseSet } from "shared/datastructures/sparseset";
 
 
@@ -77,16 +76,16 @@ export function StreamReadEntityID(stream: BufferStreamReader): number {
 export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> extends Subsystem implements IEntityScene<TEntity> {
     
     private partQueries: AttributeQuery<Attribute>[] = [];
-    private allEntityEventHandlers: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();
+    private allEntityEventHandlers: Map<keyof typeof bearevents, EventDispatcherType<keyof typeof bearevents>> = new Map();
     private subsets: EntitySystemSubset<this>[] = [];
 
 
     private nextPartID = 0;
     private partContainers: AttributeContainer<Attribute>[] = []
 
-    // It finds these when iterating all the other systems.
-    private preupdate = this.addEventDispatcher("preupdate");
-    private postupdate = this.addEventDispatcher("postupdate");
+    // // It finds these when iterating all the other systems.
+    // private preupdate = this.addEventDispatcher("preupdate");
+    // private postupdate = this.addEventDispatcher("postupdate");
 
 
     // Set of entities
@@ -220,8 +219,6 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
 
         e.onAdd();
 
-        this.registerEvents(e, sparseIndex);
-
         // Register parts
         for(const part of e.parts){
             //@ts-expect-error
@@ -239,6 +236,8 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
             //container.addPart(part, sparseIndex);
         }
 
+        this.registerEvents(e, sparseIndex);
+
         return e;
     }
 
@@ -247,28 +246,27 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         // console.log(e, e.constructor["EVENT_REGISTRY"]);
 
         if(e.constructor["EVENT_REGISTRY"]){
-            const list = e.constructor["EVENT_REGISTRY"] as EntityEventListType<T>;
+            const list = e.constructor["EVENT_REGISTRY"] as EntityEventRegistrationType[];
 
             for(const item of list){
-                const handler = this.allEntityEventHandlers.get(item.eventname);
+                const handler = this.allEntityEventHandlers.get(item.event_name);
                 if(!handler) {
-                    console.error(`Handler for ${item.eventname} could not be found!`)
+                    console.error(`Handler for ${item.event_name} could not be found!`)
                 }
 
-                const methodName = item.methodname;
-                handler.addListener(e, methodName, item.extradata, sparseIndex);
+                handler.addListener(sparseIndex, e, item.method_name, ...(item.extradata));
             }
         }
     }
 
     private deleteEvents<T extends TEntity>(e: T, sparseIndex: number){
         if(e.constructor["EVENT_REGISTRY"]){
-            const list = e.constructor["EVENT_REGISTRY"] as EntityEventListType<T>;
+            const list = e.constructor["EVENT_REGISTRY"] as EntityEventRegistrationType[];
 
             for(const item of list){
-                const handler = this.allEntityEventHandlers.get(item.eventname);
+                const handler = this.allEntityEventHandlers.get(item.event_name);
                 if(!handler) {
-                    console.log(`Handler for ${item.eventname} could not be found!`)
+                    console.log(`Handler for ${item.event_name} could not be found!`)
                 }
 
                 handler.removeListener(sparseIndex);
@@ -371,7 +369,7 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
             this.partQueries.push(...system.queries);
 
             for(const handler of system.eventHandlers){
-                this.allEntityEventHandlers.set(handler.eventName, handler);
+                this.allEntityEventHandlers.set(handler.event_name, handler);
             }
         }
         
@@ -381,10 +379,10 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
 
     update(delta: number): void {
 
-        // Pre-update
-        for(const entity of this.preupdate){
-            this.preupdate.dispatch(entity, delta);
-        }
+        // // Pre-update
+        // for(const entity of this.preupdate){
+        //     this.preupdate.dispatch(entity, delta);
+        // }
 
         // Update
         for (let i = 0; i < this.entities.length; i++) {
@@ -392,10 +390,10 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
             entity.update(delta);
         }
 
-        // Post-update
-        for(const entity of this.postupdate){
-            this.postupdate.dispatch(entity, delta);
-        }
+        // // Post-update
+        // for(const entity of this.postupdate){
+        //     this.postupdate.dispatch(entity, delta);
+        // }
 
         for(const id of this.deleteEntityQueue){
             this.destroyEntityImmediately(id);

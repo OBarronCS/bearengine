@@ -8,7 +8,7 @@ import { EntitySystem } from "shared/core/entitysystem";
 import { Subsystem } from "shared/core/subsystem";
 import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { TerrainManager } from "shared/core/terrainmanager";
-import { CollisionManager } from "shared/core/entitycollision";
+import { ColliderPart, CollisionManager } from "shared/core/entitycollision";
 
 import { frameEditor } from "../gamelogic/testlevelentities";
 import { EngineKeyboard } from "../input/keyboard";
@@ -29,6 +29,9 @@ import { DrawableEntity, Entity } from "./entity";
 import { PhysicsDotEntity, PurePolygonCarveTest } from "../gamelogic/firstlevel";
 import { DefaultInputController } from "../input/inputcontroller";
 import { TerrainMeshEventHandler } from "../gamelogic/terraindrawer";
+import { SpritePart } from "./parts";
+import { dimensions } from "shared/shapes/rectangle";
+import { bearevents } from "shared/core/bearevents";
 
 
 
@@ -451,6 +454,39 @@ export class LevelScene extends BearScene<NetworkPlatformGame> {
 
     on_enable(): void {
         // this.subset.addEntity(new PhysicsEntityTest())
+
+        class TestEntityForVideo extends Entity {
+        
+            private sprite = this.addPart(new SpritePart("tree.gif"));
+            private collider = this.addPart(new ColliderPart(dimensions(200,200), Vec2.ZERO));
+    
+            update(dt: number): void {
+                
+            }
+    
+            // // @bearevent("mousehover", {})
+            // daisvfdakusvdjasd(point: Vec2){
+            //     console.log("Hello, i was hovered", point.toString());
+            // }
+    
+            // //@bearevent("tap", {})
+            // ontapcallback(num: Vec2){
+            //     console.log("I was clicked")
+            // }
+    
+            @bearevents.mouse_down("left")
+            asdasdasdasd(point: Vec2){
+                console.log("I WAS CLICKED AT POINT: " + point.toString());
+            }
+    
+            // @bearevent("scroll", {})
+            // asdasd(scroll: number, point: Vec2){
+            //     console.log(scroll)
+            // }
+        }
+
+
+        this.game.entities.addEntity(new TestEntityForVideo());
     }
 
     on_disable(): void {

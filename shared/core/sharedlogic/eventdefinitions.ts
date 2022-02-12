@@ -1,5 +1,6 @@
 import type { Vec2 } from "shared/shapes/vec2";
 import type { MouseButton } from "../../../client/src/app/input/mouse"
+import type { Attribute } from "../entityattribute";
 
 // interface CoreEventTypeDefinition {
 //     [key: string] : {
@@ -11,6 +12,11 @@ import type { MouseButton } from "../../../client/src/app/input/mouse"
 // }
 
 interface BearEvents {
+    "test_test_test": {
+        register_args: { other_entity: typeof Attribute };
+        callback: (other_entity: typeof Attribute) => void;
+    }
+
     "mousehover": {
         register_args: {};
         callback: (mousePoint: Vec2) => void;
@@ -39,8 +45,6 @@ interface BearEvents {
         callback: (dt: number) => void;
     }
 }
-
-type BearEventNames = keyof BearEvents;
 
 // KEY! Forces TypeScript to delete the import on compilation
 export type { BearEvents }

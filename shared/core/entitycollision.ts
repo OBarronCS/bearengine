@@ -32,16 +32,14 @@ const tags = [
     "Player",
     "BoostZone",
     "SlowZone"
-] as const
+] as const;
 
 export type TagName = typeof tags[number]
 
 export class ColliderPart extends Attribute {
 
     public readonly tag: TagName;
-
     public readonly rect: Rect; // bbox
-
     /* Where on the rectangle is the position */
     public readonly offset: Vec2;
 
@@ -166,7 +164,7 @@ export class CollisionManager extends Subsystem {
         return entities;
     }
 
-    line_query(line: Line){
+    line_query(line: Line): AbstractEntity[] {
         const entities: AbstractEntity[] = [];
         const possible = this.grid.region(line.getAABB());
         for(const p of possible){
@@ -175,7 +173,7 @@ export class CollisionManager extends Subsystem {
         return entities;
     }
 
-    // Draws collision boxes, red if colliding
+    // Draws collision boxes for debugging, red if colliding
     draw(g: Graphics){
         this.grid.draw(g);
 

@@ -19,8 +19,6 @@ import { atan2, cos, floor, PI, second, sin } from "shared/misc/mathutils";
 import { ColorTween } from "shared/core/tween"
 import { TickTimer } from "shared/datastructures/ticktimer"
 import { ColliderPart } from "shared/core/entitycollision";
-import { bearevent } from "shared/core/bearevents";
-
 import { DrawableEntity, Entity, GMEntity, SpriteEntity } from "../core-engine/entity";
 import { Player } from "./player";
 import { SpritePart } from "../core-engine/parts";
@@ -1651,36 +1649,36 @@ export function loadTestLevel(engine: BearEngine): void {
     // this.addEntity(new EntityLoadTest());
 
 
-    class TestEntityForVideo extends Entity {
+    // class TestEntityForVideo extends Entity {
         
-        private sprite = this.addPart(new SpritePart("tree.gif"));
-        private collider = this.addPart(new ColliderPart(dimensions(200,200), Vec2.ZERO));
+    //     private sprite = this.addPart(new SpritePart("tree.gif"));
+    //     private collider = this.addPart(new ColliderPart(dimensions(200,200), Vec2.ZERO));
 
-        update(dt: number): void {
+    //     update(dt: number): void {
             
-        }
+    //     }
 
-        // @bearevent("mousehover", {})
-        daisvfdakusvdjasd(point: Vec2){
-            console.log("Hello, i was hovered", point.toString());
-        }
+    //     // @bearevent("mousehover", {})
+    //     daisvfdakusvdjasd(point: Vec2){
+    //         console.log("Hello, i was hovered", point.toString());
+    //     }
 
-        //@bearevent("tap", {})
-        ontapcallback(num: Vec2){
-            console.log("I was clicked")
-        }
+    //     //@bearevent("tap", {})
+    //     ontapcallback(num: Vec2){
+    //         console.log("I was clicked")
+    //     }
 
-        @bearevent("mousedown", { button: "left"})
-        asdasdasdasd(point: Vec2){
-            console.log("HEOLLO")
-        }
+    //     @bearevent("mousedown", { button: "left"})
+    //     asdasdasdasd(point: Vec2){
+    //         console.log("HEOLLO")
+    //     }
 
-        @bearevent("scroll", {})
-        asdasd(scroll: number, point: Vec2){
-            console.log(scroll)
-        }
+    //     @bearevent("scroll", {})
+    //     asdasd(scroll: number, point: Vec2){
+    //         console.log(scroll)
+    //     }
 
-    }
+    // }
     // scene.addEntity(new TestEntityForVideo());
     
     // Drawing the collision grid
