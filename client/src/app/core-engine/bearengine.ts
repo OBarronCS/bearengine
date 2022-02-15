@@ -491,8 +491,9 @@ class TestEntityForVideo extends Entity {
     //     console.log("I was clicked")
     // }
 
-    @bearevents.collision(GraphicsPart)
-    dddd(other: GraphicsPart){
+    @bearevents.collision(RemotePlayer)
+    dddd(other: RemotePlayer): void{
+        // Requires that the other thing has a collider 
         console.log("collision with: " + other.owner.constructor.name);
         this.total++;
     }

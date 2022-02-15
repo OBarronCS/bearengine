@@ -36,6 +36,7 @@ import { BeamActionType, ItemActionType, SHOT_LINKER } from "shared/core/sharedl
 import { LevelRefLinker, LevelRef } from "shared/core/sharedlogic/assetlinker";
 import { choose, shuffle } from "shared/datastructures/arrayutils";
 import { BoostZone_S } from "./weapons/boostzones";
+import { CollisionManager } from "shared/core/entitycollision";
 
 // Stop writing new info after packet is larger than this
 // Its a soft cap, as the packets can be 2047 + last_packet_written_length long,
@@ -134,6 +135,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
     // Subsystems
     public terrain: TerrainManager;
+    public collision: CollisionManager;
 
     //////////////////////////////////////////////////////////////////////////////////////////
     public networked_entity_subset = this.entities.createSubset<NetworkedEntity<any>>()
@@ -181,6 +183,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
     protected initSystems(){
         this.terrain = this.registerSystem(new TerrainManager(this));
+        this.collision = this.registerSystem(new CollisionManager(this));
     }
 
 
@@ -427,6 +430,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         // Clean up everything from last match
         this.entities.clear();
         this.terrain.clear();
+        this.collision.clear();
 
         this.round_saved_packets.clear();
         this.currentTickGlobalPackets = [];
@@ -1140,10 +1144,11 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             }
 
             for(let i = 0; i < 60/this.TICK_RATE; i++){
+                this.collision.update(dt/(60/this.TICK_RATE));
                 this.entities.update(dt/(60/this.TICK_RATE));
                 this.active_scene.update();
             }
-            this.updateScenes(dt);
+            // this.updateScenes(dt);
 
             if(this.queue_next_round !== null){
                 this.start_new_round(this.queue_next_round.mode, this.queue_next_round.map);

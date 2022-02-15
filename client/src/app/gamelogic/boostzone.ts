@@ -20,7 +20,7 @@ export class BoostZone extends DrawableEntity {
     constructor(rect: Rect, dir: Vec2){
         super();
 
-        this.collider = (this.addPart(new ColliderPart(dimensions(rect.width, rect.height),new Vec2(),"BoostZone")));
+        this.collider = (this.addPart(new ColliderPart(dimensions(rect.width, rect.height),new Vec2())));
         this.dir = this.addPart(new BoostDirection(dir.extend(this.str)));
         
         this.position.set(rect);

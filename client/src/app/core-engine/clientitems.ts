@@ -290,10 +290,14 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
         this.onUpdate(function(dt: number){
             if(this.continue_moving){
 
-                const zones = this.game.collisionManager.colliders_on_point(this.position, "BoostZone");
+                const zones = this.game.collisionManager.point_query_list(this.position, BoostDirection);
+                // const zones = this.game.collisionManager.colliders_on_point(this.position, "BoostZone");
                 for(const z of zones){
-                    const dir = z.owner.getAttribute(BoostDirection).dir;
-                    this.velocity.add(dir);
+                    this.velocity.add(z.attr.dir);
+
+                    console.log(this.game.engine.tick)
+                    // const dir = z.owner.getAttribute(BoostDirection).dir;
+                    // this.velocity.add(dir);
                 }
 
                 if(this.bounce){
@@ -803,7 +807,7 @@ class LocalIceEffect extends DrawableEntity {
     
     
     readonly radius = 100;
-    bbox = this.addPart(new ColliderPart(dimensions(this.radius,this.radius), new Vec2(this.radius/2),"SlowZone"))
+    bbox = this.addPart(new ColliderPart(dimensions(this.radius,this.radius), new Vec2(this.radius/2)))
     slow_attribute: SlowAttribute
 
     private seconds_alive = 0;

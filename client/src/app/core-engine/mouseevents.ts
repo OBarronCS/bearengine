@@ -1,4 +1,5 @@
 import { SimpleEventDispatcher } from "shared/core/bearevents";
+import { getEntityIndex } from "shared/core/entitysystem";
 import { Subsystem } from "shared/core/subsystem";
 import type { BearEngine, NetworkPlatformGame } from "./bearengine";
 
@@ -17,7 +18,16 @@ export class TestMouseDownEventDispatcher extends Subsystem<NetworkPlatformGame>
         const collision = this.game.collisionManager;
 
 
-        const underMouse = collision.circle_query(mouse.x, mouse.y, 1);
+        const under_mouse = collision.circle_query_list(mouse.x, mouse.y, 1, null);
+        
+        for(const e of under_mouse){
+            const listener = this.mousedown.get_entity_event_data(getEntityIndex(e.entity.entityID));
+            if(listener !== null){
+                if(mouse.isDown(listener.extradata[0])){
+                    this.mousedown.dispatch(listener, mouse.position);
+                }
+            }
+        }
 
         // const scroll = mouse.scroll;
         // if(scroll !== 0){
@@ -42,13 +52,7 @@ export class TestMouseDownEventDispatcher extends Subsystem<NetworkPlatformGame>
         //     } 
         // }
 
-        for(const down of this.mousedown){
-            if(underMouse.indexOf(down.entity) !== -1){
-                if(mouse.isDown(down.extradata[0])){
-                    this.mousedown.dispatch(down, mouse.position);
-                }
-            }
-        }
+       
 
         
     }

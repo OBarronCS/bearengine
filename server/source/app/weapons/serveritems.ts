@@ -523,15 +523,23 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: P
     bullet.effect.onUpdate(function(dt: number){
         if(this.allow_move){
 
-            for(const entity of this.game.entities.entities){
-                if(entity instanceof BoostZone_S){
+            const slow_zones_s = this.game.collision.point_query_list(this.position, BoostDirection);
 
-                    if(entity.collider.rect.contains(this.position.clone().sub(entity.position))){
-                        const dir = entity.getAttribute(BoostDirection).dir;
-                        this.velocity.add(dir);
-                    }
-                }
+            for(const s of slow_zones_s){
+                // console.log("BOOST", this.game.tick)
+                this.velocity.add(s.attr.dir);
             }
+
+            // for(const entity of this.game.entities.entities){
+            //     if(entity instanceof BoostZone_S){
+
+            //         if(entity.collider.rect.contains(this.position.clone().sub(entity.position))){
+            //             console.log("BOOST", this.game.tick)
+            //             const dir = entity.getAttribute(BoostDirection).dir;
+            //             this.velocity.add(dir);
+            //         }
+            //     }
+            // }
 
             if(this.bounce){
 
