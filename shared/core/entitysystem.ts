@@ -134,6 +134,19 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         //return container.dense;
     }
 
+    /** Assumes attr_id is valid */
+    hasAttributeByID(e: EntityID, attr_id: number): boolean {
+        if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
+
+        if(attr_id === -1) { 
+            console.error("CHECKING ATTRIBUTE_ID = -1")
+            return false 
+        };
+
+        const container = this.partContainers[attr_id];
+        return container.contains(getEntityIndex(e));
+    }
+
     hasAttribute<K extends new(...args: any[]) => Attribute>(e: EntityID, attr_constructor: K): boolean {
 
         if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
@@ -146,6 +159,17 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         return container.contains(getEntityIndex(e));
     }
 
+
+    getAttributeByID(e: EntityID, attr_id: number): Attribute | null {
+        if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
+    
+        if(attr_id === -1) return null;
+        
+        const container: AttributeContainer<any> = this.partContainers[attr_id];
+        
+        return container.get_attribute(getEntityIndex(e));
+    }
+
     getAttribute<K extends new(...args: any[]) => Attribute, T extends InstanceType<K>>(e: EntityID, attr_constructor: K): T | null {
 
         if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
@@ -154,11 +178,10 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
 
         if(attr_id === -1) return null;
         
-        ///@ts-expect-error
+        //@ts-expect-error
         const container: AttributeContainer<T> = this.partContainers[attr_id];
         
         return container.get_attribute(getEntityIndex(e));
-        //return container.getEntityPart(e);
     }
 
     private register_new_attribute_type(attr_constructor: typeof Attribute): number {
@@ -323,9 +346,15 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
             // console.log("Trying to delete something that has already been deleted");
             return;
         }
+        
 
         const denseIndex = getEntityIndex(this.sparse[sparseIndex]);
         const entity = this.entities[denseIndex];
+
+
+        this.deleteEvents(entity,sparseIndex);
+
+
 
         if(denseIndex !== this.entities.length - 1){
             // Makes sure dense indices point to correct places
@@ -348,14 +377,11 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
             const container = this.partContainers[get_attribute_id(part)]
             
             container.remove_attribute(sparseIndex)
-            //container.removePart(sparseIndex);
         }
 
         const e_container = this.partContainers[get_attribute_id(entity)];
         e_container.remove_attribute(sparseIndex);
-        // e_container.removePart(sparseIndex);
 
-        this.deleteEvents(entity,sparseIndex);
         
         entity.onDestroy();
 

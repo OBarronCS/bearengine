@@ -15,8 +15,10 @@ import { Dimension, Rect } from "shared/shapes/rectangle";
 import { SpatialGrid } from "shared/datastructures/spatialgrid";
 import { AbstractEntity } from "shared/core/abstractentity";
 import { Subsystem } from "./subsystem";
-import { Attribute } from "./entityattribute";
+import { Attribute, get_attribute_id, get_attribute_id_from_type } from "./entityattribute";
 import { Vec2, Coordinate } from "shared/shapes/vec2";
+import { CustomEventDispatcher } from "./bearevents";
+import { SparseSet } from "shared/datastructures/sparseset";
 
 
 /**
@@ -43,6 +45,10 @@ export class ColliderPart extends Attribute {
     /* Where on the rectangle is the position */
     public readonly offset: Vec2;
 
+    public check_collisions = false;
+
+
+    readonly active_callbacks = new Map<number,((attr: Attribute) => void)>();
     // isTrigger
 
     constructor(dimensions: Dimension, offset: Coordinate, name: TagName = DEFAULT_TAG){
@@ -59,10 +65,10 @@ export class ColliderPart extends Attribute {
 }
 
 
-interface CollisionData {
-    entity: AbstractEntity,
-    collider: ColliderPart
-}
+// interface CollisionData {
+//     entity: AbstractEntity,
+//     collider: ColliderPart
+// }
 
 
 export class CollisionManager extends Subsystem {
@@ -75,6 +81,31 @@ export class CollisionManager extends Subsystem {
     public colliders = this.addQuery(ColliderPart,
         e => this.grid.insert(e),
     );
+
+
+
+    private readonly active_collisions = this.addEventDispatcher(new CustomEventDispatcher("collision", 
+        (sparse_index: number, entity: AbstractEntity, method_name: string, other_type: typeof Attribute) => {
+            console.log("Collision for " + entity.constructor.name + " registered")
+            const collider = entity.getAttribute(ColliderPart);
+            if(collider == null){
+                console.error("Cannot find collider part for entity: " + entity.constructor.name)
+                return;
+            }
+
+            if(get_attribute_id_from_type(other_type) === -1) this.game.entities["register_new_attribute_type"](other_type);
+
+            collider.active_callbacks.set(get_attribute_id_from_type(other_type), (attr: Attribute) => {
+                entity[method_name](attr);
+            });
+
+            collider.check_collisions = true;
+        },
+        (sparse_index: number) => {
+            console.error("IMPLEMENT THIS");
+        }
+    ));
+
 
     setupGrid(worldWidth: number, worldHeight: number){
         this.grid = new SpatialGrid<ColliderPart>(worldWidth,worldHeight,6,6,(collider) => collider.rect);
@@ -89,10 +120,53 @@ export class CollisionManager extends Subsystem {
             collider.setPosition(collider.owner.position);
             this.grid.insert(collider);
         }
+
+        for(const collider of this.colliders){
+            if(collider.check_collisions){
+                // Get list of all other colliders that collide with this one
+                for(const other of this.collision_list(collider)){
+                    // Check if it matches any of the registered callbacks
+
+                    for(const val of collider.active_callbacks.keys()){
+                        if(this.game.entities.hasAttributeByID(other.owner.entityID,val)){
+
+                            collider.active_callbacks.get(val)(this.game.entities.getAttributeByID(other.owner.entityID, val));
+                        }
+                    }
+
+                }
+            }
+        }
     }
 
     clear(){
         this.grid.clear();
+    }
+
+    /** Returns the first collider it collides */
+    collision(c: ColliderPart): ColliderPart | null {
+        const possible = this.grid.region(c.rect);
+        for(const p of possible){
+            if(c.rect.intersects(p.rect)){
+                if(c !== p)
+                    return p;
+            }
+        }
+        return null;
+    }
+
+    collision_list(c: ColliderPart): ColliderPart[] {   
+        const all: ColliderPart[] = []
+        
+        const possible = this.grid.region(c.rect);
+        for(const p of possible){
+            if(c.rect.intersects(p.rect)){
+                if(c !== p)
+                    all.push(p);
+            }
+        }
+
+        return all;
     }
 
     /** Ignores tag */
@@ -129,31 +203,7 @@ export class CollisionManager extends Subsystem {
         return null;
     }
 
-    /** Returns the first collider it collides */
-    collision(c: ColliderPart): ColliderPart | null {
-        const possible = this.grid.region(c.rect);
-        for(const p of possible){
-            if(c.rect.intersects(p.rect)){
-                if(c !== p)
-                    return p;
-            }
-        }
-        return null;
-    }
-
-    collision_list(c: ColliderPart): ColliderPart[] {   
-        const all: ColliderPart[] = []
-        
-        const possible = this.grid.region(c.rect);
-        for(const p of possible){
-            if(c.rect.intersects(p.rect)){
-                if(c !== p)
-                    all.push(p);
-            }
-        }
-
-        return all;
-    }
+    
 
     circle_query(x: number, y: number, r: number): AbstractEntity[] {
         const entities: AbstractEntity[] = [];

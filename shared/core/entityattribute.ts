@@ -4,7 +4,7 @@ import { AbstractEntity } from "./abstractentity";
 
 export const ATTRIBUTE_ID_KEY = "ATTRIBUTE_ID";
 
-export function get_attribute_id_from_type<K extends new(...args: any[]) => Attribute>(attr_constructor: K): number | -1 {
+export function get_attribute_id_from_type<K extends (new(...args: any[]) => Attribute) | typeof Attribute>(attr_constructor: K): number | -1 {
     const has_id = attr_constructor.hasOwnProperty(ATTRIBUTE_ID_KEY);
 
     if(has_id){
@@ -30,6 +30,7 @@ export function attribute_is_type<K extends new(...args: any[]) => Attribute>(at
 }
 
 
+export type AttributeCtor = new(...args: any[]) => Attribute;
 
 export abstract class Attribute {
     public owner: AbstractEntity;

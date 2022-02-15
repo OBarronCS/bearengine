@@ -29,7 +29,7 @@ import { DrawableEntity, Entity } from "./entity";
 import { PhysicsDotEntity, PurePolygonCarveTest } from "../gamelogic/firstlevel";
 import { DefaultInputController } from "../input/inputcontroller";
 import { TerrainMeshEventHandler } from "../gamelogic/terraindrawer";
-import { SpritePart } from "./parts";
+import { GraphicsPart, SpritePart } from "./parts";
 import { dimensions } from "shared/shapes/rectangle";
 import { bearevents } from "shared/core/bearevents";
 
@@ -445,9 +445,12 @@ export class LevelScene extends BearScene<NetworkPlatformGame> {
             }
         }
 
-        // if(this.game.engine.keyboard.wasPressed("KeyH")){
-        //     this.game.player = this.game.entities.addEntity(new Player())
-        // }
+        if(this.game.engine.keyboard.wasPressed("KeyH")){
+            this.game.entities.addEntity(new TestEntityForVideo());
+
+            // this.game.player = this.game.entities.addEntity(new Player());
+            // this.game.player.position.setXY(this.game.activeLevel.bbox.width/2, this.game.activeLevel.bbox.height/2);
+        }
     }
 
     subset = this.game.entities.createSubset();
@@ -455,38 +458,7 @@ export class LevelScene extends BearScene<NetworkPlatformGame> {
     on_enable(): void {
         // this.subset.addEntity(new PhysicsEntityTest())
 
-        class TestEntityForVideo extends Entity {
         
-            private sprite = this.addPart(new SpritePart("tree.gif"));
-            private collider = this.addPart(new ColliderPart(dimensions(200,200), Vec2.ZERO));
-    
-            update(dt: number): void {
-                
-            }
-    
-            // // @bearevent("mousehover", {})
-            // daisvfdakusvdjasd(point: Vec2){
-            //     console.log("Hello, i was hovered", point.toString());
-            // }
-    
-            // //@bearevent("tap", {})
-            // ontapcallback(num: Vec2){
-            //     console.log("I was clicked")
-            // }
-    
-            @bearevents.mouse_down("left")
-            asdasdasdasd(point: Vec2){
-                console.log("I WAS CLICKED AT POINT: " + point.toString());
-            }
-    
-            // @bearevent("scroll", {})
-            // asdasd(scroll: number, point: Vec2){
-            //     console.log(scroll)
-            // }
-        }
-
-
-        this.game.entities.addEntity(new TestEntityForVideo());
     }
 
     on_disable(): void {
@@ -496,6 +468,44 @@ export class LevelScene extends BearScene<NetworkPlatformGame> {
     }
 
 
+}
+
+class TestEntityForVideo extends Entity {
+        
+    private sprite = this.addPart(new SpritePart("tree.gif"));
+    private collider = this.addPart(new ColliderPart(dimensions(200,200), Vec2.ZERO));
+
+    private total = 0
+
+    update(dt: number): void {
+        this.position.set(this.mouse)
+    }
+
+    // // @bearevent("mousehover", {})
+    // daisvfdakusvdjasd(point: Vec2){
+    //     console.log("Hello, i was hovered", point.toString());
+    // }
+
+    // //@bearevent("tap", {})
+    // ontapcallback(num: Vec2){
+    //     console.log("I was clicked")
+    // }
+
+    @bearevents.collision(GraphicsPart)
+    dddd(other: GraphicsPart){
+        console.log("collision with: " + other.owner.constructor.name);
+        this.total++;
+    }
+
+    @bearevents.mouse_down("left")
+    asdasdasdasd(point: Vec2){
+        console.log("I WAS CLICKED AT POINT: " + point.toString());
+    }
+
+    // @bearevent("scroll", {})
+    // asdasd(scroll: number, point: Vec2){
+    //     console.log(scroll)
+    // }
 }
 
 

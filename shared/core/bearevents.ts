@@ -1,17 +1,12 @@
 
 import type { AbstractEntity } from "shared/core/abstractentity";
 import type { Vec2 } from "shared/shapes/vec2";
-import type { Attribute } from "./entityattribute";
+import type { Attribute, AttributeCtor } from "./entityattribute";
 import type { MouseButton } from "client/src/app/input/mouse";
 import { SparseSet } from "shared/datastructures/sparseset";
 
 
 
-export type EntityEventRegistrationType = {
-    event_name: keyof typeof bearevents,
-    method_name: string,
-    extradata: RegistrationArgs<keyof typeof bearevents>;
-}
 
 export const bearevents = {
     mouse_down: <T extends MouseButton>(button: T) => {
@@ -19,17 +14,51 @@ export const bearevents = {
             register_entity_event("mouse_down", key, target.constructor as typeof AbstractEntity, button)
         };
     },
-    collision: <T extends typeof Attribute>(other_type: T) => {
-        return function<C extends AbstractEntity>(target: C, key: string, r: TypedPropertyDescriptor<(other: T) => void>){
+    collision: <T extends AttributeCtor>(other_type: T) => {
+        return function<C extends AbstractEntity>(target: C, key: string, r: TypedPropertyDescriptor<(other: InstanceType<T>) => void>){
             register_entity_event("collision", key, target.constructor as typeof AbstractEntity, other_type)
         };
     }
 } as const;
 
+/** OLD EVENTS
+ * 
+ * "mousehover": {
+        register_args: {};
+        callback: (mousePoint: Vec2) => void;
+    };
+    "tap": {
+        register_args: {};
+        callback: (mousePoint: Vec2) => void;
+    };
+    "mousedown":{
+        register_args: { button: MouseButton };
+        callback: (mousePoint: Vec2) => void;
+    }
+    "scroll":{
+        register_args: { };
+        callback: (scroll: number, mousePoint: Vec2) => void;
+    }
+
+    "postupdate":{
+        register_args: { };
+        callback: (dt: number) => void;
+    }
+
+    "preupdate": {
+        register_args: { };
+        callback: (dt: number) => void;
+    }
+ */
+
+export type EntityEventRegistrationType = {
+    event_name: keyof typeof bearevents,
+    method_name: string,
+    extradata: RegistrationArgs<keyof typeof bearevents>;
+}
 
 type RegistrationArgs<T extends keyof typeof bearevents> = Parameters<(typeof bearevents)[T]>;
 type CallbackType<T extends keyof typeof bearevents> = Parameters<ReturnType<(typeof bearevents)[T]>>[2] extends TypedPropertyDescriptor<infer R> ? R : never;
-
 
 
 function register_entity_event<E extends keyof typeof bearevents,U extends typeof AbstractEntity>(event_name: E, method_name: string, ctor: U, ...register_args: RegistrationArgs<E>){
@@ -65,8 +94,8 @@ function register_entity_event<E extends keyof typeof bearevents,U extends typeo
 }
 
 
-type h = RegistrationArgs<"mouse_down">;
-type test = CallbackType<"mouse_down">
+type r_args_test = RegistrationArgs<"mouse_down">;
+type r_callback_type_test = CallbackType<"mouse_down">
 
 export interface EventDispatcherType<E extends keyof typeof bearevents> {
     addListener<T extends AbstractEntity>(sparse_index: number, entity: T, method_name: string, ...extradata: RegistrationArgs<E>): void;
@@ -75,7 +104,7 @@ export interface EventDispatcherType<E extends keyof typeof bearevents> {
 }
 
 /** Simply adds all entities to a sparse set */
-export class SimpleEventDispatcher<E extends keyof typeof bearevents> implements EventDispatcherType<E>{
+export class SimpleEventDispatcher<E extends keyof typeof bearevents> implements EventDispatcherType<E> {
     
     readonly event_name: keyof typeof bearevents;
 
@@ -118,6 +147,31 @@ export class SimpleEventDispatcher<E extends keyof typeof bearevents> implements
         }
     }
 }
+
+export class CustomEventDispatcher<E extends keyof typeof bearevents> implements EventDispatcherType<E> {
+    
+    readonly event_name: keyof typeof bearevents;
+
+    private on_add: (sparse_index: number, entity: AbstractEntity, method_name: string, ...extradata: RegistrationArgs<E>) => void;
+    private on_remove: (sparse_index: number) => void;
+
+    constructor(name: E, on_add: CustomEventDispatcher<E>["on_add"], on_remove: CustomEventDispatcher<E>["on_remove"]){
+        this.event_name = name;
+        this.on_add = on_add;
+        this.on_remove = on_remove;
+    }
+    
+    addListener<T extends AbstractEntity>(sparse_index: number, entity: T, method_name: string, ...extradata: RegistrationArgs<E>): void {
+        this.on_add(sparse_index, entity, method_name, ...extradata);
+    }
+
+    removeListener(sparse_index: number): void {
+        this.on_remove(sparse_index);
+    }
+}
+
+
+
 
 // const test99 = new SimpleEventDispatcher("mouse_down");
 
