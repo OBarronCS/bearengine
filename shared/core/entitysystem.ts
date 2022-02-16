@@ -2,10 +2,9 @@ import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { Attribute, AttributeContainer, ATTRIBUTE_ID_KEY, get_attribute_id, get_attribute_id_from_type } from "shared/core/entityattribute";
 import { AttributeQuery } from "shared/core/entityattribute";
 import { Subsystem } from "shared/core/subsystem";
-import { EntityEventListType, EventRegistry } from "shared/core/bearevents";
+import { bearevents, EntityEventRegistrationType, EventDispatcherType } from "shared/core/bearevents";
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { assert } from "shared/misc/assertstatements";
-import { BearEvents } from "./sharedlogic/eventdefinitions";
 import { SparseSet } from "shared/datastructures/sparseset";
 
 
@@ -77,16 +76,16 @@ export function StreamReadEntityID(stream: BufferStreamReader): number {
 export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> extends Subsystem implements IEntityScene<TEntity> {
     
     private partQueries: AttributeQuery<Attribute>[] = [];
-    private allEntityEventHandlers: Map<keyof BearEvents, EventRegistry<keyof BearEvents>> = new Map();
+    private allEntityEventHandlers: Map<keyof typeof bearevents, EventDispatcherType<keyof typeof bearevents>> = new Map();
     private subsets: EntitySystemSubset<this>[] = [];
 
 
     private nextPartID = 0;
     private partContainers: AttributeContainer<Attribute>[] = []
 
-    // It finds these when iterating all the other systems.
-    private preupdate = this.addEventDispatcher("preupdate");
-    private postupdate = this.addEventDispatcher("postupdate");
+    // // It finds these when iterating all the other systems.
+    // private preupdate = this.addEventDispatcher("preupdate");
+    // private postupdate = this.addEventDispatcher("postupdate");
 
 
     // Set of entities
@@ -135,6 +134,19 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         //return container.dense;
     }
 
+    /** Assumes attr_id is valid */
+    hasAttributeByID(e: EntityID, attr_id: number): boolean {
+        if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
+
+        if(attr_id === -1) { 
+            console.error("CHECKING ATTRIBUTE_ID = -1")
+            return false 
+        };
+
+        const container = this.partContainers[attr_id];
+        return container.contains(getEntityIndex(e));
+    }
+
     hasAttribute<K extends new(...args: any[]) => Attribute>(e: EntityID, attr_constructor: K): boolean {
 
         if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
@@ -147,6 +159,17 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         return container.contains(getEntityIndex(e));
     }
 
+
+    getAttributeByID(e: EntityID, attr_id: number): Attribute | null {
+        if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
+    
+        if(attr_id === -1) return null;
+        
+        const container: AttributeContainer<any> = this.partContainers[attr_id];
+        
+        return container.get_attribute(getEntityIndex(e));
+    }
+
     getAttribute<K extends new(...args: any[]) => Attribute, T extends InstanceType<K>>(e: EntityID, attr_constructor: K): T | null {
 
         if(!this.isValidEntity(e)) throw new Error("Entity dead") ;
@@ -155,11 +178,10 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
 
         if(attr_id === -1) return null;
         
-        ///@ts-expect-error
+        //@ts-expect-error
         const container: AttributeContainer<T> = this.partContainers[attr_id];
         
         return container.get_attribute(getEntityIndex(e));
-        //return container.getEntityPart(e);
     }
 
     private register_new_attribute_type(attr_constructor: typeof Attribute): number {
@@ -220,8 +242,6 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
 
         e.onAdd();
 
-        this.registerEvents(e, sparseIndex);
-
         // Register parts
         for(const part of e.parts){
             //@ts-expect-error
@@ -239,6 +259,8 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
             //container.addPart(part, sparseIndex);
         }
 
+        this.registerEvents(e, sparseIndex);
+
         return e;
     }
 
@@ -247,28 +269,27 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         // console.log(e, e.constructor["EVENT_REGISTRY"]);
 
         if(e.constructor["EVENT_REGISTRY"]){
-            const list = e.constructor["EVENT_REGISTRY"] as EntityEventListType<T>;
+            const list = e.constructor["EVENT_REGISTRY"] as EntityEventRegistrationType[];
 
             for(const item of list){
-                const handler = this.allEntityEventHandlers.get(item.eventname);
+                const handler = this.allEntityEventHandlers.get(item.event_name);
                 if(!handler) {
-                    console.error(`Handler for ${item.eventname} could not be found!`)
+                    console.error(`Handler for ${item.event_name} could not be found!`)
                 }
 
-                const methodName = item.methodname;
-                handler.addListener(e, methodName, item.extradata, sparseIndex);
+                handler.addListener(sparseIndex, e, item.method_name, ...(item.extradata));
             }
         }
     }
 
     private deleteEvents<T extends TEntity>(e: T, sparseIndex: number){
         if(e.constructor["EVENT_REGISTRY"]){
-            const list = e.constructor["EVENT_REGISTRY"] as EntityEventListType<T>;
+            const list = e.constructor["EVENT_REGISTRY"] as EntityEventRegistrationType[];
 
             for(const item of list){
-                const handler = this.allEntityEventHandlers.get(item.eventname);
+                const handler = this.allEntityEventHandlers.get(item.event_name);
                 if(!handler) {
-                    console.log(`Handler for ${item.eventname} could not be found!`)
+                    console.log(`Handler for ${item.event_name} could not be found!`)
                 }
 
                 handler.removeListener(sparseIndex);
@@ -325,9 +346,15 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
             // console.log("Trying to delete something that has already been deleted");
             return;
         }
+        
 
         const denseIndex = getEntityIndex(this.sparse[sparseIndex]);
         const entity = this.entities[denseIndex];
+
+
+        this.deleteEvents(entity,sparseIndex);
+
+
 
         if(denseIndex !== this.entities.length - 1){
             // Makes sure dense indices point to correct places
@@ -350,14 +377,11 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
             const container = this.partContainers[get_attribute_id(part)]
             
             container.remove_attribute(sparseIndex)
-            //container.removePart(sparseIndex);
         }
 
         const e_container = this.partContainers[get_attribute_id(entity)];
         e_container.remove_attribute(sparseIndex);
-        // e_container.removePart(sparseIndex);
 
-        this.deleteEvents(entity,sparseIndex);
         
         entity.onDestroy();
 
@@ -371,7 +395,7 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
             this.partQueries.push(...system.queries);
 
             for(const handler of system.eventHandlers){
-                this.allEntityEventHandlers.set(handler.eventName, handler);
+                this.allEntityEventHandlers.set(handler.event_name, handler);
             }
         }
         
@@ -381,10 +405,10 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
 
     update(delta: number): void {
 
-        // Pre-update
-        for(const entity of this.preupdate){
-            this.preupdate.dispatch(entity, delta);
-        }
+        // // Pre-update
+        // for(const entity of this.preupdate){
+        //     this.preupdate.dispatch(entity, delta);
+        // }
 
         // Update
         for (let i = 0; i < this.entities.length; i++) {
@@ -392,10 +416,10 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
             entity.update(delta);
         }
 
-        // Post-update
-        for(const entity of this.postupdate){
-            this.postupdate.dispatch(entity, delta);
-        }
+        // // Post-update
+        // for(const entity of this.postupdate){
+        //     this.postupdate.dispatch(entity, delta);
+        // }
 
         for(const id of this.deleteEntityQueue){
             this.destroyEntityImmediately(id);

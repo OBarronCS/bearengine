@@ -1,7 +1,6 @@
 import { Attribute, AttributeQuery} from "shared/core/entityattribute";
 import { BearGame } from "./abstractengine";
-import { EventRegistry } from "./bearevents";
-import { BearEvents } from "./sharedlogic/eventdefinitions";
+import { bearevents, EventDispatcherType } from "./bearevents";
 
 // new(engine: BearEngine) => T
 
@@ -9,7 +8,7 @@ import { BearEvents } from "./sharedlogic/eventdefinitions";
 export abstract class Subsystem<TGame extends BearGame<any> = BearGame<{}>> {
     
     public queries: AttributeQuery<any>[] = [];
-    public eventHandlers: EventRegistry<keyof BearEvents>[] = [];
+    public eventHandlers: EventDispatcherType<keyof typeof bearevents>[] = [];
 
     public game: TGame;
     public engine: TGame["engine"]
@@ -21,10 +20,9 @@ export abstract class Subsystem<TGame extends BearGame<any> = BearGame<{}>> {
     abstract init(): void;
     abstract update(delta: number): void;
 
-    addEventDispatcher<T extends keyof BearEvents>(name: T): EventRegistry<T> {
-        const eg = new EventRegistry(name);
-        this.eventHandlers.push(eg);
-        return eg;
+    addEventDispatcher<T extends EventDispatcherType<keyof typeof bearevents>>(dispatcher: T): T {
+        this.eventHandlers.push(dispatcher);
+        return dispatcher;
     }
 
     addQuery<T extends Attribute>(

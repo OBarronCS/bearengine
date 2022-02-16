@@ -523,14 +523,9 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: P
     bullet.effect.onUpdate(function(dt: number){
         if(this.allow_move){
 
-            for(const entity of this.game.entities.entities){
-                if(entity instanceof BoostZone_S){
-
-                    if(entity.collider.rect.contains(this.position.clone().sub(entity.position))){
-                        const dir = entity.getAttribute(BoostDirection).dir;
-                        this.velocity.add(dir);
-                    }
-                }
+            const slow_zones_s = this.game.collision.point_query_list(this.position, BoostDirection);
+            for(const s of slow_zones_s){
+                this.velocity.add(s.attr.dir);
             }
 
             if(this.bounce){
@@ -581,6 +576,12 @@ export function ShootShotgunWeapon_S(game: ServerBearEngine, creator: PlayerInfo
         
         current_dir += spread_rad;
     }
+
+    // if (true) {
+
+    //     console.log(arr.map(b => b.velocity.toString()))
+
+    // }
 
     return arr;
 }

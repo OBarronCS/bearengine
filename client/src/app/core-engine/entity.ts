@@ -12,7 +12,6 @@ import { EngineKeyboard } from "../input/keyboard";
 import { ColliderPart } from "shared/core/entitycollision";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { GameLevel } from "./gamelevel";
-import { bearevent } from "shared/core/bearevents";
 
 
 // Client specific entity
@@ -92,11 +91,12 @@ export abstract class GMEntity extends SpriteEntity {
         this.collider.rect.setDimensions(widthheight.width, widthheight.height);
     }
 
-    @bearevent("postupdate", {})
-    __postUpdate(dt: number){
-        this.position.add(this.velocity);
-        this.velocity.add(this.gravity);
-    }
+    //
+    // @bearevent("postupdate", {})
+    // __postUpdate(dt: number){
+    //     this.position.add(this.velocity);
+    //     this.velocity.add(this.gravity);
+    // }
 
     /** Teleports to a random position aligned to dx and dy intervals, within width and height */
     randomPositionSnap(dx: number,dy: number,width: number, height: number){

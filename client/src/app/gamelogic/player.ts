@@ -700,20 +700,20 @@ export class Player extends DrawableEntity {
  
         this.slow_factor = 1;
 
-        const slow_zones = this.game.collisionManager.colliders_on_point(this.position, "SlowZone");
-
+        // const slow_zones = this.game.collisionManager.colliders_on_point(this.position, "SlowZone");
+        const slow_zones = this.game.collisionManager.point_query_list(this.position, SlowAttribute);
         for(const slow of slow_zones){
-            const slow_attr = slow.owner.getAttribute(SlowAttribute);
-            if(Vec2.distanceSquared(this.position, slow.owner.position) < slow_attr.radius**2){
-                this.slow_factor = slow_attr.slow_factor;
+
+            if(Vec2.distanceSquared(this.position, slow.entity.position) < slow.attr.radius**2){
+                this.slow_factor = slow.attr.slow_factor;
             }
         }
 
-        const zones = this.game.collisionManager.colliders_on_point(this.position, "BoostZone");
+        const zones = this.game.collisionManager.point_query_list(this.position, BoostDirection);
 
         for(const z of zones){
-            const dir = z.owner.getAttribute(BoostDirection).dir;
-            this.velocity.add(dir);
+            // const dir = z.entity.getAttribute(BoostDirection).dir;
+            this.velocity.add(z.attr.dir);
         }
 
 

@@ -1,6 +1,5 @@
 import { Graphics, Sprite } from "shared/graphics/graphics";
 import { ColliderPart } from "shared/core/entitycollision";
-import { bearevent } from "shared/core/bearevents";
 import { EntitySystem } from "shared/core/entitysystem";
 import { TiledMap } from "shared/core/tiledmapeditor";
 import { dimensions } from "shared/shapes/rectangle";
