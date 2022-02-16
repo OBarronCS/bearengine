@@ -134,10 +134,34 @@ export class CollisionManager extends Subsystem {
         this.grid.clear();
     }
 
+    /** Returns collisions with given collider, other entities must have given attribute */
+    collision_list<T extends AttributeCtor>(c: ColliderPart, attr: T): CollisionQueryData<T>[] {
+        const entities: CollisionQueryData<T>[] = []
+
+        const possible = this.grid.region(c.rect);
+        for(const p of possible){
+            if(c.rect.intersects(p.rect)){
+                if(c !== p){
+                    const at = p.owner.getAttribute(attr);
+                    if(at !== null){
+                        entities.push({
+                            attr:at,
+                            entity:p.owner,
+                            collider:p,
+                        });
+                    }
+
+                }
+            }
+        }
+
+        return entities;
+    }
+
     /** General collision list, returns ALL COLLIDERS that collide with it */
     gen_collision_list(c: ColliderPart): ColliderPart[] {   
         const all: ColliderPart[] = []
-        
+
         const possible = this.grid.region(c.rect);
         for(const p of possible){
             if(c.rect.intersects(p.rect)){
@@ -148,7 +172,6 @@ export class CollisionManager extends Subsystem {
 
         return all;
     }
-
 
     /** Return all colliding entities with the given attribute */
     point_query_list<T extends AttributeCtor>(point: Coordinate, attr: T): CollisionQueryData<T>[] {
@@ -171,6 +194,25 @@ export class CollisionManager extends Subsystem {
         return found;
     }
 
+    rectangle_query_list<T extends AttributeCtor>(rect: Rect, attr: T): CollisionQueryData<T>[] {
+        
+        const found: CollisionQueryData<T>[] = [];
+
+        for(const c of this.grid.region(rect)){
+            if(c.rect.intersects(rect)){
+                const b = c.owner.getAttribute(attr);
+                if(b !== null){
+                    found.push({
+                        attr:b,
+                        entity:c.owner,
+                        collider:c,
+                    })
+                }
+            }   
+        }
+
+        return found;
+    }
     
     /** Return all colliding entities with the given attribute. Pass in null to get all colliders */
     circle_query_list<T extends AttributeCtor>(x: number, y: number, r: number, attr: T): CollisionQueryData<T>[];
@@ -201,12 +243,23 @@ export class CollisionManager extends Subsystem {
         return entities;
     }
 
-    line_query(line: Line): AbstractEntity[] {
-        const entities: AbstractEntity[] = [];
+
+    line_query<T extends AttributeCtor>(line: Line, attr: T): CollisionQueryData<T>[] {
+        const entities: CollisionQueryData<T>[] = [];
         const possible = this.grid.region(line.getAABB());
         for(const p of possible){
-            if(Rect.CollidesWithLine(p.rect,line.A.x,line.A.y,line.B.x,line.B.y)) entities.push(p.owner);
+            if(Rect.CollidesWithLine(p.rect,line.A.x,line.A.y,line.B.x,line.B.y)) { 
+                const at = p.owner.getAttribute(attr);
+                if(at !== null){
+                    entities.push({
+                        attr:at,
+                        entity:p.owner,
+                        collider:p,
+                    });
+                }
+            }
         }
+
         return entities;
     }
 

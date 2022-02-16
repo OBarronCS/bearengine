@@ -294,8 +294,6 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
                 // const zones = this.game.collisionManager.colliders_on_point(this.position, "BoostZone");
                 for(const z of zones){
                     this.velocity.add(z.attr.dir);
-
-                    console.log(this.game.engine.tick)
                     // const dir = z.owner.getAttribute(BoostDirection).dir;
                     // this.velocity.add(dir);
                 }
@@ -376,6 +374,9 @@ export function ShootShotgunWeapon_C(game: NetworkPlatformGame, shotgun_id: numb
         current_dir += spread_rad;
     }
     
+
+    // console.log(arr.map(b => b.velocity.toString()))
+
     return arr;
 
 }
