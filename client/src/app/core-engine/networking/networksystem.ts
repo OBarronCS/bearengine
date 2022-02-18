@@ -610,7 +610,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const x = stream.getFloat32();
                             const y = stream.getFloat32();
                             const level = LevelRefLinker.IDToData(stream.getUint8());
-
+                            const seconds_until_start = stream.getFloat64();
 
                             this.stagePacketsToSerialize = [];
 
@@ -639,7 +639,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             for(const p of this.remotePlayerEntities.values()){
                                 p.draw_item.clear();
+
+                                p.start_revive_animation(seconds_until_start);
                             }
+
 
                             break;
                         }
@@ -665,11 +668,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 const emitter = new EmitterAttach(pEntity,"ROUND_WINNER", "particle.png");
 
                                 this.game.entities.addEntity(emitter);
-                            }
-
-                            for(const p of this.remotePlayerEntities.values()){
-                                p.start_revive_animation(ticks_until_next_round);
-                                p.draw_item.clear();
                             }
 
                             break;

@@ -1,7 +1,7 @@
-import { AnimatedSprite, Container, Graphics, Sprite, Texture } from "shared/graphics/graphics";
+import { AnimatedSprite, Container, filters, Graphics, Sprite, Texture } from "shared/graphics/graphics";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { ColliderPart } from "shared/core/entitycollision";
-import { clamp, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/misc/mathutils";
+import { clamp, E, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/misc/mathutils";
 import { Line } from "shared/shapes/line";
 import { dimensions } from "shared/shapes/rectangle";
 import { drawCircle, drawCircleOutline, drawProgressBar, drawPoint } from "shared/shapes/shapedrawing";
@@ -27,6 +27,8 @@ import { SlowAttribute } from "shared/core/sharedlogic/sharedattributes";
 import { ProgressBarWidget, uisize } from "../ui/widget";
 import { CreateInputConverter, inputv } from "../input/inputcontroller";
 import { SimpleBouncePhysics } from "shared/core/sharedlogic/sharedphysics";
+import { Color } from "shared/datastructures/color";
+import { BearEngine, NetworkPlatformGame } from "../core-engine/bearengine";
 
 
 
@@ -51,8 +53,39 @@ interface PartData {
     y: number
 }
 
+
+enum AnimationControlState {
+    NORMAL,
+    PHYSICS,
+    INTERP_BODY_PARTS
+}
+
+
+class BodyPartPhysicsData {
+    readonly slow_factor = 0.7;
+
+    position = new Vec2(0,0);
+    velocity = new Vec2(0,0);
+    gravity = new Vec2(0,.4);
+    alpha = 1;
+
+    stopped = false;
+
+    constructor(public target_sprite: AnimatedSprite){}
+
+    private drawRadius = 10;
+}
+
+
+
 class PlayerAnimationState {
+
+    public readonly ticks_per_frame: number
     
+    
+    mode: AnimationControlState = AnimationControlState.NORMAL;
+    physics_state_data:  { max_ticks: number, current_tick: number, data: BodyPartPhysicsData[] } = { data: [], max_ticks: 0, current_tick: 0 };
+
     public container: Container = new Container();
     public length: number;
     private timer: TickTimer;
@@ -71,8 +104,41 @@ class PlayerAnimationState {
     leftFootTextures: PartData[] = [];
     rightFootTextures: PartData[] = [];
 
-    constructor(public data: SavePlayerAnimation, public framesPerTick: number, public originOffset = new Vec2(0,0)){
-        this.timer = new TickTimer(this.framesPerTick, true);
+
+    scale_sprites(scale: number){
+        const a = [ this.headTextures,
+                    this.bodyTexture,
+                    this.leftHandTextures,
+                    this.rightHandTextures,
+                    this.leftFootTextures,
+                    this.rightFootTextures,
+        ];
+
+        for(const part of a){
+            for(const p of part){
+                p.x *= scale;
+                p.y *= scale;
+            }
+        }
+    }
+
+    setScale(value: number){
+        this.originOffset.scale(value);
+        this.scale_sprites(value);
+        this.headSprite.scale.set(value);
+        this.bodySprite.scale.set(value);
+        this.leftHandSprite.scale.set(value);
+        this.rightHandSprite.scale.set(value);
+        this.leftFootSprite.scale.set(value);
+        this.rightFootSprite.scale.set(value);
+    }
+
+    constructor(public data: SavePlayerAnimation, ticks_per_frame: number, public originOffset = new Vec2(0,0),
+        public game: NetworkPlatformGame
+    ){
+        this.ticks_per_frame = ticks_per_frame;
+
+        this.timer = new TickTimer(this.ticks_per_frame, true);
 
         this.length = data.frameData.length;
 
@@ -121,7 +187,7 @@ class PlayerAnimationState {
         this.leftFootSprite = new AnimatedSprite(this.leftFootTextures.map(e => e.textures));
         this.rightFootSprite = new AnimatedSprite(this.rightFootTextures.map(e => e.textures));
 
-        this.container.addChild(this.headSprite)
+        this.container.addChild(this.headSprite);
         this.container.addChild(this.headSprite);
         this.container.addChild(this.bodySprite);
         this.container.addChild(this.leftHandSprite);
@@ -134,21 +200,135 @@ class PlayerAnimationState {
         this.setFrame(0);
     }
 
-    xFlip(value: number){
-        if(value < 0){
-            this.container.scale.x = -this.scale;
-        } else if(value > 0){
-            this.container.scale.x = this.scale
+    tick(){
+        const tick = this.timer.tick();
+        if(this.mode == AnimationControlState.NORMAL){
+            if(tick){
+                this.setFrame(this.timer.timesRepeated);
+            } 
+        } else if (this.mode == AnimationControlState.PHYSICS){
+            this.tick_physics();
+        } else if (this.mode == AnimationControlState.INTERP_BODY_PARTS){
+            this.tick_reshape();
         }
     }
 
-    private scale: number;
-
-    setScale(value: number){
-        this.scale = value;
-        this.container.scale.x = value;
-        this.container.scale.y = value;
+    start_normal(){
+        this.mode = AnimationControlState.NORMAL;
     }
+
+    physics_ticker = new TickTimer(1);
+
+    tick_physics(){
+        if(!this.physics_ticker.tick()) return;
+        this.physics_state_data.current_tick++;
+
+        if(this.physics_state_data.current_tick < this.physics_state_data.max_ticks){
+            for(const part of this.physics_state_data.data){
+                if(!part.stopped){
+                    const status = SimpleBouncePhysics(this.game.terrain, part.position, part.velocity, part.gravity, part.slow_factor)
+                    part.stopped = status.stopped;
+                    
+                    const target_pos = Vec2.add(this.originOffset, Vec2.subtract(part.position, this.container.position));
+                    part.target_sprite.position.copyFrom(target_pos);
+                }
+            }
+        }
+    }
+
+    // Acts on idle_animation
+    start_physics(){
+
+        // Clear it before hand
+        this.physics_state_data.data = [];
+
+        this.mode = AnimationControlState.PHYSICS;
+
+        const {
+            headSprite,
+            bodySprite,
+            leftHandSprite,
+            rightHandSprite, 
+            leftFootSprite,
+            rightFootSprite
+        } = this;
+
+        const iter = [
+            headSprite,
+            bodySprite,
+            leftHandSprite,
+            rightHandSprite,
+            leftFootSprite,
+            rightFootSprite
+        ];
+
+        
+        for(const body_part of iter){
+            const start_position = Vec2.subtract(Vec2.add(this.container.position, body_part.position),this.originOffset);
+            
+            const physics_data = new BodyPartPhysicsData(body_part);
+            physics_data.velocity.set(new Vec2(random_range(-20, 20), random_range(-20, 20)));
+            physics_data.position.set(start_position);
+
+            this.physics_state_data.data.push(physics_data);
+            this.physics_state_data.current_tick = 0;
+            this.physics_state_data.max_ticks = 600;
+        }
+    }
+    
+    tick_reshape(){
+
+    }
+
+    start_body_reshaping(){
+        
+        // for(const part of this.physics_body_parts){
+
+        //     // POSITION TWEEM
+        //     {
+                
+        //         const tween = new VecTween(part,"position",(ticks - 30) / 60).from(part.position).to(Vec2.add(this.position, Vec2.from(part.source_offset).scale(2))).go();
+
+        //         tween.delay(.2)
+
+        //         tween.onDelay(1, () => {
+        //             part.grounded = true;
+        //         })
+
+        //         this.scene.addEntity(tween);
+        //     } 
+
+        //     // ALPHA TWEEN
+        //     {                
+        //         const tween = new NumberTween(part["sprite"],"alpha",(ticks - 180) / 60).from(.1).to(1).go();
+
+        //         tween.delay(.2)
+
+        //         this.scene.addEntity(tween);
+        //     }
+        // }
+    }
+
+    /** Does not work at all */
+    set_color(color: Color){
+        const hex = color.hex();
+        this.headSprite.tint = hex;
+        this.headSprite.tint = hex;
+        this.bodySprite.tint = hex;
+        this.leftHandSprite.tint = hex;
+        this.rightHandSprite.tint = hex;
+        this.leftFootSprite.tint = hex;
+        this.rightFootSprite.tint = hex;
+    }
+
+    xFlip(value: number){
+        if(value < 0){
+            this.container.scale.x = -1;
+        } else if(value > 0){
+            this.container.scale.x = 1
+        }
+    }
+
 
     move(dx: number,dy: number){
         this.container.position.x += dx;
@@ -157,12 +337,6 @@ class PlayerAnimationState {
 
     setPosition(pos: Coordinate){
         this.container.position.set(pos.x, pos.y);
-    }
-
-    tick(){
-        if(this.timer.tick()){
-            this.setFrame(this.timer.timesRepeated);
-        }
     }
 
     setFrame(rawFrame: number){
@@ -211,20 +385,14 @@ export class Player extends DrawableEntity {
 
     private healthbar_widget = new ProgressBarWidget(new Vec2(),500,40);
     
-    private readonly runAnimation = new PlayerAnimationState(this.engine.getResource("player/run.json").data as SavePlayerAnimation, 4, new Vec2(40,16));
-    private readonly wallslideAnimation = new PlayerAnimationState(this.engine.getResource("player/wallslide.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
-    private readonly idleAnimation = new PlayerAnimationState(this.engine.getResource("player/idle.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
-    private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
+    private readonly runAnimation = new PlayerAnimationState(this.engine.getResource("player/run.json").data as SavePlayerAnimation, 4, new Vec2(40,16), this.game);
+    private readonly wallslideAnimation = new PlayerAnimationState(this.engine.getResource("player/wallslide.json").data as SavePlayerAnimation, 30, new Vec2(44,16), this.game);
+    private readonly idleAnimation = new PlayerAnimationState(this.engine.getResource("player/idle.json").data as SavePlayerAnimation, 30, new Vec2(44,16), this.game);
+    private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17), this.game);
 
-    
-    // last_ground_xspd = 0;
-    // last_ground_yspd = 0;
 
     last_ground_velocity = new Vec2(0,0)
     velocity = new Vec2(0,0);
-    // yspd = 0;
-    // xspd = 0;
-
     gspd = 0;
 
     private readonly gravity = new Vec2(0, 1.2);
@@ -243,9 +411,9 @@ export class Player extends DrawableEntity {
     slow_factor = 1;
 
     // Item graphics
-    itemInHand: ItemDrawer = new ItemDrawer();
+    private itemInHand: ItemDrawer = new ItemDrawer();
     
-    usable_item: UsableItem<any> = null;
+    private usable_item: UsableItem<any> = null;
 
     setGhost(ghost: boolean){
         this.ghost = ghost;
@@ -339,7 +507,6 @@ export class Player extends DrawableEntity {
 
     private colliderPart: ColliderPart;
 
-
     constructor(){
         super();
 
@@ -383,6 +550,11 @@ export class Player extends DrawableEntity {
         this.engine.renderer.addSprite(this.climbAnimation.container)
 
         this.setAnimationSprite(AnimationState.RUN);
+
+        // this.runAnimation.set_color(Color.random())
+        // this.wallslideAnimation.set_color(Color.random())
+        // this.idleAnimation.set_color(Color.random())
+        // this.climbAnimation.set_color(Color.random());
     }
 
     override onDestroy(){
@@ -1383,14 +1555,17 @@ export class RemotePlayer extends Entity {
     constructor(id: number){
         super();
         this.id = id;
+
+        // this.runAnimation.set_color(Color.random())
+        // this.wallslideAnimation.set_color(Color.random())
+        // this.idleAnimation.set_color(Color.random())
+        // this.climbAnimation.set_color(Color.random())
     }
     
-    private readonly runAnimation = new PlayerAnimationState(this.engine.getResource("player/run.json").data as SavePlayerAnimation, 4, new Vec2(40,16));
-    private readonly wallslideAnimation = new PlayerAnimationState(this.engine.getResource("player/wallslide.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
-    private readonly idleAnimation = new PlayerAnimationState(this.engine.getResource("player/idle.json").data as SavePlayerAnimation, 30, new Vec2(44,16));
-    private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17));
-
-    private physics_body_parts: BodyPartPhysicsEntity[] = []
+    private readonly runAnimation = new PlayerAnimationState(this.engine.getResource("player/run.json").data as SavePlayerAnimation, 4, new Vec2(40,16), this.game);
+    private readonly wallslideAnimation = new PlayerAnimationState(this.engine.getResource("player/wallslide.json").data as SavePlayerAnimation, 30, new Vec2(44,16), this.game);
+    private readonly idleAnimation = new PlayerAnimationState(this.engine.getResource("player/idle.json").data as SavePlayerAnimation, 30, new Vec2(44,16), this.game);
+    private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17), this.game);
 
     update(dt: number): void {
         this.look_angle.value.set(this.look_angle.buffer.getValue(this.game.networksystem["getServerTickToSimulate"]()))
@@ -1403,113 +1578,38 @@ export class RemotePlayer extends Entity {
         this.idleAnimation.setPosition(this.position);
         this.climbAnimation.setPosition(this.position);
 
+        this.runAnimation.tick();
+        this.wallslideAnimation.tick();
+        this.idleAnimation.tick();
+        this.climbAnimation.tick();
 
         if(!this.ghost){
-            this.runAnimation.tick();
-            this.wallslideAnimation.tick();
-            this.idleAnimation.tick();
-            this.climbAnimation.tick();
-
             this.graphics.graphics.clear();
             drawProgressBar(this.graphics.graphics, this.x - 20, this.y - 40, 40, 7, this.health / 100);
         }
     }
 
     start_revive_animation(ticks: number){
-
-        for(const part of this.physics_body_parts){
-
-            // POSITION TWEEM
-            {
-                
-                const tween = new VecTween(part,"position",(ticks - 30) / 60).from(part.position).to(Vec2.add(this.position, Vec2.from(part.source_offset).scale(2))).go();
-
-                tween.delay(.2)
-
-                tween.onDelay(1, () => {
-                    part.grounded = true;
-                })
-
-                this.scene.addEntity(tween);
-            } 
-
-            // ALPHA TWEEN
-            {                
-                const tween = new NumberTween(part["sprite"],"alpha",(ticks - 180) / 60).from(.1).to(1).go();
-
-                tween.delay(.2)
-
-                this.scene.addEntity(tween);
-            }
-        }
+        this.idleAnimation.start_normal();
     }
 
     play_death_animation(){
-        this.physics_body_parts.forEach(e => e.destroy());
-        this.physics_body_parts = [];
+        this.graphics.graphics.clear();
+        
+        this.scene.addEntity(new EmitterAttach(this,"BOOM", "particle.png"));
 
         this.ghost = true;
 
-        this.graphics.graphics.clear();
-
         this.runAnimation.container.visible = false;
         this.wallslideAnimation.container.visible = false;
-        this.idleAnimation.container.visible = false;
         this.climbAnimation.container.visible = false;
 
-        this.scene.addEntity(new EmitterAttach(this,"BOOM", "particle.png"));
-        
-        const {
-            headSprite,
-            bodySprite,
-            leftHandSprite,
-            rightHandSprite, 
-            leftFootSprite,
-            rightFootSprite
-        } = this.idleAnimation;
-
-        const iter = [
-            headSprite,
-            bodySprite,
-            leftHandSprite,
-            rightHandSprite,
-            leftFootSprite,
-            rightFootSprite
-        ]
-
-        
-        for(const i of iter){
-            const spr = new Sprite(i.texture);
-            spr.scale.set(2,2);
-
-            const start_position = Vec2.add(i.position,this.idleAnimation.container.position);
-
-            const e = new BodyPartPhysicsEntity(this.engine.mouse, i.position.clone(), spr);
-            e.position.set(start_position);
-            e.velocity.set(new Vec2(random_range(-20, 20), random_range(-20, 20)));
-            
-            this.game.entities.addEntity(e);
-            this.physics_body_parts.push(e);
-
-
-            const tween = new NumberTween(e["sprite"],"alpha",6).from(1).to(.1).go();
-
-            // tween.easingfunction
-            tween.delay(2)
-
-            tween.onFinish(() => {
-                e.grounded = true;
-            });
-
-            this.scene.addEntity(tween);
-        }
+        this.idleAnimation.container.visible = true;
+        this.idleAnimation.start_physics();
         
     }
 
     make_visible(){
-        this.physics_body_parts.forEach(e => e.destroy());
-        this.physics_body_parts = [];
-
         this.ghost = false;
 
         this.runAnimation.container.visible = true;
@@ -1587,44 +1687,5 @@ export class RemotePlayer extends Entity {
     
 }
 
-
-
-export class BodyPartPhysicsEntity extends DrawableEntity {
-    private slow_factor = 0.7;
-    private sprite: SpritePart;
-
-    velocity = new Vec2(0,0);
-    private gravity = new Vec2(0,.4);
-
-    grounded = false;
-
-    private drawRadius = 10;
-
-    constructor(point: Coordinate, public source_offset: Coordinate, spr_source: string | Sprite){
-        super();
-        this.position.set(point);
-        this.redraw();
-
-        this.sprite = this.addPart(new SpritePart(spr_source));
-
-
-        this.sprite.originPercent = new Vec2(.5, .5);
-    }
-
-    update(dt: number): void {
-
-        if(this.grounded) return;
-        const status = SimpleBouncePhysics(this.game.terrain, this.position, this.velocity, this.gravity, this.slow_factor)
-        if(status.stopped) this.grounded = true;
-    
-
-        this.redraw(true);
-    }
-
-    draw(g: Graphics): void {
-        //g.beginFill(0x00FF00);
-        //g.drawCircle(this.x, this.y, this.drawRadius);
-    }
-}
 
 

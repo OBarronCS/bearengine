@@ -13,7 +13,7 @@ import { ConnectionID } from "./serversocket";
 // savePacket is irrelevent for packet to specific clients, like this one
 export class StartRoundPacket extends PacketWriter {
 
-    constructor(public x: number, public y: number, public level_enum: number){
+    constructor(public x: number, public y: number, public level_enum: number, public seconds_until_start: number){
         super(false);
     }
 
@@ -22,6 +22,7 @@ export class StartRoundPacket extends PacketWriter {
         stream.setFloat32(this.x);
         stream.setFloat32(this.y);
         stream.setUint8(this.level_enum);
+        stream.setFloat64(this.seconds_until_start);
     }
 }
 

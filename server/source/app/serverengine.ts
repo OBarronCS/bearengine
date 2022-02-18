@@ -508,7 +508,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             this.active_scene.activePlayerEntities.set(clientID, p.playerEntity);
 
             p.personalPackets.enqueue(
-                new StartRoundPacket(spawn_spot.x, spawn_spot.y, levelID)
+                new StartRoundPacket(spawn_spot.x, spawn_spot.y, levelID, 2)
             );
 
             this.enqueueGlobalPacket(

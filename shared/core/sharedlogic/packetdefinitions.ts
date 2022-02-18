@@ -35,7 +35,7 @@ export enum GamePacket {
 
     //Personal packet.
     //    load level data, set personal x, y;
-    START_ROUND, // [x:float32, y:float32, level_enum: uint8]
+    START_ROUND, // [x:float32, y:float32, level_enum: uint8, seconds_until_start: double]
     
     // Array of players in order of winner, to last place
     END_ROUND, // [ticks_until_next_round: uint16, array_length: uint8, [clientID: uint8] * array_length] 
