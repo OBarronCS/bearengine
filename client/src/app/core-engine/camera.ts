@@ -3,10 +3,11 @@ import { Coordinate, mix, Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
 
 import { RendererSystem } from "./renderer";
-import { clamp, ease, lerp, round } from "shared/misc/mathutils";
+import { clamp } from "shared/misc/mathutils";
 import { smoothNoise } from "shared/misc/random";
 import { EngineMouse } from "../input/mouse";
 import { BearEngine } from "./bearengine";
+import { ease } from "shared/core/tween";
 
         
 const MAX_ANGLE_SHAKE = 2; //degrees
@@ -218,8 +219,9 @@ export class CameraSystem  {
         // this.container.pivot.x += dx;
         // this.container.pivot.y += dy;
 
+        const amount = .3;
 
-        if(this.mode === "follow") this.center = mix(this.center, this.targetMiddle, .40);
+        if(this.mode === "follow") this.center = mix(this.center, this.targetMiddle, amount);
     }
     
     get zoom(){

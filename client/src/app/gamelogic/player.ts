@@ -1,7 +1,7 @@
 import { AnimatedSprite, Container, filters, Graphics, Sprite, Texture } from "shared/graphics/graphics";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { ColliderPart } from "shared/core/entitycollision";
-import { clamp, E, ease, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/misc/mathutils";
+import { clamp, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/misc/mathutils";
 import { Line } from "shared/shapes/line";
 import { dimensions } from "shared/shapes/rectangle";
 import { drawCircle, drawCircleOutline, drawProgressBar, drawPoint } from "shared/shapes/shapedrawing";
@@ -20,7 +20,7 @@ import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparti
 import { Effect } from "shared/core/effects";
 import { random_range } from "shared/misc/random";
 import { PhysicsDotEntity } from "./firstlevel";
-import { NumberTween, VecTween } from "shared/core/tween";
+import { easeInOutExpo, NumberTween, VecTween } from "shared/core/tween";
 import { BoostDirection } from "./boostzone";
 import { InterpolatedVar } from "../core-engine/networking/cliententitydecorators";
 import { SlowAttribute } from "shared/core/sharedlogic/sharedattributes";
@@ -222,7 +222,6 @@ class PlayerAnimationState {
     }
 
     physics_ticker = new TickTimer(1);
-
     tick_physics(){
         if(!this.physics_ticker.tick()) return;
         this.physics_state_data.current_tick++;
@@ -281,7 +280,9 @@ class PlayerAnimationState {
         }
     }
     
+    reshape_test = new TickTimer(1)
     tick_reshape(){
+        if(!this.reshape_test.tick()) return;
         this.reshape_state_data.current_tick++;
 
         if(this.reshape_state_data.current_tick <= this.reshape_state_data.length_in_ticks){
@@ -291,8 +292,8 @@ class PlayerAnimationState {
                 const start_pos = part.start_reshape_position; //part.position.clone();
 
                 const end_pos = Vec2.subtract(Vec2.add(this.container.position, part.start_sprite_offset),this.originOffset);
-
-                const aug_t = ease(t);
+                
+                const aug_t = easeInOutExpo(t);
 
                 mix(start_pos, end_pos, aug_t, part.position);
 
@@ -309,17 +310,11 @@ class PlayerAnimationState {
         this.mode = AnimationControlState.INTERP_BODY_PARTS;
         this.reshape_state_data = {
             current_tick: 0,
-            length_in_ticks: 40
+            length_in_ticks: 60
         }
         
         for(const part of this.physics_state_data.data){
             part.start_reshape_position.set(part.position);
-            // // ALPHA TWEEN
-            // {                
-            //     const tween = new NumberTween(part["sprite"],"alpha",(ticks - 180) / 60).from(.1).to(1).go();
-
-            //     tween.delay(.2)
-            // }
         }
     }
 
@@ -1603,9 +1598,6 @@ export class RemotePlayer extends Entity {
         }
     }
 
-    start_revive_animation(ticks: number){
-        this.idleAnimation.start_body_reshaping();
-    }
 
     play_death_animation(){
         this.graphics.graphics.clear();
@@ -1619,8 +1611,12 @@ export class RemotePlayer extends Entity {
         this.climbAnimation.container.visible = false;
 
         this.idleAnimation.container.visible = true;
-        this.idleAnimation.start_physics();
-        
+        this.idleAnimation.start_physics();   
+    }
+
+
+    start_revive_animation(ticks: number){
+        this.idleAnimation.start_body_reshaping();
     }
 
     make_visible(){

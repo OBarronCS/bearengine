@@ -179,10 +179,3 @@ function angleClosestTo(angle: number, roundToAngle: number, offset: number = 0)
 
 
 
-// Common easing functions
-
-export function ease(t: number){
-    const sqt = t * t;
-    return sqt / (2 * (sqt - t) + 1);
-}
-

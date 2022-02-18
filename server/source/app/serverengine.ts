@@ -511,8 +511,10 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                 new StartRoundPacket(spawn_spot.x, spawn_spot.y, levelID, 2)
             );
 
+            p.playerEntity.position.set(spawn_spot);
+
             this.enqueueGlobalPacket(
-                new PlayerEntitySpawnPacket(clientID, 0,0)
+                new PlayerEntitySpawnPacket(clientID, spawn_spot.x,spawn_spot.y)
             );
         }
     }
@@ -743,6 +745,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             connection.personalPackets.enqueue(
                 new ForcePositionPacket(pos.x,pos.y)
             );
+
+
         }
     }
 
@@ -1175,7 +1179,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 }
 
-const ROUND_OVER_REST_TIMER_TICKS = 60 * 2.5;
+const ROUND_OVER_REST_TIMER_TICKS = 60 * 3;
 
 abstract class BaseScene {
 

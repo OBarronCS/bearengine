@@ -24,7 +24,7 @@ export class RemoteLocations extends Attribute {
 
         if(first === undefined || second === undefined) return;
 
-        mix(first, second, frame % 1,this.owner.position)
+        mix(first, second, frame % 1, this.owner.position);
     }
 }
 

@@ -708,6 +708,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             if(other_player !== undefined){
 
                                 other_player.make_visible();
+
+                                //
                                 other_player.position.set({x,y});
                                 continue;
                             }
