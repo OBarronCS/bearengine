@@ -1,11 +1,11 @@
 import { AnimatedSprite, Container, filters, Graphics, Sprite, Texture } from "shared/graphics/graphics";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { ColliderPart } from "shared/core/entitycollision";
-import { clamp, E, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/misc/mathutils";
+import { clamp, E, ease, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/misc/mathutils";
 import { Line } from "shared/shapes/line";
 import { dimensions } from "shared/shapes/rectangle";
 import { drawCircle, drawCircleOutline, drawProgressBar, drawPoint } from "shared/shapes/shapedrawing";
-import { angleBetween, Coordinate, rotatePoint, Vec2 } from "shared/shapes/vec2";
+import { angleBetween, Coordinate, mix, rotatePoint, Vec2 } from "shared/shapes/vec2";
 import { TickTimer } from "shared/datastructures/ticktimer";
 
 
@@ -69,9 +69,11 @@ class BodyPartPhysicsData {
     gravity = new Vec2(0,.4);
     alpha = 1;
 
+    
     stopped = false;
+    start_reshape_position = new Vec2();
 
-    constructor(public target_sprite: AnimatedSprite){}
+    constructor(public target_sprite: AnimatedSprite, public start_sprite_offset: Vec2){}
 
     private drawRadius = 10;
 }
@@ -84,7 +86,9 @@ class PlayerAnimationState {
     
     
     mode: AnimationControlState = AnimationControlState.NORMAL;
-    physics_state_data:  { max_ticks: number, current_tick: number, data: BodyPartPhysicsData[] } = { data: [], max_ticks: 0, current_tick: 0 };
+    physics_state_data: { max_ticks: number, current_tick: number, data: BodyPartPhysicsData[] } = { data: [], max_ticks: 0, current_tick: 0 };
+
+    reshape_state_data: { length_in_ticks: number, current_tick: number} = { current_tick: 0, length_in_ticks: 0 };
 
     public container: Container = new Container();
     public length: number;
@@ -229,8 +233,8 @@ class PlayerAnimationState {
                     const status = SimpleBouncePhysics(this.game.terrain, part.position, part.velocity, part.gravity, part.slow_factor)
                     part.stopped = status.stopped;
                     
-                    const target_pos = Vec2.add(this.originOffset, Vec2.subtract(part.position, this.container.position));
-                    part.target_sprite.position.copyFrom(target_pos);
+                    const target_sprite_pos = Vec2.add(this.originOffset, Vec2.subtract(part.position, this.container.position));
+                    part.target_sprite.position.copyFrom(target_sprite_pos);
                 }
             }
         }
@@ -266,9 +270,10 @@ class PlayerAnimationState {
         for(const body_part of iter){
             const start_position = Vec2.subtract(Vec2.add(this.container.position, body_part.position),this.originOffset);
             
-            const physics_data = new BodyPartPhysicsData(body_part);
-            physics_data.velocity.set(new Vec2(random_range(-20, 20), random_range(-20, 20)));
+            const physics_data = new BodyPartPhysicsData(body_part, Vec2.from(body_part.position));
             physics_data.position.set(start_position);
+
+            physics_data.velocity.set(new Vec2(random_range(-20, 20), random_range(-20, 20)));
 
             this.physics_state_data.data.push(physics_data);
             this.physics_state_data.current_tick = 0;
@@ -277,36 +282,45 @@ class PlayerAnimationState {
     }
     
     tick_reshape(){
+        this.reshape_state_data.current_tick++;
 
+        if(this.reshape_state_data.current_tick <= this.reshape_state_data.length_in_ticks){
+            const t = this.reshape_state_data.current_tick / this.reshape_state_data.length_in_ticks;
+
+            for(const part of this.physics_state_data.data){
+                const start_pos = part.start_reshape_position; //part.position.clone();
+
+                const end_pos = Vec2.subtract(Vec2.add(this.container.position, part.start_sprite_offset),this.originOffset);
+
+                const aug_t = ease(t);
+
+                mix(start_pos, end_pos, aug_t, part.position);
+
+                const target_sprite_pos = Vec2.add(this.originOffset, Vec2.subtract(part.position, this.container.position));
+                part.target_sprite.position.copyFrom(target_sprite_pos);
+            }
+        } else {
+            this.start_normal();
+        }
     }
 
     start_body_reshaping(){
+        // Assumes we are currently in the physics state
+        this.mode = AnimationControlState.INTERP_BODY_PARTS;
+        this.reshape_state_data = {
+            current_tick: 0,
+            length_in_ticks: 40
+        }
         
-        // for(const part of this.physics_body_parts){
+        for(const part of this.physics_state_data.data){
+            part.start_reshape_position.set(part.position);
+            // // ALPHA TWEEN
+            // {                
+            //     const tween = new NumberTween(part["sprite"],"alpha",(ticks - 180) / 60).from(.1).to(1).go();
 
-        //     // POSITION TWEEM
-        //     {
-                
-        //         const tween = new VecTween(part,"position",(ticks - 30) / 60).from(part.position).to(Vec2.add(this.position, Vec2.from(part.source_offset).scale(2))).go();
-
-        //         tween.delay(.2)
-
-        //         tween.onDelay(1, () => {
-        //             part.grounded = true;
-        //         })
-
-        //         this.scene.addEntity(tween);
-        //     } 
-
-        //     // ALPHA TWEEN
-        //     {                
-        //         const tween = new NumberTween(part["sprite"],"alpha",(ticks - 180) / 60).from(.1).to(1).go();
-
-        //         tween.delay(.2)
-
-        //         this.scene.addEntity(tween);
-        //     }
-        // }
+            //     tween.delay(.2)
+            // }
+        }
     }
 
     /** Does not work at all */
@@ -1590,7 +1604,7 @@ export class RemotePlayer extends Entity {
     }
 
     start_revive_animation(ticks: number){
-        this.idleAnimation.start_normal();
+        this.idleAnimation.start_body_reshaping();
     }
 
     play_death_animation(){
