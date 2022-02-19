@@ -14,8 +14,8 @@ export enum ClientPlayState {
 }
 
 
-export function EnumKeys(_enum: object){
-    const keys = [];
+export function EnumKeys(_enum: object): string[] {
+    const keys: string[] = [];
 
     for(const key in _enum){
         // Only lets the strings filter through

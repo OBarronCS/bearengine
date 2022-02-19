@@ -42,7 +42,15 @@ import { CollisionManager } from "shared/core/entitycollision";
 // Its a soft cap, as the packets can be 2047 + last_packet_written_length long,
 const MAX_BYTES_PER_PACKET = 2048;
 
+/** At what cutoff do we start using the more accurate setImmediate instead of setTimeout? */
 const SET_TIMEOUT_JUST_IN_CASE_BUFFER_MS = 15;
+
+/** 
+ *  AFTER A ROUND BEGINS, this is the number of ticks that a player loses authority of their position for.
+ *  During this time, interpolate players positions to their target position
+*/
+export const ROUND_START_WAIT_SECONDS = 1.5;
+
 
 /** Per client info  */
 export class PlayerInformation {
@@ -509,7 +517,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             this.active_scene.activePlayerEntities.set(clientID, p.playerEntity);
 
             p.personalPackets.enqueue(
-                new StartRoundPacket(spawn_spot.x, spawn_spot.y, levelID, 2)
+                new StartRoundPacket(spawn_spot.x, spawn_spot.y, levelID, ROUND_START_WAIT_SECONDS)
             );
 
             p.playerEntity.position.set(spawn_spot);

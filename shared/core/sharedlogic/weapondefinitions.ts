@@ -46,6 +46,8 @@ export type ProjectileBulletEffects = {
     seconds: number
 } | {
     type:"goto_mouse",
+} | {
+    type:"paint_ball"
 }
 
 export type HitscanRayEffects = {
@@ -60,6 +62,19 @@ function CreateShot<T extends keyof SharedNetworkedEntities, K extends Test<T>>(
 }
 
 export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<"projectile_bullet"/*keyof SharedNetworkedEntities*/>} >()({
+    PAINT_BALL: CreateShot({
+        type:"projectile_bullet",
+        item_name: "",
+        item_sprite: "bullet.png",
+        velocity: new Vec2(),
+        bounce: false,
+        damage: 20,
+        bullet_effects:[
+            {
+                type:"paint_ball",
+            }
+        ],
+    }),
 
     SHORT_LIVE: CreateShot({
         type:"projectile_bullet",

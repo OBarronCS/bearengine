@@ -299,8 +299,6 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         level.internalStart();
 
         this.levelLoaded = true;
-
-        this.center_camera();
     }
 
     center_camera(){
@@ -478,7 +476,7 @@ export class LevelScene extends BearScene<NetworkPlatformGame> {
 
     on_enable(): void {
         // this.subset.addEntity(new PhysicsEntityTest())
-
+        this.game.center_camera();
         
     }
 

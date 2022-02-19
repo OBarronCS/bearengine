@@ -85,6 +85,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     private stagePacketsToSerialize: PacketWriter[] = [];
     private generalPacketsToSerialize: PacketWriter[] = [];
 
+    ticks_into_round = 0;
+    ticks_to_gain_authority = 0;
 
     public remotelocations = this.addQuery(RemoteLocations);
 
@@ -327,6 +329,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     /**  Read from network, apply packets */
     readPackets(): void {
         if(this.network.CONNECTED && this.ALLOWED_TO_CONNECT){
+
+            this.ticks_into_round++;
 
             const now = Date.now();
 
@@ -612,6 +616,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const level = LevelRefLinker.IDToData(stream.getUint8());
                             const seconds_until_start = stream.getFloat64();
 
+
+                            this.ticks_into_round = 0;
+                            this.ticks_to_gain_authority = seconds_until_start * 60;
                             this.stagePacketsToSerialize = [];
 
                             // maybe force deletion immediately?
@@ -630,21 +637,28 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             this.game.loadLevel(new DummyLevel(this.game, level));
 
 
+                            // If can start playing now. 
+                            // FOR NOW ALWAYS WILL BE TRUE
                             if(this.currentPlayState === ClientPlayState.ACTIVE){
-                                // console.log("AHAHAHHA");
-                                this.game.player.force_position({x, y});
                                 this.game.player.clearItem();
                                 this.game.player.setGhost(false);
+
+                                this.game.player.health = 100;
+                                this.game.player.authority_over_position = false;
+
+                                this.game.player.start_death_animation();
+                                this.game.player.start_revive_animation(seconds_until_start);
+
+                                this.game.player.force_position({x, y});
                             }
 
                             for(const p of this.remotePlayerEntities.values()){
                                 p.draw_item.clear();
+                                p.health = 100;
 
                                 p.start_revive_animation(seconds_until_start);
-                                p.health = 100;
                             }
 
-                            this.game.player.health = 100;
 
                             break;
                         }
@@ -1169,17 +1183,16 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             }
 
 
+            if(this.game.player !== null && !this.game.player.authority_over_position && this.ticks_into_round > this.ticks_to_gain_authority){
+                this.game.player.authority_over_position = true;
+            }
+
             // Interpolation of entities
             const frameToSimulate = this.getServerTickToSimulate();
-
-            // console.log(frameToSimulate);
 
             for(const obj of this.remotelocations){
                 obj.setPosition(frameToSimulate);
             }
-            // if(frameToSimulate % 1 === 0){
-            //     console.log("Frame to simulate: " + frameToSimulate)
-            // }
 
             for(const obj of this.remoteEntities.values()){
                 const list = obj.constructor["INTERP_LIST"] as string[]; // List of variables that are interpolated

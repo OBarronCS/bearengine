@@ -163,8 +163,13 @@ export class TerrainManager extends Subsystem {
         return answer;
     }
 
+    /** Returns all terrains that intersect with this rectangle */
+    get_terrain_intersection(rect: Rect){
+        return this.grid.region(rect);
+    }
 
-    process_carve_result(target_mesh: TerrainMesh, carve_result: CarveResult): void {
+
+    private process_carve_result(target_mesh: TerrainMesh, carve_result: CarveResult): void {
         if(carve_result.type === "missed") {
             return;
         } else if(carve_result.type === "total"){

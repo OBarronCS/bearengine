@@ -87,8 +87,8 @@ class PlayerAnimationState {
     
     ticks_in_current_state = 0;
     mode: AnimationControlState = AnimationControlState.NORMAL;
+    
     physics_state_data: { max_ticks: number, current_tick: number, data: BodyPartPhysicsData[] } = { data: [], max_ticks: 0, current_tick: 0 };
-
     reshape_state_data: { length_in_ticks: number, current_tick: number} = { current_tick: 0, length_in_ticks: 0 };
 
     public container: Container = new Container();
@@ -316,13 +316,13 @@ class PlayerAnimationState {
         }
     }
 
-    start_body_reshaping(){
+    start_body_reshaping(seconds: number){
         // Assumes we are currently in the physics state
         this.ticks_in_current_state = 0;
         this.mode = AnimationControlState.INTERP_BODY_PARTS;
         this.reshape_state_data = {
             current_tick: 0,
-            length_in_ticks: 90
+            length_in_ticks: seconds * 60
         }
         
         for(const part of this.physics_state_data.data){
@@ -401,7 +401,6 @@ export const player_controls_map = CreateInputConverter(
 
 
 
-
 export class Player extends DrawableEntity {
 
     private healthbar_widget = new ProgressBarWidget(new Vec2(),500,40);
@@ -411,6 +410,7 @@ export class Player extends DrawableEntity {
     private readonly idleAnimation = new PlayerAnimationState(this.engine.getResource("player/idle.json").data as SavePlayerAnimation, 30, new Vec2(44,16), this.game);
     private readonly climbAnimation = new PlayerAnimationState(this.engine.getResource("player/climb.json").data as SavePlayerAnimation, 7, new Vec2(50,17), this.game);
 
+    authority_over_position = true;
 
     last_ground_velocity = new Vec2(0,0)
     velocity = new Vec2(0,0);
@@ -462,14 +462,11 @@ export class Player extends DrawableEntity {
         this.itemInHand.clear();
     }
 
-    
-
     // Normal of the slope I'm making contact with. Is (0,-1) if in air
     slope_normal = new Vec2(0, -1);
 
     player_height: number = 48;
     player_width: number = 30;
-
 
     // For all of these: A in body, B is away from body
     leftHeadRay: Line;
@@ -552,6 +549,7 @@ export class Player extends DrawableEntity {
         this.leftWallRay = new Line(new Vec2(x, y), new Vec2(-3 + x - this.player_width / 2, y));
     }
 
+
     override onAdd(){
 
         this.game.ui.addWidget(this.healthbar_widget.setPosition(uisize.percent(.5), uisize.pixels(30)).center());
@@ -586,6 +584,102 @@ export class Player extends DrawableEntity {
         this.engine.renderer.removeSprite(this.wallslideAnimation.container);
         this.engine.renderer.removeSprite(this.idleAnimation.container);
         this.engine.renderer.removeSprite(this.climbAnimation.container);
+    }
+
+    update(dt: number): void {
+    }
+
+    manualUpdate(dt: number): void {
+        this.healthbar_widget.percent = this.health / 100;
+        this.engine.camera.setDangle(-this.gravity.dangle() + 90)
+
+        if(!this.authority_over_position) {
+            this.idleAnimation.setPosition(this.position);
+            this.idleAnimation.tick();
+            return;
+        };
+        
+        
+        if(this.keyboard.wasPressed("KeyP")){
+            this.position.set(choose(this.game.activeLevel.spawn_positions));
+        }
+
+        // Weapon logic
+        this.itemInHand.position.set({x: this.x, y: this.y});
+        rotatePoint(this.itemInHand.position,this.position,this.slope_normal);
+
+        const angleToMouse = angleBetween(this.itemInHand.position, this.mouse.position);
+        
+        const difference = Vec2.subtract(this.mouse.position, this.itemInHand.position);
+
+        if(difference.x > 0){
+            this.itemInHand.image.sprite.scale.x = 1;
+            this.itemInHand.image.angle = angleToMouse;
+        } else {
+            this.itemInHand.image.sprite.scale.x = -1;
+            this.itemInHand.image.angle = angleToMouse + PI;
+        }
+        
+        if(this.usable_item !== null){
+            if(!this.usable_item.consumed){
+                const consumed = this.usable_item.operate(dt, this.position, this.mouse.position, this.game.player_controller.isDown("shoot"), this.game, this);
+                this.usable_item.consumed = consumed;
+            }
+        } 
+
+
+        // Adjust drawing angle 
+        // const angle = Math.atan2(this.slope_normal.y, this.slope_normal.x) * RAD_TO_DEG;
+
+ 
+        this.slow_factor = 1;
+
+        const slow_zones = this.game.collisionManager.point_query_list(this.position, SlowAttribute);
+        for(const slow of slow_zones){
+
+            if(Vec2.distanceSquared(this.position, slow.entity.position) < slow.attr.radius**2){
+                this.slow_factor = slow.attr.slow_factor;
+            }
+        }
+
+        const zones = this.game.collisionManager.point_query_list(this.position, BoostDirection);
+
+        for(const z of zones){
+            this.velocity.add(z.attr.dir);
+        }
+
+
+        if(this.game.player_controller.wasPressed("jump")) this.timeSincePressedJumpedButton = 0;
+        
+        switch(this.state){
+            case PlayerState.AIR: this.Air_State(); break;
+            case PlayerState.GROUND: this.Ground_State(); break;
+            case PlayerState.CLIMB: this.Climb_State(); break;
+            case PlayerState.WALL_SLIDE: this.Wall_Slide_State(); break;
+            default: AssertUnreachable(this.state)
+        }
+        
+        this.timeSincePressedJumpedButton++;
+
+
+        this.redraw();
+    }
+
+    start_death_animation(){
+        this.runAnimation.container.visible = false;
+        this.wallslideAnimation.container.visible = false;
+        this.climbAnimation.container.visible = false;
+
+        this.idleAnimation.container.visible = true;
+        this.idleAnimation.setPosition(this.position);
+        
+        this.idleAnimation.start_physics();  
+    }
+
+    start_revive_animation(seconds: number){
+        this.canvas.graphics.clear();
+        this.setAnimationSprite(AnimationState.IDLE);
+        this.idleAnimation.start_body_reshaping(seconds);
     }
 
     private setAlpha(a: number): void {
@@ -835,83 +929,7 @@ export class Player extends DrawableEntity {
         }
     }
 
-    update(dt: number): void {
-    }
-
-    manualUpdate(dt: number): void {
-        this.healthbar_widget.percent = this.health / 100;
-
-        this.engine.camera.setDangle(-this.gravity.dangle() + 90)
-
-        if(this.keyboard.wasPressed("KeyP")){
-            this.position.set(choose(this.game.activeLevel.spawn_positions));
-            // Maybe GO TO A RANDOM SPAWN POSITION
-        }
-
-
-        // Weapon logic
-        this.itemInHand.position.set({x: this.x, y: this.y});
-        rotatePoint(this.itemInHand.position,this.position,this.slope_normal);
-
-        const angleToMouse = angleBetween(this.itemInHand.position, this.mouse.position);
-        
-        const difference = Vec2.subtract(this.mouse.position, this.itemInHand.position);
-
-        if(difference.x > 0){
-            this.itemInHand.image.sprite.scale.x = 1;
-            this.itemInHand.image.angle = angleToMouse;
-        } else {
-            this.itemInHand.image.sprite.scale.x = -1;
-            this.itemInHand.image.angle = angleToMouse + PI;
-        }
-        
-        if(this.usable_item !== null){
-            if(!this.usable_item.consumed){
-                const consumed = this.usable_item.operate(dt, this.position, this.mouse.position, this.game.player_controller.isDown("shoot"), this.game, this);
-                this.usable_item.consumed = consumed;
-            }
-        } 
-
-
-        // Adjust drawing angle 
-        const angle = Math.atan2(this.slope_normal.y, this.slope_normal.x) * RAD_TO_DEG;
-
- 
-        this.slow_factor = 1;
-
-        // const slow_zones = this.game.collisionManager.colliders_on_point(this.position, "SlowZone");
-        const slow_zones = this.game.collisionManager.point_query_list(this.position, SlowAttribute);
-        for(const slow of slow_zones){
-
-            if(Vec2.distanceSquared(this.position, slow.entity.position) < slow.attr.radius**2){
-                this.slow_factor = slow.attr.slow_factor;
-            }
-        }
-
-        const zones = this.game.collisionManager.point_query_list(this.position, BoostDirection);
-
-        for(const z of zones){
-            // const dir = z.entity.getAttribute(BoostDirection).dir;
-            this.velocity.add(z.attr.dir);
-        }
-
-
-        if(this.game.player_controller.wasPressed("jump")) this.timeSincePressedJumpedButton = 0;
-        
-        switch(this.state){
-            case PlayerState.AIR: this.Air_State(); break;
-            case PlayerState.GROUND: this.Ground_State(); break;
-            case PlayerState.CLIMB: this.Climb_State(); break;
-            case PlayerState.WALL_SLIDE: this.Wall_Slide_State(); break;
-            default: AssertUnreachable(this.state)
-        }
-        
-        this.timeSincePressedJumpedButton++;
-
-
-        this.redraw();
-    }
-
+    
     knockback(dir: Vec2){
         this.state = PlayerState.AIR;
         this.velocity.add(dir);
@@ -1616,9 +1634,9 @@ export class RemotePlayer extends Entity {
     }
 
 
-    start_revive_animation(ticks: number){
+    start_revive_animation(seconds: number){
         this.graphics.graphics.clear();
-        this.idleAnimation.start_body_reshaping();
+        this.idleAnimation.start_body_reshaping(seconds);
     }
 
     make_visible(){

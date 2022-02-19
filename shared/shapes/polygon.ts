@@ -345,7 +345,7 @@ export class Polygon implements Shape<Polygon> {
         return answer;
     }
 
-    closestPoint(testPoint: Coordinate){
+    closestPoint(testPoint: Coordinate): Vec2 {
         let closestPoint: Vec2 = null;
         let distance = 0;
 

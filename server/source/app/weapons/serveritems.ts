@@ -432,6 +432,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: P
             case "emoji": break;
             case "particle_system": break;
             case "ice_slow": break;
+            case "paint_ball": break;
             case "goto_mouse": {
                 break;
             }

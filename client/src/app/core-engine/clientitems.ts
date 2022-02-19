@@ -28,10 +28,11 @@ import { DEG_TO_RAD, floor } from "shared/misc/mathutils";
 import { TickTimer } from "shared/datastructures/ticktimer";
 import { SlowAttribute } from "shared/core/sharedlogic/sharedattributes"
 import { ColliderPart } from "shared/core/entitycollision";
-import { dimensions } from "shared/shapes/rectangle";
+import { dimensions, Rect } from "shared/shapes/rectangle";
 import { SimpleBouncePhysics } from "shared/core/sharedlogic/sharedphysics"
 import { RecoilShake, SmoothShake } from "./camera";
 import { BoostDirection } from "../gamelogic/boostzone";
+import { Polygon } from "shared/shapes/polygon";
 
 
 
@@ -256,6 +257,26 @@ export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bounce: boole
 
                 break;
             }
+            case "paint_ball":{
+
+                bullet.onFinish(function(){
+
+
+                    // const hit = this.game.terrain.get_terrain_intersection(new Rect(this.x - 5, this.y - 5, 10, 10));
+
+                    // const points: Vec2[] = [];
+
+                    // for(const h of hit){
+                    //     const p = h.polygon.closestPoint(this.position);
+                    //     points.push(p);
+                    // }
+
+                    // const g = this.game.engine.renderer.createCanvas();
+                    // Polygon.from(points).draw(g);
+                });
+                
+                break;
+            }
 
             default: AssertUnreachable(type);
         }
@@ -291,11 +312,8 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
             if(this.continue_moving){
 
                 const zones = this.game.collisionManager.point_query_list(this.position, BoostDirection);
-                // const zones = this.game.collisionManager.colliders_on_point(this.position, "BoostZone");
                 for(const z of zones){
                     this.velocity.add(z.attr.dir);
-                    // const dir = z.owner.getAttribute(BoostDirection).dir;
-                    // this.velocity.add(dir);
                 }
 
                 if(this.bounce){
