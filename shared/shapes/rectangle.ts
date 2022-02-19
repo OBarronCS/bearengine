@@ -192,6 +192,10 @@ export class Rect implements Shape<Rect> {
         return this.height * this.width;
     }
 
+    center(): Vec2 {
+        return new Vec2(this.x + this.width / 2, this.y + this.height / 2);
+    }
+
     // Maybe find a better spot to put this
     static CollidesWithSphere(rect: Rect, x: number, y: number, r: number): boolean {
         if(rect.contains({x: x, y: y})) return true;

@@ -75,7 +75,7 @@ export class SpatialGrid<T> {
                 drawLineBetweenPoints(g,{x: 0, y: j * this.tileHeight},{x: this.worldWidth, y: j * this.tileHeight}, undefined, .01)
 
 
-                const list = this.grid[j + this.gridHeight + i];
+                const list = this.grid[j * this.gridHeight + i];
                 for(const obj of list)
                     set.add(obj);
             }

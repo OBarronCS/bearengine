@@ -29,6 +29,7 @@ import { CreateInputConverter, inputv } from "../input/inputcontroller";
 import { SimpleBouncePhysics } from "shared/core/sharedlogic/sharedphysics";
 import { Color } from "shared/datastructures/color";
 import { BearEngine, NetworkPlatformGame } from "../core-engine/bearengine";
+import { choose } from "shared/datastructures/arrayutils";
 
 
 
@@ -823,31 +824,17 @@ export class Player extends DrawableEntity {
         }
     }
 
-    private followCam = false;
-
     update(dt: number): void {
     }
 
     manualUpdate(dt: number): void {
-        // Lock camera on me
         this.healthbar_widget.percent = this.health / 100;
-
-        if(this.keyboard.wasPressed("KeyC")){
-            this.followCam = !this.followCam;
-            if(this.followCam){
-                this.engine.camera.follow(this.position);
-                this.engine.camera.setZoom(1.3);
-                this.engine.camera.setBounds({min: new Vec2(), max: {x: this.game.activeLevel.bbox.x2, y: this.game.activeLevel.bbox.y2 } });
-            } else {
-                this.engine.camera.free();
-            }
-        }
 
         this.engine.camera.setDangle(-this.gravity.dangle() + 90)
 
-        
         if(this.keyboard.wasPressed("KeyP")){
-            this.position.set({x : 600, y: 100});
+            this.position.set(choose(this.game.activeLevel.spawn_positions));
+            // Maybe GO TO A RANDOM SPAWN POSITION
         }
 
 

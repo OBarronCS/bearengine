@@ -299,6 +299,17 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         level.internalStart();
 
         this.levelLoaded = true;
+
+        this.center_camera();
+    }
+
+    center_camera(){
+        if(this.player){
+            this.engine.camera.follow(this.player.position);
+        }
+
+        this.engine.camera.setZoom(1.3);
+        this.engine.camera.setBounds({min: new Vec2(), max: {x: this.activeLevel.bbox.x2, y: this.activeLevel.bbox.y2 } });
     }
 
     endCurrentLevel(){
@@ -444,6 +455,16 @@ export class LevelScene extends BearScene<NetworkPlatformGame> {
                 this.game.player_controller.enable();
             }
         }
+
+        
+        if(this.game.engine.keyboard.wasPressed("KeyC")){
+            if(this.game.engine.camera.get_mode() === "follow"){
+                this.game.engine.camera.free();
+            } else {
+                this.game.center_camera();
+            }
+        }
+
 
         if(this.game.engine.keyboard.wasPressed("KeyH")){
             this.game.entities.addEntity(new TestEntityForVideo());

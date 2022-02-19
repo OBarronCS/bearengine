@@ -5,6 +5,7 @@ import { string2hex } from "shared/misc/mathutils";
 import { Rect } from "shared/shapes/rectangle";
 import { ASSET_FOLDER_NAME, BearEngine, NetworkPlatformGame } from "./bearengine"
 import { BoostZone } from "../gamelogic/boostzone";
+import { Vec2 } from "shared/shapes/vec2";
 
 
 export abstract class GameLevel {
@@ -16,6 +17,7 @@ export abstract class GameLevel {
         this.engine = game.engine;
     }
     
+    readonly spawn_positions: Vec2[] = [];
     public bbox: Rect;
 
     /** Put null for path if want no data */
@@ -65,8 +67,9 @@ export abstract class GameLevel {
 
             mapdata.boostzones.forEach(b => {
                 this.game.temp_level_subset.addEntity(new BoostZone(b.rect, b.dir));
-                
             });
+
+            this.spawn_positions.push(...[...mapdata.spawn_points]);
         }
 
         this.start();
@@ -92,6 +95,7 @@ export class DummyLevel extends GameLevel {
     start(): void {
         
     }
+    
     end(): void {
 
     }

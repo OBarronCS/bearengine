@@ -81,7 +81,7 @@ export class DebugScreen extends Subsystem<NetworkPlatformGame> {
             this.other_client_info_panel.setVisible(false);
         }
         
-        if(this.engine.keyboard.wasReleased("Digit0")){
+        if(this.engine.keyboard.wasPressed("Digit0")){
             if(this.collision_drawer){
                 this.game.entities.destroyEntity(this.collision_drawer);
                 this.collision_drawer = null;

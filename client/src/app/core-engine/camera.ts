@@ -3,7 +3,7 @@ import { Coordinate, mix, Vec2 } from "shared/shapes/vec2";
 import { Rect } from "shared/shapes/rectangle";
 
 import { RendererSystem } from "./renderer";
-import { clamp } from "shared/misc/mathutils";
+import { clamp, lerp, max, min } from "shared/misc/mathutils";
 import { smoothNoise } from "shared/misc/random";
 import { EngineMouse } from "../input/mouse";
 import { BearEngine } from "./bearengine";
@@ -26,27 +26,79 @@ export class CameraSystem  {
 
     private center: Vec2 = new Vec2(0,0);
     
-    private mode: "free" | "follow" = "free"
+    private should_adjust_x = true;
+    private should_adjust_y = true;
+    private mode: "free" | "follow" = "free";
+    get_mode(){
+        return this.mode;
+    }
     private targetMiddle: Vec2;
     
     
-
     private shakes: CameraShake[] = [];
-
     addShake(s: CameraShake){
         this.shakes.push(s);
     }
 
 
-
-    bounds: {min: Coordinate, max: Coordinate} = null;
+    private bounds: {min: Coordinate, max: Coordinate} = null;
     setBounds(x: {min: Coordinate, max: Coordinate}){
         this.bounds = x;
-    }
 
+        const width_p = this.view_width / this.bounds.max.x;
+        const height_p = this.view_height / this.bounds.max.y;
+
+        const max_p = max(width_p, height_p);
+        
+        console.log(width_p, height_p)
+
+        if(width_p > 1 && height_p > 1){ //  max_p > 1
+            // Container.scale messes with these equations, so this normalizes it... works!
+            this.setZoom(1);
+
+            const width_p = this.view_width / this.bounds.max.x;
+            const height_p = this.view_height / this.bounds.max.y;
+
+            this.setZoom(min(width_p, height_p));
+            this.should_adjust_x = false;
+            this.should_adjust_y = false;
+
+            this.left = this.bounds.max.x / 2 - this.view_width / 2;
+            this.top = this.bounds.max.y / 2 - this.view_height / 2;
+        }
+
+        // Otherwise if one is smaller and other is greater, clamp stop ONE axis from moving!
+
+        if(width_p > 1){
+            this.left = this.bounds.max.x / 2 - this.view_width / 2;
+            this.should_adjust_x = false;
+
+            console.log("stop x")
+        }
+
+        if(height_p > 1){
+            this.top = this.bounds.max.y / 2 - this.view_height / 2;
+            this.should_adjust_y = false;
+
+            
+            console.log("stop y")
+        }
+
+    }
     clearBounds(){
         this.bounds = null;
+        this.should_adjust_x = true;
+        this.should_adjust_y = true;
     }
+
+    get zoom(){
+        return this.container.scale.x;
+    }
+
+    public setZoom(factor: number){
+        this.container.scale.set(factor);
+    }
+
 
     setDangle(degrees: number){
         this.container.angle = degrees;
@@ -180,7 +232,6 @@ export class CameraSystem  {
         });
     }
 
-
     setPivot(){
         // pivot should be at center of screen at all times. Allows rotation around the middle
         this.container.position.x = this.renderer.renderer.width / 2;
@@ -189,18 +240,22 @@ export class CameraSystem  {
 
     update(dt: number){
 
-        const pivot = mix({x: this.center.x ,y: this.center.y}, this.engine.mouse.position, 0);
+        const pivot = {x: this.center.x, y: this.center.y};
 
         this.container.pivot.copyFrom(pivot);
 
         if(this.bounds !== null){
-            if(this.right > this.bounds.max.x) this.container.pivot.x = this.bounds.max.x - this.viewWidth / 2;
-            if(this.bot > this.bounds.max.y) this.container.pivot.y = this.bounds.max.y - this.viewHeight / 2;
 
-            if(this.left < this.bounds.min.x) this.container.pivot.x = this.viewWidth / 2;
-            if(this.top < this.bounds.min.y) this.container.pivot.y = this.viewHeight / 2;
+            if(this.should_adjust_x){
+                if(this.right > this.bounds.max.x) this.container.pivot.x = this.bounds.max.x - this.view_width / 2;
+                if(this.left < this.bounds.min.x) this.container.pivot.x = this.view_width / 2;
+            }
+
+            if(this.should_adjust_y){
+                if(this.bot > this.bounds.max.y) this.container.pivot.y = this.bounds.max.y - this.view_height / 2;
+                if(this.top < this.bounds.min.y) this.container.pivot.y = this.view_height / 2;
+            }
         }
-
 
         const d = new Vec2();
 
@@ -221,18 +276,16 @@ export class CameraSystem  {
 
         const amount = .3;
 
-        if(this.mode === "follow") this.center = mix(this.center, this.targetMiddle, amount);
-    }
-    
-    get zoom(){
-        return this.container.scale.x;
-    }
+        if(this.mode === "follow") {
+            if(this.should_adjust_x){
+                this.center.x = lerp(this.center.x, this.targetMiddle.x, amount);
+            }
 
-    public setZoom(factor: number){
-        this.container.scale.set(factor);
+            if(this.should_adjust_y) {
+                this.center.y = lerp(this.center.y, this.targetMiddle.y, amount);
+            }
+        }
     }
-
-
 
     set left(x: number) { this.center.x = x + (this.container.position.x / this.container.scale.x); }
     get left(): number { return this.center.x - (this.container.position.x / this.container.scale.x); }
@@ -247,9 +300,8 @@ export class CameraSystem  {
     get bot(): number { return this.center.y + (this.container.position.y / this.container.scale.y); }
 
     // Takes into account zoom. How many pixels are being shown on screen
-    get viewWidth(){ return 2 * this.container.position.x / this.container.scale.x; }
-    get viewHeight(){ return 2 * this.container.position.y / this.container.scale.y; }
-
+    get view_width(){ return 2 * this.container.position.x / this.container.scale.x; }
+    get view_height(){ return 2 * this.container.position.y / this.container.scale.y; }
 
 
     follow(vec: Vec2){
@@ -267,7 +319,7 @@ export class CameraSystem  {
     }
 
     getViewBounds(){
-        return new Rect(this.left, this.top, this.viewWidth, this.viewHeight);
+        return new Rect(this.left, this.top, this.view_width, this.view_height);
     }
 }
 
