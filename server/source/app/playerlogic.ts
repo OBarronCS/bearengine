@@ -1,13 +1,16 @@
 
 import { Vec2 } from "shared/shapes/vec2";
 import { ServerEntity } from "./entity";
+import { PlayerEntityTakeDamagePacket } from "./networking/gamepacketwriters";
 import { ConnectionID } from "./networking/serversocket";
 import { BeamEffect_S, SBaseItem } from "./weapons/serveritems";
 
 export class ServerPlayerEntity extends ServerEntity {
 
-    constructor(public connectionID: ConnectionID){
+    readonly connectionID: ConnectionID;
+    constructor(connectionID: ConnectionID){
         super();
+        this.connectionID = connectionID;
     }
 
     item_in_hand: SBaseItem<any> = null;
@@ -21,13 +24,19 @@ export class ServerPlayerEntity extends ServerEntity {
     }
 
 
-    public health: number = 100;
-
-    // not in use rn
-    healthIsDirty = false;
-    loseHealth(amount: number){
+    private health: number = 100;
+    take_damage(amount: number){
         this.health -= amount;
-        this.healthIsDirty = true;
+
+        this.game.enqueueGlobalPacket(
+            new PlayerEntityTakeDamagePacket(this.connectionID,this.health, amount)
+        );
+    }
+
+    get_health(){ return this.health; }
+
+    force_set_health(new_health: number){
+        this.health = new_health;
     }
 
     

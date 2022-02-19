@@ -641,8 +641,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 p.draw_item.clear();
 
                                 p.start_revive_animation(seconds_until_start);
+                                p.health = 100;
                             }
 
+                            this.game.player.health = 100;
 
                             break;
                         }
@@ -763,9 +765,38 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             break;
                         }
 
+                        case GamePacket.PLAYER_ENTITY_TAKE_DAMAGE: {
+
+                            const player_id = stream.getUint8();
+                            const new_health = stream.getUint8();
+                            const dmg = stream.getUint8();
+
+                            if(player_id === this.MY_CLIENT_ID){
+                                this.game.player.health = new_health;
+                                continue;
+                            }
+
+                            // Find correct entity
+                            const e = this.remotePlayerEntities.get(player_id);
+                            if(e === undefined){
+                                console.log("Unknown player entity health packet");
+                                continue;
+                            }
+
+                            // if(e.health !== new_health){
+                            const emitter = new EmitterAttach(e,"HIT_SPLAT", "particle.png", Vec2.random(10));
+                            this.game.entities.addEntity(emitter);
+                            e.health = new_health;
+                            // }
+                            
+
+
+                            break;
+                        }
+
                         case GamePacket.PLAYER_ENTITY_POSITION:{
                            
-                            const playerID = stream.getUint8();
+                            const player_id = stream.getUint8();
                     
                             const x = stream.getFloat32();
                             const y = stream.getFloat32();
@@ -775,19 +806,13 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             const state: AnimationState = stream.getUint8();
                             const flipped = stream.getBool();
-                            const health = stream.getUint8();
 
-                            
-
-                            if(playerID === this.MY_CLIENT_ID){
-                                this.game.player.health = health;
-
-                                // console.log(health);
+                            if(player_id === this.MY_CLIENT_ID){
                                 continue;
                             }
 
                             // Find correct entity
-                            const e = this.remotePlayerEntities.get(playerID);
+                            const e = this.remotePlayerEntities.get(player_id);
                             if(e === undefined){
                                 console.log("Unknown player entity data");
                                 continue;
@@ -799,12 +824,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             e.setState(state,flipped);
                             e.look_angle.buffer.addValue(frame, new Vec2(dir_x, dir_y));
 
-                            if(e.health !== health){
-                                const emitter = new EmitterAttach(e,"HIT_SPLAT", "particle.png", Vec2.random(10));
-                                this.game.entities.addEntity(emitter);
-                            }
-
-                            e.health = health;
                             
                             break;
                         }

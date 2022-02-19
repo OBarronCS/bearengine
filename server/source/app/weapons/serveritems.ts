@@ -244,7 +244,7 @@ export function ServerShootHitscanWeapon(game: ServerBearEngine, position: Vec2,
         if(pEntity.connectionID === owner) continue;
 
         if(ray.pointDistance(pEntity.position) < 30){
-            pEntity.health -= 16;
+            pEntity.take_damage(16);
         }
     }
 
@@ -472,7 +472,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: P
 
                     } else if(this.player_test.length !== 0){
                         for(const p of this.player_test){
-                            p.health -= 25;
+                            p.take_damage(25);
                         }
 
                         this.game.terrain.carveCircle(this.position.x, this.position.y, RADIUS);
@@ -513,7 +513,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: P
         bullet.onfinalAction(function(){
             if(this.player_test.length !== 0){
                 for(const p of this.player_test){
-                    p.health -= shot_data.damage;
+                    p.take_damage(shot_data.damage);
                 }
             }
         });
@@ -783,7 +783,7 @@ export class BeamEffect_S extends ServerEntity {
                 if(pEntity.connectionID === this.player.connectionID) continue;
 
                 if(this.line.pointDistance(pEntity.position) < 30){
-                    pEntity.health -= .9;
+                    pEntity.take_damage(.9);
                 }
             } 
 
@@ -835,7 +835,7 @@ export class InstantDeathLaser_S extends NetworkedEntity<"instance_death_laser">
         
         for(const p of this.game.active_scene.activePlayerEntities.values()){
             if(this.line.pointDistance(p.position) < 20){
-                p.health -= 100;
+                p.take_damage(100);
             }
         }
     }

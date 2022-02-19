@@ -1,7 +1,7 @@
 import { AnimatedSprite, Container, filters, Graphics, Sprite, Texture } from "shared/graphics/graphics";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { ColliderPart } from "shared/core/entitycollision";
-import { clamp, floor, lerp, PI, RAD_TO_DEG, sign } from "shared/misc/mathutils";
+import { clamp, floor, lerp, min, PI, RAD_TO_DEG, sign } from "shared/misc/mathutils";
 import { Line } from "shared/shapes/line";
 import { dimensions } from "shared/shapes/rectangle";
 import { drawCircle, drawCircleOutline, drawProgressBar, drawPoint } from "shared/shapes/shapedrawing";
@@ -85,7 +85,7 @@ class PlayerAnimationState {
 
     public readonly ticks_per_frame: number
     
-    
+    ticks_in_current_state = 0;
     mode: AnimationControlState = AnimationControlState.NORMAL;
     physics_state_data: { max_ticks: number, current_tick: number, data: BodyPartPhysicsData[] } = { data: [], max_ticks: 0, current_tick: 0 };
 
@@ -110,7 +110,7 @@ class PlayerAnimationState {
     rightFootTextures: PartData[] = [];
 
 
-    scale_sprites(scale: number){
+    private scale_sprites(scale: number){
         const a = [ this.headTextures,
                     this.bodyTexture,
                     this.leftHandTextures,
@@ -136,6 +136,8 @@ class PlayerAnimationState {
         this.rightHandSprite.scale.set(value);
         this.leftFootSprite.scale.set(value);
         this.rightFootSprite.scale.set(value);
+
+        this.setFrame(this.timer.timesRepeated);
     }
 
     constructor(public data: SavePlayerAnimation, ticks_per_frame: number, public originOffset = new Vec2(0,0),
@@ -206,6 +208,7 @@ class PlayerAnimationState {
     }
 
     tick(){
+        this.ticks_in_current_state++;
         const tick = this.timer.tick();
         if(this.mode == AnimationControlState.NORMAL){
             if(tick){
@@ -219,6 +222,7 @@ class PlayerAnimationState {
     }
 
     start_normal(){
+        this.ticks_in_current_state = 0;
         this.mode = AnimationControlState.NORMAL;
     }
 
@@ -235,6 +239,12 @@ class PlayerAnimationState {
                     
                     const target_sprite_pos = Vec2.add(this.originOffset, Vec2.subtract(part.position, this.container.position));
                     part.target_sprite.position.copyFrom(target_sprite_pos);
+
+
+                    const zones = this.game.collisionManager.point_query_list(part.position, BoostDirection);
+                    for(const z of zones){
+                        part.velocity.add(z.attr.dir);
+                    }
                 }
             }
         }
@@ -242,7 +252,7 @@ class PlayerAnimationState {
 
     // Acts on idle_animation
     start_physics(){
-
+        this.ticks_in_current_state = 0;
         // Clear it before hand
         this.physics_state_data.data = [];
 
@@ -308,10 +318,11 @@ class PlayerAnimationState {
 
     start_body_reshaping(){
         // Assumes we are currently in the physics state
+        this.ticks_in_current_state = 0;
         this.mode = AnimationControlState.INTERP_BODY_PARTS;
         this.reshape_state_data = {
             current_tick: 0,
-            length_in_ticks: 60
+            length_in_ticks: 90
         }
         
         for(const part of this.physics_state_data.data){
@@ -1580,8 +1591,11 @@ export class RemotePlayer extends Entity {
         this.climbAnimation.tick();
 
         if(!this.ghost){
-            this.graphics.graphics.clear();
-            drawProgressBar(this.graphics.graphics, this.x - 20, this.y - 40, 40, 7, this.health / 100);
+            if(this.idleAnimation.mode === AnimationControlState.NORMAL){
+                this.graphics.graphics.clear();
+                drawProgressBar(this.graphics.graphics, this.x - 20, this.y - 40, 40, 7, this.health / 100, min(1,this.idleAnimation.ticks_in_current_state / 45));
+            }
+
         }
     }
 
@@ -1603,6 +1617,7 @@ export class RemotePlayer extends Entity {
 
 
     start_revive_animation(ticks: number){
+        this.graphics.graphics.clear();
         this.idleAnimation.start_body_reshaping();
     }
 

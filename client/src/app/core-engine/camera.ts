@@ -50,7 +50,7 @@ export class CameraSystem  {
 
         const max_p = max(width_p, height_p);
         
-        console.log(width_p, height_p)
+        // console.log(width_p, height_p)
 
         if(width_p > 1 && height_p > 1){ //  max_p > 1
             // Container.scale messes with these equations, so this normalizes it... works!
@@ -274,7 +274,7 @@ export class CameraSystem  {
         // this.container.pivot.x += dx;
         // this.container.pivot.y += dy;
 
-        const amount = .3;
+        const amount = .05;
 
         if(this.mode === "follow") {
             if(this.should_adjust_x){

@@ -212,6 +212,22 @@ export class PlayerEntityCompletelyDeletePacket extends PacketWriter {
     }
 }
 
+
+export class PlayerEntityTakeDamagePacket extends PacketWriter {
+
+    constructor(public player_id: number, public new_health: number, public dmg: number){
+        super(true);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.PLAYER_ENTITY_TAKE_DAMAGE);
+
+        stream.setUint8(this.player_id);
+        stream.setUint8(this.new_health);
+        stream.setUint8(this.dmg);
+    }
+}
+
 export class PlayerEntitySetItemPacket extends PacketWriter {
 
     constructor(public player_id: number, public item_id: number){

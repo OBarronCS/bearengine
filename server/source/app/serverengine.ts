@@ -151,6 +151,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
     // Sends the packet direclty to client packet queues, 
     // Guarentees will not be cleared by round_end;
+    // is NOT sent to players who show up late
     broadcast_packet_safe(packet: PacketWriter){
         for(const c of this.players.values()){
             c.personalPackets.enqueue(packet);
@@ -702,14 +703,14 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     dmg_players_in_radius(point: Vec2, r: number, dmg: number): void {
         for(const pEntity of this.active_scene.activePlayerEntities.values()){
             if(Vec2.distanceSquared(pEntity.position,point) < r * r){
-                pEntity.health -= dmg;
+                pEntity.take_damage(dmg);
             }
         } 
     }
 
 
     kill_player(player_entity: ServerPlayerEntity){
-        player_entity.health = 0;
+        player_entity.force_set_health(0);
         player_entity.dead = true;
         
         const playerID = player_entity.connectionID;
@@ -1064,7 +1065,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
                     stream.setUint8(player.animation_state);
                     stream.setBool(player.flipped);
-                    stream.setUint8(player.health);
                 }
             }
             
@@ -1255,7 +1255,7 @@ class InfiniteScene extends BaseScene {
     
             // Check for dead players
             for(const playerEntity of this.activePlayerEntities.values()){
-                if(playerEntity.health <= 0 || !this.player_death_bbox.contains(playerEntity.position)){
+                if(playerEntity.get_health() <= 0 || !this.player_death_bbox.contains(playerEntity.position)){
                     this.game.kill_player(playerEntity);
                 }
             }

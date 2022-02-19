@@ -56,15 +56,16 @@ export enum GamePacket {
 
 
     // Commands to create/change state of OTHER players.
-    // Client must ignore if ID === localID; 
-    // spawn creates an entity. Places it at given location --> Used to deghost
+    // Spawn creates an entity. Places it at given location if exists --> Used to deghost
     PLAYER_ENTITY_SPAWN, // [playerID: uint8, x: float32, y: float32]
-    PLAYER_ENTITY_POSITION, // [playerID: uint8, x: float32, y: float32, look_dir: Vec2(float), uint8: animationstate, bool: flipped, health: uint8];
+    PLAYER_ENTITY_POSITION, // [playerID: uint8, x: float32, y: float32, look_dir: Vec2(float), uint8: animationstate, bool: flipped];
     PLAYER_ENTITY_DEATH, // [playerID: uint8]
     PLAYER_ENTITY_COMPLETELY_DELETE, // [playerID: uint8]
-    
     PLAYER_ENTITY_SET_ITEM, // [player_id: uint8, ItemID: uint8]
     PLAYER_ENTITY_CLEAR_ITEM, // [player_id: uint8]
+    
+    // DO NOT IGNORE THIS PACKET, contains clients health too
+    PLAYER_ENTITY_TAKE_DAMAGE, // [player_id: uint8, new_health: uint8, dmg: uint8]
 
     // TODO: EXPLOSION_JUICE: [x: float32, y: float32, knockback_vector: Vec2<float>] // handle knockback on clients
 
