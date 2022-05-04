@@ -589,6 +589,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             this.currentPlayState = ClientPlayState.ACTIVE;
 
                             this.spawnLocalPlayer(x,y);
+
+                            this.game.center_camera();
                             
                             break;
                         }
@@ -650,6 +652,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 this.game.player.start_revive_animation(seconds_until_start);
 
                                 this.game.player.force_position({x, y});
+                                this.game.player.velocity.setXY(0, 0);
                             }
 
                             for(const p of this.remotePlayerEntities.values()){

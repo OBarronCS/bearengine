@@ -71,7 +71,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         item_sprite:"missing_texture.png",
         ammo: 100,
         capacity: 100,
-        initial_speed: 7,
+        initial_speed: 7*8,
         juice: { knockback: 0, shake: {type:"normal", shake: 0}},
         reload_time: 10,
         shoot_controller: {type:"semiauto", time_between_shots: 10},

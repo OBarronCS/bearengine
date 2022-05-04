@@ -72,6 +72,10 @@ export const PROJECTILE_SHOT_DATA = DefineSchema< {[k: string] : Test<"projectil
         bullet_effects:[
             {
                 type:"paint_ball",
+            },
+            {
+                type:"particle_system",
+                particle:"ROCKET"
             }
         ],
     }),

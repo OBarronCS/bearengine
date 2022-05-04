@@ -477,7 +477,6 @@ export class LevelScene extends BearScene<NetworkPlatformGame> {
     on_enable(): void {
         // this.subset.addEntity(new PhysicsEntityTest())
         this.game.center_camera();
-        
     }
 
     on_disable(): void {
