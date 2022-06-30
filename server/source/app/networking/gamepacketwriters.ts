@@ -1,7 +1,8 @@
 import { StreamWriteEntityID } from "shared/core/entitysystem";
+import { ItemActionDef, ItemActionLinker } from "shared/core/sharedlogic/itemactions";
 import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
-import { GetTemplateRealType, netv, SerializeTypedArray, SerializeTypedVar, SharedTemplates } from "shared/core/sharedlogic/serialization";
+import { GetTemplateRealType, netv, SerializeTuple, SerializeTypedArray, SerializeTypedVar, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { ClientPlayState, MatchGamemode } from "shared/core/sharedlogic/sharedenums";
 import { BeamActionType, ItemActionAck, ItemActionType } from "shared/core/sharedlogic/weapondefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
@@ -592,3 +593,92 @@ export class ConfirmVotePacket extends PacketWriter {
         stream.setBool(this.enabled);
     }
 }
+
+
+
+// Sent to all
+export class NewClientDoItemAction_Success_Packet<E extends keyof typeof ItemActionDef> extends PacketWriter {
+
+    constructor(public creator_id: number,
+                public action_name: E, 
+                public create_server_tick: number, 
+                public args: Parameters<NetCallbackTypeV1<typeof ItemActionDef[E]["clientbound"]>>
+                ){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.NEW_CLIENT_DO_ITEM_ACTION);
+        
+        const action_id = ItemActionLinker.NameToID(this.action_name);
+        
+        stream.setUint8(this.creator_id)
+        stream.setUint8(action_id);
+
+        stream.setFloat32(this.create_server_tick);
+
+        //@ts-expect-error
+        SerializeTuple(stream, ItemActionLinker.IDToData(action_id).clientbound.argTypes, this.args);
+    }
+}
+
+
+
+// Sent to initiator
+export class NewAckItemAction_Success_Packet<E extends keyof typeof ItemActionDef> extends PacketWriter {
+
+    constructor(public action_name: E, 
+                public create_server_tick: number, 
+                public client_action_id: number,
+                public args: Parameters<NetCallbackTypeV1<typeof ItemActionDef[E]["clientbound"]>>
+                ){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.NEW_ACK_ITEM_ACTION);
+        
+        const action_id = ItemActionLinker.NameToID(this.action_name);
+        
+        stream.setUint8(action_id);
+
+        stream.setUint8(ItemActionAck.SUCCESS);
+
+        stream.setFloat32(this.create_server_tick);
+        stream.setUint32(this.client_action_id);
+
+        //@ts-expect-error
+        SerializeTuple(stream, ItemActionLinker.IDToData(action_id).clientbound.argTypes, this.args);
+    }
+}
+
+
+export class NewAckItemAction_Fail_Packet<E extends keyof typeof ItemActionDef> extends PacketWriter {
+
+    constructor(public action_name: E, 
+                public action_code: ItemActionAck,
+                public create_server_tick: number, 
+                public client_action_id: number,
+                ){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.NEW_ACK_ITEM_ACTION);
+        
+        const action_id = ItemActionLinker.NameToID(this.action_name);
+        
+        stream.setUint8(action_id);
+
+        stream.setUint8(this.action_code);
+
+        stream.setFloat32(this.create_server_tick);
+        stream.setUint32(this.client_action_id);
+
+    }
+}
+
+
+
+
+

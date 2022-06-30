@@ -1,7 +1,7 @@
 
 import path from "path";
 import { readFileSync } from "fs";
-import type { Server } from "ws";
+import { Server } from "ws";
 
 import { ServerEntity } from "./entity";
 import { assert, AssertUnreachable } from "shared/misc/assertstatements";
@@ -19,7 +19,7 @@ import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { Vec2 } from "shared/shapes/vec2";
 import { dimensions, Rect } from "shared/shapes/rectangle";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
-import { DeserializeShortString, DeserializeTypedArray, netv, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
+import { DeserializeShortString, DeserializeTuple, DeserializeTypedArray, netv, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame, BearScene } from "shared/core/abstractengine";
 import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, LoadLevelPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityDeathPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet, ActionDo_ProjectileShotPacket, ActionDo_HitscanShotPacket, ActionDo_ShotgunShotPacket, AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet, ActionDo_BeamPacket, ForcePositionPacket, ConfirmVotePacket } from "./networking/gamepacketwriters";
 import { ClientPlayState, MatchGamemode } from "shared/core/sharedlogic/sharedenums"
@@ -37,6 +37,8 @@ import { LevelRefLinker, LevelRef } from "shared/core/sharedlogic/assetlinker";
 import { choose, shuffle } from "shared/datastructures/arrayutils";
 import { BoostZone_S } from "./weapons/boostzones";
 import { CollisionManager } from "shared/core/entitycollision";
+import { AttemptAction, SERVER_REGISTERED_ITEMACTIONS } from "./networking/serveritemactionlinker";
+import { ItemActionLinker } from "shared/core/sharedlogic/itemactions";
 
 // Stop writing new info after packet is larger than this
 // Its a soft cap, as the packets can be 2047 + last_packet_written_length long,
@@ -187,7 +189,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
 
         // Links shared entity classes
-        SharedEntityServerTable.init()
+        SharedEntityServerTable.init();
+        SERVER_REGISTERED_ITEMACTIONS.init();
     }
 
     protected initSystems(){
@@ -1018,6 +1021,24 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                             default: AssertUnreachable(item_type);
                         }
                         
+                        break;
+                    }
+
+                    case ServerBoundPacket.NEW_AUTO_REQUEST_ITEM_ACTION: {
+                        const action_id = stream.getUint8();
+                        const client_action_id = stream.getUint32();
+
+                        const net_tuple_def = ItemActionLinker.IDToData(action_id).serverbound.argTypes;
+                
+                        const arg_data = DeserializeTuple(stream, net_tuple_def);
+
+                        const func = SERVER_REGISTERED_ITEMACTIONS.id_to_class_map.get(action_id);
+                        
+                        //@ts-expect-error
+                        const inst = (new func(this, this.players.get(clientID), client_action_id));
+                        //@ts-expect-error
+                        (inst as AttemptAction<any>).attempt_action(...arg_data);
+
                         break;
                     }
 

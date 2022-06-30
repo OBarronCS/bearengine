@@ -83,9 +83,21 @@ export enum GamePacket {
 
     // Personal packet, response to REQUEST_ITEM_ACTION
     ACKNOWLEDGE_ITEM_ACTION, // NOT IMPLEMENTED [ItemActionType: uint8_enum, ItemActionAck: uint8_enum, clientside_action_id: uint32, , ...data];
+
+
+
+
+
+    NEW_CLIENT_DO_ITEM_ACTION, // [creator_id: uint8, SharedActionID: uint8, create_server_tick: float32, ...data_depending_on_action_id]
+    NEW_ACK_ITEM_ACTION, // [SharedActionID: uint8_enum, ItemActionAck: uint8_enum, create_server_tick: float32, clientside_action_id: uint32, , ...data_depending_on_action_id]
+
 }
 
 /*
+// ACKNOWLEDGE_ITEM_ACTION
+EXTRA DATA IS UNDOCUMENTED
+
+
 ITEM ACTION EXTRA DATA DEFINITIONS:
 // CLIENTBOUND
     PROJECTILE_SHOT: [dir_x: float32, dir_y: float32, shot_prefab_id:uint8, entityIDofBullet];
@@ -118,6 +130,10 @@ export enum ServerBoundPacket {
 
 
     REQUEST_ITEM_ACTION, // [ItemActionType: enum, local_action_id: uint32, createServerTick: float32, x: float32, y: float32, ...data]
+
+
+    NEW_AUTO_REQUEST_ITEM_ACTION, // [SharedItemActionID: uint8, local_action_id: uint32, ...custom_data_depending_on_id]
+
 
     REQUEST_CHAT_MESSAGE, // [ShortString (255 chars max), ]
 }

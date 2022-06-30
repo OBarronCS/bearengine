@@ -1,5 +1,5 @@
 import { Effect, Effect2 } from "shared/core/effects";
-import { Clip, CreateShootController, GunshootController, SHOT_LINKER, SimpleWeaponControllerDefinition } from "shared/core/sharedlogic/weapondefinitions";
+import { Clip, CreateShootController, GunshootController, ItemActionAck, SHOT_LINKER, SimpleWeaponControllerDefinition } from "shared/core/sharedlogic/weapondefinitions";
 import { TickTimer } from "shared/datastructures/ticktimer";
 import { random_int, random_range } from "shared/misc/random";
 import { Line } from "shared/shapes/line";
@@ -8,6 +8,8 @@ import { Coordinate, Vec2 } from "shared/shapes/vec2";
 import { ForcePositionPacket, TerrainCarveCirclePacket } from "../networking/gamepacketwriters";
 import { networkedclass_server, NetworkedEntity, sync } from "../networking/serverentitydecorators";
 import { PlayerInformation, ServerBearEngine } from "../serverengine";
+import { AttemptAction, link_item_action_attempt } from "../networking/serveritemactionlinker"
+
 
 import { ConnectionID } from "../networking/serversocket";
 import { AssertUnreachable } from "shared/misc/assertstatements";
@@ -381,6 +383,7 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
 } 
 
 
+/** Adds bullet to game world and returns it */
 export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: PlayerInformation, position: Vec2, velocity: Vec2, shot_prefab_id: number, mouse: Vec2): ServerProjectileBullet {
 
     const bullet = new ServerProjectileBullet(new Ellipse(new Vec2(),20,20), creatorID.connectionID, creatorID.playerEntity.entityID, SHOT_LINKER.IDToData(shot_prefab_id).bounce);
@@ -842,3 +845,41 @@ export class InstantDeathLaser_S extends NetworkedEntity<"instance_death_laser">
     }
 
 }
+
+
+
+/**** ITEM ACTION IMPLEMENTATIONS  ****/
+
+@link_item_action_attempt("projectile_shot")
+class ProjectileShotAttempt extends AttemptAction<"projectile_shot"> {
+    
+    attempt_action(x: number, y: number, dir_x: number, dir_y: number): void {
+        console.log("Shot attempted!");
+
+        const pos = new Vec2(x,y);
+        const direction = new Vec2(dir_x, dir_y);
+
+        if(this.player.playerEntity.item_in_hand instanceof SProjectileWeaponItem){
+            const item = this.player.playerEntity.item_in_hand;
+
+            if(item.ammo > 0){
+                item.ammo -= 1;
+
+                const shot_prefab_id = item.shot_id;
+
+                const velocity = direction.extend(item.initial_speed);
+    
+                const b = ServerShootProjectileWeapon(this.game, this.player, pos, velocity, shot_prefab_id, this.player.playerEntity.mouse);
+
+                this.respond_success("projectile_shot", x, y, velocity.x, velocity.y, shot_prefab_id, b.entityID);
+                return;
+            }
+        }
+
+        this.respond_fail("projectile_shot", ItemActionAck.INVALID_STATE);
+    }
+    
+}
+
+
+

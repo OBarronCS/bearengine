@@ -10,7 +10,7 @@ import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { ColliderPart, CollisionManager } from "shared/core/entitycollision";
 
-import { frameEditor } from "../gamelogic/testlevelentities";
+import { frameEditor, TestIK } from "../gamelogic/testlevelentities";
 import { EngineKeyboard } from "../input/keyboard";
 import { EngineMouse } from "../input/mouse";
 import { CameraSystem } from "./camera";
@@ -385,7 +385,7 @@ export class MainMenuScene extends BearScene<NetworkPlatformGame> {
 
     }
 
-    update(dt: number): void {}
+    update(dt: number): void {};
 
     
     on_enable(): void {
@@ -487,6 +487,29 @@ export class LevelScene extends BearScene<NetworkPlatformGame> {
 
 
 }
+
+
+export class IKScene extends BearScene<NetworkPlatformGame> {
+    
+    subset = this.game.entities.createSubset();
+    
+    init(): void {
+    
+    }
+    update(dt: number): void {
+    
+    }
+    
+    on_enable(): void {
+        const ik = this.subset.addEntity(new TestIK());
+    }
+
+    on_disable(): void {
+        this.subset.clear();
+    }
+
+}
+
 
 class TestEntityForVideo extends Entity {
         

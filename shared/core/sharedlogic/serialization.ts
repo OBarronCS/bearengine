@@ -1,6 +1,7 @@
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable, assert } from "shared/misc/assertstatements";
 import { Vec2 } from "shared/shapes/vec2";
+import { TupleToTypescriptType } from "./networkschemas";
 
 /** Assigns ID's to keys of an object. Helpful for serialization of reference to a key of a shared object */
 export function GenerateLinker<T extends {}>(obj: Readonly<T>){
@@ -289,6 +290,31 @@ export function DeserializeTypedArray<T extends NetworkVariableTypes>(stream: Bu
     
     return target;
 }
+
+
+
+
+export function SerializeTuple<T extends readonly [...NetworkVariableTypes[]]>(stream: BufferStreamWriter, tuple_def: readonly [...T] , args: TupleToTypescriptType<T>){
+    
+    assert(tuple_def.length === args.length, "Tuple def and args are not the same length");
+
+    for (let i = 0; i < tuple_def.length; i++) {
+        SerializeTypedVar(stream, tuple_def[i], args[i]);
+    }
+}
+
+export function DeserializeTuple<T extends readonly [...NetworkVariableTypes[]]>(stream: BufferStreamReader, tuple_def: readonly [...T]): TupleToTypescriptType<T> {
+    
+    const args: any[] = [];
+
+    for (let i = 0; i < tuple_def.length; i++) {
+        args.push(DeserializeTypedVar(stream, tuple_def[i]));
+    }
+    
+    //@ts-expect-error
+    return args;
+}
+
 
 
 

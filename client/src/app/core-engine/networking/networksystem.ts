@@ -1,7 +1,7 @@
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { EntitySystem, NULL_ENTITY_INDEX, StreamReadEntityID } from "shared/core/entitysystem";
-import { NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker } from "shared/core/sharedlogic/networkschemas";
+import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker } from "shared/core/sharedlogic/networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { InterpolatedVarType, SharedEntityClientTable } from "./cliententitydecorators";
@@ -17,7 +17,8 @@ import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { DummyLevel } from "../gamelevel";
 import { Vec2 } from "shared/shapes/vec2";
- 
+import { CLIENT_REGISTERED_ITEMACTIONS, PredictAction, RequestActionPacket } from "./clientitemactionlinker"
+
 import { ClientPlayState, MatchGamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
@@ -27,10 +28,11 @@ import { Line } from "shared/shapes/line";
 import { EmitterAttach } from "../particles";
 import { PARTICLE_CONFIG } from "shared/core/sharedlogic/sharedparticles";
 import { BeamActionType, HitscanRayEffects, ItemActionAck, ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
-import { DeserializeTypedArray, DeserializeTypedVar, netv, SharedTemplates } from "shared/core/sharedlogic/serialization";
+import { DeserializeTuple, DeserializeTypedArray, DeserializeTypedVar, netv, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { Trie } from "shared/datastructures/trie";
 import { LevelRefLinker } from "shared/core/sharedlogic/assetlinker";
 import { LabelWidget, WidgetAlphaTween } from "../../ui/widget";
+import { ItemActionDef, ItemActionLinker } from "shared/core/sharedlogic/itemactions";
 
 class ClientInfo {
     uniqueID: number;
@@ -71,6 +73,18 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
         return this.incShotID++;
     }
 
+
+
+    private next_local_action_id = 0;
+    
+    getNewLocalActionID(){
+        return this.next_local_action_id++;
+    }
+
+    private pending_ack_actions = new Map<number,PredictAction<any,any>>();
+
+
+
     isConnected(){
         return this.network.CONNECTED;
     }
@@ -98,8 +112,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     private remotePlayerEntities: Map<number, RemotePlayer> = new Map();
 
 
-    private remoteEntities: Map<number, Entity> = new Map();
-    private networked_entity_subset = this.game.entities.createSubset();
+    // 
+    remoteEntities: Map<number, Entity> = new Map();
+    networked_entity_subset = this.game.entities.createSubset();
 
 
     public readonly command_autocomplete = {
@@ -170,6 +185,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
     quit_server(){
         this.incShotID = 0;
+        this.next_local_action_id = 0;
         this.packets.clear();
         this.sendStream.clear_to_zero();
         this.stagePacketsToSerialize = [];
@@ -264,6 +280,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             this.remoteFunctionCallMap.set(remotefunction.remoteFunctionName, remotefunction.methodName)
         }
         
+
+        CLIENT_REGISTERED_ITEMACTIONS.init();
+
     }
 
     // This entityID is from the network, and doesn't contain the version number
@@ -323,6 +342,23 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
         p.x = x;
         p.y = y;
+    }
+
+
+    // @ts-expect-error
+    request_item_action<E extends keyof typeof ItemActionDef>(name: E, action_object: PredictAction<E,any>,...data: NetCallbackTupleType<typeof ItemActionDef[E]["serverbound"]>){
+        const new_action_id = this.getNewLocalActionID();
+        action_object.local_action_id = new_action_id;
+
+        this.pending_ack_actions.set(new_action_id,action_object);
+
+        
+        // Write to the packet stream with the tuple of data.
+
+        this.enqueueStagePacket(
+            //@ts-expect-error
+            new RequestActionPacket(name, new_action_id, data)
+        );
     }
 
 
@@ -1176,6 +1212,56 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 this.game.terrain.mesh_events.dispatch("on_mutate", t);
                             }
 
+
+                            break;
+                        }
+
+                        case GamePacket.NEW_CLIENT_DO_ITEM_ACTION: {
+
+                            const creator_id = stream.getUint8();
+                            const action_id = stream.getUint8();
+                            const create_server_tick = stream.getFloat32();
+
+                            const net_tuple_def = ItemActionLinker.IDToData(action_id).clientbound.argTypes;
+                
+                            const arg_data = DeserializeTuple(stream, net_tuple_def);
+
+
+                            const func = CLIENT_REGISTERED_ITEMACTIONS.id_to_function_map.get(action_id);
+                            func(this.game, ...arg_data);
+
+                            break;
+                        }
+                        case GamePacket.NEW_ACK_ITEM_ACTION: {
+                            
+                            const action_id = stream.getUint8();
+                            const ack_code: ItemActionAck = stream.getUint8();
+                            const create_server_tick = stream.getFloat32();
+                            const local_action_id = stream.getUint32();
+
+                            
+                            const net_tuple_def = ItemActionLinker.IDToData(action_id).clientbound.argTypes;
+                            
+                            const predicted_action = this.pending_ack_actions.get(local_action_id);
+
+                            if(ack_code === ItemActionAck.SUCCESS){
+                                const arg_data = DeserializeTuple(stream, net_tuple_def);
+
+                                if(predicted_action === undefined){
+                                    console.log("Received item ack for unknown action_id: ", action_id, ItemActionLinker.IDToName(action_id));
+                                    break;
+                                }
+
+                                //@ts-expect-error
+                                predicted_action.ack_success(...arg_data);
+                            } else {
+                                if(predicted_action === undefined){
+                                    console.log("Received item ack for unknown action_id: ", action_id, ItemActionLinker.IDToName(action_id));
+                                    break;
+                                }
+
+                                predicted_action.ack_fail(ack_code);
+                            }
 
                             break;
                         }

@@ -3,7 +3,7 @@ import { Sprite, Graphics, Text } from "shared/graphics/graphics";
 import { Effect } from "shared/core/effects";
 import { PacketWriter, SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
-import { CreateShootController, GunshootController, ItemActionType, ProjectileBulletEffects, PROJECTILE_SHOT_DATA, SHOT_LINKER, BeamActionType, HitscanRayEffects } from "shared/core/sharedlogic/weapondefinitions";
+import { CreateShootController, GunshootController, ItemActionType, ProjectileBulletEffects, PROJECTILE_SHOT_DATA, SHOT_LINKER, BeamActionType, HitscanRayEffects, ItemActionAck } from "shared/core/sharedlogic/weapondefinitions";
 import { NumberTween } from "shared/core/tween";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable } from "shared/misc/assertstatements";
@@ -16,7 +16,7 @@ import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparti
 import { GraphicsPart, SpritePart } from "./parts";
 import { net, networkedclass_client } from "./networking/cliententitydecorators";
 import { ITEM_LINKER, MIGRATED_ITEMS, Test } from "shared/core/sharedlogic/items";
-import { AbstractEntity } from "shared/core/abstractentity";
+import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { NULL_ENTITY_INDEX } from "shared/core/entitysystem";
 import { drawCircle, drawCircleOutline, drawLineArray, drawLineBetweenPoints } from "shared/shapes/shapedrawing";
 import { EmitterAttach } from "./particles";
@@ -33,6 +33,7 @@ import { SimpleBouncePhysics } from "shared/core/sharedlogic/sharedphysics"
 import { RecoilShake, SmoothShake } from "./camera";
 import { BoostDirection } from "../gamelogic/boostzone";
 import { Polygon } from "shared/shapes/polygon";
+import { register_clientside_itemaction, PredictAction } from "./networking/clientitemactionlinker";
 
 
 
@@ -117,28 +118,31 @@ export class ProjectileWeapon<T extends "projectile_weapon" = "projectile_weapon
 
     // private addons: GunAddon[] = TerrainCarverAddons;
 
-    protected readonly shot_name = this.GetStaticValue("shot_name");
-    protected readonly shot_id = SHOT_LINKER.NameToID(this.shot_name);
+    readonly shot_name = this.GetStaticValue("shot_name");
+    readonly shot_id = SHOT_LINKER.NameToID(this.shot_name);
 
     
-    protected readonly bullet_effects = SHOT_LINKER.IDToData(this.shot_id).bullet_effects;
+    readonly bullet_effects = SHOT_LINKER.IDToData(this.shot_id).bullet_effects;
     
 
     protected shoot(game: NetworkPlatformGame): void {
-        const dir = this.direction.normalize();
+        // const dir = this.direction.normalize();
         
-        const b = ShootProjectileWeapon_C(game, SHOT_LINKER.IDToData(this.shot_id).bounce, this.bullet_effects, this.position, dir.clone().extend(this.GetStaticValue("initial_speed")), SHOT_LINKER.IDToData(this.shot_id).item_sprite);
+        // const b = ShootProjectileWeapon_C(game, SHOT_LINKER.IDToData(this.shot_id).bounce, this.bullet_effects, this.position, dir.clone().extend(this.GetStaticValue("initial_speed")), SHOT_LINKER.IDToData(this.shot_id).item_sprite);
 
-        game.entities.addEntity(b);
+        // game.entities.addEntity(b);
 
-        const localID = game.networksystem.getLocalShotID();
-        game.networksystem.localShotIDToEntity.set(localID,b)
+        // const localID = game.networksystem.getLocalShotID();
+        // game.networksystem.localShotIDToEntity.set(localID,b)
 
-        game.networksystem.enqueueStagePacket(
-            new ServerBoundProjectileShotPacket(0, localID, this.position.clone(), dir)
-        )
+        // game.networksystem.enqueueStagePacket(
+        //     new ServerBoundProjectileShotPacket(0, localID, this.position.clone(), dir)
+        // )
 
-        game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"));
+        // game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"));
+
+        const a = new PredictProjectileShot(this.game, this);
+        a.predict_action();
     }
 }
 
@@ -364,7 +368,7 @@ export class ServerBoundProjectileShotPacket extends PacketWriter {
 }
 
 
-/*  Applies spread, ect; Returns a list of all the created bullets. Does not add to the scene yet */
+/* Applies spread, ect; Returns a list of all the created bullets. Does not add to the scene yet */
 export function ShootShotgunWeapon_C(game: NetworkPlatformGame, shotgun_id: number, shot_id: number, position: Vec2, direction: Vec2): ModularProjectileBullet[] {
     const bullet_data = SHOT_LINKER.IDToData(shot_id);
     const bullet_effects = bullet_data.bullet_effects;
@@ -955,4 +959,81 @@ export class InstantDeathLaser_C extends DrawableEntity {
     }
 
 }
+
+
+
+
+// Tests
+register_clientside_itemaction("projectile_shot", 
+    (game: NetworkPlatformGame, x, y, dir_x: number, dir_y: number, shot_prefab_id: number, bullet_entity_id: number) => {
+
+        console.log("Someone else shot a weapon!")
+
+        const pos = new Vec2(x,y);
+        const velocity = new Vec2(dir_x, dir_y);
+
+        const bullet_effects = SHOT_LINKER.IDToData(shot_prefab_id).bullet_effects;
+        const sprite = SHOT_LINKER.IDToData(shot_prefab_id).item_sprite;
+
+        // Creates bullet, links it to make it a shared entity
+        const b = ShootProjectileWeapon_C(game, SHOT_LINKER.IDToData(shot_prefab_id).bounce, bullet_effects, pos, velocity, sprite);
+
+        // It's now a networked entity
+        //@ts-expect-error
+        game.networksystem.remoteEntities.set(bullet_entity_id, b);
+        game.networksystem.networked_entity_subset.addEntity(b);
+
+});
+
+
+class PredictProjectileShot extends PredictAction<"projectile_shot", ProjectileWeapon> {
+    
+    private predicted_bullet_id: EntityID;
+
+    predict_action(): void {
+        const dir = this.state.direction.normalize();
+        this.request_action("projectile_shot", this.state.x, this.state.y, dir.x, dir.y);
+    
+        // if(predict)
+        // Predict bullet shot
+        const b = ShootProjectileWeapon_C(this.game, SHOT_LINKER.IDToData(this.state.shot_id).bounce, this.state.bullet_effects, this.state.position, dir.clone().extend(this.state.GetStaticValue("initial_speed")), SHOT_LINKER.IDToData(this.state.shot_id).item_sprite);
+        
+        this.game.entities.addEntity(b);
+
+        this.predicted_bullet_id = b.entityID
+
+        this.game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"));
+        
+        // Old model of prediction
+        // const localID = this.game.networksystem.getLocalShotID();
+        // game.networksystem.localShotIDToEntity.set(localID,b)
+
+        // game.networksystem.enqueueStagePacket(
+        //     new ServerBoundProjectileShotPacket(0, localID, this.position.clone(), dir)
+        // )
+    }
+
+    ack_success(x: number, y: number, dir_x: number, dir_y: number, shot_prefab_id: number, bullet_entity_id: number): void {
+
+        console.log("Success");
+        const bullet = this.game.entities.getEntity<ModularProjectileBullet>(this.predicted_bullet_id);
+                        
+        // Allows bullet to be controlled remotely
+        if(bullet !== undefined){
+            //@ts-expect-error
+            this.game.networksystem.remoteEntities.set(bullet_entity_id, bullet);
+            this.game.networksystem.networked_entity_subset.forceAddEntityFromMain(bullet);
+        }
+
+    }
+
+    ack_fail(error_code: ItemActionAck): void {
+        console.log("FAILED TO FIRE WEAPON")
+    }
+
+
+}
+
+
+
 
