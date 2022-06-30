@@ -21,7 +21,7 @@ import { dimensions, Rect } from "shared/shapes/rectangle";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { DeserializeShortString, DeserializeTuple, DeserializeTypedArray, netv, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame, BearScene } from "shared/core/abstractengine";
-import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, LoadLevelPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityDeathPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, ActionDo_HitscanShotPacket, ActionDo_ShotgunShotPacket, AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet, ActionDo_BeamPacket, ForcePositionPacket, ConfirmVotePacket } from "./networking/gamepacketwriters";
+import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, LoadLevelPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityDeathPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, ActionDo_HitscanShotPacket, ActionDo_BeamPacket, ForcePositionPacket, ConfirmVotePacket } from "./networking/gamepacketwriters";
 import { ClientPlayState, MatchGamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
@@ -918,40 +918,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                                     this.notifyItemRemove(player_info);
                             
                                     player_info.playerEntity.clearItem();
-                                }
-
-                                break;
-                            }
-                            case ItemActionType.SHOTGUN_SHOT: {
-
-                                const client_ids = DeserializeTypedArray(stream, netv.uint32());
-
-                                // if(this.server_state !== ServerGameState.ROUND_ACTIVE) continue;
-
-                                if(player_info.playerEntity.item_in_hand instanceof ShotgunWeapon_S){
-                                    const item = player_info.playerEntity.item_in_hand;
-                                    assert(client_ids.length === item.count);
-
-                                    if(item.ammo > 0){
-                                        item.ammo -= 1;
-
-                                        // Get direction that player is looking
-                                        const pEntity = player_info.playerEntity;
-                                        const player_dir = Vec2.subtract(pEntity.mouse, pEntity.position);
-
-                                        const bullets = ShootShotgunWeapon_S(this, player_info, item.item_id, item.shot_id, pos, player_dir)
-
-                                        const entity_id_list: number[] = bullets.map(b => b.entityID);
-                                       
-                                        this.enqueueGlobalPacket(
-                                            new ActionDo_ShotgunShotPacket(clientID, createServerTick, pos, player_dir.clone().extend(item.initial_speed), item.shot_id, item.item_id, entity_id_list)
-                                        );
-
-                                        player_info.personalPackets.enqueue(
-                                            new AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet(clientShotID, client_ids, entity_id_list)
-                                        );
-
-                                    }
                                 }
 
                                 break;

@@ -1022,33 +1022,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     
                                     break;
                                 }
-                                case ItemActionType.SHOTGUN_SHOT: {
-                                    const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
-
-                                    const shot_prefab_id = stream.getUint8();
-                                    const shotgun_id = stream.getUint8();
-
-
-
-                                    const remote_entity_id_list = DeserializeTypedArray(stream, netv.uint32());
-
-                                    // Only create it if someone else shot it
-                                    if(this.MY_CLIENT_ID !== creator_id){
-
-                                        const bullets = ShootShotgunWeapon_C(this.game, shotgun_id, shot_prefab_id, pos, velocity);
-
-                                        if(remote_entity_id_list.length !== bullets.length) throw new Error();
-
-                                        for(let i = 0; i < remote_entity_id_list.length; i++) {
-                                            const remote_id = remote_entity_id_list[i];
-
-                                            //@ts-expect-error
-                                            this.remoteEntities.set(remote_id, bullets[i]);
-                                            this.networked_entity_subset.addEntity(bullets[i]);
-                                        }
-                                    }
-                                    break;
-                                }
                                 case ItemActionType.BEAM: {
                                     const action_type: BeamActionType = stream.getUint8();
                                     const beam_id = stream.getUint32();
@@ -1096,37 +1069,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     break;
                                 }
                                 case ItemActionType.HIT_SCAN: {
-                                    break;
-                                }
-                                case ItemActionType.SHOTGUN_SHOT: {
-                                    if(success_state === ItemActionAck.SUCCESS){
-
-                                        const local_ids = DeserializeTypedArray(stream, netv.uint32());
-                                        const remote_entity_id_list = DeserializeTypedArray(stream, netv.uint32());
-                                        // const clientside_action_id: never;;
-                                        for(let i = 0; i < local_ids.length; i++){
-                                            const local_id = local_ids[i];
-                                            const remote_id = remote_entity_id_list[i];
-                         
-                                            // Is an effect
-                                            const bullet = this.localShotIDToEntity.get(local_id) as ModularProjectileBullet;
-                                                                                    
-                                            // May not exist, for some reason...
-                                            if(bullet !== undefined){
-                                                if(bullet.entityID !== NULL_ENTITY_INDEX){
-                                                    
-                                                    this.localShotIDToEntity.delete(local_id);
-
-                                                    //@ts-expect-error
-                                                    this.remoteEntities.set(remote_id, bullet);
-                                                    this.networked_entity_subset.forceAddEntityFromMain(bullet);
-
-                                                } else {
-
-                                                }
-                                            }
-                                        }
-                                    }
                                     break;
                                 }
                                 case ItemActionType.BEAM: {
