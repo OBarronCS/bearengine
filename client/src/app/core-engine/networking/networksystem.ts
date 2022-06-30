@@ -998,31 +998,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
 
                             switch(item_type){
-                                case ItemActionType.PROJECTILE_SHOT:{
-                                    const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
-
-                                    const shot_prefab_id = stream.getUint8();
-
-                                    const remoteEntityID = StreamReadEntityID(stream);
-
-                                    // Only create it if someone else shot it
-                                    if(this.MY_CLIENT_ID !== creator_id){
-
-                                        const bullet_effects = SHOT_LINKER.IDToData(shot_prefab_id).bullet_effects;
-                                        const sprite = SHOT_LINKER.IDToData(shot_prefab_id).item_sprite;
-
-                                        // Creates bullet, links it to make it a shared entity
-                                        const b = ShootProjectileWeapon_C(this.game, SHOT_LINKER.IDToData(shot_prefab_id).bounce, bullet_effects, pos, velocity, sprite);
-
-
-                                        // It's now a networked entity
-                                        //@ts-expect-error
-                                        this.remoteEntities.set(remoteEntityID, b);
-                                        this.networked_entity_subset.addEntity(b);
-
-                                    }
-                                    break;
-                                }
                                 case ItemActionType.HIT_SCAN:{
                                     const end = new Vec2(stream.getFloat32(), stream.getFloat32());
                                     const prefab_id = stream.getUint8();
@@ -1121,35 +1096,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     break;
                                 }
                                 case ItemActionType.HIT_SCAN: {
-                                    break;
-                                }
-                                case ItemActionType.PROJECTILE_SHOT: {
-
-                                    if(success_state === ItemActionAck.SUCCESS){
-
-                                        const remoteEntityID = StreamReadEntityID(stream);
-
-                                        // Is an effect
-                                        const bullet = this.localShotIDToEntity.get(clientside_action_id) as ModularProjectileBullet;
-                                        
-                                        // May not exist, for some reason...
-                                        if(bullet !== undefined){
-                                            if(bullet.entityID !== NULL_ENTITY_INDEX){
-                                                
-                                                this.localShotIDToEntity.delete(clientside_action_id);
-        
-        
-                                                //@ts-expect-error
-                                                this.remoteEntities.set(remoteEntityID, bullet);
-                                                this.networked_entity_subset.forceAddEntityFromMain(bullet);
-        
-                                            } else {
-                                                // This entity has already been destroyed.
-                                                // This error shows why storing the entityID would be 
-                                                // more safe in this case
-                                            }
-                                        }
-                                    }
                                     break;
                                 }
                                 case ItemActionType.SHOTGUN_SHOT: {

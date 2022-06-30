@@ -7,7 +7,6 @@ import { GenerateLinker } from "shared/core/sharedlogic/serialization";
 
 export enum ItemActionType {
     HIT_SCAN,
-    PROJECTILE_SHOT,
     FORCE_FIELD_ACTION,
     SHOTGUN_SHOT,
     BEAM,

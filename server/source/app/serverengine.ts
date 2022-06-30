@@ -21,7 +21,7 @@ import { dimensions, Rect } from "shared/shapes/rectangle";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { DeserializeShortString, DeserializeTuple, DeserializeTypedArray, netv, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame, BearScene } from "shared/core/abstractengine";
-import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, LoadLevelPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityDeathPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet, ActionDo_ProjectileShotPacket, ActionDo_HitscanShotPacket, ActionDo_ShotgunShotPacket, AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet, ActionDo_BeamPacket, ForcePositionPacket, ConfirmVotePacket } from "./networking/gamepacketwriters";
+import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, LoadLevelPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityDeathPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, ActionDo_HitscanShotPacket, ActionDo_ShotgunShotPacket, AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet, ActionDo_BeamPacket, ForcePositionPacket, ConfirmVotePacket } from "./networking/gamepacketwriters";
 import { ClientPlayState, MatchGamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
@@ -876,38 +876,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         const player_info = this.players.get(clientID);
 
                         switch(item_type){
-                            case ItemActionType.PROJECTILE_SHOT:{
-                                const direction = new Vec2(stream.getFloat32(), stream.getFloat32());
-                                
-                                // if(this.server_state !== ServerGameState.ROUND_ACTIVE) continue;
-
-                                // Ensure player is indeed holding the item that allows this
-                                if(player_info.playerEntity.item_in_hand instanceof SProjectileWeaponItem){
-                                    const item = player_info.playerEntity.item_in_hand;
-
-                                    if(item.ammo > 0){
-                                        item.ammo -= 1;
-
-                                        const shot_prefab_id = item.shot_id;
-
-                                        const velocity = direction.extend(item.initial_speed);
-    
-                                        const b = ServerShootProjectileWeapon(this, player_info, pos, velocity, shot_prefab_id, player_info.playerEntity.mouse);
-
-                                        this.enqueueGlobalPacket(
-                                            new ActionDo_ProjectileShotPacket(clientID, createServerTick, pos, velocity, shot_prefab_id, b.entityID)
-                                        );
-
-                                        player_info.personalPackets.enqueue(
-                                            new AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet(clientShotID,b.entityID)
-                                        );
-                                            
-                                            //new AcknowledgeShotPacket(true,clientShotID, shotID, b.entityID)
-                                    }
-                                }
-                                
-                                break;
-                            }
                             case ItemActionType.HIT_SCAN:{
 
                                 const end = new Vec2(stream.getFloat32(), stream.getFloat32());

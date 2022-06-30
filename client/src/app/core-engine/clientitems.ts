@@ -126,23 +126,10 @@ export class ProjectileWeapon<T extends "projectile_weapon" = "projectile_weapon
     
 
     protected shoot(game: NetworkPlatformGame): void {
-        // const dir = this.direction.normalize();
-        
-        // const b = ShootProjectileWeapon_C(game, SHOT_LINKER.IDToData(this.shot_id).bounce, this.bullet_effects, this.position, dir.clone().extend(this.GetStaticValue("initial_speed")), SHOT_LINKER.IDToData(this.shot_id).item_sprite);
-
-        // game.entities.addEntity(b);
-
-        // const localID = game.networksystem.getLocalShotID();
-        // game.networksystem.localShotIDToEntity.set(localID,b)
-
-        // game.networksystem.enqueueStagePacket(
-        //     new ServerBoundProjectileShotPacket(0, localID, this.position.clone(), dir)
-        // )
-
-        // game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"));
 
         const a = new PredictProjectileShot(this.game, this);
         a.predict_action();
+
     }
 }
 
@@ -155,26 +142,6 @@ export class ShotgunWeapon extends ProjectileWeapon<"shotgun_weapon"> {
     // count: number = this.GetStaticValue("count")
 
     override shoot(game: NetworkPlatformGame): void {
-
-        // const bullets = ShootShotgunWeapon_C(game, this.item_id, this.shot_id, this.position, this.direction)
-        
-        // const local_id_list: number[] = [];
-
-        // for(const b of bullets){
-
-        //     game.entities.addEntity(b);
-        //     game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"));
-
-        //     const localID = game.networksystem.getLocalShotID();
-        //     game.networksystem.localShotIDToEntity.set(localID,b);
-
-        //     local_id_list.push(localID);
-        // }
-    
-        
-        // game.networksystem.enqueueStagePacket(
-        //     new ServerBoundShotgunShotPacket(0, -1, this.position.clone(), local_id_list)
-        // );
 
         const a = new PredictShotgunShot(this.game, this);
         a.predict_action();
@@ -349,28 +316,6 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
 }
 
 
-export class ServerBoundProjectileShotPacket extends PacketWriter {
-
-    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public direction: Vec2){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(ServerBoundPacket.REQUEST_ITEM_ACTION);
-        stream.setUint8(ItemActionType.PROJECTILE_SHOT);
-        stream.setUint32(this.localShotID);
-
-        stream.setFloat32(this.createServerTick);
-
-        stream.setFloat32(this.start.x);
-        stream.setFloat32(this.start.y);
-
-        stream.setFloat32(this.direction.x);
-        stream.setFloat32(this.direction.y);
-    }
-}
-
-
 /* Applies spread, ect; Returns a list of all the created bullets. Does not add to the scene yet */
 export function ShootShotgunWeapon_C(game: NetworkPlatformGame, shotgun_id: number, shot_id: number, position: Vec2, direction: Vec2): ModularProjectileBullet[] {
     const bullet_data = SHOT_LINKER.IDToData(shot_id);
@@ -405,28 +350,6 @@ export function ShootShotgunWeapon_C(game: NetworkPlatformGame, shotgun_id: numb
     return arr;
 
 }
-
-
-export class ServerBoundShotgunShotPacket extends PacketWriter {
-
-    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public local_ids: number[]){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(ServerBoundPacket.REQUEST_ITEM_ACTION);
-        stream.setUint8(ItemActionType.SHOTGUN_SHOT);
-        stream.setUint32(this.localShotID);
-
-        stream.setFloat32(this.createServerTick);
-
-        stream.setFloat32(this.start.x);
-        stream.setFloat32(this.start.y);
-
-        SerializeTypedArray(stream, netv.uint32(), this.local_ids);
-    }
-}
-
 
 
 
