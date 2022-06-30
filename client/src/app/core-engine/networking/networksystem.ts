@@ -1224,8 +1224,12 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             const net_tuple_def = ItemActionLinker.IDToData(action_id).clientbound.argTypes;
                 
+                            //@ts-expect-error
                             const arg_data = DeserializeTuple(stream, net_tuple_def);
 
+                            if(creator_id === this.MY_CLIENT_ID){
+                                console.error("Received DO_ACTION for an action I initiated, " + ItemActionLinker.IDToName(action_id));
+                            }
 
                             const func = CLIENT_REGISTERED_ITEMACTIONS.id_to_function_map.get(action_id);
                             func(this.game, ...arg_data);
@@ -1245,6 +1249,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const predicted_action = this.pending_ack_actions.get(local_action_id);
 
                             if(ack_code === ItemActionAck.SUCCESS){
+                                //@ts-expect-error
                                 const arg_data = DeserializeTuple(stream, net_tuple_def);
 
                                 if(predicted_action === undefined){

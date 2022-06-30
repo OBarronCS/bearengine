@@ -1030,6 +1030,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
                         const net_tuple_def = ItemActionLinker.IDToData(action_id).serverbound.argTypes;
                 
+                        //@ts-expect-error
                         const arg_data = DeserializeTuple(stream, net_tuple_def);
 
                         const func = SERVER_REGISTERED_ITEMACTIONS.id_to_class_map.get(action_id);

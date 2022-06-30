@@ -100,7 +100,7 @@ EXTRA DATA IS UNDOCUMENTED
 
 ITEM ACTION EXTRA DATA DEFINITIONS:
 // CLIENTBOUND
-    PROJECTILE_SHOT: [dir_x: float32, dir_y: float32, shot_prefab_id:uint8, entityIDofBullet];
+    x - PROJECTILE_SHOT: [dir_x: float32, dir_y: float32, shot_prefab_id:uint8, entityIDofBullet];
     HIT_SCAN: [end_x: float32, end_y: float32, weapon_prefab_id: uint8];
     FORCE_FIELD: [], // NEVER CALLED
     BEAM, [BeamActionType]
@@ -108,7 +108,7 @@ ITEM ACTION EXTRA DATA DEFINITIONS:
 
 
 // SERVERBOUND
-    PROJECTILE_SHOT: [dir_x: float32, dir_y: float32];
+    x - PROJECTILE_SHOT: [dir_x: float32, dir_y: float32];
     HIT_SCAN: [end_x: float32, end_y: float32];
     FORCE_FIELD: [],
     SHOTGUN_SHOT: [Array of count [clientside_bullet_id] for each bullet created]

@@ -156,25 +156,28 @@ export class ShotgunWeapon extends ProjectileWeapon<"shotgun_weapon"> {
 
     override shoot(game: NetworkPlatformGame): void {
 
-        const bullets = ShootShotgunWeapon_C(game, this.item_id, this.shot_id, this.position, this.direction)
+        // const bullets = ShootShotgunWeapon_C(game, this.item_id, this.shot_id, this.position, this.direction)
         
-        const local_id_list: number[] = [];
+        // const local_id_list: number[] = [];
 
-        for(const b of bullets){
+        // for(const b of bullets){
 
-            game.entities.addEntity(b);
-            game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"));
+        //     game.entities.addEntity(b);
+        //     game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"));
 
-            const localID = game.networksystem.getLocalShotID();
-            game.networksystem.localShotIDToEntity.set(localID,b);
+        //     const localID = game.networksystem.getLocalShotID();
+        //     game.networksystem.localShotIDToEntity.set(localID,b);
 
-            local_id_list.push(localID);
-        }
+        //     local_id_list.push(localID);
+        // }
     
         
-        game.networksystem.enqueueStagePacket(
-            new ServerBoundShotgunShotPacket(0, -1, this.position.clone(), local_id_list)
-        );
+        // game.networksystem.enqueueStagePacket(
+        //     new ServerBoundShotgunShotPacket(0, -1, this.position.clone(), local_id_list)
+        // );
+
+        const a = new PredictShotgunShot(this.game, this);
+        a.predict_action();
         
     }
 }
@@ -1030,10 +1033,98 @@ class PredictProjectileShot extends PredictAction<"projectile_shot", ProjectileW
     ack_fail(error_code: ItemActionAck): void {
         console.log("FAILED TO FIRE WEAPON")
     }
-
-
 }
 
 
 
+register_clientside_itemaction("shotgun_shot", 
+    (game: NetworkPlatformGame, x: number, y: number, vel_x: number, vel_y: number, shot_prefab_id: number, shotgun_prefab_id: number, bullet_entity_id_list: number[]) => {
+        console.log("Shotgun being shot!");
 
+        const pos = new Vec2(x,y);
+        const velocity = new Vec2(vel_x, vel_y);
+        
+        const bullets = ShootShotgunWeapon_C(game, shotgun_prefab_id, shot_prefab_id, pos, velocity);
+
+        if(bullet_entity_id_list.length !== bullets.length) throw new Error("Client created different number of bullets in shotgun shot than server");
+
+        for(let i = 0; i < bullet_entity_id_list.length; i++) {
+            const remote_id = bullet_entity_id_list[i];
+
+            //@ts-expect-error
+            game.networksystem.remoteEntities.set(remote_id, bullets[i]);
+            game.networksystem.networked_entity_subset.addEntity(bullets[i]);
+        }
+        
+    }
+);
+
+
+
+class PredictShotgunShot extends PredictAction<"shotgun_shot", ShotgunWeapon> {
+    
+    private predicted_bullet_id_list: EntityID[] = [];
+    
+    predict_action(): void {
+        console.log("Request shotgun shot");
+        
+        const bullets = ShootShotgunWeapon_C(this.game, this.state.item_id, this.state.shot_id, this.state.position, this.state.direction)
+        
+
+        for(const b of bullets){
+
+            this.game.entities.addEntity(b);
+            this.game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"));
+
+            this.predicted_bullet_id_list.push(b.entityID);
+
+            // const localID = game.networksystem.getLocalShotID();
+            // game.networksystem.localShotIDToEntity.set(localID,b);
+
+            // local_id_list.push(localID);
+        }
+    
+        
+        // game.networksystem.enqueueStagePacket(
+        //     new ServerBoundShotgunShotPacket(0, -1, this.position.clone(), local_id_list)
+        // );
+        this.request_action("shotgun_shot", this.state.x, this.state.y);
+    }
+
+    ack_success(x: number, y: number, vel_x: number, vel_y: number, shot_prefab_id: number, shotgun_prefab_id: number, bullet_entity_id_list: number[]): void {
+        console.log("Success in shotgun shot!");
+
+        if(bullet_entity_id_list.length !== this.predicted_bullet_id_list.length) throw new Error("Client created different number of bullets in shotgun shot than server");
+
+        for(let i = 0; i < this.predicted_bullet_id_list.length; i++){
+            const local_id = this.predicted_bullet_id_list[i];
+            const remote_id = bullet_entity_id_list[i];
+
+            // Is an effect
+            const bullet = this.game.entities.getEntity<ModularProjectileBullet>(local_id);
+                                                    
+            // May not exist, for some reason...
+            if(bullet !== undefined){
+                if(bullet.entityID !== NULL_ENTITY_INDEX){
+                    
+                    // this.localShotIDToEntity.delete(local_id);
+
+                    //@ts-expect-error
+                    this.game.networksystem.remoteEntities.set(remote_id, bullet);
+                    this.game.networksystem.networked_entity_subset.forceAddEntityFromMain(bullet);
+
+                } else {
+
+                }
+            }
+        }
+
+    }
+
+    ack_fail(error_code: ItemActionAck): void {
+        console.log("Failed shotgun shot");
+
+
+    }
+
+}

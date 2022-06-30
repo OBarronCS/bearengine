@@ -29,7 +29,18 @@ export const ItemActionDef = DefineSchema<{ [K:string]: ItemActionFormat } >()({
             argTypes:[netv.float(), netv.float(), netv.float(), netv.float(), netv.uint8(), ENTITY_ID_SERIALIZATION_TYPE_ALIAS()],
             callback: (x, y, vel_x, vel_y, shot_prefab_id, bullet_entity_id) => void 0
         },
-    }
+    },
+    "shotgun_shot": {
+        serverbound: {
+            argTypes:[netv.float(), netv.float()],
+            callback: (x, y) => void 0
+        },
+        clientbound: {
+            argTypes:[netv.float(), netv.float(), netv.float(), netv.float(), netv.uint8(), netv.uint8(), netv.array(ENTITY_ID_SERIALIZATION_TYPE_ALIAS())],
+            callback: (x, y, vel_x, vel_y, shot_prefab_id, shotgun_prefab_id, bullet_entity_id_list) => void 0
+        },
+    },
+    
 } as const);
 
 export const ItemActionLinker = GenerateLinker(ItemActionDef);

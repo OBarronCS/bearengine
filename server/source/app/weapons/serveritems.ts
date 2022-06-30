@@ -883,3 +883,46 @@ class ProjectileShotAttempt extends AttemptAction<"projectile_shot"> {
 
 
 
+@link_item_action_attempt("shotgun_shot")
+class ShotgunShotAttempt extends AttemptAction<"shotgun_shot"> {
+    
+    attempt_action(x: number, y: number): void {
+        if(this.player.playerEntity.item_in_hand instanceof ShotgunWeapon_S){
+            const item = this.player.playerEntity.item_in_hand;
+
+            
+            if(item.ammo > 0){
+                item.ammo -= 1;
+
+                const pos = new Vec2(x,y);
+
+                // Get direction that player is looking
+                const pEntity = this.player.playerEntity;
+                const player_dir = Vec2.subtract(pEntity.mouse, pEntity.position);
+
+                const bullets = ShootShotgunWeapon_S(this.game, this.player, item.item_id, item.shot_id, pos, player_dir)
+
+                const vel = player_dir.clone().extend(item.initial_speed)
+
+                const bullet_entity_id_list: number[] = bullets.map(b => b.entityID);
+                this.respond_success("shotgun_shot", x, y, vel.x, vel.y, item.shot_id, item.item_id, bullet_entity_id_list)
+                return;
+                // this.enqueueGlobalPacket(
+                //     new ActionDo_ShotgunShotPacket(clientID, createServerTick, pos, player_dir.clone().extend(item.initial_speed), item.shot_id, item.item_id, entity_id_list)
+                // );
+
+                // player_info.personalPackets.enqueue(
+                //     new AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet(clientShotID, client_ids, entity_id_list)
+                // );
+
+            }
+        }
+
+        this.respond_fail("shotgun_shot", ItemActionAck.INVALID_STATE);
+    }
+    
+
+}
+
+
+
