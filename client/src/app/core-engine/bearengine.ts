@@ -223,7 +223,7 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
     public mainmenu_scene: MainMenuScene;
     public level_scene: LevelScene;
 
-    //
+    // Cleared at the end of levels
     temp_level_subset = this.entities.createSubset();
 
     public player_controller = new DefaultInputController(this.engine.keyboard, this.engine.mouse, player_controls_map);

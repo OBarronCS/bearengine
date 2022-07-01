@@ -32,7 +32,7 @@ import { commandDispatcher } from "./servercommands";
 
 import { random, random_int, random_range } from "shared/misc/random";
 import { Effect, Effect2 } from "shared/core/effects";
-import { BeamActionType, ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
+import { BeamActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { LevelRefLinker, LevelRef } from "shared/core/sharedlogic/assetlinker";
 import { choose, shuffle } from "shared/datastructures/arrayutils";
 import { BoostZone_S } from "./weapons/boostzones";
@@ -695,10 +695,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             const id = playerEntity.current_beam.beam_id;
             this.entities.destroyEntity(playerEntity.current_beam);
 
-            // this.enqueueGlobalPacket(
-            //     new ActionDo_BeamPacket(playerEntity.connectionID,0,playerEntity.position, BeamActionType.END_BEAM,playerEntity.current_beam.beam_id)
-            // );
-
             playerEntity.current_beam = null;
 
             return id;
@@ -866,25 +862,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                             console.log(`Client ${clientID} sent an empty string`)
                         }
 
-                        break;
-                    }
-
-                    case ServerBoundPacket.REQUEST_ITEM_ACTION: {
-                        
-                        const item_type: ItemActionType = stream.getUint8();
-
-                        const clientShotID = stream.getUint32();
-
-                        const createServerTick = stream.getFloat32();
-                        const pos = new Vec2(stream.getFloat32(), stream.getFloat32());
-
-
-                        const player_info = this.players.get(clientID);
-
-                        switch(item_type){
-                            
-                        }
-                        
                         break;
                     }
 

@@ -3,7 +3,7 @@ import { Sprite, Graphics, Text } from "shared/graphics/graphics";
 import { Effect } from "shared/core/effects";
 import { PacketWriter, SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
-import { CreateShootController, GunshootController, ItemActionType, ProjectileBulletEffects, PROJECTILE_SHOT_DATA, SHOT_LINKER, BeamActionType, HitscanRayEffects, ItemActionAck } from "shared/core/sharedlogic/weapondefinitions";
+import { CreateShootController, GunshootController, ProjectileBulletEffects, PROJECTILE_SHOT_DATA, SHOT_LINKER, BeamActionType, HitscanRayEffects, ItemActionAck } from "shared/core/sharedlogic/weapondefinitions";
 import { NumberTween } from "shared/core/tween";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable } from "shared/misc/assertstatements";
@@ -421,10 +421,10 @@ export class BeamWeapon extends UsableItem<"beam_weapon"> {
                 const a = new PredictBeamAction(this.game, this);
                 a.predict_action(); 
 
-                this.beam_effect = this.game.entities.addEntity(new LocalBeamEffect(player));
+                this.beam_effect = this.game.temp_level_subset.addEntity(new LocalBeamEffect(player));
             }
         }
-        
+
         if(this.active && !mouse_down){
             this.active = false;
 
@@ -434,7 +434,7 @@ export class BeamWeapon extends UsableItem<"beam_weapon"> {
 
 
             if(this.beam_effect){
-                this.game.entities.destroyEntity(this.beam_effect);
+                this.game.temp_level_subset.destroyEntity(this.beam_effect);
                 this.beam_effect = null;
             }
         }
@@ -866,14 +866,6 @@ class PredictProjectileShot extends PredictAction<"projectile_shot", ProjectileW
         this.predicted_bullet_id = b.entityID
 
         this.game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"));
-        
-        // Old model of prediction
-        // const localID = this.game.networksystem.getLocalShotID();
-        // game.networksystem.localShotIDToEntity.set(localID,b)
-
-        // game.networksystem.enqueueStagePacket(
-        //     new ServerBoundProjectileShotPacket(0, localID, this.position.clone(), dir)
-        // )
     }
 
     ack_success(x: number, y: number, dir_x: number, dir_y: number, shot_prefab_id: number, bullet_entity_id: number): void {
@@ -938,16 +930,8 @@ class PredictShotgunShot extends PredictAction<"shotgun_shot", ShotgunWeapon> {
 
             this.predicted_bullet_id_list.push(b.entityID);
 
-            // const localID = game.networksystem.getLocalShotID();
-            // game.networksystem.localShotIDToEntity.set(localID,b);
-
-            // local_id_list.push(localID);
         }
     
-        
-        // game.networksystem.enqueueStagePacket(
-        //     new ServerBoundShotgunShotPacket(0, -1, this.position.clone(), local_id_list)
-        // );
         this.request_action("shotgun_shot", this.state.x, this.state.y);
     }
 
@@ -966,8 +950,6 @@ class PredictShotgunShot extends PredictAction<"shotgun_shot", ShotgunWeapon> {
             // May not exist, for some reason...
             if(bullet !== undefined){
                 if(bullet.entityID !== NULL_ENTITY_INDEX){
-                    
-                    // this.localShotIDToEntity.delete(local_id);
 
                     //@ts-expect-error
                     this.game.networksystem.remoteEntities.set(remote_id, bullet);

@@ -907,14 +907,6 @@ class ShotgunShotAttempt extends AttemptAction<"shotgun_shot"> {
                 const bullet_entity_id_list: number[] = bullets.map(b => b.entityID);
                 this.respond_success("shotgun_shot", x, y, vel.x, vel.y, item.shot_id, item.item_id, bullet_entity_id_list)
                 return;
-                // this.enqueueGlobalPacket(
-                //     new ActionDo_ShotgunShotPacket(clientID, createServerTick, pos, player_dir.clone().extend(item.initial_speed), item.shot_id, item.item_id, entity_id_list)
-                // );
-
-                // player_info.personalPackets.enqueue(
-                //     new AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet(clientShotID, client_ids, entity_id_list)
-                // );
-
             }
         }
 
@@ -984,10 +976,6 @@ class BeamActionAttempt extends AttemptAction<"beam"> {
             case BeamActionType.START_BEAM: {
 
                 const beam = new BeamEffect_S(this.player.playerEntity);
-
-                // this.enqueueGlobalPacket(
-                //     new ActionDo_BeamPacket(clientID,0,player_info.playerEntity.position, BeamActionType.START_BEAM,beam.beam_id)
-                // );
 
                 this.player.playerEntity.current_beam = beam;
 

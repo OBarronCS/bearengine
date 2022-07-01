@@ -27,7 +27,7 @@ import { BeamEffect_C, ForceFieldEffect_C, ModularProjectileBullet, ShootHitscan
 import { Line } from "shared/shapes/line";
 import { EmitterAttach } from "../particles";
 import { PARTICLE_CONFIG } from "shared/core/sharedlogic/sharedparticles";
-import { BeamActionType, HitscanRayEffects, ItemActionAck, ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
+import { BeamActionType, HitscanRayEffects, ItemActionAck, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { DeserializeTuple, DeserializeTypedArray, DeserializeTypedVar, netv, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { Trie } from "shared/datastructures/trie";
 import { LevelRefLinker } from "shared/core/sharedlogic/assetlinker";
@@ -65,14 +65,6 @@ interface BufferedPacket {
 const MS_PER_PING = 2500;
 
 export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
-
-
-    private incShotID = 0;
-
-    getLocalShotID(){
-        return this.incShotID++;
-    }
-
 
 
     private next_local_action_id = 0;
@@ -170,7 +162,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     
 
     // Predicted values exist here while shot awaiting acknowledgement from the server
-    public readonly localShotIDToEntity: Map<number,AbstractEntity> = new Map();
     public readonly beamIDToEntity: Map<number, BeamEffect_C> = new Map();
     
 
@@ -184,7 +175,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     }
 
     quit_server(){
-        this.incShotID = 0;
         this.next_local_action_id = 0;
         this.packets.clear();
         this.sendStream.clear_to_zero();
@@ -206,8 +196,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
         this.byteAmountReceived.clear();
         this.bytesPerSecond = 0;
 
-        this.localShotIDToEntity.clear();
         this.beamIDToEntity.clear();
+        this.pending_ack_actions.clear();
+
 
 
         this.network.disconnect();
@@ -667,6 +658,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             this.beamIDToEntity.forEach(v => v.destroy());
                             this.beamIDToEntity.clear();
 
+                            // FOR NOW, fail all active actions.
+                            this.pending_ack_actions.forEach(a => a.ack_fail(ItemActionAck.INVALID_STATE));
+                            this.pending_ack_actions.clear();
+
 
                             this.currentPlayState = ClientPlayState.ACTIVE;
 
@@ -984,35 +979,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         case GamePacket.CLEAR_INV_ITEM: {
                             
                             this.game.player.clearItem();
-
-                            break;
-                        }
-
-                        case GamePacket.GENERAL_DO_ITEM_ACTION: {
-
-                            const creator_id = stream.getUint8();
-                            const item_type: ItemActionType = stream.getUint8();
-
-                            const createServerTick = stream.getFloat32();
-                            const pos = new Vec2(stream.getFloat32(), stream.getFloat32());
-
-
-                            switch(item_type){
-                                
-                            }
-
-                            break;
-                        }
-
-                        case GamePacket.ACKNOWLEDGE_ITEM_ACTION: {
-                            const action_type: ItemActionType = stream.getUint8();
-                            const success_state: ItemActionAck = stream.getUint8()
-                            const clientside_action_id = stream.getUint32();
-                        
-                            switch(action_type){
-
-                            }
-
 
                             break;
                         }

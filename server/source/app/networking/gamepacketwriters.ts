@@ -4,7 +4,7 @@ import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, 
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
 import { GetTemplateRealType, netv, SerializeTuple, SerializeTypedArray, SerializeTypedVar, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { ClientPlayState, MatchGamemode } from "shared/core/sharedlogic/sharedenums";
-import { BeamActionType, ItemActionAck, ItemActionType } from "shared/core/sharedlogic/weapondefinitions";
+import { BeamActionType, ItemActionAck } from "shared/core/sharedlogic/weapondefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { Vec2 } from "shared/shapes/vec2";
 import { SBaseItem } from "../weapons/serveritems";
@@ -384,22 +384,6 @@ export class TerrainCarveCirclePacket extends PacketWriter {
     }
 }
 
-
-
-/** General ack packet */
-export class AcknowledgeItemActionPacket extends PacketWriter {
-
-    constructor(public action_type: ItemActionType, public success: ItemActionAck, public clientside_action_id: number){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.ACKNOWLEDGE_ITEM_ACTION);
-        stream.setUint8(this.action_type);
-        stream.setUint8(this.success);
-        stream.setUint32(this.clientside_action_id);
-    }
-}
 
 
 
