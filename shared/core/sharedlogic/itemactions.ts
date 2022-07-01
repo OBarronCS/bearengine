@@ -40,6 +40,16 @@ export const ItemActionDef = DefineSchema<{ [K:string]: ItemActionFormat } >()({
             callback: (x, y, vel_x, vel_y, shot_prefab_id, shotgun_prefab_id, bullet_entity_id_list) => void 0
         },
     },
+    "hitscan_shot": {
+        serverbound: {
+            argTypes:[netv.float(), netv.float(), netv.float(), netv.float()],
+            callback: (start_x, start_y, end_x, end_y) => void 0 
+        },
+        clientbound: {
+            argTypes:[netv.float(), netv.float(), netv.float(), netv.float(), netv.uint8()],
+            callback: (start_x, start_y, end_x, end_y, weapon_prefab_id) => void 0 
+        },
+    }
     
 } as const);
 

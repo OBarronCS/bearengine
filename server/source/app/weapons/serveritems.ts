@@ -926,3 +926,26 @@ class ShotgunShotAttempt extends AttemptAction<"shotgun_shot"> {
 
 
 
+@link_item_action_attempt("hitscan_shot")
+class HitscanShotAttempt extends AttemptAction<"hitscan_shot"> {
+    
+    attempt_action(start_x: number, start_y: number, end_x: number, end_y: number): void {
+        
+        if(this.player.playerEntity.item_in_hand instanceof SHitscanWeapon){
+            const item = this.player.playerEntity.item_in_hand;
+
+            if(item.ammo > 0){
+                item.ammo -= 1;
+
+                const start = new Vec2(start_x, start_y);
+                const end = new Vec2(end_x, end_y);
+
+                const end_point = ServerShootHitscanWeapon(this.game, start, end, this.player.connectionID);
+                this.respond_success("hitscan_shot",start_x, start_y, end_x, end_y, item.item_id);
+                return;
+            }
+        }
+        this.respond_fail("hitscan_shot", ItemActionAck.INVALID_STATE);
+    }
+
+}

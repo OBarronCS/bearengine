@@ -42,6 +42,7 @@ export const SERVER_REGISTERED_ITEMACTIONS = {
 
 export abstract class AttemptAction<E extends keyof typeof ItemActionDef> {
     
+    private already_responded = false;
 
     create_server_tick: number;
     
@@ -64,6 +65,9 @@ export abstract class AttemptAction<E extends keyof typeof ItemActionDef> {
     //@ts-expect-error
     protected respond_success(name: E, ...data: NetCallbackTupleType<typeof ItemActionDef[E]["clientbound"]>): void {
 
+        if(this.already_responded) throw new Error("Trying to return twice!")
+        this.already_responded = true;
+        
         // send to do_action to all but client
         // send    ack_action to client
 
@@ -89,6 +93,10 @@ export abstract class AttemptAction<E extends keyof typeof ItemActionDef> {
     }
     
     protected respond_fail(name: E, error_code: ItemActionAck): void {
+
+        if(this.already_responded) throw new Error("Trying to return twice!")
+        this.already_responded = true;
+
         this.game.enqueuePacketForClient(this.player.connectionID, 
             new NewAckItemAction_Fail_Packet(
                 name,

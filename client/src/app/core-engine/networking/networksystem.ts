@@ -998,19 +998,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
 
                             switch(item_type){
-                                case ItemActionType.HIT_SCAN:{
-                                    const end = new Vec2(stream.getFloat32(), stream.getFloat32());
-                                    const prefab_id = stream.getUint8();
-
-                                    const ray = new Line(pos, end);
-                                    if(this.MY_CLIENT_ID !== creator_id){
-                                        //@ts-expect-error
-                                        const effects: HitscanRayEffects[] = ITEM_LINKER.IDToData(prefab_id).hitscan_effects;
-
-                                        ShootHitscanWeapon_C(this.game, ray, effects);
-                                    }
-                                    break;
-                                }
                                 case ItemActionType.FORCE_FIELD_ACTION: {
 
                                     // if(this.MY_CLIENT_ID === creatorID){
@@ -1066,9 +1053,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                         
                             switch(action_type){
                                 case ItemActionType.FORCE_FIELD_ACTION: {
-                                    break;
-                                }
-                                case ItemActionType.HIT_SCAN: {
                                     break;
                                 }
                                 case ItemActionType.BEAM: {

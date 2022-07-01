@@ -361,38 +361,10 @@ export class HitscanWeapon_C extends WeaponItem<"hitscan_weapon"> {
     readonly hitscan_effects: HitscanRayEffects[] = this.GetStaticValue("hitscan_effects");
 
     shoot(game: NetworkPlatformGame): void {
-        const ray = new Line(this.position, Vec2.add(this.position, this.direction.extend(1000)));
-
-        ShootHitscanWeapon_C(game, ray, this.hitscan_effects);
-
-        game.networksystem.enqueueStagePacket(
-            new ServerBoundHitscanPacket(0,game.networksystem.getLocalShotID(), ray.A, ray.B)
-        )
+        const a = new PredictHitscanShot(this.game, this);
+        a.predict_action();
     }
 
-}
-
-export class ServerBoundHitscanPacket extends PacketWriter {
-
-    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public end: Vec2){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(ServerBoundPacket.REQUEST_ITEM_ACTION);
-        stream.setUint8(ItemActionType.HIT_SCAN);
-
-        stream.setUint32(this.localShotID);
-        
-        stream.setFloat32(this.createServerTick);
-
-        stream.setFloat32(this.start.x);
-        stream.setFloat32(this.start.y);
-
-        stream.setFloat32(this.end.x);
-        stream.setFloat32(this.end.y);
-
-    }
 }
 
 export function ShootHitscanWeapon_C(game: NetworkPlatformGame, line: Line, effects: HitscanRayEffects[]): void {
@@ -889,7 +861,7 @@ export class InstantDeathLaser_C extends DrawableEntity {
 
 
 
-// Tests
+// ACTIONS
 register_clientside_itemaction("projectile_shot", 
     (game: NetworkPlatformGame, x, y, dir_x: number, dir_y: number, shot_prefab_id: number, bullet_entity_id: number) => {
 
@@ -1051,3 +1023,57 @@ class PredictShotgunShot extends PredictAction<"shotgun_shot", ShotgunWeapon> {
     }
 
 }
+
+
+
+register_clientside_itemaction("hitscan_shot", 
+    (game: NetworkPlatformGame, start_x: number, start_y: number, end_x: number, end_y: number, weapon_prefab_id: number) => {
+        
+        console.log('HITSCANS')
+        const start = new Vec2(start_x, start_y);
+        const end = new Vec2(end_x, end_y);
+
+        const ray = new Line(start, end);
+
+        //@ts-expect-error
+        const effects: HitscanRayEffects[] = ITEM_LINKER.IDToData(weapon_prefab_id).hitscan_effects;
+
+        ShootHitscanWeapon_C(game, ray, effects);
+})
+
+
+class PredictHitscanShot extends PredictAction<"hitscan_shot", HitscanWeapon_C> {
+    
+    predict_action(): void {
+        const ray = new Line(this.state.position, Vec2.add(this.state.position, this.state.direction.extend(1000)));
+
+        ShootHitscanWeapon_C(this.game, ray, this.state.hitscan_effects);
+
+        // game.networksystem.enqueueStagePacket(
+        //     new ServerBoundHitscanPacket(0,game.networksystem.getLocalShotID(), ray.A, ray.B)
+        // );
+
+        this.request_action("hitscan_shot", ray.A.x, ray.A.y, ray.B.x, ray.B.y);
+    }
+
+    ack_success(start_x: number, start_y: number, end_x: number, end_y: number, weapon_prefab_id: number): void {
+        console.log("hitscan_success")
+    }
+
+    ack_fail(error_code: ItemActionAck): void {
+        console.log("Hitscan failed")
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+

@@ -385,33 +385,6 @@ export class TerrainCarveCirclePacket extends PacketWriter {
 }
 
 
-
-
-export class ActionDo_HitscanShotPacket extends PacketWriter {
-
-    constructor(public playerID: number, public createServerTick: number, public start: Vec2, public end: Vec2, public prefab_id: number){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.GENERAL_DO_ITEM_ACTION);
-        
-        stream.setUint8(this.playerID);
-        stream.setUint8(ItemActionType.HIT_SCAN);
-        
-        stream.setFloat32(this.createServerTick);
-
-        stream.setFloat32(this.start.x);
-        stream.setFloat32(this.start.y);
-
-        stream.setFloat32(this.end.x);
-        stream.setFloat32(this.end.y);
-
-        stream.setUint8(this.prefab_id);
-
-    }
-}
-
 export class ActionDo_BeamPacket extends PacketWriter {
 
     constructor(public playerID: number, public createServerTick: number, public start: Vec2, public action_type: BeamActionType, public beam_id: number){

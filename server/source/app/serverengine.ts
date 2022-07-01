@@ -21,7 +21,7 @@ import { dimensions, Rect } from "shared/shapes/rectangle";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { DeserializeShortString, DeserializeTuple, DeserializeTypedArray, netv, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame, BearScene } from "shared/core/abstractengine";
-import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, LoadLevelPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityDeathPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, ActionDo_HitscanShotPacket, ActionDo_BeamPacket, ForcePositionPacket, ConfirmVotePacket } from "./networking/gamepacketwriters";
+import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, LoadLevelPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityDeathPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, ActionDo_BeamPacket, ForcePositionPacket, ConfirmVotePacket } from "./networking/gamepacketwriters";
 import { ClientPlayState, MatchGamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
@@ -876,29 +876,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         const player_info = this.players.get(clientID);
 
                         switch(item_type){
-                            case ItemActionType.HIT_SCAN:{
-
-                                const end = new Vec2(stream.getFloat32(), stream.getFloat32());
-
-                                // if(this.server_state !== ServerGameState.ROUND_ACTIVE) continue;
-
-                                if(player_info.playerEntity.item_in_hand instanceof SHitscanWeapon){
-                                    const item = player_info.playerEntity.item_in_hand;
-
-                                    if(item.ammo > 0){
-                                        item.ammo -= 1;
-
-                                        const end_point = ServerShootHitscanWeapon(this, pos, end, clientID);
-                                
-                                        this.enqueueGlobalPacket(
-                                            new ActionDo_HitscanShotPacket(clientID, createServerTick, pos, end_point,item.item_id)
-                                        );
-                                    }
-                                        
-                                }
-
-                                break;
-                            }
                             case ItemActionType.FORCE_FIELD_ACTION: {
 
                                 // if(this.server_state !== ServerGameState.ROUND_ACTIVE) continue;
