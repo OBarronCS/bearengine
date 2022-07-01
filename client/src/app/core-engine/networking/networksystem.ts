@@ -109,7 +109,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     /** Set of all other clients */
     public otherClients = new SparseSet<ClientInfo>(256);
 
-    private remotePlayerEntities: Map<number, RemotePlayer> = new Map();
+    remotePlayerEntities: Map<number, RemotePlayer> = new Map();
 
 
     // 
@@ -998,38 +998,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
 
                             switch(item_type){
-                                case ItemActionType.BEAM: {
-                                    const action_type: BeamActionType = stream.getUint8();
-                                    const beam_id = stream.getUint32();
-
-                                    if(this.MY_CLIENT_ID === creator_id) continue;
-
-                                    switch(action_type){
-                                        case BeamActionType.START_BEAM:{
-                                            
-                                            const beam = new BeamEffect_C(this.remotePlayerEntities.get(creator_id));
-                                            
-                                            this.beamIDToEntity.set(beam_id,beam);
-
-                                            this.game.temp_level_subset.addEntity(beam);
-
-                                            break;
-                                        }
-                                        case BeamActionType.END_BEAM:{
-                                            console.log("END BEAM")
-                                            const get = this.beamIDToEntity.get(beam_id);
-                                            if(get){
-                                                this.game.temp_level_subset.destroyEntity(get);
-                                                this.beamIDToEntity.delete(beam_id);
-                                            }
-                                        
-                                            break;
-                                        }
-                                        default: AssertUnreachable(action_type);
-                                    }
-                                    break;
-                                }
-                                default: AssertUnreachable(item_type);
+                                
                             }
 
                             break;
@@ -1041,11 +1010,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const clientside_action_id = stream.getUint32();
                         
                             switch(action_type){
-                                case ItemActionType.BEAM: {
-                                    throw new Error("NOT IMPLEMENTED");
-                                    break;
-                                }
-                                default: AssertUnreachable(action_type);
+
                             }
 
 
@@ -1090,7 +1055,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             }
 
                             const func = CLIENT_REGISTERED_ITEMACTIONS.id_to_function_map.get(action_id);
-                            func(this.game, ...arg_data);
+                            func(creator_id, this.game, ...arg_data);
 
                             break;
                         }

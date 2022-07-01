@@ -1,5 +1,5 @@
 import { Effect, Effect2 } from "shared/core/effects";
-import { Clip, CreateShootController, GunshootController, ItemActionAck, SHOT_LINKER, SimpleWeaponControllerDefinition } from "shared/core/sharedlogic/weapondefinitions";
+import { BeamActionType, Clip, CreateShootController, GunshootController, ItemActionAck, SHOT_LINKER, SimpleWeaponControllerDefinition } from "shared/core/sharedlogic/weapondefinitions";
 import { TickTimer } from "shared/datastructures/ticktimer";
 import { random_int, random_range } from "shared/misc/random";
 import { Line } from "shared/shapes/line";
@@ -974,5 +974,44 @@ class ForceFieldAttempt extends AttemptAction<"force_field"> {
 
         this.respond_fail("force_field", ItemActionAck.INVALID_STATE);
     }
+}
+
+@link_item_action_attempt("beam")
+class BeamActionAttempt extends AttemptAction<"beam"> {
+    
+    attempt_action(beam_action_type: BeamActionType): void {
+        switch(beam_action_type){
+            case BeamActionType.START_BEAM: {
+
+                const beam = new BeamEffect_S(this.player.playerEntity);
+
+                // this.enqueueGlobalPacket(
+                //     new ActionDo_BeamPacket(clientID,0,player_info.playerEntity.position, BeamActionType.START_BEAM,beam.beam_id)
+                // );
+
+                this.player.playerEntity.current_beam = beam;
+
+                this.game.entities.addEntity(beam);
+
+                this.respond_success("beam", beam_action_type as never, beam.beam_id);
+                return;
+                break;
+            }
+            case BeamActionType.END_BEAM: {
+
+                const id = this.game.endPlayerBeam(this.player);
+
+                this.respond_success("beam", beam_action_type as never, id);
+
+                return;
+                break;
+            }
+            default: AssertUnreachable(beam_action_type);
+        }
+
+        this.respond_fail("beam", ItemActionAck.INVALID_STATE);
+    }
+
+
 }
 

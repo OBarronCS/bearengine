@@ -91,16 +91,6 @@ export enum GamePacket {
 
 }
 
-/*
-ITEM ACTION EXTRA DATA DEFINITIONS:
-// CLIENTBOUND
-    BEAM, [BeamActionType]
-
-
-// SERVERBOUND
-    BEAM, [BeamActionType]
-*/
-
 
 export enum ServerPacketSubType {
     IMMEDIATE, // not queue, reacted to immediately

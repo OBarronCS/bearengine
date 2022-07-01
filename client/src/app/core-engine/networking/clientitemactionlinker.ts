@@ -7,8 +7,10 @@ import { GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdef
 import { StreamReadEntityID } from "shared/core/entitysystem";
 import { SerializeTuple } from "shared/core/sharedlogic/serialization";
 
-//@ts-expect-error
-export function register_clientside_itemaction<E extends keyof typeof ItemActionDef>(item_name: E, callback: (game: NetworkPlatformGame, ...data: NetCallbackTupleType<typeof ItemActionDef[E]["clientbound"]>) => void) {
+
+export function register_clientside_itemaction<E extends keyof typeof ItemActionDef>(item_name: E, 
+        //@ts-expect-error
+        callback: (creator_id: number, game: NetworkPlatformGame, ...data: NetCallbackTupleType<typeof ItemActionDef[E]["clientbound"]>) => void) {
 
     CLIENT_REGISTERED_ITEMACTIONS.all_functions.push(
         {
@@ -17,6 +19,8 @@ export function register_clientside_itemaction<E extends keyof typeof ItemAction
             func:callback,
         }
     );
+
+    return callback;
 }
 
 export const CLIENT_REGISTERED_ITEMACTIONS = {

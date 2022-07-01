@@ -1,5 +1,6 @@
 import { ENTITY_ID_SERIALIZATION_TYPE_ALIAS } from "../entitysystem";
 import { DefineSchema, GenerateLinker, netv, NetworkVariableTypes } from "./serialization";
+import { BeamActionType } from "./weapondefinitions";
 
 
 interface RemoteFunctionDef {
@@ -58,6 +59,16 @@ export const ItemActionDef = DefineSchema<{ [K:string]: ItemActionFormat } >()({
         clientbound: {
             argTypes:[],
             callback: () => void 0
+        }
+    },
+    "beam": {
+        serverbound: {
+            argTypes:[netv.uint8()],
+            callback:(beam_action_type: BeamActionType) => void 0
+        },
+        clientbound: {
+            argTypes:[netv.uint8(), netv.uint32()],
+            callback:(beam_action_type: BeamActionType, beam_id) => void 0
         }
     }
     

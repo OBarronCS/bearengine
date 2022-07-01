@@ -21,7 +21,7 @@ import { dimensions, Rect } from "shared/shapes/rectangle";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { DeserializeShortString, DeserializeTuple, DeserializeTypedArray, netv, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame, BearScene } from "shared/core/abstractengine";
-import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, LoadLevelPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityDeathPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, ActionDo_BeamPacket, ForcePositionPacket, ConfirmVotePacket } from "./networking/gamepacketwriters";
+import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, LoadLevelPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityDeathPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, ForcePositionPacket, ConfirmVotePacket } from "./networking/gamepacketwriters";
 import { ClientPlayState, MatchGamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
@@ -685,20 +685,26 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 
     endPlayerBeam(player_info: PlayerInformation){
-        this.endPlayerBeam_Player(player_info.playerEntity);
+        return this.endPlayerBeam_Player(player_info.playerEntity);
     }
 
     endPlayerBeam_Player(playerEntity: ServerPlayerEntity){
+
+
         if(playerEntity.current_beam !== null){
+            const id = playerEntity.current_beam.beam_id;
             this.entities.destroyEntity(playerEntity.current_beam);
 
-            this.enqueueGlobalPacket(
-                new ActionDo_BeamPacket(playerEntity.connectionID,0,playerEntity.position, BeamActionType.END_BEAM,playerEntity.current_beam.beam_id)
-            );
+            // this.enqueueGlobalPacket(
+            //     new ActionDo_BeamPacket(playerEntity.connectionID,0,playerEntity.position, BeamActionType.END_BEAM,playerEntity.current_beam.beam_id)
+            // );
 
             playerEntity.current_beam = null;
 
+            return id;
         }
+
+        return -1;
     }
 
     notifyItemRemove(p: PlayerInformation){
@@ -876,37 +882,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         const player_info = this.players.get(clientID);
 
                         switch(item_type){
-                            case ItemActionType.BEAM: {
-                                const beam_action_type: BeamActionType = stream.getUint8();
-
-                                // if(this.server_state !== ServerGameState.ROUND_ACTIVE) continue;
-
-                                switch(beam_action_type){
-                                    case BeamActionType.START_BEAM: {
-
-                                        const beam = new BeamEffect_S(player_info.playerEntity);
-
-                                        this.enqueueGlobalPacket(
-                                            new ActionDo_BeamPacket(clientID,0,player_info.playerEntity.position, BeamActionType.START_BEAM,beam.beam_id)
-                                        );
-
-                                        player_info.playerEntity.current_beam = beam;
-
-                                        this.entities.addEntity(beam);
-                                        break;
-                                    }
-                                    case BeamActionType.END_BEAM: {
-
-
-                                        this.endPlayerBeam(player_info);
-
-                                        break;
-                                    }
-                                    default: AssertUnreachable(beam_action_type);
-                                }
-                                break;
-                            }
-                            default: AssertUnreachable(item_type);
+                            
                         }
                         
                         break;

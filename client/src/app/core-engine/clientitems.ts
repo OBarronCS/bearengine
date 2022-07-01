@@ -417,19 +417,21 @@ export class BeamWeapon extends UsableItem<"beam_weapon"> {
         if(!this.active){
             if(mouse_down) {
                 this.active = true;
-                game.networksystem.enqueueStagePacket(
-                    new ServerBoundBeamPacket(0,game.networksystem.getLocalShotID(), this.position, BeamActionType.START_BEAM)
-                );      
+
+                const a = new PredictBeamAction(this.game, this);
+                a.predict_action(); 
 
                 this.beam_effect = this.game.entities.addEntity(new LocalBeamEffect(player));
             }
         }
+        
         if(this.active && !mouse_down){
             this.active = false;
 
-            game.networksystem.enqueueStagePacket(
-                new ServerBoundBeamPacket(0,game.networksystem.getLocalShotID(), this.position, BeamActionType.END_BEAM)
-            );
+
+            const a = new PredictBeamAction(this.game, this);
+            a.predict_action();
+
 
             if(this.beam_effect){
                 this.game.entities.destroyEntity(this.beam_effect);
@@ -439,27 +441,6 @@ export class BeamWeapon extends UsableItem<"beam_weapon"> {
               
         
         return false;
-    }
-}
-
-export class ServerBoundBeamPacket extends PacketWriter {
-
-    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public action_type: BeamActionType){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(ServerBoundPacket.REQUEST_ITEM_ACTION);
-        stream.setUint8(ItemActionType.BEAM);
-
-        stream.setUint32(this.localShotID);
-        
-        stream.setFloat32(this.createServerTick);
-
-        stream.setFloat32(this.start.x);
-        stream.setFloat32(this.start.y);
-
-        stream.setUint8(this.action_type);
     }
 }
 
@@ -847,7 +828,7 @@ export class InstantDeathLaser_C extends DrawableEntity {
 
 // ACTIONS
 register_clientside_itemaction("projectile_shot", 
-    (game: NetworkPlatformGame, x, y, dir_x: number, dir_y: number, shot_prefab_id: number, bullet_entity_id: number) => {
+    (creator_id,game: NetworkPlatformGame, x, y, dir_x: number, dir_y: number, shot_prefab_id: number, bullet_entity_id: number) => {
 
         console.log("Someone else shot a weapon!")
 
@@ -917,7 +898,7 @@ class PredictProjectileShot extends PredictAction<"projectile_shot", ProjectileW
 
 
 register_clientside_itemaction("shotgun_shot", 
-    (game: NetworkPlatformGame, x: number, y: number, vel_x: number, vel_y: number, shot_prefab_id: number, shotgun_prefab_id: number, bullet_entity_id_list: number[]) => {
+    (creator_id, game: NetworkPlatformGame, x: number, y: number, vel_x: number, vel_y: number, shot_prefab_id: number, shotgun_prefab_id: number, bullet_entity_id_list: number[]) => {
         console.log("Shotgun being shot!");
 
         const pos = new Vec2(x,y);
@@ -1011,7 +992,7 @@ class PredictShotgunShot extends PredictAction<"shotgun_shot", ShotgunWeapon> {
 
 
 register_clientside_itemaction("hitscan_shot", 
-    (game: NetworkPlatformGame, start_x: number, start_y: number, end_x: number, end_y: number, weapon_prefab_id: number) => {
+    (creator_id, game: NetworkPlatformGame, start_x: number, start_y: number, end_x: number, end_y: number, weapon_prefab_id: number) => {
         
         console.log('HITSCANS')
         const start = new Vec2(start_x, start_y);
@@ -1032,10 +1013,6 @@ class PredictHitscanShot extends PredictAction<"hitscan_shot", HitscanWeapon_C> 
         const ray = new Line(this.state.position, Vec2.add(this.state.position, this.state.direction.extend(1000)));
 
         ShootHitscanWeapon_C(this.game, ray, this.state.hitscan_effects);
-
-        // game.networksystem.enqueueStagePacket(
-        //     new ServerBoundHitscanPacket(0,game.networksystem.getLocalShotID(), ray.A, ray.B)
-        // );
 
         this.request_action("hitscan_shot", ray.A.x, ray.A.y, ray.B.x, ray.B.y);
     }
@@ -1071,6 +1048,49 @@ class PredictForceFieldAction extends PredictAction<"force_field", {}> {
 
 }
 
+
+
+/** Never gets called, but necessary for linker */
+register_clientside_itemaction("beam", (creator_id, game, beam_action_type: BeamActionType, beam_id) => {
+    switch(beam_action_type){
+        case BeamActionType.START_BEAM:{
+            console.log("Start beam");
+            const beam = new BeamEffect_C(game.networksystem.remotePlayerEntities.get(creator_id));
+            
+            game.networksystem.beamIDToEntity.set(beam_id,beam);
+            game.temp_level_subset.addEntity(beam);
+
+            break;
+        }
+        case BeamActionType.END_BEAM:{
+            console.log("End beam");
+            const get = game.networksystem.beamIDToEntity.get(beam_id);
+            if(get){
+                game.temp_level_subset.destroyEntity(get);
+                game.networksystem.beamIDToEntity.delete(beam_id);
+            }
+        
+            break;
+        }
+        default: AssertUnreachable(beam_action_type);
+    }
+});
+
+
+class PredictBeamAction extends PredictAction<"beam", BeamWeapon> {
+    
+    predict_action(): void {
+        this.request_action("beam", <never>(this.state.active ? BeamActionType.START_BEAM : BeamActionType.END_BEAM));
+    }
+
+    ack_success(): void {
+        console.log("Success beam");
+    }
+    ack_fail(error_code: ItemActionAck): void {
+        console.log("Failed beam");
+    }
+
+}
 
 
 
