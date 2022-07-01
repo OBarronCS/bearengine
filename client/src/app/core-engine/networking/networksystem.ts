@@ -998,17 +998,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
 
                             switch(item_type){
-                                case ItemActionType.FORCE_FIELD_ACTION: {
-
-                                    // if(this.MY_CLIENT_ID === creatorID){
-                                    //     this.game.entities.addEntity(new ForceFieldEffect_C(this.game.player));
-                                    // } else {
-                                    //     const p = this.remotePlayerEntities.get(creatorID);
-                                    //     this.game.entities.addEntity(new ForceFieldEffect_C(p));
-                                    // }
-                                    
-                                    break;
-                                }
                                 case ItemActionType.BEAM: {
                                     const action_type: BeamActionType = stream.getUint8();
                                     const beam_id = stream.getUint32();
@@ -1052,9 +1041,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const clientside_action_id = stream.getUint32();
                         
                             switch(action_type){
-                                case ItemActionType.FORCE_FIELD_ACTION: {
-                                    break;
-                                }
                                 case ItemActionType.BEAM: {
                                     throw new Error("NOT IMPLEMENTED");
                                     break;
@@ -1129,7 +1115,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                     break;
                                 }
 
-                                //@ts-expect-error
+                                //@ts-ignore
                                 predicted_action.ack_success(...arg_data);
                             } else {
                                 if(predicted_action === undefined){

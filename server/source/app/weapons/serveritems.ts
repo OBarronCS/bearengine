@@ -949,3 +949,30 @@ class HitscanShotAttempt extends AttemptAction<"hitscan_shot"> {
     }
 
 }
+
+
+@link_item_action_attempt("force_field")
+class ForceFieldAttempt extends AttemptAction<"force_field"> {
+    
+    attempt_action(): void {
+        console.log("Player forcefield!");
+        if(this.player.playerEntity.item_in_hand instanceof ForceFieldItem_S){
+            
+
+            // Only one exists
+            const radius = ITEM_LINKER.NameToData("forcefield").radius;
+            
+            this.game.createRemoteEntity(new ForceFieldEffect_S(this.player.playerEntity,radius))
+
+            this.game.notifyItemRemove(this.player);
+            this.player.playerEntity.clearItem();
+
+            // DO NOT SEND TO ALL. JUST ACK
+            this.private_ack_success("force_field");
+            return;
+        }
+
+        this.respond_fail("force_field", ItemActionAck.INVALID_STATE);
+    }
+}
+

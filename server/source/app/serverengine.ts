@@ -876,29 +876,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         const player_info = this.players.get(clientID);
 
                         switch(item_type){
-                            case ItemActionType.FORCE_FIELD_ACTION: {
-
-                                // if(this.server_state !== ServerGameState.ROUND_ACTIVE) continue;
-
-                                if(player_info.playerEntity.item_in_hand instanceof ForceFieldItem_S){
-                                    // console.log("Player forcefield!");
-
-                                    // Only one exists
-                                    const radius = ITEM_LINKER.NameToData("forcefield").radius;
-                                    
-                                    this.createRemoteEntity(new ForceFieldEffect_S(player_info.playerEntity,radius))
-    
-                                    // this.enqueueGlobalPacket(
-                                    //     new ForceFieldEffectPacket(clientID, 0, createServerTick, pos)
-                                    // );
-    
-                                    this.notifyItemRemove(player_info);
-                            
-                                    player_info.playerEntity.clearItem();
-                                }
-
-                                break;
-                            }
                             case ItemActionType.BEAM: {
                                 const beam_action_type: BeamActionType = stream.getUint8();
 
@@ -948,7 +925,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         
                         //@ts-expect-error
                         const inst = (new func(this, this.players.get(clientID), client_action_id));
-                        //@ts-expect-error
+                        //@ts-ignore
                         (inst as AttemptAction<any>).attempt_action(...arg_data);
 
                         break;

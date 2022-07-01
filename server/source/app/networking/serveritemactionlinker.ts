@@ -91,6 +91,27 @@ export abstract class AttemptAction<E extends keyof typeof ItemActionDef> {
             )      
         );
     }
+
+    /**
+     * This method is used in cases where an item action is not triggered on the clientside
+     *  by the typical do_action handler. Usually, means the action creates an entity.
+     */
+    //@ts-expect-error
+    protected private_ack_success(name: E, ...data: NetCallbackTupleType<typeof ItemActionDef[E]["clientbound"]>): void {
+        
+        if(this.already_responded) throw new Error("Trying to return twice!")
+        this.already_responded = true;
+        
+        this.game.enqueuePacketForClient(this.player.connectionID, 
+            new NewAckItemAction_Success_Packet(
+                name,
+                this.create_server_tick,
+                this.local_action_id,
+                //@ts-expect-error
+                data
+            )      
+        );
+    }
     
     protected respond_fail(name: E, error_code: ItemActionAck): void {
 

@@ -49,6 +49,16 @@ export const ItemActionDef = DefineSchema<{ [K:string]: ItemActionFormat } >()({
             argTypes:[netv.float(), netv.float(), netv.float(), netv.float(), netv.uint8()],
             callback: (start_x, start_y, end_x, end_y, weapon_prefab_id) => void 0 
         },
+    },
+    "force_field": {
+        serverbound: {
+            argTypes:[],
+            callback:() => void 0
+        },
+        clientbound: {
+            argTypes:[],
+            callback: () => void 0
+        }
     }
     
 } as const);

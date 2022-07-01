@@ -6,7 +6,6 @@ import { GenerateLinker } from "shared/core/sharedlogic/serialization";
 
 
 export enum ItemActionType {
-    FORCE_FIELD_ACTION,
     BEAM,
 }
 

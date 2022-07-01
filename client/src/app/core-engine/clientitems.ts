@@ -537,9 +537,14 @@ export class ForceFieldItem_C extends UsableItem<"forcefield_item"> {
     operate(dt: number, position: Vec2, mouse: Vec2, mouse_down: boolean, game: NetworkPlatformGame, p: Player): boolean {
 
         if(mouse_down){
-            game.networksystem.enqueueStagePacket(
-                new ForceFieldItemActionPacket(0,this.game.networksystem.getLocalShotID(), this.position)
-            );
+
+
+            // game.networksystem.enqueueStagePacket(
+            //     new ForceFieldItemActionPacket(0,this.game.networksystem.getLocalShotID(), this.position)
+            // );
+
+            const a = new PredictForceFieldAction(this.game, this);
+            a.predict_action();
 
             return true;
         }
@@ -584,27 +589,6 @@ export class ForceFieldEffect_C extends DrawableEntity {
     }
 
 }
-
-export class ForceFieldItemActionPacket extends PacketWriter {
-
-    constructor(public createServerTick: number, public localShotID: number, public start: Vec2){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(ServerBoundPacket.REQUEST_ITEM_ACTION);
-        stream.setUint8(ItemActionType.FORCE_FIELD_ACTION);
-
-        stream.setUint32(this.localShotID);
-        
-        stream.setFloat32(this.createServerTick);
-
-        stream.setFloat32(this.start.x);
-        stream.setFloat32(this.start.y);
-    }
-}
-
-
 
 
 
@@ -1067,7 +1051,25 @@ class PredictHitscanShot extends PredictAction<"hitscan_shot", HitscanWeapon_C> 
 }
 
 
+/** Never gets called, but necessary for linker */
+register_clientside_itemaction("force_field", (game) => {
 
+});
+
+class PredictForceFieldAction extends PredictAction<"force_field", {}> {
+    
+    predict_action(): void {
+        this.request_action("force_field");
+    }
+
+    ack_success(): void {
+        console.log("Success shield");
+    }
+    ack_fail(error_code: ItemActionAck): void {
+        console.log("Failed shield");
+    }
+
+}
 
 
 

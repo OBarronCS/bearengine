@@ -85,30 +85,19 @@ export enum GamePacket {
     ACKNOWLEDGE_ITEM_ACTION, // NOT IMPLEMENTED [ItemActionType: uint8_enum, ItemActionAck: uint8_enum, clientside_action_id: uint32, , ...data];
 
 
-
-
-
     NEW_CLIENT_DO_ITEM_ACTION, // [creator_id: uint8, SharedActionID: uint8, create_server_tick: float32, ...data_depending_on_action_id]
     NEW_ACK_ITEM_ACTION, // [SharedActionID: uint8_enum, ItemActionAck: uint8_enum, create_server_tick: float32, clientside_action_id: uint32, , ...data_depending_on_action_id]
+
 
 }
 
 /*
-// ACKNOWLEDGE_ITEM_ACTION
-EXTRA DATA IS UNDOCUMENTED
-
-
 ITEM ACTION EXTRA DATA DEFINITIONS:
 // CLIENTBOUND
-    HIT_SCAN: [end_x: float32, end_y: float32, weapon_prefab_id: uint8];
-    FORCE_FIELD: [], // NEVER CALLED
     BEAM, [BeamActionType]
 
 
-
 // SERVERBOUND
-    HIT_SCAN: [end_x: float32, end_y: float32];
-    FORCE_FIELD: [],
     BEAM, [BeamActionType]
 */
 
