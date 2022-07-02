@@ -513,7 +513,7 @@ export class IKScene extends BearScene<NetworkPlatformGame> {
 
 class TestEntityForVideo extends Entity {
         
-    private sprite = this.addPart(new SpritePart("tree.gif"));
+    private sprite = this.addPart(new SpritePart("flower.png"));
     private collider = this.addPart(new ColliderPart(dimensions(200,200), Vec2.ZERO));
 
     private total = 0
@@ -535,7 +535,7 @@ class TestEntityForVideo extends Entity {
     @bearevents.collision(RemotePlayer)
     dddd(other: RemotePlayer): void{
         // Requires that the other thing has a collider 
-        console.log("collision with: " + other.owner.constructor.name);
+        console.log("collision with: " + other.constructor.name);
         this.total++;
     }
 

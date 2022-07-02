@@ -264,7 +264,7 @@ export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bounce: boole
     //     addon.modifyShot(bullet);
     // }
 
-    return bullet
+    return bullet;
 }
 
 // Bullets are special, don't follow normal shared entity rules, are not created normally
