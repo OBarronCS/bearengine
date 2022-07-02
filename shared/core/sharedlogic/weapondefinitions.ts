@@ -5,14 +5,6 @@ import { DefineSchema } from "./serialization"
 import { GenerateLinker } from "shared/core/sharedlogic/serialization";
 
 
-export enum ItemActionType {
-    HIT_SCAN,
-    PROJECTILE_SHOT,
-    FORCE_FIELD_ACTION,
-    SHOTGUN_SHOT,
-    BEAM,
-}
-
 /** Success/failure state of a requested action */
 export enum ItemActionAck {
     SUCCESS,

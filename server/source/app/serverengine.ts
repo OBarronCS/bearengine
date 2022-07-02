@@ -1,7 +1,7 @@
 
 import path from "path";
 import { readFileSync } from "fs";
-import type { Server } from "ws";
+import { Server } from "ws";
 
 import { ServerEntity } from "./entity";
 import { assert, AssertUnreachable } from "shared/misc/assertstatements";
@@ -19,9 +19,9 @@ import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { Vec2 } from "shared/shapes/vec2";
 import { dimensions, Rect } from "shared/shapes/rectangle";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
-import { DeserializeShortString, DeserializeTypedArray, netv, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
+import { DeserializeShortString, DeserializeTuple, DeserializeTypedArray, netv, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame, BearScene } from "shared/core/abstractengine";
-import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, LoadLevelPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityDeathPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet, ActionDo_ProjectileShotPacket, ActionDo_HitscanShotPacket, ActionDo_ShotgunShotPacket, AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet, ActionDo_BeamPacket, ForcePositionPacket, ConfirmVotePacket } from "./networking/gamepacketwriters";
+import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, LoadLevelPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityDeathPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, ForcePositionPacket, ConfirmVotePacket } from "./networking/gamepacketwriters";
 import { ClientPlayState, MatchGamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
@@ -32,11 +32,13 @@ import { commandDispatcher } from "./servercommands";
 
 import { random, random_int, random_range } from "shared/misc/random";
 import { Effect, Effect2 } from "shared/core/effects";
-import { BeamActionType, ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
+import { BeamActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { LevelRefLinker, LevelRef } from "shared/core/sharedlogic/assetlinker";
 import { choose, shuffle } from "shared/datastructures/arrayutils";
 import { BoostZone_S } from "./weapons/boostzones";
 import { CollisionManager } from "shared/core/entitycollision";
+import { AttemptAction, SERVER_REGISTERED_ITEMACTIONS } from "./networking/serveritemactionlinker";
+import { ItemActionLinker } from "shared/core/sharedlogic/itemactions";
 
 // Stop writing new info after packet is larger than this
 // Its a soft cap, as the packets can be 2047 + last_packet_written_length long,
@@ -187,7 +189,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
 
         // Links shared entity classes
-        SharedEntityServerTable.init()
+        SharedEntityServerTable.init();
+        SERVER_REGISTERED_ITEMACTIONS.init();
     }
 
     protected initSystems(){
@@ -682,20 +685,22 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 
     endPlayerBeam(player_info: PlayerInformation){
-        this.endPlayerBeam_Player(player_info.playerEntity);
+        return this.endPlayerBeam_Player(player_info.playerEntity);
     }
 
     endPlayerBeam_Player(playerEntity: ServerPlayerEntity){
-        if(playerEntity.current_beam !== null){
-            this.entities.destroyEntity(playerEntity.current_beam);
 
-            this.enqueueGlobalPacket(
-                new ActionDo_BeamPacket(playerEntity.connectionID,0,playerEntity.position, BeamActionType.END_BEAM,playerEntity.current_beam.beam_id)
-            );
+
+        if(playerEntity.current_beam !== null){
+            const id = playerEntity.current_beam.beam_id;
+            this.entities.destroyEntity(playerEntity.current_beam);
 
             playerEntity.current_beam = null;
 
+            return id;
         }
+
+        return -1;
     }
 
     notifyItemRemove(p: PlayerInformation){
@@ -860,164 +865,22 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                         break;
                     }
 
-                    case ServerBoundPacket.REQUEST_ITEM_ACTION: {
+                    case ServerBoundPacket.NEW_AUTO_REQUEST_ITEM_ACTION: {
+                        const action_id = stream.getUint8();
+                        const client_action_id = stream.getUint32();
+
+                        const net_tuple_def = ItemActionLinker.IDToData(action_id).serverbound.argTypes;
+                
+                        //@ts-expect-error
+                        const arg_data = DeserializeTuple(stream, net_tuple_def);
+
+                        const func = SERVER_REGISTERED_ITEMACTIONS.id_to_class_map.get(action_id);
                         
-                        const item_type: ItemActionType = stream.getUint8();
+                        //@ts-expect-error
+                        const inst = (new func(this, this.players.get(clientID), client_action_id));
+                        //@ts-ignore
+                        (inst as AttemptAction<any>).attempt_action(...arg_data);
 
-                        const clientShotID = stream.getUint32();
-
-                        const createServerTick = stream.getFloat32();
-                        const pos = new Vec2(stream.getFloat32(), stream.getFloat32());
-
-
-                        const player_info = this.players.get(clientID);
-
-                        switch(item_type){
-                            case ItemActionType.PROJECTILE_SHOT:{
-                                const direction = new Vec2(stream.getFloat32(), stream.getFloat32());
-                                
-                                // if(this.server_state !== ServerGameState.ROUND_ACTIVE) continue;
-
-                                // Ensure player is indeed holding the item that allows this
-                                if(player_info.playerEntity.item_in_hand instanceof SProjectileWeaponItem){
-                                    const item = player_info.playerEntity.item_in_hand;
-
-                                    if(item.ammo > 0){
-                                        item.ammo -= 1;
-
-                                        const shot_prefab_id = item.shot_id;
-
-                                        const velocity = direction.extend(item.initial_speed);
-    
-                                        const b = ServerShootProjectileWeapon(this, player_info, pos, velocity, shot_prefab_id, player_info.playerEntity.mouse);
-
-                                        this.enqueueGlobalPacket(
-                                            new ActionDo_ProjectileShotPacket(clientID, createServerTick, pos, velocity, shot_prefab_id, b.entityID)
-                                        );
-
-                                        player_info.personalPackets.enqueue(
-                                            new AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet(clientShotID,b.entityID)
-                                        );
-                                            
-                                            //new AcknowledgeShotPacket(true,clientShotID, shotID, b.entityID)
-                                    }
-                                }
-                                
-                                break;
-                            }
-                            case ItemActionType.HIT_SCAN:{
-
-                                const end = new Vec2(stream.getFloat32(), stream.getFloat32());
-
-                                // if(this.server_state !== ServerGameState.ROUND_ACTIVE) continue;
-
-                                if(player_info.playerEntity.item_in_hand instanceof SHitscanWeapon){
-                                    const item = player_info.playerEntity.item_in_hand;
-
-                                    if(item.ammo > 0){
-                                        item.ammo -= 1;
-
-                                        const end_point = ServerShootHitscanWeapon(this, pos, end, clientID);
-                                
-                                        this.enqueueGlobalPacket(
-                                            new ActionDo_HitscanShotPacket(clientID, createServerTick, pos, end_point,item.item_id)
-                                        );
-                                    }
-                                        
-                                }
-
-                                break;
-                            }
-                            case ItemActionType.FORCE_FIELD_ACTION: {
-
-                                // if(this.server_state !== ServerGameState.ROUND_ACTIVE) continue;
-
-                                if(player_info.playerEntity.item_in_hand instanceof ForceFieldItem_S){
-                                    // console.log("Player forcefield!");
-
-                                    // Only one exists
-                                    const radius = ITEM_LINKER.NameToData("forcefield").radius;
-                                    
-                                    this.createRemoteEntity(new ForceFieldEffect_S(player_info.playerEntity,radius))
-    
-                                    // this.enqueueGlobalPacket(
-                                    //     new ForceFieldEffectPacket(clientID, 0, createServerTick, pos)
-                                    // );
-    
-                                    this.notifyItemRemove(player_info);
-                            
-                                    player_info.playerEntity.clearItem();
-                                }
-
-                                break;
-                            }
-                            case ItemActionType.SHOTGUN_SHOT: {
-
-                                const client_ids = DeserializeTypedArray(stream, netv.uint32());
-
-                                // if(this.server_state !== ServerGameState.ROUND_ACTIVE) continue;
-
-                                if(player_info.playerEntity.item_in_hand instanceof ShotgunWeapon_S){
-                                    const item = player_info.playerEntity.item_in_hand;
-                                    assert(client_ids.length === item.count);
-
-                                    if(item.ammo > 0){
-                                        item.ammo -= 1;
-
-                                        // Get direction that player is looking
-                                        const pEntity = player_info.playerEntity;
-                                        const player_dir = Vec2.subtract(pEntity.mouse, pEntity.position);
-
-                                        const bullets = ShootShotgunWeapon_S(this, player_info, item.item_id, item.shot_id, pos, player_dir)
-
-                                        const entity_id_list: number[] = bullets.map(b => b.entityID);
-                                       
-                                        this.enqueueGlobalPacket(
-                                            new ActionDo_ShotgunShotPacket(clientID, createServerTick, pos, player_dir.clone().extend(item.initial_speed), item.shot_id, item.item_id, entity_id_list)
-                                        );
-
-                                        player_info.personalPackets.enqueue(
-                                            new AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet(clientShotID, client_ids, entity_id_list)
-                                        );
-
-                                    }
-                                }
-
-                                break;
-                            }
-                            case ItemActionType.BEAM: {
-                                const beam_action_type: BeamActionType = stream.getUint8();
-
-                                // if(this.server_state !== ServerGameState.ROUND_ACTIVE) continue;
-
-                                switch(beam_action_type){
-                                    case BeamActionType.START_BEAM: {
-
-                                        const beam = new BeamEffect_S(player_info.playerEntity);
-
-                                        this.enqueueGlobalPacket(
-                                            new ActionDo_BeamPacket(clientID,0,player_info.playerEntity.position, BeamActionType.START_BEAM,beam.beam_id)
-                                        );
-
-                                        player_info.playerEntity.current_beam = beam;
-
-                                        this.entities.addEntity(beam);
-                                        break;
-                                    }
-                                    case BeamActionType.END_BEAM: {
-
-
-                                        this.endPlayerBeam(player_info);
-
-                                        break;
-                                    }
-                                    default: AssertUnreachable(beam_action_type);
-                                }
-                                break;
-                            }
-                            default: AssertUnreachable(item_type);
-                        }
-                        
                         break;
                     }
 

@@ -6,6 +6,7 @@ import { bearevents, EntityEventRegistrationType, EventDispatcherType } from "sh
 import { BufferStreamReader, BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { assert } from "shared/misc/assertstatements";
 import { SparseSet } from "shared/datastructures/sparseset";
+import { netv } from "./sharedlogic/serialization";
 
 
 export interface IEntityScene<TEntity extends AbstractEntity = AbstractEntity> {
@@ -54,6 +55,9 @@ function entityToString(id: EntityID){
     }
     return str
 }
+
+
+export const ENTITY_ID_SERIALIZATION_TYPE_ALIAS = () => netv.uint32();
 
 export function StreamWriteEntityID(stream: BufferStreamWriter, entityID: EntityID): void {
     // const indexNumber = getEntityIndex(entityID);

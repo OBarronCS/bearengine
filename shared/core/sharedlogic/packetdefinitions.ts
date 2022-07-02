@@ -78,30 +78,11 @@ export enum GamePacket {
     TERRAIN_CARVE_CIRCLE, // [x: double, y: double, r: int32]
 
 
-    // Many items will use this packet to communicate their actions
-    GENERAL_DO_ITEM_ACTION, // [creator_id: uint8, ItemActionType: uint8_enum, createServerTick: float32, x: float32, y: float32, ...extra_data]
+    NEW_CLIENT_DO_ITEM_ACTION, // [creator_id: uint8, SharedActionID: uint8, create_server_tick: float32, ...data_depending_on_action_id]
+    NEW_ACK_ITEM_ACTION, // [SharedActionID: uint8_enum, ItemActionAck: uint8_enum, create_server_tick: float32, clientside_action_id: uint32, , ...data_depending_on_action_id]
 
-    // Personal packet, response to REQUEST_ITEM_ACTION
-    ACKNOWLEDGE_ITEM_ACTION, // NOT IMPLEMENTED [ItemActionType: uint8_enum, ItemActionAck: uint8_enum, clientside_action_id: uint32, , ...data];
+
 }
-
-/*
-ITEM ACTION EXTRA DATA DEFINITIONS:
-// CLIENTBOUND
-    PROJECTILE_SHOT: [dir_x: float32, dir_y: float32, shot_prefab_id:uint8, entityIDofBullet];
-    HIT_SCAN: [end_x: float32, end_y: float32, weapon_prefab_id: uint8];
-    FORCE_FIELD: [], // NEVER CALLED
-    BEAM, [BeamActionType]
-
-
-
-// SERVERBOUND
-    PROJECTILE_SHOT: [dir_x: float32, dir_y: float32];
-    HIT_SCAN: [end_x: float32, end_y: float32];
-    FORCE_FIELD: [],
-    SHOTGUN_SHOT: [Array of count [clientside_bullet_id] for each bullet created]
-    BEAM, [BeamActionType]
-*/
 
 
 export enum ServerPacketSubType {
@@ -116,8 +97,8 @@ export enum ServerImmediatePacket {
 export enum ServerBoundPacket {
     PLAYER_POSITION, // [x: float32, y: float32, mouse_x: float32, mouse_y: float32, uint8: animationstate, bool: flipped, isMouseDown: bool, isFDown: bool, isQDown: bool]
 
+    NEW_AUTO_REQUEST_ITEM_ACTION, // [SharedItemActionID: uint8, local_action_id: uint32, ...custom_data_depending_on_id]
 
-    REQUEST_ITEM_ACTION, // [ItemActionType: enum, local_action_id: uint32, createServerTick: float32, x: float32, y: float32, ...data]
 
     REQUEST_CHAT_MESSAGE, // [ShortString (255 chars max), ]
 }

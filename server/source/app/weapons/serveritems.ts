@@ -1,5 +1,5 @@
 import { Effect, Effect2 } from "shared/core/effects";
-import { Clip, CreateShootController, GunshootController, SHOT_LINKER, SimpleWeaponControllerDefinition } from "shared/core/sharedlogic/weapondefinitions";
+import { BeamActionType, Clip, CreateShootController, GunshootController, ItemActionAck, SHOT_LINKER, SimpleWeaponControllerDefinition } from "shared/core/sharedlogic/weapondefinitions";
 import { TickTimer } from "shared/datastructures/ticktimer";
 import { random_int, random_range } from "shared/misc/random";
 import { Line } from "shared/shapes/line";
@@ -8,6 +8,8 @@ import { Coordinate, Vec2 } from "shared/shapes/vec2";
 import { ForcePositionPacket, TerrainCarveCirclePacket } from "../networking/gamepacketwriters";
 import { networkedclass_server, NetworkedEntity, sync } from "../networking/serverentitydecorators";
 import { PlayerInformation, ServerBearEngine } from "../serverengine";
+import { AttemptAction, link_item_action_attempt } from "../networking/serveritemactionlinker"
+
 
 import { ConnectionID } from "../networking/serversocket";
 import { AssertUnreachable } from "shared/misc/assertstatements";
@@ -381,6 +383,7 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
 } 
 
 
+/** Adds bullet to game world and returns it */
 export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: PlayerInformation, position: Vec2, velocity: Vec2, shot_prefab_id: number, mouse: Vec2): ServerProjectileBullet {
 
     const bullet = new ServerProjectileBullet(new Ellipse(new Vec2(),20,20), creatorID.connectionID, creatorID.playerEntity.entityID, SHOT_LINKER.IDToData(shot_prefab_id).bounce);
@@ -842,3 +845,161 @@ export class InstantDeathLaser_S extends NetworkedEntity<"instance_death_laser">
     }
 
 }
+
+
+
+/**** ITEM ACTION IMPLEMENTATIONS  ****/
+
+@link_item_action_attempt("projectile_shot")
+class ProjectileShotAttempt extends AttemptAction<"projectile_shot"> {
+    
+    attempt_action(x: number, y: number, dir_x: number, dir_y: number): void {
+        console.log("Shot attempted!");
+
+        const pos = new Vec2(x,y);
+        const direction = new Vec2(dir_x, dir_y);
+
+        if(this.player.playerEntity.item_in_hand instanceof SProjectileWeaponItem){
+            const item = this.player.playerEntity.item_in_hand;
+
+            if(item.ammo > 0){
+                item.ammo -= 1;
+
+                const shot_prefab_id = item.shot_id;
+
+                const velocity = direction.extend(item.initial_speed);
+    
+                const b = ServerShootProjectileWeapon(this.game, this.player, pos, velocity, shot_prefab_id, this.player.playerEntity.mouse);
+
+                this.respond_success("projectile_shot", x, y, velocity.x, velocity.y, shot_prefab_id, b.entityID);
+                return;
+            }
+        }
+
+        this.respond_fail("projectile_shot", ItemActionAck.INVALID_STATE);
+    }
+    
+}
+
+
+
+@link_item_action_attempt("shotgun_shot")
+class ShotgunShotAttempt extends AttemptAction<"shotgun_shot"> {
+    
+    attempt_action(x: number, y: number): void {
+        if(this.player.playerEntity.item_in_hand instanceof ShotgunWeapon_S){
+            const item = this.player.playerEntity.item_in_hand;
+
+            
+            if(item.ammo > 0){
+                item.ammo -= 1;
+
+                const pos = new Vec2(x,y);
+
+                // Get direction that player is looking
+                const pEntity = this.player.playerEntity;
+                const player_dir = Vec2.subtract(pEntity.mouse, pEntity.position);
+
+                const bullets = ShootShotgunWeapon_S(this.game, this.player, item.item_id, item.shot_id, pos, player_dir)
+
+                const vel = player_dir.clone().extend(item.initial_speed)
+
+                const bullet_entity_id_list: number[] = bullets.map(b => b.entityID);
+                this.respond_success("shotgun_shot", x, y, vel.x, vel.y, item.shot_id, item.item_id, bullet_entity_id_list)
+                return;
+            }
+        }
+
+        this.respond_fail("shotgun_shot", ItemActionAck.INVALID_STATE);
+    }
+    
+
+}
+
+
+
+@link_item_action_attempt("hitscan_shot")
+class HitscanShotAttempt extends AttemptAction<"hitscan_shot"> {
+    
+    attempt_action(start_x: number, start_y: number, end_x: number, end_y: number): void {
+        
+        if(this.player.playerEntity.item_in_hand instanceof SHitscanWeapon){
+            const item = this.player.playerEntity.item_in_hand;
+
+            if(item.ammo > 0){
+                item.ammo -= 1;
+
+                const start = new Vec2(start_x, start_y);
+                const end = new Vec2(end_x, end_y);
+
+                const end_point = ServerShootHitscanWeapon(this.game, start, end, this.player.connectionID);
+                this.respond_success("hitscan_shot",start_x, start_y, end_x, end_y, item.item_id);
+                return;
+            }
+        }
+        this.respond_fail("hitscan_shot", ItemActionAck.INVALID_STATE);
+    }
+
+}
+
+
+@link_item_action_attempt("force_field")
+class ForceFieldAttempt extends AttemptAction<"force_field"> {
+    
+    attempt_action(): void {
+        console.log("Player forcefield!");
+        if(this.player.playerEntity.item_in_hand instanceof ForceFieldItem_S){
+            
+
+            // Only one exists
+            const radius = ITEM_LINKER.NameToData("forcefield").radius;
+            
+            this.game.createRemoteEntity(new ForceFieldEffect_S(this.player.playerEntity,radius))
+
+            this.game.notifyItemRemove(this.player);
+            this.player.playerEntity.clearItem();
+
+            // DO NOT SEND TO ALL. JUST ACK
+            this.private_ack_success("force_field");
+            return;
+        }
+
+        this.respond_fail("force_field", ItemActionAck.INVALID_STATE);
+    }
+}
+
+@link_item_action_attempt("beam")
+class BeamActionAttempt extends AttemptAction<"beam"> {
+    
+    attempt_action(beam_action_type: BeamActionType): void {
+        switch(beam_action_type){
+            case BeamActionType.START_BEAM: {
+
+                const beam = new BeamEffect_S(this.player.playerEntity);
+
+                this.player.playerEntity.current_beam = beam;
+
+                this.game.entities.addEntity(beam);
+
+                this.respond_success("beam", beam_action_type as never, beam.beam_id);
+                return;
+                break;
+            }
+            case BeamActionType.END_BEAM: {
+
+                const id = this.game.endPlayerBeam(this.player);
+
+                this.respond_success("beam", beam_action_type as never, id);
+
+                return;
+                break;
+            }
+            default: AssertUnreachable(beam_action_type);
+        }
+
+        this.respond_fail("beam", ItemActionAck.INVALID_STATE);
+    }
+
+
+}
+

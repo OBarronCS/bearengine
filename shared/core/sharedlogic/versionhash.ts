@@ -1,4 +1,5 @@
 import { ArtRef, LevelRef } from "./assetlinker";
+import { ItemActionDef } from "./itemactions";
 import { MIGRATED_ITEMS } from "./items";
 import { RemoteFunctionStruct, SharedNetworkedEntityDefinitions } from "./networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "./packetdefinitions";
@@ -114,10 +115,12 @@ function CreateHash(manual: number): bigint {
     hash += ObjectHash(LevelRef);
     hash += ObjectHash(RemoteFunctionStruct);
     hash += ObjectHash(SharedNetworkedEntityDefinitions);
+    hash += ObjectHash(ItemActionDef)
     
     hash += ObjectHash(MIGRATED_ITEMS);
     hash += ObjectHash(PROJECTILE_SHOT_DATA);
     hash += ObjectHash(ArtRef);
+    
     // hash += ObjectHash(PROJECTILE_SHOT_DATA);
 
     // Approximate number of bits needed to represent it: 

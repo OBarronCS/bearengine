@@ -3,7 +3,7 @@ import { Sprite, Graphics, Text } from "shared/graphics/graphics";
 import { Effect } from "shared/core/effects";
 import { PacketWriter, SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
-import { CreateShootController, GunshootController, ItemActionType, ProjectileBulletEffects, PROJECTILE_SHOT_DATA, SHOT_LINKER, BeamActionType, HitscanRayEffects } from "shared/core/sharedlogic/weapondefinitions";
+import { CreateShootController, GunshootController, ProjectileBulletEffects, PROJECTILE_SHOT_DATA, SHOT_LINKER, BeamActionType, HitscanRayEffects, ItemActionAck } from "shared/core/sharedlogic/weapondefinitions";
 import { NumberTween } from "shared/core/tween";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { AssertUnreachable } from "shared/misc/assertstatements";
@@ -16,7 +16,7 @@ import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparti
 import { GraphicsPart, SpritePart } from "./parts";
 import { net, networkedclass_client } from "./networking/cliententitydecorators";
 import { ITEM_LINKER, MIGRATED_ITEMS, Test } from "shared/core/sharedlogic/items";
-import { AbstractEntity } from "shared/core/abstractentity";
+import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { NULL_ENTITY_INDEX } from "shared/core/entitysystem";
 import { drawCircle, drawCircleOutline, drawLineArray, drawLineBetweenPoints } from "shared/shapes/shapedrawing";
 import { EmitterAttach } from "./particles";
@@ -33,6 +33,7 @@ import { SimpleBouncePhysics } from "shared/core/sharedlogic/sharedphysics"
 import { RecoilShake, SmoothShake } from "./camera";
 import { BoostDirection } from "../gamelogic/boostzone";
 import { Polygon } from "shared/shapes/polygon";
+import { register_clientside_itemaction, PredictAction } from "./networking/clientitemactionlinker";
 
 
 
@@ -117,28 +118,18 @@ export class ProjectileWeapon<T extends "projectile_weapon" = "projectile_weapon
 
     // private addons: GunAddon[] = TerrainCarverAddons;
 
-    protected readonly shot_name = this.GetStaticValue("shot_name");
-    protected readonly shot_id = SHOT_LINKER.NameToID(this.shot_name);
+    readonly shot_name = this.GetStaticValue("shot_name");
+    readonly shot_id = SHOT_LINKER.NameToID(this.shot_name);
 
     
-    protected readonly bullet_effects = SHOT_LINKER.IDToData(this.shot_id).bullet_effects;
+    readonly bullet_effects = SHOT_LINKER.IDToData(this.shot_id).bullet_effects;
     
 
     protected shoot(game: NetworkPlatformGame): void {
-        const dir = this.direction.normalize();
-        
-        const b = ShootProjectileWeapon_C(game, SHOT_LINKER.IDToData(this.shot_id).bounce, this.bullet_effects, this.position, dir.clone().extend(this.GetStaticValue("initial_speed")), SHOT_LINKER.IDToData(this.shot_id).item_sprite);
 
-        game.entities.addEntity(b);
+        const a = new PredictProjectileShot(this.game, this);
+        a.predict_action();
 
-        const localID = game.networksystem.getLocalShotID();
-        game.networksystem.localShotIDToEntity.set(localID,b)
-
-        game.networksystem.enqueueStagePacket(
-            new ServerBoundProjectileShotPacket(0, localID, this.position.clone(), dir)
-        )
-
-        game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"));
     }
 }
 
@@ -152,25 +143,8 @@ export class ShotgunWeapon extends ProjectileWeapon<"shotgun_weapon"> {
 
     override shoot(game: NetworkPlatformGame): void {
 
-        const bullets = ShootShotgunWeapon_C(game, this.item_id, this.shot_id, this.position, this.direction)
-        
-        const local_id_list: number[] = [];
-
-        for(const b of bullets){
-
-            game.entities.addEntity(b);
-            game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"));
-
-            const localID = game.networksystem.getLocalShotID();
-            game.networksystem.localShotIDToEntity.set(localID,b);
-
-            local_id_list.push(localID);
-        }
-    
-        
-        game.networksystem.enqueueStagePacket(
-            new ServerBoundShotgunShotPacket(0, -1, this.position.clone(), local_id_list)
-        );
+        const a = new PredictShotgunShot(this.game, this);
+        a.predict_action();
         
     }
 }
@@ -290,7 +264,7 @@ export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bounce: boole
     //     addon.modifyShot(bullet);
     // }
 
-    return bullet
+    return bullet;
 }
 
 // Bullets are special, don't follow normal shared entity rules, are not created normally
@@ -342,29 +316,7 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
 }
 
 
-export class ServerBoundProjectileShotPacket extends PacketWriter {
-
-    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public direction: Vec2){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(ServerBoundPacket.REQUEST_ITEM_ACTION);
-        stream.setUint8(ItemActionType.PROJECTILE_SHOT);
-        stream.setUint32(this.localShotID);
-
-        stream.setFloat32(this.createServerTick);
-
-        stream.setFloat32(this.start.x);
-        stream.setFloat32(this.start.y);
-
-        stream.setFloat32(this.direction.x);
-        stream.setFloat32(this.direction.y);
-    }
-}
-
-
-/*  Applies spread, ect; Returns a list of all the created bullets. Does not add to the scene yet */
+/* Applies spread, ect; Returns a list of all the created bullets. Does not add to the scene yet */
 export function ShootShotgunWeapon_C(game: NetworkPlatformGame, shotgun_id: number, shot_id: number, position: Vec2, direction: Vec2): ModularProjectileBullet[] {
     const bullet_data = SHOT_LINKER.IDToData(shot_id);
     const bullet_effects = bullet_data.bullet_effects;
@@ -400,28 +352,6 @@ export function ShootShotgunWeapon_C(game: NetworkPlatformGame, shotgun_id: numb
 }
 
 
-export class ServerBoundShotgunShotPacket extends PacketWriter {
-
-    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public local_ids: number[]){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(ServerBoundPacket.REQUEST_ITEM_ACTION);
-        stream.setUint8(ItemActionType.SHOTGUN_SHOT);
-        stream.setUint32(this.localShotID);
-
-        stream.setFloat32(this.createServerTick);
-
-        stream.setFloat32(this.start.x);
-        stream.setFloat32(this.start.y);
-
-        SerializeTypedArray(stream, netv.uint32(), this.local_ids);
-    }
-}
-
-
-
 
 //@ts-expect-error
 @networkedclass_client("hitscan_weapon")
@@ -431,38 +361,10 @@ export class HitscanWeapon_C extends WeaponItem<"hitscan_weapon"> {
     readonly hitscan_effects: HitscanRayEffects[] = this.GetStaticValue("hitscan_effects");
 
     shoot(game: NetworkPlatformGame): void {
-        const ray = new Line(this.position, Vec2.add(this.position, this.direction.extend(1000)));
-
-        ShootHitscanWeapon_C(game, ray, this.hitscan_effects);
-
-        game.networksystem.enqueueStagePacket(
-            new ServerBoundHitscanPacket(0,game.networksystem.getLocalShotID(), ray.A, ray.B)
-        )
+        const a = new PredictHitscanShot(this.game, this);
+        a.predict_action();
     }
 
-}
-
-export class ServerBoundHitscanPacket extends PacketWriter {
-
-    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public end: Vec2){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(ServerBoundPacket.REQUEST_ITEM_ACTION);
-        stream.setUint8(ItemActionType.HIT_SCAN);
-
-        stream.setUint32(this.localShotID);
-        
-        stream.setFloat32(this.createServerTick);
-
-        stream.setFloat32(this.start.x);
-        stream.setFloat32(this.start.y);
-
-        stream.setFloat32(this.end.x);
-        stream.setFloat32(this.end.y);
-
-    }
 }
 
 export function ShootHitscanWeapon_C(game: NetworkPlatformGame, line: Line, effects: HitscanRayEffects[]): void {
@@ -515,49 +417,30 @@ export class BeamWeapon extends UsableItem<"beam_weapon"> {
         if(!this.active){
             if(mouse_down) {
                 this.active = true;
-                game.networksystem.enqueueStagePacket(
-                    new ServerBoundBeamPacket(0,game.networksystem.getLocalShotID(), this.position, BeamActionType.START_BEAM)
-                );      
 
-                this.beam_effect = this.game.entities.addEntity(new LocalBeamEffect(player));
+                const a = new PredictBeamAction(this.game, this);
+                a.predict_action(); 
+
+                this.beam_effect = this.game.temp_level_subset.addEntity(new LocalBeamEffect(player));
             }
         }
+
         if(this.active && !mouse_down){
             this.active = false;
 
-            game.networksystem.enqueueStagePacket(
-                new ServerBoundBeamPacket(0,game.networksystem.getLocalShotID(), this.position, BeamActionType.END_BEAM)
-            );
+
+            const a = new PredictBeamAction(this.game, this);
+            a.predict_action();
+
 
             if(this.beam_effect){
-                this.game.entities.destroyEntity(this.beam_effect);
+                this.game.temp_level_subset.destroyEntity(this.beam_effect);
                 this.beam_effect = null;
             }
         }
               
         
         return false;
-    }
-}
-
-export class ServerBoundBeamPacket extends PacketWriter {
-
-    constructor(public createServerTick: number, public localShotID: number, public start: Vec2, public action_type: BeamActionType){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(ServerBoundPacket.REQUEST_ITEM_ACTION);
-        stream.setUint8(ItemActionType.BEAM);
-
-        stream.setUint32(this.localShotID);
-        
-        stream.setFloat32(this.createServerTick);
-
-        stream.setFloat32(this.start.x);
-        stream.setFloat32(this.start.y);
-
-        stream.setUint8(this.action_type);
     }
 }
 
@@ -635,9 +518,14 @@ export class ForceFieldItem_C extends UsableItem<"forcefield_item"> {
     operate(dt: number, position: Vec2, mouse: Vec2, mouse_down: boolean, game: NetworkPlatformGame, p: Player): boolean {
 
         if(mouse_down){
-            game.networksystem.enqueueStagePacket(
-                new ForceFieldItemActionPacket(0,this.game.networksystem.getLocalShotID(), this.position)
-            );
+
+
+            // game.networksystem.enqueueStagePacket(
+            //     new ForceFieldItemActionPacket(0,this.game.networksystem.getLocalShotID(), this.position)
+            // );
+
+            const a = new PredictForceFieldAction(this.game, this);
+            a.predict_action();
 
             return true;
         }
@@ -682,27 +570,6 @@ export class ForceFieldEffect_C extends DrawableEntity {
     }
 
 }
-
-export class ForceFieldItemActionPacket extends PacketWriter {
-
-    constructor(public createServerTick: number, public localShotID: number, public start: Vec2){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(ServerBoundPacket.REQUEST_ITEM_ACTION);
-        stream.setUint8(ItemActionType.FORCE_FIELD_ACTION);
-
-        stream.setUint32(this.localShotID);
-        
-        stream.setFloat32(this.createServerTick);
-
-        stream.setFloat32(this.start.x);
-        stream.setFloat32(this.start.y);
-    }
-}
-
-
 
 
 
@@ -955,4 +822,262 @@ export class InstantDeathLaser_C extends DrawableEntity {
     }
 
 }
+
+
+
+
+// ACTIONS
+register_clientside_itemaction("projectile_shot", 
+    (creator_id,game: NetworkPlatformGame, x, y, dir_x: number, dir_y: number, shot_prefab_id: number, bullet_entity_id: number) => {
+
+        console.log("Someone else shot a weapon!")
+
+        const pos = new Vec2(x,y);
+        const velocity = new Vec2(dir_x, dir_y);
+
+        const bullet_effects = SHOT_LINKER.IDToData(shot_prefab_id).bullet_effects;
+        const sprite = SHOT_LINKER.IDToData(shot_prefab_id).item_sprite;
+
+        // Creates bullet, links it to make it a shared entity
+        const b = ShootProjectileWeapon_C(game, SHOT_LINKER.IDToData(shot_prefab_id).bounce, bullet_effects, pos, velocity, sprite);
+
+        // It's now a networked entity
+        //@ts-expect-error
+        game.networksystem.remoteEntities.set(bullet_entity_id, b);
+        game.networksystem.networked_entity_subset.addEntity(b);
+
+});
+
+
+class PredictProjectileShot extends PredictAction<"projectile_shot", ProjectileWeapon> {
+    
+    private predicted_bullet_id: EntityID;
+
+    predict_action(): void {
+        const dir = this.state.direction.normalize();
+        this.request_action("projectile_shot", this.state.x, this.state.y, dir.x, dir.y);
+    
+        // if(predict)
+        // Predict bullet shot
+        const b = ShootProjectileWeapon_C(this.game, SHOT_LINKER.IDToData(this.state.shot_id).bounce, this.state.bullet_effects, this.state.position, dir.clone().extend(this.state.GetStaticValue("initial_speed")), SHOT_LINKER.IDToData(this.state.shot_id).item_sprite);
+        
+        this.game.entities.addEntity(b);
+
+        this.predicted_bullet_id = b.entityID
+
+        this.game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"));
+    }
+
+    ack_success(x: number, y: number, dir_x: number, dir_y: number, shot_prefab_id: number, bullet_entity_id: number): void {
+
+        console.log("Success");
+        const bullet = this.game.entities.getEntity<ModularProjectileBullet>(this.predicted_bullet_id);
+                        
+        // Allows bullet to be controlled remotely
+        if(bullet !== undefined){
+            //@ts-expect-error
+            this.game.networksystem.remoteEntities.set(bullet_entity_id, bullet);
+            this.game.networksystem.networked_entity_subset.forceAddEntityFromMain(bullet);
+        }
+
+    }
+
+    ack_fail(error_code: ItemActionAck): void {
+        console.log("FAILED TO FIRE WEAPON")
+    }
+}
+
+
+
+register_clientside_itemaction("shotgun_shot", 
+    (creator_id, game: NetworkPlatformGame, x: number, y: number, vel_x: number, vel_y: number, shot_prefab_id: number, shotgun_prefab_id: number, bullet_entity_id_list: number[]) => {
+        console.log("Shotgun being shot!");
+
+        const pos = new Vec2(x,y);
+        const velocity = new Vec2(vel_x, vel_y);
+        
+        const bullets = ShootShotgunWeapon_C(game, shotgun_prefab_id, shot_prefab_id, pos, velocity);
+
+        if(bullet_entity_id_list.length !== bullets.length) throw new Error("Client created different number of bullets in shotgun shot than server");
+
+        for(let i = 0; i < bullet_entity_id_list.length; i++) {
+            const remote_id = bullet_entity_id_list[i];
+
+            //@ts-expect-error
+            game.networksystem.remoteEntities.set(remote_id, bullets[i]);
+            game.networksystem.networked_entity_subset.addEntity(bullets[i]);
+        }
+        
+    }
+);
+
+
+
+class PredictShotgunShot extends PredictAction<"shotgun_shot", ShotgunWeapon> {
+    
+    private predicted_bullet_id_list: EntityID[] = [];
+    
+    predict_action(): void {
+        console.log("Request shotgun shot");
+        
+        const bullets = ShootShotgunWeapon_C(this.game, this.state.item_id, this.state.shot_id, this.state.position, this.state.direction)
+        
+
+        for(const b of bullets){
+
+            this.game.entities.addEntity(b);
+            this.game.entities.addEntity(new EmitterAttach(b,"POOF","assets/particle.png"));
+
+            this.predicted_bullet_id_list.push(b.entityID);
+
+        }
+    
+        this.request_action("shotgun_shot", this.state.x, this.state.y);
+    }
+
+    ack_success(x: number, y: number, vel_x: number, vel_y: number, shot_prefab_id: number, shotgun_prefab_id: number, bullet_entity_id_list: number[]): void {
+        console.log("Success in shotgun shot!");
+
+        if(bullet_entity_id_list.length !== this.predicted_bullet_id_list.length) throw new Error("Client created different number of bullets in shotgun shot than server");
+
+        for(let i = 0; i < this.predicted_bullet_id_list.length; i++){
+            const local_id = this.predicted_bullet_id_list[i];
+            const remote_id = bullet_entity_id_list[i];
+
+            // Is an effect
+            const bullet = this.game.entities.getEntity<ModularProjectileBullet>(local_id);
+                                                    
+            // May not exist, for some reason...
+            if(bullet !== undefined){
+                if(bullet.entityID !== NULL_ENTITY_INDEX){
+
+                    //@ts-expect-error
+                    this.game.networksystem.remoteEntities.set(remote_id, bullet);
+                    this.game.networksystem.networked_entity_subset.forceAddEntityFromMain(bullet);
+
+                } else {
+
+                }
+            }
+        }
+
+    }
+
+    ack_fail(error_code: ItemActionAck): void {
+        console.log("Failed shotgun shot");
+
+
+    }
+
+}
+
+
+
+register_clientside_itemaction("hitscan_shot", 
+    (creator_id, game: NetworkPlatformGame, start_x: number, start_y: number, end_x: number, end_y: number, weapon_prefab_id: number) => {
+        
+        console.log('HITSCANS')
+        const start = new Vec2(start_x, start_y);
+        const end = new Vec2(end_x, end_y);
+
+        const ray = new Line(start, end);
+
+        //@ts-expect-error
+        const effects: HitscanRayEffects[] = ITEM_LINKER.IDToData(weapon_prefab_id).hitscan_effects;
+
+        ShootHitscanWeapon_C(game, ray, effects);
+})
+
+
+class PredictHitscanShot extends PredictAction<"hitscan_shot", HitscanWeapon_C> {
+    
+    predict_action(): void {
+        const ray = new Line(this.state.position, Vec2.add(this.state.position, this.state.direction.extend(1000)));
+
+        ShootHitscanWeapon_C(this.game, ray, this.state.hitscan_effects);
+
+        this.request_action("hitscan_shot", ray.A.x, ray.A.y, ray.B.x, ray.B.y);
+    }
+
+    ack_success(start_x: number, start_y: number, end_x: number, end_y: number, weapon_prefab_id: number): void {
+        console.log("hitscan_success")
+    }
+
+    ack_fail(error_code: ItemActionAck): void {
+        console.log("Hitscan failed")
+    }
+
+}
+
+
+/** Never gets called, but necessary for linker */
+register_clientside_itemaction("force_field", (game) => {
+
+});
+
+class PredictForceFieldAction extends PredictAction<"force_field", {}> {
+    
+    predict_action(): void {
+        this.request_action("force_field");
+    }
+
+    ack_success(): void {
+        console.log("Success shield");
+    }
+    ack_fail(error_code: ItemActionAck): void {
+        console.log("Failed shield");
+    }
+
+}
+
+
+
+/** Never gets called, but necessary for linker */
+register_clientside_itemaction("beam", (creator_id, game, beam_action_type: BeamActionType, beam_id) => {
+    switch(beam_action_type){
+        case BeamActionType.START_BEAM:{
+            console.log("Start beam");
+            const beam = new BeamEffect_C(game.networksystem.remotePlayerEntities.get(creator_id));
+            
+            game.networksystem.beamIDToEntity.set(beam_id,beam);
+            game.temp_level_subset.addEntity(beam);
+
+            break;
+        }
+        case BeamActionType.END_BEAM:{
+            console.log("End beam");
+            const get = game.networksystem.beamIDToEntity.get(beam_id);
+            if(get){
+                game.temp_level_subset.destroyEntity(get);
+                game.networksystem.beamIDToEntity.delete(beam_id);
+            }
+        
+            break;
+        }
+        default: AssertUnreachable(beam_action_type);
+    }
+});
+
+
+class PredictBeamAction extends PredictAction<"beam", BeamWeapon> {
+    
+    predict_action(): void {
+        this.request_action("beam", <never>(this.state.active ? BeamActionType.START_BEAM : BeamActionType.END_BEAM));
+    }
+
+    ack_success(): void {
+        console.log("Success beam");
+    }
+    ack_fail(error_code: ItemActionAck): void {
+        console.log("Failed beam");
+    }
+
+}
+
+
+
+
+
+
+
 

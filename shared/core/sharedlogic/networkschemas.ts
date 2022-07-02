@@ -235,7 +235,7 @@ type MergeEventTuples<EVENT extends { argTypes: readonly [...NetworkVariableType
     = MergeTupleLabels<Parameters<EVENT["callback"]>,EVENT["argTypes"]>;
 
 // V1
-type TupleToTypescriptType<T extends readonly NetworkVariableTypes[]> = {
+export type TupleToTypescriptType<T extends readonly NetworkVariableTypes[]> = {
     //@ts-expect-error
     [Key in keyof T]: TypescriptTypeOfNetVar<T[Key]>
 };
@@ -489,8 +489,6 @@ export const SharedEntityLinker = {
 }
 
 
-
-
 //#region Remote function linking
 /* 
     Server connects string to an integer, which the client decodes back into the string.
@@ -498,8 +496,8 @@ export const SharedEntityLinker = {
         ID of a function name is its index in the array
 */
 
-// The format to define networked entities
-interface RemoteFunctionFormat {
+// The format to define remote function calls. Allows for automatic serialization
+export interface RemoteFunctionFormat {
     [key: string] : {
         argTypes: readonly [...NetworkVariableTypes[]],
         callback: (...args: any[]) => void;
@@ -520,8 +518,6 @@ export const RemoteFunctionStruct = DefineSchema<RemoteFunctionFormat>()({
 } as const);
 
 export type RemoteFunction = typeof RemoteFunctionStruct;
-
-
 
 
 

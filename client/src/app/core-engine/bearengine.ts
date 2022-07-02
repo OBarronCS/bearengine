@@ -10,7 +10,7 @@ import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { ColliderPart, CollisionManager } from "shared/core/entitycollision";
 
-import { frameEditor } from "../gamelogic/testlevelentities";
+import { frameEditor, TestIK } from "../gamelogic/testlevelentities";
 import { EngineKeyboard } from "../input/keyboard";
 import { EngineMouse } from "../input/mouse";
 import { CameraSystem } from "./camera";
@@ -223,7 +223,7 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
     public mainmenu_scene: MainMenuScene;
     public level_scene: LevelScene;
 
-    //
+    // Cleared at the end of levels
     temp_level_subset = this.entities.createSubset();
 
     public player_controller = new DefaultInputController(this.engine.keyboard, this.engine.mouse, player_controls_map);
@@ -385,7 +385,7 @@ export class MainMenuScene extends BearScene<NetworkPlatformGame> {
 
     }
 
-    update(dt: number): void {}
+    update(dt: number): void {};
 
     
     on_enable(): void {
@@ -488,9 +488,32 @@ export class LevelScene extends BearScene<NetworkPlatformGame> {
 
 }
 
+
+export class IKScene extends BearScene<NetworkPlatformGame> {
+    
+    subset = this.game.entities.createSubset();
+    
+    init(): void {
+    
+    }
+    update(dt: number): void {
+    
+    }
+    
+    on_enable(): void {
+        const ik = this.subset.addEntity(new TestIK());
+    }
+
+    on_disable(): void {
+        this.subset.clear();
+    }
+
+}
+
+
 class TestEntityForVideo extends Entity {
         
-    private sprite = this.addPart(new SpritePart("tree.gif"));
+    private sprite = this.addPart(new SpritePart("flower.png"));
     private collider = this.addPart(new ColliderPart(dimensions(200,200), Vec2.ZERO));
 
     private total = 0
@@ -512,7 +535,7 @@ class TestEntityForVideo extends Entity {
     @bearevents.collision(RemotePlayer)
     dddd(other: RemotePlayer): void{
         // Requires that the other thing has a collider 
-        console.log("collision with: " + other.owner.constructor.name);
+        console.log("collision with: " + other.constructor.name);
         this.total++;
     }
 

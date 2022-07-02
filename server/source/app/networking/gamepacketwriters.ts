@@ -1,9 +1,10 @@
 import { StreamWriteEntityID } from "shared/core/entitysystem";
+import { ItemActionDef, ItemActionLinker } from "shared/core/sharedlogic/itemactions";
 import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker, SharedNetworkedEntities, SharedNetworkedEntityDefinitions } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket } from "shared/core/sharedlogic/packetdefinitions";
-import { GetTemplateRealType, netv, SerializeTypedArray, SerializeTypedVar, SharedTemplates } from "shared/core/sharedlogic/serialization";
+import { GetTemplateRealType, netv, SerializeTuple, SerializeTypedArray, SerializeTypedVar, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { ClientPlayState, MatchGamemode } from "shared/core/sharedlogic/sharedenums";
-import { BeamActionType, ItemActionAck, ItemActionType } from "shared/core/sharedlogic/weapondefinitions";
+import { BeamActionType, ItemActionAck } from "shared/core/sharedlogic/weapondefinitions";
 import { BufferStreamWriter } from "shared/datastructures/bufferstream";
 import { Vec2 } from "shared/shapes/vec2";
 import { SBaseItem } from "../weapons/serveritems";
@@ -386,185 +387,6 @@ export class TerrainCarveCirclePacket extends PacketWriter {
 
 
 
-export class ActionDo_HitscanShotPacket extends PacketWriter {
-
-    constructor(public playerID: number, public createServerTick: number, public start: Vec2, public end: Vec2, public prefab_id: number){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.GENERAL_DO_ITEM_ACTION);
-        
-        stream.setUint8(this.playerID);
-        stream.setUint8(ItemActionType.HIT_SCAN);
-        
-        stream.setFloat32(this.createServerTick);
-
-        stream.setFloat32(this.start.x);
-        stream.setFloat32(this.start.y);
-
-        stream.setFloat32(this.end.x);
-        stream.setFloat32(this.end.y);
-
-        stream.setUint8(this.prefab_id);
-
-    }
-}
-
-
-export class ActionDo_ProjectileShotPacket extends PacketWriter {
-
-    constructor(public creator_player_id: number, public createServerTick: number, public start: Vec2, public velocity: Vec2, public shot_prefab_id: number, public entity_id: number){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.GENERAL_DO_ITEM_ACTION);
-        
-        stream.setUint8(this.creator_player_id);
-        stream.setUint8(ItemActionType.PROJECTILE_SHOT);
-        
-        stream.setFloat32(this.createServerTick);
-
-        stream.setFloat32(this.start.x);
-        stream.setFloat32(this.start.y);
-
-
-
-
-        stream.setFloat32(this.velocity.x);
-        stream.setFloat32(this.velocity.y);
-
-        stream.setUint8(this.shot_prefab_id);
-        StreamWriteEntityID(stream, this.entity_id);
-    }
-}
-
-export class ActionDo_ShotgunShotPacket extends PacketWriter {
-
-    constructor(public creator_player_id: number, public createServerTick: number, public start: Vec2, public velocity: Vec2, public shot_prefab_id: number, public shotgun_prefab_id: number, public entity_id_list: number[]){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.GENERAL_DO_ITEM_ACTION);
-        
-        stream.setUint8(this.creator_player_id);
-        stream.setUint8(ItemActionType.SHOTGUN_SHOT);
-        
-        stream.setFloat32(this.createServerTick);
-
-        stream.setFloat32(this.start.x);
-        stream.setFloat32(this.start.y);
-
-        stream.setFloat32(this.velocity.x);
-        stream.setFloat32(this.velocity.y);
-
-        stream.setUint8(this.shot_prefab_id);
-        stream.setUint8(this.shotgun_prefab_id);
-
-        // ENTITY SERIALIZE
-        SerializeTypedArray(stream, netv.uint32(), this.entity_id_list);
-        // StreamWriteEntityID(stream, this.entity_id);
-    }
-}
-
-export class ActionDo_BeamPacket extends PacketWriter {
-
-    constructor(public playerID: number, public createServerTick: number, public start: Vec2, public action_type: BeamActionType, public beam_id: number){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.GENERAL_DO_ITEM_ACTION);
-        
-        stream.setUint8(this.playerID);
-        stream.setUint8(ItemActionType.BEAM);
-        
-        stream.setFloat32(this.createServerTick);
-
-        stream.setFloat32(this.start.x);
-        stream.setFloat32(this.start.y);
-
-        stream.setUint8(this.action_type);
-        stream.setUint32(this.beam_id);
-    }
-}
-
-
-// ForceFields are created through entities, so this is not needed
-// export class ForceFieldEffectPacket extends PacketWriter {
-
-//     constructor(public playerID: number, public createServerTick: number,  public start: Vec2){
-//         super(false);
-//     }
-
-//     write(stream: BufferStreamWriter){
-//         stream.setUint8(GamePacket.SHOOT_WEAPON);
-//         stream.setUint8(this.playerID);
-
-//         stream.setUint8(ItemActionType.FORCE_FIELD_ACTION);
-        
-//         stream.setFloat32(this.createServerTick);
-
-//         stream.setFloat32(this.start.x);
-//         stream.setFloat32(this.start.y);
-//     }
-// }
-
-
-/** General ack packet */
-export class AcknowledgeItemActionPacket extends PacketWriter {
-
-    constructor(public action_type: ItemActionType, public success: ItemActionAck, public clientside_action_id: number){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.ACKNOWLEDGE_ITEM_ACTION);
-        stream.setUint8(this.action_type);
-        stream.setUint8(this.success);
-        stream.setUint32(this.clientside_action_id);
-    }
-}
-
-export class AcknowledgeItemAction_PROJECTILE_SHOT_SUCCESS_Packet extends PacketWriter {
-
-    constructor(public clientside_action_id: number, public bullet_entity_id: number){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.ACKNOWLEDGE_ITEM_ACTION);
-        stream.setUint8(ItemActionType.PROJECTILE_SHOT);
-        stream.setUint8(ItemActionAck.SUCCESS);
-        stream.setUint32(this.clientside_action_id);
-
-        StreamWriteEntityID(stream, this.bullet_entity_id);
-    }
-}
-
-export class AcknowledgeItemAction_SHOTGUN_SHOT_SUCCESS_Packet extends PacketWriter {
-
-    constructor(public clientside_action_id: number, public local_ids: number[], public bullet_entity_id_list: number[]){
-        super(false);
-    }
-
-    write(stream: BufferStreamWriter){
-        stream.setUint8(GamePacket.ACKNOWLEDGE_ITEM_ACTION);
-        stream.setUint8(ItemActionType.SHOTGUN_SHOT);
-        stream.setUint8(ItemActionAck.SUCCESS);
-        stream.setUint32(this.clientside_action_id);
-
-        SerializeTypedArray(stream, netv.uint32(), this.local_ids);
-        SerializeTypedArray(stream, netv.uint32(), this.bullet_entity_id_list);
-        //StreamWriteEntityID(stream, this.bullet_entity_id);
-    }
-}
-
-
-
-
 /** Personal packet */
 export class ForcePositionPacket extends PacketWriter {
 
@@ -592,3 +414,92 @@ export class ConfirmVotePacket extends PacketWriter {
         stream.setBool(this.enabled);
     }
 }
+
+
+
+// Sent to all
+export class NewClientDoItemAction_Success_Packet<E extends keyof typeof ItemActionDef> extends PacketWriter {
+
+    constructor(public creator_id: number,
+                public action_name: E, 
+                public create_server_tick: number, 
+                public args: Parameters<NetCallbackTypeV1<typeof ItemActionDef[E]["clientbound"]>>
+                ){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.NEW_CLIENT_DO_ITEM_ACTION);
+        
+        const action_id = ItemActionLinker.NameToID(this.action_name);
+        
+        stream.setUint8(this.creator_id)
+        stream.setUint8(action_id);
+
+        stream.setFloat32(this.create_server_tick);
+
+        //@ts-expect-error
+        SerializeTuple(stream, ItemActionLinker.IDToData(action_id).clientbound.argTypes, this.args);
+    }
+}
+
+
+
+// Sent to initiator
+export class NewAckItemAction_Success_Packet<E extends keyof typeof ItemActionDef> extends PacketWriter {
+
+    constructor(public action_name: E, 
+                public create_server_tick: number, 
+                public client_action_id: number,
+                public args: Parameters<NetCallbackTypeV1<typeof ItemActionDef[E]["clientbound"]>>
+                ){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.NEW_ACK_ITEM_ACTION);
+        
+        const action_id = ItemActionLinker.NameToID(this.action_name);
+        
+        stream.setUint8(action_id);
+
+        stream.setUint8(ItemActionAck.SUCCESS);
+
+        stream.setFloat32(this.create_server_tick);
+        stream.setUint32(this.client_action_id);
+
+        //@ts-expect-error
+        SerializeTuple(stream, ItemActionLinker.IDToData(action_id).clientbound.argTypes, this.args);
+    }
+}
+
+
+export class NewAckItemAction_Fail_Packet<E extends keyof typeof ItemActionDef> extends PacketWriter {
+
+    constructor(public action_name: E, 
+                public action_code: ItemActionAck,
+                public create_server_tick: number, 
+                public client_action_id: number,
+                ){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.NEW_ACK_ITEM_ACTION);
+        
+        const action_id = ItemActionLinker.NameToID(this.action_name);
+        
+        stream.setUint8(action_id);
+
+        stream.setUint8(this.action_code);
+
+        stream.setFloat32(this.create_server_tick);
+        stream.setUint32(this.client_action_id);
+
+    }
+}
+
+
+
+
+

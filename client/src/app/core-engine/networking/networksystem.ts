@@ -1,7 +1,7 @@
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { EntitySystem, NULL_ENTITY_INDEX, StreamReadEntityID } from "shared/core/entitysystem";
-import { NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker } from "shared/core/sharedlogic/networkschemas";
+import { NetCallbackTupleType, NetCallbackTypeV1, PacketWriter, RemoteFunction, RemoteFunctionLinker, SharedEntityLinker } from "shared/core/sharedlogic/networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "shared/core/sharedlogic/packetdefinitions";
 import { Subsystem } from "shared/core/subsystem";
 import { InterpolatedVarType, SharedEntityClientTable } from "./cliententitydecorators";
@@ -17,7 +17,8 @@ import { NETWORK_VERSION_HASH } from "shared/core/sharedlogic/versionhash";
 import { ParseTiledMapData, TiledMap } from "shared/core/tiledmapeditor";
 import { DummyLevel } from "../gamelevel";
 import { Vec2 } from "shared/shapes/vec2";
- 
+import { CLIENT_REGISTERED_ITEMACTIONS, PredictAction, RequestActionPacket } from "./clientitemactionlinker"
+
 import { ClientPlayState, MatchGamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { Deque } from "shared/datastructures/deque";
@@ -26,11 +27,12 @@ import { BeamEffect_C, ForceFieldEffect_C, ModularProjectileBullet, ShootHitscan
 import { Line } from "shared/shapes/line";
 import { EmitterAttach } from "../particles";
 import { PARTICLE_CONFIG } from "shared/core/sharedlogic/sharedparticles";
-import { BeamActionType, HitscanRayEffects, ItemActionAck, ItemActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
-import { DeserializeTypedArray, DeserializeTypedVar, netv, SharedTemplates } from "shared/core/sharedlogic/serialization";
+import { BeamActionType, HitscanRayEffects, ItemActionAck, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
+import { DeserializeTuple, DeserializeTypedArray, DeserializeTypedVar, netv, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { Trie } from "shared/datastructures/trie";
 import { LevelRefLinker } from "shared/core/sharedlogic/assetlinker";
 import { LabelWidget, WidgetAlphaTween } from "../../ui/widget";
+import { ItemActionDef, ItemActionLinker } from "shared/core/sharedlogic/itemactions";
 
 class ClientInfo {
     uniqueID: number;
@@ -65,11 +67,15 @@ const MS_PER_PING = 2500;
 export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
 
-    private incShotID = 0;
-
-    getLocalShotID(){
-        return this.incShotID++;
+    private next_local_action_id = 0;
+    
+    getNewLocalActionID(){
+        return this.next_local_action_id++;
     }
+
+    private pending_ack_actions = new Map<number,PredictAction<any,any>>();
+
+
 
     isConnected(){
         return this.network.CONNECTED;
@@ -95,11 +101,12 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     /** Set of all other clients */
     public otherClients = new SparseSet<ClientInfo>(256);
 
-    private remotePlayerEntities: Map<number, RemotePlayer> = new Map();
+    remotePlayerEntities: Map<number, RemotePlayer> = new Map();
 
 
-    private remoteEntities: Map<number, Entity> = new Map();
-    private networked_entity_subset = this.game.entities.createSubset();
+    // 
+    remoteEntities: Map<number, Entity> = new Map();
+    networked_entity_subset = this.game.entities.createSubset();
 
 
     public readonly command_autocomplete = {
@@ -155,7 +162,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     
 
     // Predicted values exist here while shot awaiting acknowledgement from the server
-    public readonly localShotIDToEntity: Map<number,AbstractEntity> = new Map();
     public readonly beamIDToEntity: Map<number, BeamEffect_C> = new Map();
     
 
@@ -169,7 +175,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     }
 
     quit_server(){
-        this.incShotID = 0;
+        this.next_local_action_id = 0;
         this.packets.clear();
         this.sendStream.clear_to_zero();
         this.stagePacketsToSerialize = [];
@@ -190,8 +196,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
         this.byteAmountReceived.clear();
         this.bytesPerSecond = 0;
 
-        this.localShotIDToEntity.clear();
         this.beamIDToEntity.clear();
+        this.pending_ack_actions.clear();
+
 
 
         this.network.disconnect();
@@ -264,6 +271,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             this.remoteFunctionCallMap.set(remotefunction.remoteFunctionName, remotefunction.methodName)
         }
         
+
+        CLIENT_REGISTERED_ITEMACTIONS.init();
+
     }
 
     // This entityID is from the network, and doesn't contain the version number
@@ -323,6 +333,23 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
         p.x = x;
         p.y = y;
+    }
+
+
+    // @ts-expect-error
+    request_item_action<E extends keyof typeof ItemActionDef>(name: E, action_object: PredictAction<E,any>,...data: NetCallbackTupleType<typeof ItemActionDef[E]["serverbound"]>){
+        const new_action_id = this.getNewLocalActionID();
+        action_object.local_action_id = new_action_id;
+
+        this.pending_ack_actions.set(new_action_id,action_object);
+
+        
+        // Write to the packet stream with the tuple of data.
+
+        this.enqueueStagePacket(
+            //@ts-expect-error
+            new RequestActionPacket(name, new_action_id, data)
+        );
     }
 
 
@@ -630,6 +657,10 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                             this.beamIDToEntity.forEach(v => v.destroy());
                             this.beamIDToEntity.clear();
+
+                            // FOR NOW, fail all active actions.
+                            this.pending_ack_actions.forEach(a => a.ack_fail(ItemActionAck.INVALID_STATE));
+                            this.pending_ack_actions.clear();
 
 
                             this.currentPlayState = ClientPlayState.ACTIVE;
@@ -952,212 +983,6 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             break;
                         }
 
-                        case GamePacket.GENERAL_DO_ITEM_ACTION: {
-
-                            const creator_id = stream.getUint8();
-                            const item_type: ItemActionType = stream.getUint8();
-
-                            const createServerTick = stream.getFloat32();
-                            const pos = new Vec2(stream.getFloat32(), stream.getFloat32());
-
-
-                            switch(item_type){
-                                case ItemActionType.PROJECTILE_SHOT:{
-                                    const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
-
-                                    const shot_prefab_id = stream.getUint8();
-
-                                    const remoteEntityID = StreamReadEntityID(stream);
-
-                                    // Only create it if someone else shot it
-                                    if(this.MY_CLIENT_ID !== creator_id){
-
-                                        const bullet_effects = SHOT_LINKER.IDToData(shot_prefab_id).bullet_effects;
-                                        const sprite = SHOT_LINKER.IDToData(shot_prefab_id).item_sprite;
-
-                                        // Creates bullet, links it to make it a shared entity
-                                        const b = ShootProjectileWeapon_C(this.game, SHOT_LINKER.IDToData(shot_prefab_id).bounce, bullet_effects, pos, velocity, sprite);
-
-
-                                        // It's now a networked entity
-                                        //@ts-expect-error
-                                        this.remoteEntities.set(remoteEntityID, b);
-                                        this.networked_entity_subset.addEntity(b);
-
-                                    }
-                                    break;
-                                }
-                                case ItemActionType.HIT_SCAN:{
-                                    const end = new Vec2(stream.getFloat32(), stream.getFloat32());
-                                    const prefab_id = stream.getUint8();
-
-                                    const ray = new Line(pos, end);
-                                    if(this.MY_CLIENT_ID !== creator_id){
-                                        //@ts-expect-error
-                                        const effects: HitscanRayEffects[] = ITEM_LINKER.IDToData(prefab_id).hitscan_effects;
-
-                                        ShootHitscanWeapon_C(this.game, ray, effects);
-                                    }
-                                    break;
-                                }
-                                case ItemActionType.FORCE_FIELD_ACTION: {
-
-                                    // if(this.MY_CLIENT_ID === creatorID){
-                                    //     this.game.entities.addEntity(new ForceFieldEffect_C(this.game.player));
-                                    // } else {
-                                    //     const p = this.remotePlayerEntities.get(creatorID);
-                                    //     this.game.entities.addEntity(new ForceFieldEffect_C(p));
-                                    // }
-                                    
-                                    break;
-                                }
-                                case ItemActionType.SHOTGUN_SHOT: {
-                                    const velocity = new Vec2(stream.getFloat32(), stream.getFloat32());
-
-                                    const shot_prefab_id = stream.getUint8();
-                                    const shotgun_id = stream.getUint8();
-
-
-
-                                    const remote_entity_id_list = DeserializeTypedArray(stream, netv.uint32());
-
-                                    // Only create it if someone else shot it
-                                    if(this.MY_CLIENT_ID !== creator_id){
-
-                                        const bullets = ShootShotgunWeapon_C(this.game, shotgun_id, shot_prefab_id, pos, velocity);
-
-                                        if(remote_entity_id_list.length !== bullets.length) throw new Error();
-
-                                        for(let i = 0; i < remote_entity_id_list.length; i++) {
-                                            const remote_id = remote_entity_id_list[i];
-
-                                            //@ts-expect-error
-                                            this.remoteEntities.set(remote_id, bullets[i]);
-                                            this.networked_entity_subset.addEntity(bullets[i]);
-                                        }
-                                    }
-                                    break;
-                                }
-                                case ItemActionType.BEAM: {
-                                    const action_type: BeamActionType = stream.getUint8();
-                                    const beam_id = stream.getUint32();
-
-                                    if(this.MY_CLIENT_ID === creator_id) continue;
-
-                                    switch(action_type){
-                                        case BeamActionType.START_BEAM:{
-                                            
-                                            const beam = new BeamEffect_C(this.remotePlayerEntities.get(creator_id));
-                                            
-                                            this.beamIDToEntity.set(beam_id,beam);
-
-                                            this.game.temp_level_subset.addEntity(beam);
-
-                                            break;
-                                        }
-                                        case BeamActionType.END_BEAM:{
-                                            console.log("END BEAM")
-                                            const get = this.beamIDToEntity.get(beam_id);
-                                            if(get){
-                                                this.game.temp_level_subset.destroyEntity(get);
-                                                this.beamIDToEntity.delete(beam_id);
-                                            }
-                                        
-                                            break;
-                                        }
-                                        default: AssertUnreachable(action_type);
-                                    }
-                                    break;
-                                }
-                                default: AssertUnreachable(item_type);
-                            }
-
-                            break;
-                        }
-
-                        case GamePacket.ACKNOWLEDGE_ITEM_ACTION: {
-                            const action_type: ItemActionType = stream.getUint8();
-                            const success_state: ItemActionAck = stream.getUint8()
-                            const clientside_action_id = stream.getUint32();
-                        
-                            switch(action_type){
-                                case ItemActionType.FORCE_FIELD_ACTION: {
-                                    break;
-                                }
-                                case ItemActionType.HIT_SCAN: {
-                                    break;
-                                }
-                                case ItemActionType.PROJECTILE_SHOT: {
-
-                                    if(success_state === ItemActionAck.SUCCESS){
-
-                                        const remoteEntityID = StreamReadEntityID(stream);
-
-                                        // Is an effect
-                                        const bullet = this.localShotIDToEntity.get(clientside_action_id) as ModularProjectileBullet;
-                                        
-                                        // May not exist, for some reason...
-                                        if(bullet !== undefined){
-                                            if(bullet.entityID !== NULL_ENTITY_INDEX){
-                                                
-                                                this.localShotIDToEntity.delete(clientside_action_id);
-        
-        
-                                                //@ts-expect-error
-                                                this.remoteEntities.set(remoteEntityID, bullet);
-                                                this.networked_entity_subset.forceAddEntityFromMain(bullet);
-        
-                                            } else {
-                                                // This entity has already been destroyed.
-                                                // This error shows why storing the entityID would be 
-                                                // more safe in this case
-                                            }
-                                        }
-                                    }
-                                    break;
-                                }
-                                case ItemActionType.SHOTGUN_SHOT: {
-                                    if(success_state === ItemActionAck.SUCCESS){
-
-                                        const local_ids = DeserializeTypedArray(stream, netv.uint32());
-                                        const remote_entity_id_list = DeserializeTypedArray(stream, netv.uint32());
-                                        // const clientside_action_id: never;;
-                                        for(let i = 0; i < local_ids.length; i++){
-                                            const local_id = local_ids[i];
-                                            const remote_id = remote_entity_id_list[i];
-                         
-                                            // Is an effect
-                                            const bullet = this.localShotIDToEntity.get(local_id) as ModularProjectileBullet;
-                                                                                    
-                                            // May not exist, for some reason...
-                                            if(bullet !== undefined){
-                                                if(bullet.entityID !== NULL_ENTITY_INDEX){
-                                                    
-                                                    this.localShotIDToEntity.delete(local_id);
-
-                                                    //@ts-expect-error
-                                                    this.remoteEntities.set(remote_id, bullet);
-                                                    this.networked_entity_subset.forceAddEntityFromMain(bullet);
-
-                                                } else {
-
-                                                }
-                                            }
-                                        }
-                                    }
-                                    break;
-                                }
-                                case ItemActionType.BEAM: {
-                                    throw new Error("NOT IMPLEMENTED");
-                                    break;
-                                }
-                                default: AssertUnreachable(action_type);
-                            }
-
-
-                            break;
-                        }
-
                         case GamePacket.CONFIRM_VOTE: {
                             const mode: MatchGamemode = stream.getUint8();
                             const enabled = stream.getBool();
@@ -1176,6 +1001,61 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 this.game.terrain.mesh_events.dispatch("on_mutate", t);
                             }
 
+
+                            break;
+                        }
+
+                        case GamePacket.NEW_CLIENT_DO_ITEM_ACTION: {
+
+                            const creator_id = stream.getUint8();
+                            const action_id = stream.getUint8();
+                            const create_server_tick = stream.getFloat32();
+
+                            const net_tuple_def = ItemActionLinker.IDToData(action_id).clientbound.argTypes;
+                
+                            //@ts-expect-error
+                            const arg_data = DeserializeTuple(stream, net_tuple_def);
+
+                            if(creator_id === this.MY_CLIENT_ID){
+                                console.error("Received DO_ACTION for an action I initiated, " + ItemActionLinker.IDToName(action_id));
+                            }
+
+                            const func = CLIENT_REGISTERED_ITEMACTIONS.id_to_function_map.get(action_id);
+                            func(creator_id, this.game, ...arg_data);
+
+                            break;
+                        }
+                        case GamePacket.NEW_ACK_ITEM_ACTION: {
+                            
+                            const action_id = stream.getUint8();
+                            const ack_code: ItemActionAck = stream.getUint8();
+                            const create_server_tick = stream.getFloat32();
+                            const local_action_id = stream.getUint32();
+
+                            
+                            const net_tuple_def = ItemActionLinker.IDToData(action_id).clientbound.argTypes;
+                            
+                            const predicted_action = this.pending_ack_actions.get(local_action_id);
+
+                            if(ack_code === ItemActionAck.SUCCESS){
+                                //@ts-expect-error
+                                const arg_data = DeserializeTuple(stream, net_tuple_def);
+
+                                if(predicted_action === undefined){
+                                    console.log("Received item ack for unknown action_id: ", action_id, ItemActionLinker.IDToName(action_id));
+                                    break;
+                                }
+
+                                //@ts-ignore
+                                predicted_action.ack_success(...arg_data);
+                            } else {
+                                if(predicted_action === undefined){
+                                    console.log("Received item ack for unknown action_id: ", action_id, ItemActionLinker.IDToName(action_id));
+                                    break;
+                                }
+
+                                predicted_action.ack_fail(ack_code);
+                            }
 
                             break;
                         }

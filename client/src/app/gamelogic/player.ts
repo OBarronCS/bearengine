@@ -17,7 +17,6 @@ import { SavePlayerAnimation } from "./testlevelentities";
 import { WeaponItem, ItemDrawer, UsableItem } from "../core-engine/clientitems";
 import { EmitterAttach } from "../core-engine/particles";
 import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparticles";
-import { Effect } from "shared/core/effects";
 import { random_range } from "shared/misc/random";
 import { PhysicsDotEntity } from "./firstlevel";
 import { easeInOutExpo, NumberTween, VecTween } from "shared/core/tween";
@@ -1563,7 +1562,7 @@ export class Player extends DrawableEntity {
 
 export class RemotePlayer extends Entity {
 
-    // colliderPart = this.addPart(new ColliderPart(dimensions(48,30),{x:24, y:15}));
+    //colliderPart = this.addPart(new ColliderPart(dimensions(48,30),{x:24, y:15}));
     readonly id: number;
     public health = 100;
 

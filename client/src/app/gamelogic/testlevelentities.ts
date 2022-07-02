@@ -2191,9 +2191,10 @@ export function loadTestLevel(engine: BearEngine): void {
 
     }
     //this.addEntity(new DynAABBTest());
+    
+}
 
-
-    class IK extends DrawableEntity {
+export class TestIK extends DrawableEntity {
         
         // Min 2 points, this list creates the IK 'arm'
         private points: Vec2[] = []
@@ -2256,17 +2257,11 @@ export function loadTestLevel(engine: BearEngine): void {
 
 
         draw(g: Graphics): void {
-            drawPoint(g, this.points[0])
-            drawLineArray(g, this.points, 0xFF0000, false)
+            drawPoint(g, this.points[0]);
+            drawLineArray(g, this.points, 0x00FF00, false)
         }
 
     }
-    // this.addEntity(new IK())
-
-
-    
-}
-
 
 
 class ConwaysLife {
