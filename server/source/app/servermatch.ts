@@ -2,6 +2,7 @@ import { readFileSync } from "fs";
 import path from "path";
 import { LevelRef, LevelRefLinker } from "shared/core/sharedlogic/assetlinker";
 import { RandomItemID } from "shared/core/sharedlogic/items";
+import { MatchGamemode } from "shared/core/sharedlogic/sharedenums";
 import { TiledMap, ParseTiledMapData } from "shared/core/tiledmapeditor";
 import { choose } from "shared/datastructures/arrayutils";
 import { random, random_int } from "shared/misc/random";
@@ -81,8 +82,12 @@ interface NextWorldManager {
  */
 export class Match {
 
+    match_over = false;
+
     constructor(
         public game: ServerBearEngine,
+        // Used to check if in lobby, network what mode we are in
+        public readonly gamemode: MatchGamemode,
         public round_ctor: new(game: ServerBearEngine, world_id: keyof typeof LevelRef) => Round, 
         public round_count: number, 
         public next_world_manager: NextWorldManager)
@@ -110,11 +115,13 @@ export class Match {
             this.current_round.end();
 
             this.round_winners.winners.push(this.current_round.round_winner);
-
             
-            this.game.queue_start_new_round(this.gamemode, LevelRefLinker.IDToName(this.level_id));
 
-            this.current_round = new this.round_ctor(this.game, this.next_world_manager.next_level());
+            const next_level = this.next_world_manager.next_level();
+
+            this.current_round = new this.round_ctor(this.game, next_level);
+            this.game.start_of_new_round(next_level);
+
             this.current_round.start();
         }
     }
@@ -122,6 +129,8 @@ export class Match {
 
 
 abstract class Round {
+
+    readonly dead_players: PlayerInformation[] = [];
 
     round_timer = 0;
 
@@ -157,13 +166,12 @@ export class LobbyRound extends Round {
 export class FreeForAllRound extends Round {
 
     private round_over_timer: number = 0;
-    private readonly dead_players: PlayerInformation[] = [];
-
+    private round_over_wait_flag = false;
 
     start(): void {}
 
     update(): void {
-        if(!this.round_over){
+        if(!this.round_over_wait_flag){
             // Spawn items
             if(random() > .98){
                 const random_itemprefab_id = RandomItemID();
@@ -197,6 +205,7 @@ export class FreeForAllRound extends Round {
 
             // Round over condition
             const all_players = this.game.entities.view(ServerPlayerEntity);
+            // console.log(all_players.length)
             if(all_players.length <= 1){
                 // One person left, the winner
                 if(all_players.length === 1){
@@ -207,8 +216,7 @@ export class FreeForAllRound extends Round {
                 this.game.broadcast_packet_safe(
                     new EndRoundPacket([...this.dead_players.map(p => p.connectionID)].reverse(), ROUND_OVER_REST_TIMER_TICKS)
                 );
-
-                this.round_over = true;
+                this.round_over_wait_flag = true;
             }
 
         } else {

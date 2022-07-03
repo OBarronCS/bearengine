@@ -337,7 +337,7 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         }
     }
 
-    private destroyEntityImmediately(entityID: EntityID){
+    destroyEntityImmediately(entityID: EntityID){
         if(entityID === NULL_ENTITY_INDEX){
             console.log("TRYING TO DELETE NULL ENTITY");
             return;
