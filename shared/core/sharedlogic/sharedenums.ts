@@ -1,11 +1,14 @@
 
 export enum MatchGamemode {
     LOBBY,
-    FIRST_TO_N,
-    N_ROUNDS,
-    INFINITE,
-    GUN_GAME,
-    TEAMS
+    FREE_FOR_ALL,
+    // GUN_GAME,
+    // TEAMS
+
+    // DURATIONS:
+        // FIRST_TO_N,
+        // N_ROUNDS,
+        // INFINITE,
 }
 
 export enum ClientPlayState {

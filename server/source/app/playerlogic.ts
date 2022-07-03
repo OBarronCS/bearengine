@@ -74,7 +74,7 @@ export class ServerPlayerEntity extends ServerEntity {
 
     update(dt: number): void {
 
-        if(this.game.active_scene.round_timer > ROUND_START_WAIT_SECONDS * this.game.TICK_RATE){
+        if(this.game.active_match.current_round.round_timer > ROUND_START_WAIT_SECONDS * this.game.TICK_RATE){
             const lasers = this.game.entities.view(InstantDeathLaser_S);
             for(const laser of lasers){
                 if(check_line_movingball_collision(laser.line, 20, this.last_position, this.position)){

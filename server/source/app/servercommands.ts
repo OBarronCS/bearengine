@@ -54,7 +54,7 @@ database.add(
 database.add(
     command("s").args(comv.string_options<keyof typeof LevelRef>(Object.keys(LevelRef)))
         .run((context,arg) => {
-            context.engine.start_match(MatchGamemode.INFINITE,arg);
+            context.engine.queue_start_new_match(MatchGamemode.FREE_FOR_ALL,arg);
         })
     );
 

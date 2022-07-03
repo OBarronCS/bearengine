@@ -151,7 +151,7 @@ export class PlayerSwapperItem extends SBaseItem<"swap_item"> {
     public override activation_type = ItemActivationType.INSTANT;
 
     override do_action(creator: PlayerInformation): void {
-        const all_players = this.game.active_scene.activePlayerEntities.values();
+        const all_players = this.game.entities.view(ServerPlayerEntity);
 
         if(all_players.length <= 1) {
             console.log("Cannot swap");
@@ -242,7 +242,7 @@ export function ServerShootHitscanWeapon(game: ServerBearEngine, position: Vec2,
     if(terrain) ray.B = terrain.point;
 
     // Check each players distance to the line.
-    for(const pEntity of game.active_scene.activePlayerEntities.values()){
+    for(const pEntity of game.entities.view(ServerPlayerEntity)){
         if(pEntity.connectionID === owner) continue;
 
         if(ray.pointDistance(pEntity.position) < 30){
@@ -325,7 +325,7 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
             this.terrain_test = this.game.terrain.lineCollision(this.forward_line.A, this.forward_line.B);
 
             // Check collision with players, add to player_test list;
-            for(const player of this.game.active_scene.activePlayerEntities.values()){
+            for(const player of this.game.entities.view(ServerPlayerEntity)){
 
                 if(this.ignore_creator_id && player.connectionID === this.creatorID) continue;
 
@@ -339,7 +339,7 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
             // VOTING:
             if(this.terrain_test){
                 if(this.terrain_test.mesh.tag === "vote"){
-                    this.game.player_vote_start(this.creatorID, MatchGamemode.INFINITE);
+                    this.game.player_vote_start(this.creatorID, MatchGamemode.FREE_FOR_ALL);
                 }
             }
 
@@ -729,7 +729,7 @@ export class LaserTripmine_S extends NetworkedEntity<"laser_tripmine"> {
 
     update(dt: number): void {
 
-        for(const pEntity of this.game.active_scene.activePlayerEntities.values()){
+        for(const pEntity of this.game.entities.view(ServerPlayerEntity)){
             
             const p = Line.PointClosestToLine(this.line.A, this.line.B, pEntity.position);
 
@@ -783,7 +783,7 @@ export class BeamEffect_S extends ServerEntity {
             if(terrain) this.line.B = terrain.point;
 
             // Check each players distance to the line.
-            for(const pEntity of this.game.active_scene.activePlayerEntities.values()){
+            for(const pEntity of this.game.entities.view(ServerPlayerEntity)){
                 if(pEntity.connectionID === this.player.connectionID) continue;
 
                 if(this.line.pointDistance(pEntity.position) < 30){

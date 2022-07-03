@@ -1036,6 +1036,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             const net_tuple_def = ItemActionLinker.IDToData(action_id).clientbound.argTypes;
                             
                             const predicted_action = this.pending_ack_actions.get(local_action_id);
+                            this.pending_ack_actions.delete(local_action_id);
 
                             if(ack_code === ItemActionAck.SUCCESS){
                                 //@ts-expect-error
@@ -1057,6 +1058,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 predicted_action.ack_fail(ack_code);
                             }
 
+
+                            
                             break;
                         }
 

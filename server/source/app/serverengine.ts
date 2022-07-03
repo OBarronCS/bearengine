@@ -39,7 +39,7 @@ import { BoostZone_S } from "./weapons/boostzones";
 import { CollisionManager } from "shared/core/entitycollision";
 import { AttemptAction, SERVER_REGISTERED_ITEMACTIONS } from "./networking/serveritemactionlinker";
 import { ItemActionLinker } from "shared/core/sharedlogic/itemactions";
-import { load_tiled_map, Match, WorldInfo } from "./servermatch";
+import { FreeForAllRound, load_tiled_map, LobbyRound, Match, WorldInfo } from "./servermatch";
 
 // Stop writing new info after packet is larger than this
 // Its a soft cap, as the packets can be 2047 + last_packet_written_length long,
@@ -128,15 +128,15 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     // private immediate_packets: PacketWriter[] = [];
 
     public active_match: Match;
-    public active_scene: BaseScene;
+    // public active_scene: BaseScene;
     
-    private queue_next_round: { mode: MatchGamemode, map: keyof typeof LevelRef} = null;
-    // private round_state: RoundState = RoundState.ROUND_PENDING;
-    // private current_gamemode: MatchGamemode = MatchGamemode.LOBBY;
+    private queue_next_match: { mode: MatchGamemode, map: keyof typeof LevelRef} = null;
+    // // private round_state: RoundState = RoundState.ROUND_PENDING;
+    // // private current_gamemode: MatchGamemode = MatchGamemode.LOBBY;
 
-    get_current_gamemode(){
-        return this.active_scene.gamemode;
-    }
+    // get_current_gamemode(){
+    //     return this.active_scene.gamemode;
+    // }
 
     //private server_state: ServerGameState = ServerGameState.PRE_MATCH_LOBBY;
     // public matchIsActive(): boolean {
@@ -215,7 +215,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         
         this.previousTickTime = Date.now();
 
-        this.start_new_round(MatchGamemode.LOBBY, "LOBBY");
+        this.start_new_match(MatchGamemode.LOBBY, "LOBBY");
 
         this.loop();
     }
@@ -268,7 +268,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         );
 
         clientInfo.personalPackets.enqueue(
-            new LoadLevelPacket(this.active_scene.level_id)
+            new LoadLevelPacket(LevelRefLinker.NameToID(this.active_match.current_round.world_id))
         );
 
         // Gives the client all the data from the current level
@@ -290,8 +290,9 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         // If in lobby, spawn them
         // OTHER WISE, they will be respawned at the end of the next match
-        if(this.get_current_gamemode() === MatchGamemode.LOBBY){
+        if(this.active_match.gamemode === MatchGamemode.LOBBY){
             this.createPlayerEntity(clientInfo);
+            this.entities.addEntity(clientInfo.playerEntity);
         }
     }
 
@@ -320,7 +321,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         );
         
         // Won't do anything if they are already dead
-        this.active_scene.activePlayerEntities.remove(clientID);
+        // this.active_scene.activePlayerEntities.remove(clientID);
     }
 
     
@@ -335,7 +336,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             return;
         }
 
-        if(this.get_current_gamemode() !== MatchGamemode.LOBBY){
+        if(this.active_match.gamemode !== MatchGamemode.LOBBY){
             console.log("Ignoring vote outside of lobby");
             return;
         }
@@ -381,8 +382,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
                     }
 
                     // For now, only INFINITE is allowed
-                    this.start_match(
-                        MatchGamemode.INFINITE,
+                    this.queue_start_new_match(
+                        MatchGamemode.FREE_FOR_ALL,
                         "LEVEL_ONE"
                     );
                 }
@@ -391,60 +392,47 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 
     end_match(){
-        this.queue_start_new_round(MatchGamemode.LOBBY, "LOBBY");
+        this.queue_start_new_match(MatchGamemode.LOBBY, "LOBBY");
     }
 
-    start_match(mode: MatchGamemode, map: keyof typeof LevelRef){
+    queue_start_new_match(mode: MatchGamemode, map: keyof typeof LevelRef){
         console.log("Match starting next tick: " + MatchGamemode[mode]); 
-        
-        this.queue_start_new_round(mode, map)
-    }
-
-    queue_start_new_round(mode: MatchGamemode, map: keyof typeof LevelRef){
-        this.queue_next_round = {
+        this.queue_next_match = {
             mode,
             map
         }
     }
 
-    set_active_scene(gamemode: MatchGamemode, level_id: number): void {
+    set_active_match(gamemode: MatchGamemode, level_id: number): void {
 
-        console.log("Set active scene to " + MatchGamemode[gamemode])
+        console.log("Set active match to " + MatchGamemode[gamemode])
 
         switch(gamemode){
             case MatchGamemode.LOBBY: {
-                this.active_scene = new LobbyScene(this, level_id);
+                this.active_match = new Match(this, MatchGamemode.LOBBY, LobbyRound, 10, { next_level() { 
+                    return LevelRefLinker.IDToName(level_id);
+                }});
+                // this.active_scene = new LobbyScene(this, level_id);
                 break; 
             }
-            case MatchGamemode.INFINITE: {
-                this.active_scene = new InfiniteScene(this, level_id);
+            case MatchGamemode.FREE_FOR_ALL: {
+                this.active_match = new Match(this, MatchGamemode.FREE_FOR_ALL, FreeForAllRound, 10, { next_level() { 
+                    return LevelRefLinker.IDToName(level_id);
+                }});
                 break;
             }
-            case MatchGamemode.N_ROUNDS: {
-                throw new Error("Not implemented gamemode");
-                break;
-            }
-            case MatchGamemode.FIRST_TO_N: {
-                throw new Error("Not implemented gamemode");
-                break;
-            }
-            case MatchGamemode.GUN_GAME: {
-                throw new Error("Not implemented gamemode");
-                break;
-            }
-            case MatchGamemode.TEAMS: {
-                throw new Error("Not implemented gamemode");
-                break;
-            }
+
             default: AssertUnreachable(gamemode);
         }
+
+        this.active_match.start();
+
     }
 
-    // Resets everything to prepare for a new level, sends data to clients
-    // Everyone who is spectating is now active
-    private start_new_round(gamemode: MatchGamemode, map: keyof typeof LevelRef){
-
-        console.log("New round!");
+    // Clears entities, terrain, ect. Tells clients now round is starting
+    /** Called by `Match` object */
+    start_of_new_round(map: keyof typeof LevelRef){
+        const level_id = LevelRefLinker.NameToID(map);
 
         // Clean up everything from last match
         this.round_saved_packets.clear();
@@ -455,11 +443,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         this.collision.clear();
 
         const level_data = load_tiled_map(this, map);
-        const levelID = LevelRefLinker.NameToID(map);
-
-        this.set_active_scene(gamemode, levelID)
-
-
+        
         const spawn_points = shuffle([...level_data.spawn_points])
 
         for(let i = 0; i < this.clients.length; i++){
@@ -495,11 +479,10 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             p.playerEntity = player;
             this.entities.addEntity(player);
 
-
-            this.active_scene.activePlayerEntities.set(clientID, p.playerEntity);
+            // this.active_scene.activePlayerEntities.set(clientID, p.playerEntity);
 
             p.personalPackets.enqueue(
-                new StartRoundPacket(spawn_spot.x, spawn_spot.y, levelID, ROUND_START_WAIT_SECONDS)
+                new StartRoundPacket(spawn_spot.x, spawn_spot.y, level_id, ROUND_START_WAIT_SECONDS)
             );
 
             p.playerEntity.position.set(spawn_spot);
@@ -510,8 +493,20 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         }
     }
 
+    // Resets everything to prepare for a new level, sends data to clients
+    // Everyone who is spectating is now active
+    private start_new_match(gamemode: MatchGamemode, map: keyof typeof LevelRef){
+
+        const level_id = LevelRefLinker.NameToID(map);
+
+        this.start_of_new_round(map);
+
+        this.set_active_match(gamemode, level_id);
+    }
+
     // Tells clients to create the player entity.
     // Sets gamemode to Active
+    /** Does NOT spawn it in the game world */
     createPlayerEntity(client: PlayerInformation){
         const clientID = client.connectionID
 
@@ -519,8 +514,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         client.gamemode = ClientPlayState.ACTIVE;
         client.playerEntity = player;
-
-        this.entities.addEntity(player);
 
 
         // Tells them to spawn a local player and to start sharing position with other players
@@ -693,7 +686,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 
     dmg_players_in_radius(point: Vec2, r: number, dmg: number): void {
-        for(const pEntity of this.active_scene.activePlayerEntities.values()){
+        // for(const pEntity of this.active_scene.activePlayerEntities.values()){
+        for(const pEntity of this.entities.view(ServerPlayerEntity)){
             if(Vec2.distanceSquared(pEntity.position,point) < r * r){
                 pEntity.take_damage(dmg);
             }
@@ -710,9 +704,9 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         console.log(`Player ${playerID} died!`);
 
-        this.active_scene.deadplayers.push(playerID);
-        this.entities.destroyEntity(player_entity);
-        this.active_scene.activePlayerEntities.remove(playerID);
+        this.active_match.current_round.dead_players.push(player_entity.client);
+        this.entities.destroyEntityImmediately(player_entity.entityID);
+        // this.active_scene.activePlayerEntities.remove(playerID);
         
         
         connection.gamemode = ClientPlayState.GHOST;
@@ -733,7 +727,8 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         if(!this.world_info.player_death_bbox.contains(player_entity.position)){
             // Tells them to teleport to another player, is a ghost
-            const pos = this.active_scene.activePlayerEntities.values().length > 0 ? choose(this.active_scene.activePlayerEntities.values()).position : new Vec2(this.world_info.map_bounds.width / 2, 0);
+            const other_players = this.entities.view(ServerPlayerEntity);
+            const pos = other_players.length > 0 ? choose(other_players).position : new Vec2(this.world_info.map_bounds.width / 2, 0);
 
             connection.personalPackets.enqueue(
                 new ForcePositionPacket(pos.x,pos.y)
@@ -992,7 +987,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
             // Round logic
             if(this.clients.length < 2){
-                if(this.get_current_gamemode() !== MatchGamemode.LOBBY){
+                if(this.active_match.gamemode !== MatchGamemode.LOBBY){
                     this.end_match();
                 }
             }
@@ -1000,13 +995,13 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             for(let i = 0; i < 60/this.TICK_RATE; i++){
                 this.collision.update(dt/(60/this.TICK_RATE));
                 this.entities.update(dt/(60/this.TICK_RATE));
-                this.active_scene.update();
+                this.active_match.update();
             }
             // this.updateScenes(dt);
 
-            if(this.queue_next_round !== null){
-                this.start_new_round(this.queue_next_round.mode, this.queue_next_round.map);
-                this.queue_next_round = null;
+            if(this.queue_next_match !== null){
+                this.start_new_match(this.queue_next_match.mode, this.queue_next_match.map);
+                this.queue_next_match = null;
             }
 
 
@@ -1029,108 +1024,4 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     }
 }
 
-
-
-
-const ROUND_OVER_REST_TIMER_TICKS = 60 * 3;
-
-
-// abstract class BaseScene {
-
-
-//     abstract gamemode: MatchGamemode;
-//     public round_over: boolean = false;
-//     protected round_over_timer: number = 0;
-
-//     public round_timer = 0;
-
-//     public readonly level_id: number;
-
-
-//     // Set of player entities that are ALIVE!
-//     public readonly activePlayerEntities: SparseSet<ServerPlayerEntity> = new SparseSet(256);
-//     public readonly deadplayers: ConnectionID[] = [];
-
-
-//     constructor(public game: ServerBearEngine, levelID: number){
-//         this.level_id = levelID;
-//     }
-
-
-//     abstract update(): void;
-// }
-
-// class LobbyScene extends BaseScene {
-//     gamemode: MatchGamemode = MatchGamemode.LOBBY;
-
-//     update(): void {
-//         this.round_timer++;
-//     }
-
-// }
-
-
-// class InfiniteScene extends BaseScene {
-//     gamemode: MatchGamemode = MatchGamemode.INFINITE;
-
-//     update(): void {
-//         this.round_timer++;
-
-//         if(!this.round_over){
-//             // Spawn items
-//             if(random() > .98){
-//                 const random_itemprefab_id = RandomItemID();
-    
-//                 const item_instance = this.game.createItemFromPrefab(random_itemprefab_id);
-    
-//                 const item = new ItemEntity(item_instance);
-    
-                
-//                 if(this.game.world_info.item_spawn_points.length > 0){
-//                     const location = choose(this.game.world_info.item_spawn_points);
-//                     item.pos.set(location);
-//                 } else {
-//                     item.pos.x = random_int(100, this.game.world_info.map_bounds.width - 100);
-//                 }
-    
-//                 if(random() > .99){
-//                     item.art_path = "mystery_box.png";
-//                 }
-                
-    
-//                 this.game.createRemoteEntity(item);
-//             }
-    
-//             // Check for dead players
-//             for(const playerEntity of this.activePlayerEntities.values()){
-//                 if(playerEntity.get_health() <= 0 || !this.game.world_info.player_death_bbox.contains(playerEntity.position)){
-//                     this.game.kill_player(playerEntity);
-//                 }
-//             }
-
-//             // Round over condition
-//             if(this.activePlayerEntities.size() <= 1){
-//                 // This means there was a tiebreaker death
-//                 // One person left, the winner
-//                 if(this.activePlayerEntities.size() === 1){
-//                     this.deadplayers.push(this.activePlayerEntities.keys()[0]);
-//                 }
-    
-                
-//                 this.game.broadcast_packet_safe(
-//                     new EndRoundPacket([...this.deadplayers].reverse(), ROUND_OVER_REST_TIMER_TICKS)
-//                 );
-
-//                 this.round_over = true;
-//             }
-
-//         } else {
-//             this.round_over_timer++;
-//             if(this.round_over_timer >= ROUND_OVER_REST_TIMER_TICKS){
-//                 // This will destroy this object.
-//                 this.game.queue_start_new_round(this.gamemode, LevelRefLinker.IDToName(this.level_id));
-//             }
-//         }
-//     }
-// }
 
