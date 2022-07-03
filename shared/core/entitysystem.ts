@@ -126,6 +126,7 @@ export class EntitySystem<TEntity extends AbstractEntity = AbstractEntity> exten
         return getEntityVersion(this.sparse[sparseIndex]) === getEntityVersion(id);
     }
 
+    /** Iterate all attributes of a given type */
     view<K extends new(...args: any[]) => Attribute>(attr_constructor: K): readonly InstanceType<K>[] {
         const attr_id = get_attribute_id_from_type(attr_constructor);
 

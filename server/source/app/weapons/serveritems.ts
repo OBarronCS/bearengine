@@ -546,7 +546,7 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: P
             }
         }
 
-        if(!this.game.active_scene.level_bbox.contains(this.position)){
+        if(!this.game.world_info.level_bbox.contains(this.position)){
             this.destroy();
         }
     });
@@ -667,7 +667,7 @@ export class ItemEntity extends NetworkedEntity<"item_entity"> {
             default: AssertUnreachable(this.mode);
         }
 
-        if(!this.game.active_scene.level_bbox.contains(this.pos)){
+        if(!this.game.world_info.level_bbox.contains(this.pos)){
             this.game.destroyRemoteEntity(this);
         }
     }
@@ -836,14 +836,26 @@ export class InstantDeathLaser_S extends NetworkedEntity<"instance_death_laser">
     }
 
     update(dt: number): void {
-        
-        for(const p of this.game.active_scene.activePlayerEntities.values()){
-            if(this.line.pointDistance(p.position) < 20){
-                p.take_damage(100);
-            }
-        }
-    }
 
+        // Dmg now handled PER entity
+
+        // for(const p of this.game.active_scene.activePlayerEntities.values()){
+        //     if(this.line.pointDistance(p.position) < 20){
+        //         p.take_damage(100);
+        //     }
+        // }
+    }
+}
+
+
+export function check_line_movingball_collision(line: Line, radius: number, last_pos: Vec2, current_pos: Vec2){
+    
+    if((line.pointDistance(current_pos) < radius)
+        || line.intersects(new Line(last_pos, current_pos))
+    ) {
+        return true;
+    }
+    return false;
 }
 
 

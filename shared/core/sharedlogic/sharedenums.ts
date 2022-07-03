@@ -2,6 +2,7 @@
 export enum MatchGamemode {
     LOBBY,
     FIRST_TO_N,
+    N_ROUNDS,
     INFINITE,
     GUN_GAME,
     TEAMS

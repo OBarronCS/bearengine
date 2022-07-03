@@ -3,14 +3,20 @@ import { Vec2 } from "shared/shapes/vec2";
 import { ServerEntity } from "./entity";
 import { PlayerEntityTakeDamagePacket } from "./networking/gamepacketwriters";
 import { ConnectionID } from "./networking/serversocket";
-import { BeamEffect_S, SBaseItem } from "./weapons/serveritems";
+import { PlayerInformation, ROUND_START_WAIT_SECONDS } from "./serverengine";
+import { BeamEffect_S, check_line_movingball_collision, InstantDeathLaser_S, SBaseItem } from "./weapons/serveritems";
 
 export class ServerPlayerEntity extends ServerEntity {
 
+    readonly last_position: Vec2 = new Vec2();
+
     readonly connectionID: ConnectionID;
-    constructor(connectionID: ConnectionID){
+    readonly client: PlayerInformation;
+
+    constructor(connectionID: ConnectionID, client: PlayerInformation){
         super();
         this.connectionID = connectionID;
+        this.client = client;
     }
 
     item_in_hand: SBaseItem<any> = null;
@@ -67,13 +73,17 @@ export class ServerPlayerEntity extends ServerEntity {
     }
 
     update(dt: number): void {
-        // if(this.item !== null){
-        //     this.item.direction.set(Vec2.subtract(this.mouse, this.item.position));
-        //     this.item.position.set(this.position);
-        //     // if(this.mousedown){
-        //     //     this.item.holdTrigger();
-        //     // }
-        // }
+
+        if(this.game.active_scene.round_timer > ROUND_START_WAIT_SECONDS * this.game.TICK_RATE){
+            const lasers = this.game.entities.view(InstantDeathLaser_S);
+            for(const laser of lasers){
+                if(check_line_movingball_collision(laser.line, 20, this.last_position, this.position)){
+                    this.take_damage(100);
+                }
+            }
+        }
+
+        this.last_position.set(this.position);
     }
 
 
