@@ -2,9 +2,10 @@ import { readFileSync } from "fs";
 import path from "path";
 import { LevelRef, LevelRefLinker } from "shared/core/sharedlogic/assetlinker";
 import { RandomItemID } from "shared/core/sharedlogic/items";
-import { MatchGamemode } from "shared/core/sharedlogic/sharedenums";
+import { MatchDurationType, MatchGamemode } from "shared/core/sharedlogic/sharedenums";
 import { TiledMap, ParseTiledMapData } from "shared/core/tiledmapeditor";
 import { choose } from "shared/datastructures/arrayutils";
+import { AssertUnreachable } from "shared/misc/assertstatements";
 import { random, random_int } from "shared/misc/random";
 import { Rect } from "shared/shapes/rectangle";
 import { Vec2 } from "shared/shapes/vec2";
@@ -74,6 +75,11 @@ interface NextWorldManager {
     next_level(): keyof typeof LevelRef
 }
 
+interface MatchDurationManager {
+    type: MatchDurationType,
+    value: number;
+}
+
 /**
  * new Match(FreeForAll)
  *  EndCondition -> First to N
@@ -82,7 +88,10 @@ interface NextWorldManager {
  */
 export class Match {
 
+    played_rounds = 0;
+
     match_over = false;
+    update_match = true;
 
     constructor(
         public game: ServerBearEngine,
@@ -90,7 +99,9 @@ export class Match {
         public readonly gamemode: MatchGamemode,
         public round_ctor: new(game: ServerBearEngine, world_id: keyof typeof LevelRef) => Round, 
         public round_count: number, 
-        public next_world_manager: NextWorldManager)
+        public next_world_manager: NextWorldManager,
+        public duration_manager: MatchDurationManager
+        )
     {
         
     }
@@ -116,6 +127,27 @@ export class Match {
 
             this.round_winners.winners.push(this.current_round.round_winner);
             
+            this.played_rounds++;
+            
+
+            switch(this.duration_manager.type){
+                case MatchDurationType.N_ROUNDS: {
+                    if(this.played_rounds >= this.duration_manager.value){
+                        this.match_over = true;
+                    }
+                    break;
+                }
+                case MatchDurationType.FIRST_TO_N: {
+
+                    break;
+                }
+                case MatchDurationType.TIME: {
+
+                    break;
+                }
+                default: AssertUnreachable(this.duration_manager.type)
+            }
+
 
             const next_level = this.next_world_manager.next_level();
 

@@ -22,7 +22,7 @@ import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { DeserializeShortString, DeserializeTuple, DeserializeTypedArray, netv, SerializeTypedVar } from "shared/core/sharedlogic/serialization";
 import { BearGame, BearScene } from "shared/core/abstractengine";
 import { ClearInvItemPacket, DeclareCommandsPacket, EndRoundPacket, InitPacket, LoadLevelPacket, OtherPlayerInfoAddPacket, OtherPlayerInfoRemovePacket, OtherPlayerInfoUpdateGamemodePacket, PlayerEntityCompletelyDeletePacket, PlayerEntityDeathPacket, PlayerEntitySpawnPacket, RemoteEntityCreatePacket, RemoteEntityDestroyPacket, RemoteEntityEventPacket, RemoteFunctionPacket, ServerIsTickingPacket, SetGhostStatusPacket, SetInvItemPacket, SpawnYourPlayerEntityPacket, StartRoundPacket, PlayerEntitySetItemPacket, PlayerEntityClearItemPacket, ForcePositionPacket, ConfirmVotePacket } from "./networking/gamepacketwriters";
-import { ClientPlayState, MatchGamemode } from "shared/core/sharedlogic/sharedenums"
+import { ClientPlayState, MatchDurationType, MatchGamemode } from "shared/core/sharedlogic/sharedenums"
 import { SparseSet } from "shared/datastructures/sparseset";
 import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
 
@@ -407,26 +407,28 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
 
         console.log("Set active match to " + MatchGamemode[gamemode])
 
+        const next_level_manager = {
+            next_level() { 
+                return LevelRefLinker.IDToName(level_id);
+            }
+        }
+
         switch(gamemode){
             case MatchGamemode.LOBBY: {
-                this.active_match = new Match(this, MatchGamemode.LOBBY, LobbyRound, 10, { next_level() { 
-                    return LevelRefLinker.IDToName(level_id);
-                }});
-                // this.active_scene = new LobbyScene(this, level_id);
+                this.active_match = new Match(this, MatchGamemode.LOBBY, LobbyRound, 10, next_level_manager, 
+                    {type: MatchDurationType.N_ROUNDS, value: 5}
+                );
                 break; 
             }
             case MatchGamemode.FREE_FOR_ALL: {
-                this.active_match = new Match(this, MatchGamemode.FREE_FOR_ALL, FreeForAllRound, 10, { next_level() { 
-                    return LevelRefLinker.IDToName(level_id);
-                }});
+                this.active_match = new Match(this, MatchGamemode.FREE_FOR_ALL, FreeForAllRound, 10, next_level_manager,
+                    {type: MatchDurationType.N_ROUNDS, value: 5}
+                );
                 break;
             }
 
             default: AssertUnreachable(gamemode);
         }
-
-        this.active_match.start();
-
     }
 
     // Clears entities, terrain, ect. Tells clients now round is starting
@@ -502,6 +504,7 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
         this.start_of_new_round(map);
 
         this.set_active_match(gamemode, level_id);
+        this.active_match.start();
     }
 
     // Tells clients to create the player entity.
@@ -995,7 +998,16 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
             for(let i = 0; i < 60/this.TICK_RATE; i++){
                 this.collision.update(dt/(60/this.TICK_RATE));
                 this.entities.update(dt/(60/this.TICK_RATE));
-                this.active_match.update();
+                if(this.active_match.update_match){
+                    this.active_match.update(); 
+                    if(this.active_match.match_over){
+                        console.log("MATCH IS OVER")
+                        this.active_match.update_match = false;
+                        this.queue_start_new_match(MatchGamemode.LOBBY, "LOBBY");
+                    }
+                }
+
+               
             }
             // this.updateScenes(dt);
 

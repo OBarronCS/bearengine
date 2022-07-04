@@ -298,6 +298,8 @@ export class NetworkPlatformGame extends BearGame<BearEngine> {
         this.activeLevel = level;
         level.internalStart();
 
+        this.center_camera();
+        
         this.levelLoaded = true;
     }
 
