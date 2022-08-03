@@ -107,5 +107,50 @@ export class SparseSet<V> {
     toString(): string {
         return "Keys: " + this.keys().toString() + " Values: " + this.values().toString();
     }
+
+    /** Allows removing current element while iterating */
+    custom_iterator(): CustomSparseSetIterator<V> {
+        return new CustomSparseSetIterator(this);
+    }
 }
 
+
+
+
+/**
+ *  Allow removing current element while iterating. 
+ *      Iterates SparseSet backwards which allows removing values as we go. 
+ * 
+ * const it = set.custom_iterator();
+ * for(const value of it){
+ *      it.remove_current();
+ * }
+ * 
+*/
+class CustomSparseSetIterator<T> implements IterableIterator<T> {
+    
+    private values: readonly T[];
+    private last_index: number;
+
+    constructor(
+        private sparseset: SparseSet<T>,
+    ){
+        this.values = this.sparseset.values();
+        this.last_index = sparseset.values().length;
+    }
+
+    [Symbol.iterator](): IterableIterator<T> {
+        return this;
+    }
+
+    next(): IteratorResult<T, any> {
+        return {
+            value: (this.last_index <= 0 ? undefined : this.values[--this.last_index]),
+            done: this.last_index <= 0
+        }
+    }
+
+    remove_current(){
+        this.sparseset.remove(this.sparseset.keys()[this.last_index]);
+    }
+}

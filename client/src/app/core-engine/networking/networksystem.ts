@@ -419,7 +419,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 
                                 
                                 const alpha_panel = new LabelWidget(new Vec2(), "Network protocol incompatible with server");
-                                alpha_panel.setPosition({type: "percent", percent: .5}, {type: "percent", percent: .20}).center();
+                                alpha_panel.setPosition({type: "percent", percent: .5}, {type: "percent", percent: .25}).center();
                                 
                                 this.game.entities.addEntity(new WidgetAlphaTween(alpha_panel, "",3.5).from(1).to(0).go().delay(4));
 
@@ -753,14 +753,18 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             }
 
 
-                            // If already exists locally, set its position at spawn spot
+                            // If already exists locally, make visible and teleport to position 
                             const other_player = this.remotePlayerEntities.get(pID);
                             if(other_player !== undefined){
 
                                 other_player.make_visible();
 
                                 //
+
                                 other_player.position.set({x,y});
+                                
+                                // Interpolate
+                                // other_player.start_revive_animation(1);
                                 continue;
                             }
 

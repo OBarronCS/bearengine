@@ -1,4 +1,4 @@
-import { Effect, Effect2 } from "shared/core/effects";
+import { EntityEffect } from "shared/core/effects";
 import { BeamActionType, Clip, CreateShootController, GunshootController, ItemActionAck, SHOT_LINKER, SimpleWeaponControllerDefinition } from "shared/core/sharedlogic/weapondefinitions";
 import { TickTimer } from "shared/datastructures/ticktimer";
 import { random_int, random_range } from "shared/misc/random";
@@ -269,7 +269,7 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
     // List of all players that the projectile will hit this tick
     player_test: ServerPlayerEntity[] = [];
 
-    effect = new Effect2(this);
+    effect = new EntityEffect(this);
 
     private finalActionFunctions: (() => void)[] = [];
     onfinalAction(func:((this: this) => void)): this {
@@ -279,6 +279,62 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
 	}
 
     update(dt: number): void {
+        this.seconds_alive += dt;
+
+        if(this.seconds_alive > 0.15){
+            this.ignore_creator_id = false;
+        }
+
+        this.forward_line.A.set(this.position);
+        this.forward_line.B.set(Vec2.add(this.position, this.velocity));
+
+        this.terrain_test = this.game.terrain.lineCollision(this.forward_line.A, this.forward_line.B);
+
+
+
+        // Check collision with players, add to player_test list;
+        for(const player of this.game.entities.view(ServerPlayerEntity)){
+
+            if(this.ignore_creator_id && player.connectionID === this.creatorID) continue;
+
+            const point = Line.PointClosestToLine(this.forward_line.A, this.forward_line.B, player.position);
+            if(Vec2.distanceSquared(player.position, point) < this.player_dmg_radius**2){
+                this.player_test.push(player);
+            }
+        }
+
+
+        // VOTING:
+        if(this.terrain_test){
+            if(this.terrain_test.mesh.tag === "vote"){
+                this.game.player_vote_start(this.creatorID, MatchGamemode.FREE_FOR_ALL);
+            }
+        }
+
+                
+        if(!this.bounce){
+            if(this.terrain_test || this.player_test.length !== 0){
+                if(this.terrain_test) this.position.set(this.terrain_test.point);
+                else this.position.set(this.player_test[0].position);
+
+                for(const func of this.finalActionFunctions){
+                    func();
+                }
+
+                this.destroy();
+            }
+        } else {
+            if(this.seconds_alive > 2.5 || this.player_test.length !== 0){
+                if(this.player_test.length !== 0) this.position.set(this.player_test[0].position);
+
+                for(const func of this.finalActionFunctions){
+                    func();
+                }
+
+                this.destroy();
+            }
+        }
+
         this.effect.update(dt);
     }
 
@@ -312,61 +368,9 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
 
         this.circle = circle;
 
-        this.effect.onUpdate(function(dt){
-            this.seconds_alive += dt;
-
-            if(this.seconds_alive > 0.15){
-                this.ignore_creator_id = false;
-            }
-
-            this.forward_line.A = this.position;
-            this.forward_line.B = Vec2.add(this.position, this.velocity);
-
-            this.terrain_test = this.game.terrain.lineCollision(this.forward_line.A, this.forward_line.B);
-
-            // Check collision with players, add to player_test list;
-            for(const player of this.game.entities.view(ServerPlayerEntity)){
-
-                if(this.ignore_creator_id && player.connectionID === this.creatorID) continue;
-
-                const point = Line.PointClosestToLine(this.forward_line.A, this.forward_line.B, player.position);
-                if(Vec2.distanceSquared(player.position, point) < this.player_dmg_radius**2){
-                    this.player_test.push(player);
-                }
-            }
-
-
-            // VOTING:
-            if(this.terrain_test){
-                if(this.terrain_test.mesh.tag === "vote"){
-                    this.game.player_vote_start(this.creatorID, MatchGamemode.FREE_FOR_ALL);
-                }
-            }
-
-                    
-            if(!this.bounce){
-                if(this.terrain_test || this.player_test.length !== 0){
-                    if(this.terrain_test) this.position.set(this.terrain_test.point);
-                    else this.position.set(this.player_test[0].position);
-
-                    for(const func of this.finalActionFunctions){
-                        func();
-                    }
-
-                    this.destroy();
-                }
-            } else {
-                if(this.seconds_alive > 2.5 || this.player_test.length !== 0){
-                    if(this.player_test.length !== 0) this.position.set(this.player_test[0].position);
-
-                    for(const func of this.finalActionFunctions){
-                        func();
-                    }
-
-                    this.destroy();
-                }
-            }
-        });
+        // this.effect.on_update.add_handler((dt) => {
+            
+        // });
 
     }
 
@@ -396,34 +400,38 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: P
     const on_hit_terrain_effects = shot_data.bullet_effects;
 
     // Bouncing off of forcefields
-    bullet.effect.onUpdate(function(dt){
+    bullet.effect.on_update.add_handler((dt) => {
 
-        const line = this.forward_line;
+        const line = bullet.forward_line;
         
-        for(const entity of this.game.entities.entities){
-            if(entity instanceof ForceFieldEffect_S){
-                if(this.ignore_creator_id && entity.targetPlayer.entityID === this.creatorEntityID) continue;
-                if(entity.entityID === this.last_force_field_id) continue;
+        for(const entity of bullet.game.entities.view(ForceFieldEffect_S)){
+ 
 
-                const test = Line.CircleLineIntersection(line.A, line.B, entity.x, entity.y, entity.radius);
+            if(bullet.ignore_creator_id && entity.targetPlayer.entityID === bullet.creatorEntityID) continue;
+            if(entity.entityID === bullet.last_force_field_id) continue;
 
-                if(test.points.length > 0){
-                    this.last_force_field_id = entity.entityID;
+            const test = Line.CircleLineIntersection(line.A, line.B, entity.x, entity.y, entity.radius);
 
-                    // console.log("WE HAVE A HIT")
-                    const bounceOffOf = test.points[0];
-                    const normal = Vec2.subtract(bounceOffOf, entity.position);
+            console.log(line);
 
-                    const len = this.velocity.length();
-                    Vec2.bounce(this.velocity.clone().normalize(),normal.clone().normalize(),this.velocity);
-                    this.velocity.extend(len);
-                    
-                    this.position.set(bounceOffOf);
 
-                    this.game.callEntityEvent(bullet, "projectile_bullet", "changeTrajectory",0,this.position.clone(), this.velocity.clone());
+            if(test.points.length > 0){
+                bullet.last_force_field_id = entity.entityID;
 
-                    break;
-                }
+
+                console.log("WE HAVE A HIT")
+                const bounceOffOf = test.points[0];
+                const normal = Vec2.subtract(bounceOffOf, entity.position);
+
+                const len = bullet.velocity.length();
+                Vec2.bounce(bullet.velocity.clone().normalize(),normal.clone().normalize(),bullet.velocity);
+                bullet.velocity.extend(len);
+                
+                bullet.position.set(bounceOffOf);
+
+                bullet.game.callEntityEvent(bullet, "projectile_bullet", "changeTrajectory",0,bullet.position.clone(), bullet.velocity.clone());
+
+                break;
             }
         }
     });
@@ -445,11 +453,11 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: P
 
                 const final_pos = mouse.clone();
 
-                bullet.effect.onUpdate(function(dt){
-                    if(this.seconds_alive >= time){
+                bullet.effect.on_update.add_handler((dt) => {
+                    if(bullet.seconds_alive >= time){
 
-                        this.position.set(final_pos);
-                        this.destroy();
+                        bullet.position.set(final_pos);
+                        bullet.destroy();
                     }
                 });
 
@@ -459,8 +467,8 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: P
 
                 const grav = new Vec2().set(effect.force);
 
-                bullet.effect.onUpdate(function(){
-                    this.velocity.add(grav);
+                bullet.effect.on_update.add_handler(() => {
+                    bullet.velocity.add(grav);
                 });
 
                 break;
@@ -524,30 +532,30 @@ export function ServerShootProjectileWeapon(game: ServerBearEngine, creatorID: P
     }
 
     // Move at the very end, if all checks are valid
-    bullet.effect.onUpdate(function(dt: number){
-        if(this.allow_move){
+    bullet.effect.on_update.add_handler((dt) => {
+        if(bullet.allow_move){
 
-            const slow_zones_s = this.game.collision.point_query_list(this.position, BoostDirection);
+            const slow_zones_s = bullet.game.collision.point_query_list(bullet.position, BoostDirection);
             for(const s of slow_zones_s){
-                this.velocity.add(s.attr.dir);
+                bullet.velocity.add(s.attr.dir);
             }
 
-            if(this.bounce){
+            if(bullet.bounce){
 
-                const status = SimpleBouncePhysics(this.game.terrain, this.position, this.velocity, new Vec2(0, .4), .6);
+                const status = SimpleBouncePhysics(bullet.game.terrain, bullet.position, bullet.velocity, new Vec2(0, .4), .6);
 
                 // if(status.stopped){
                 //     this.destroy();
                 // }
             } else {    
-                this.position.add(this.velocity);
-                this.circle.position.set(this.position);
-                if(this.terrain_test) this.destroy();
+                bullet.position.add(bullet.velocity);
+                bullet.circle.position.set(bullet.position);
+                if(bullet.terrain_test) bullet.destroy();
             }
         }
 
-        if(!this.game.world_info.level_bbox.contains(this.position)){
-            this.destroy();
+        if(!bullet.game.world_info.level_bbox.contains(bullet.position)){
+            bullet.destroy();
         }
     });
 

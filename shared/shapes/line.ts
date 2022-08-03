@@ -45,7 +45,7 @@ export class Line {
     }
 
     /** Returns points of intersection, and whether or not the line was tangent to the spheres edge */
-    static CircleLineIntersection(p1: Coordinate, p2: Coordinate, x: number, y: number, r: number, infiniteLine = false): {tangent: boolean, points: Vec2[]}{
+    static CircleLineIntersection(p1: Readonly<Coordinate>, p2: Readonly<Coordinate>, x: number, y: number, r: number, infiniteLine = false): {tangent: boolean, points: Vec2[]}{
         //http://paulbourke.net/geometry/circlesphere/
 
         // One more edge case not dealt with: if points on top of eachother. Causes a divide by zero that fails silently
@@ -114,7 +114,7 @@ export class Line {
 
     }
 
-    constructor(p1: Coordinate, p2: Coordinate, normal: Coordinate = {x: 0, y: -1}){
+    constructor(p1: Readonly<Coordinate>, p2: Readonly<Coordinate>, normal: Readonly<Coordinate> = {x: 0, y: -1}){
         this.A = new Vec2(p1.x, p1.y);
         this.B = new Vec2(p2.x, p2.y);
         this.normal = new Vec2(normal.x, normal.y);;
@@ -132,13 +132,13 @@ export class Line {
 
 
     /** Returns the distance between given point and closest point on distnace */
-    pointDistance(p: Coordinate){
+    pointDistance(p: Readonly<Coordinate>){
         const point = this.pointClosestTo(p);
         return point.distance(p);
 
     }
 
-    pointClosestTo(p: Coordinate): Vec2 {
+    pointClosestTo(p: Readonly<Coordinate>): Vec2 {
         return Line.PointClosestToLine(this.A, this.B, p)
     }
 

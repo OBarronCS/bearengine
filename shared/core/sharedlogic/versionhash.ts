@@ -3,6 +3,7 @@ import { ItemActionDef } from "./itemactions";
 import { MIGRATED_ITEMS } from "./items";
 import { RemoteFunctionStruct, SharedNetworkedEntityDefinitions } from "./networkschemas";
 import { ClientBoundImmediate, ClientBoundSubType, GamePacket, ServerBoundPacket, ServerImmediatePacket, ServerPacketSubType } from "./packetdefinitions";
+import { MatchGamemode } from "./sharedenums";
 import { PROJECTILE_SHOT_DATA } from "./weapondefinitions";
 
 /*
@@ -112,6 +113,8 @@ function CreateHash(manual: number): bigint {
     hash += EnumHash(ServerImmediatePacket);
     hash += EnumHash(ServerBoundPacket);
 
+    hash += EnumHash(MatchGamemode);
+
     hash += ObjectHash(LevelRef);
     hash += ObjectHash(RemoteFunctionStruct);
     hash += ObjectHash(SharedNetworkedEntityDefinitions);
@@ -120,8 +123,6 @@ function CreateHash(manual: number): bigint {
     hash += ObjectHash(MIGRATED_ITEMS);
     hash += ObjectHash(PROJECTILE_SHOT_DATA);
     hash += ObjectHash(ArtRef);
-    
-    // hash += ObjectHash(PROJECTILE_SHOT_DATA);
 
     // Approximate number of bits needed to represent it: 
     // console.log("Number of bits in hash:", Math.log2(Number(hash)))

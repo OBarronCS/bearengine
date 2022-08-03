@@ -105,7 +105,7 @@ export class TerrainManager extends Subsystem {
     }
     
     /** Terrain Raycast: return null if no collision, otherwise closest point of intersection */
-    lineCollision(A: Coordinate, B: Coordinate): LineCollisionResult | null {
+    lineCollision(A: Readonly<Coordinate>, B: Readonly<Coordinate>): LineCollisionResult | null {
         const box = (new Line(A,B)).getAABB();
         
         const possibleCollisions = this.grid.region(box);

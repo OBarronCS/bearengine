@@ -31,7 +31,6 @@ import { BeamEffect_S, ForceFieldEffect_S, ForceFieldItem_S, InstantDeathLaser_S
 import { commandDispatcher } from "./servercommands";
 
 import { random, random_int, random_range } from "shared/misc/random";
-import { Effect, Effect2 } from "shared/core/effects";
 import { BeamActionType, SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
 import { LevelRefLinker, LevelRef } from "shared/core/sharedlogic/assetlinker";
 import { choose, shuffle } from "shared/datastructures/arrayutils";
