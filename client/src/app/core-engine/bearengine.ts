@@ -21,7 +21,7 @@ import { Player, player_controls_map, RemotePlayer } from "../gamelogic/player";
 import { DummyLevel, GameLevel } from "./gamelevel";
 import { DebugScreen } from "../gamelogic/debugoverlay";
 import { Chatbox } from "../gamelogic/chatbox";
-import { ButtonWidget, LabelWidget, PanelWidget, SpriteWidget, UIManager, uisize, WidgetGroup } from "../ui/widget";
+import { ButtonWidget, create_text_popup, LabelWidget, PanelWidget, SpriteWidget, UIManager, uisize, WidgetGroup } from "../ui/widget";
 import { Color } from "shared/datastructures/color";
 import { mix, Vec2 } from "shared/shapes/vec2";
 import { LevelRef } from "shared/core/sharedlogic/assetlinker";

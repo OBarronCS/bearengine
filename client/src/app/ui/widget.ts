@@ -4,10 +4,11 @@ import { Graphics, Container, Text, Texture, Sprite, TextMetrics, TextStyle } fr
 import { Rect } from "shared/shapes/rectangle";
 import { Subsystem } from "shared/core/subsystem";
 import { BearGame } from "shared/core/abstractengine";
-import { BearEngine } from "../core-engine/bearengine";
+import { BearEngine, NetworkPlatformGame } from "../core-engine/bearengine";
 import { Tween } from "shared/core/tween";
 import { lerp } from "shared/misc/mathutils";
 import { drawProgressBar } from "shared/shapes/shapedrawing";
+import { AbstractEntity } from "shared/core/abstractentity";
 
 export class UIManager extends Subsystem<BearGame<BearEngine>> {
     
@@ -475,6 +476,8 @@ export class SpriteWidget extends BearWidgetAdapter {
 
 }
 
+
+
 export class ProgressBarWidget extends BearWidgetAdapter {
 
     _percent = 0;
@@ -503,7 +506,23 @@ export class WidgetAlphaTween extends Tween<BearWidget,any,any> {
 
     setValueAt(t: number): void {
         this.state.setAlpha(lerp(this.initialValue, this.finalValue, t));
-    }
-
-    
+    } 
 }
+
+export function create_text_popup(game: NetworkPlatformGame, text: string, font_size: number) {
+    const alpha_panel = new LabelWidget(new Vec2(), text);
+    alpha_panel.setPosition({type: "percent", percent: .5}, {type: "percent", percent: .25}).center();
+    alpha_panel.text_render.style.fontSize = font_size;
+
+
+    game.entities.addEntity(new WidgetAlphaTween(alpha_panel, "", {
+        duration_seconds: 3,
+        start: 1,
+        end: 0
+    }).delay(3));
+
+    game.ui.addWidget(alpha_panel);
+};
+
+
+

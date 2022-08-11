@@ -31,8 +31,9 @@ import { BeamActionType, HitscanRayEffects, ItemActionAck, SHOT_LINKER } from "s
 import { DeserializeTuple, DeserializeTypedArray, DeserializeTypedVar, netv, SharedTemplates } from "shared/core/sharedlogic/serialization";
 import { Trie } from "shared/datastructures/trie";
 import { LevelRefLinker } from "shared/core/sharedlogic/assetlinker";
-import { LabelWidget, WidgetAlphaTween } from "../../ui/widget";
+import { create_text_popup, LabelWidget, WidgetAlphaTween } from "../../ui/widget";
 import { ItemActionDef, ItemActionLinker } from "shared/core/sharedlogic/itemactions";
+import { choose } from "shared/datastructures/arrayutils";
 
 class ClientInfo {
     uniqueID: number;
@@ -417,17 +418,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 
                                 this.ALLOWED_TO_CONNECT = false;
                                 
-                                
-                                const alpha_panel = new LabelWidget(new Vec2(), "Network protocol incompatible with server");
-                                alpha_panel.setPosition({type: "percent", percent: .5}, {type: "percent", percent: .25}).center();
-                                
-                                this.game.entities.addEntity(new WidgetAlphaTween(alpha_panel, "", {
-                                    duration_seconds: 3.5,
-                                    start: 1,
-                                    end: 0
-                                }).delay(4));
-                                
-                                this.game.ui.addWidget(alpha_panel);
+                                create_text_popup(this.game, "Network protocol incompatible with server", 50);
 
                                 this.network.disconnect();
                                 return;
@@ -605,11 +596,11 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             break;
                         }
                         case GamePacket.LOAD_LEVEL: {
+                            // Called when initially join
                             const level = LevelRefLinker.IDToData(stream.getUint8());
 
                             this.game.endCurrentLevel();
                             this.game.loadLevel(new DummyLevel(this.game, level));
-
                             break;
                         }
 
@@ -638,6 +629,34 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                             }
                             
                             this.game.player.setGhost(ghost);
+                            
+                            break;
+                        }
+
+                        case GamePacket.START_MATCH: {
+                            const mode: MatchGamemode = stream.getUint8();
+
+                            switch(mode){
+                                case MatchGamemode.FREE_FOR_ALL: {
+                                    create_text_popup(this.game, "Free For All!!", 102);
+                                    break;
+                                }
+                                case MatchGamemode.LOBBY: {
+                                    create_text_popup(this.game, "Lobby", 102);
+                                    break;
+                                }
+                                default: AssertUnreachable(mode);
+                            }
+                            break;
+                        }
+
+                        case GamePacket.END_MATCH: {
+                            const mode: MatchGamemode = stream.getUint8();
+                            const winner_id = stream.getUint8();
+
+                            if(mode === MatchGamemode.FREE_FOR_ALL){
+                                create_text_popup(this.game, String(winner_id) + " wins it all!", 120)
+                            }
                             
                             break;
                         }
@@ -722,6 +741,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 const emitter = new EmitterAttach(pEntity,"ROUND_WINNER", "particle.png");
 
                                 this.game.entities.addEntity(emitter);
+
+                                create_text_popup(this.game, choose(simple_win_strings).replace("_", String(winnerID)), 120)
                             }
 
                             break;
@@ -1212,6 +1233,24 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     }
 }
 
+const long_match_win_strings = [
+    "Finally, a winner!",
+    "_ fought long and hard!",
+    "Bravo _!",
+];
+
+const simple_win_strings = [
+    "Well done _!",
+    "_ takes the W",
+    "_ is truly the best",
+    "_ wins this one",
+];
+
+const repeated_win_strings = [
+    "_ wins another one!",
+    "_ must be stopped!",
+    "_ does it again",
+];
 
 /** Remote Function Logic */
 type RemoteFunctionListType = {

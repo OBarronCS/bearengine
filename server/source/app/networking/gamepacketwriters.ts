@@ -11,6 +11,32 @@ import { SBaseItem } from "../weapons/serveritems";
 import { ConnectionID } from "./serversocket";
 
 
+export class StartMatchPacket extends PacketWriter {
+
+    constructor(public gamemode: MatchGamemode){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.START_MATCH);
+        stream.setUint8(this.gamemode);
+    }
+}
+
+
+export class EndMatchPacket extends PacketWriter {
+
+    constructor(public gamemode: MatchGamemode, public winner_id: number){
+        super(false);
+    }
+
+    write(stream: BufferStreamWriter){
+        stream.setUint8(GamePacket.END_MATCH);
+        stream.setUint8(this.gamemode);
+        stream.setUint8(this.winner_id);
+    }
+}
+
 // savePacket is irrelevent for packet to specific clients, like this one
 export class StartRoundPacket extends PacketWriter {
 
@@ -45,6 +71,7 @@ export class EndRoundPacket extends PacketWriter {
         }
     }
 }
+
 
 export class SpawnYourPlayerEntityPacket extends PacketWriter {
 

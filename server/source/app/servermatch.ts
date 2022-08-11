@@ -4,12 +4,12 @@ import { LevelRef, LevelRefLinker } from "shared/core/sharedlogic/assetlinker";
 import { RandomItemID } from "shared/core/sharedlogic/items";
 import { MatchDurationType, MatchGamemode } from "shared/core/sharedlogic/sharedenums";
 import { TiledMap, ParseTiledMapData } from "shared/core/tiledmapeditor";
-import { choose } from "shared/datastructures/arrayutils";
+import { choose, most_frequent_choose } from "shared/datastructures/arrayutils";
 import { AssertUnreachable } from "shared/misc/assertstatements";
 import { random, random_int } from "shared/misc/random";
 import { Rect } from "shared/shapes/rectangle";
 import { Vec2 } from "shared/shapes/vec2";
-import { EndRoundPacket } from "./networking/gamepacketwriters";
+import { EndMatchPacket, EndRoundPacket } from "./networking/gamepacketwriters";
 import { ConnectionID } from "./networking/serversocket";
 import { ServerPlayerEntity } from "./playerlogic";
 import { PlayerInformation, ServerBearEngine } from "./serverengine";
@@ -133,7 +133,15 @@ export class Match {
             switch(this.duration_manager.type){
                 case MatchDurationType.N_ROUNDS: {
                     if(this.played_rounds >= this.duration_manager.value){
+
+                        const overall_winner = most_frequent_choose(this.round_winners.winners.map(p => p.connectionID));
+
+                        this.game.broadcast_packet_safe(
+                            new EndMatchPacket(this.gamemode, overall_winner)
+                        );
+
                         this.match_over = true;
+                        return;
                     }
                     break;
                 }

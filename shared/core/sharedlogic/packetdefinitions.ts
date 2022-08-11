@@ -33,6 +33,10 @@ export enum GamePacket {
     // If false set to active, allowing you to transmit position
     SET_GHOST_STATUS, // [ghost: boolean]
 
+
+    START_MATCH, // [gamemode: MatchGamemode]
+    END_MATCH,   // [gamemode: MatchGamemode, winner_id: uint8]
+
     //Personal packet.
     //    load level data, set personal x, y;
     START_ROUND, // [x:float32, y:float32, level_enum: uint8, seconds_until_start: double]

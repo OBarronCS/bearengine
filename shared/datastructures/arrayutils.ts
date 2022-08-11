@@ -98,6 +98,27 @@ export function choose<T>(elements: readonly T[]): T {
     return elements[index];
 }
 
+/** Array must contain at least one element. If there are equal amounts, returns a random one. */
+export function most_frequent_choose(elements: readonly number[]): number {
+    const map = new Map();
+    for(const e of elements){
+        if(map.has(e)) {
+            map.set(e, map.get(e) + 1);
+        } else {
+            map.set(e, 1);
+        }
+    }
+
+    let max: number = map.keys()[0];
+    for(const key of map.keys()){
+        if(map.get(key) > map.get(max)){
+            max = key;
+        }
+    }
+
+    return max;
+}
+
 export function isSorted(arr: readonly number[]): boolean {
     for(let i = 1; i < arr.length; i++){
         if(arr[i - 1] > arr[i]) return false;
