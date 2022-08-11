@@ -10,7 +10,7 @@ import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { ColliderPart, CollisionManager } from "shared/core/entitycollision";
 
-import { frameEditor, TestIK } from "../gamelogic/testlevelentities";
+import { frameEditor, HermiteCurveTestBlend, TestIK } from "../gamelogic/testlevelentities";
 import { EngineKeyboard } from "../input/keyboard";
 import { EngineMouse } from "../input/mouse";
 import { CameraSystem } from "./camera";
@@ -21,7 +21,7 @@ import { Player, player_controls_map, RemotePlayer } from "../gamelogic/player";
 import { DummyLevel, GameLevel } from "./gamelevel";
 import { DebugScreen } from "../gamelogic/debugoverlay";
 import { Chatbox } from "../gamelogic/chatbox";
-import { ButtonWidget, LabelWidget, PanelWidget, SpriteWidget, UIManager, uisize, WidgetAlphaTween, WidgetGroup } from "../ui/widget";
+import { ButtonWidget, LabelWidget, PanelWidget, SpriteWidget, UIManager, uisize, WidgetGroup } from "../ui/widget";
 import { Color } from "shared/datastructures/color";
 import { mix, Vec2 } from "shared/shapes/vec2";
 import { LevelRef } from "shared/core/sharedlogic/assetlinker";

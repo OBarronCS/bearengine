@@ -1806,45 +1806,6 @@ export function loadTestLevel(engine: BearEngine): void {
     }
     //this.addEntity(new Test())
 
-    // Color blend of hermite curve
-    class Test2 extends DrawableEntity {
-        private bez = new HermiteCurve([
-            new Vec2(0,0), 
-            new Vec2(500,0), 
-            new Vec2(100,100), 
-            new Vec2(200,100), 
-            new Vec2(0,300),
-            new Vec2(-100,300),
-            new Vec2(-300,0),
-            new Vec2(-100,200),
-        ])
-
-        private percent: number = 0;
-        private points = this.bez.bakePoints();
-
-        private color: Color;
-
-        constructor(){
-            super();
-            this.color = rgb(255,255,255);
-
-            this.scene.addEntity(
-                new ColorTween(this, "color", 5).from(this.color.clone()).to(rgb(255,5,5)).go()
-            ).chain(new ColorTween(this, "color", 2).from((rgb(255,5,5))).to(rgb(1,0,255)))
-        }
-
-        update(dt: number): void {
-            this.percent += +this.mouse.isDown("left") * .01;
-            this.percent %= 1;
-            this.redraw()
-        }
-
-        draw(g: Graphics): void {
-            g.clear();
-            this.points.draw(g, this.color.hex());
-        }
-    }
-    //this.addEntity(new Test2())
 
     // GRID QUADTREE
     class Quadquadtest extends DrawableEntity {
@@ -2193,6 +2154,51 @@ export function loadTestLevel(engine: BearEngine): void {
     //this.addEntity(new DynAABBTest());
     
 }
+
+
+// Color blend of hermite curve
+export class HermiteCurveTestBlend extends DrawableEntity {
+    private bez = new HermiteCurve([
+        new Vec2(0,0), 
+        new Vec2(500,0), 
+        new Vec2(100,100), 
+        new Vec2(200,100), 
+        new Vec2(0,300),
+        new Vec2(-100,300),
+        new Vec2(-300,0),
+        new Vec2(-100,200),
+    ])
+
+    private percent: number = 0;
+    private points = this.bez.bakePoints();
+
+    color: Color = rgb(255,255,255);
+
+    override onAdd(): void {
+        this.scene.addEntity(
+            new ColorTween(this as HermiteCurveTestBlend, "color", {
+                    duration_seconds: 5,
+                    start: this.color.clone(),
+                    end: rgb(255,5,5),
+        })).chain(new ColorTween(this as HermiteCurveTestBlend, "color", {
+                duration_seconds: 2,
+                start: rgb(255,5,5),
+                end: rgb(1,0,255),
+        }))
+    }
+
+    update(dt: number): void {
+        this.percent += +this.mouse.isDown("left") * .01;
+        this.percent %= 1;
+        this.redraw()
+    }
+
+    draw(g: Graphics): void {
+        g.clear();
+        this.points.draw(g, this.color.hex());
+    }
+}
+
 
 export class TestIK extends DrawableEntity {
         

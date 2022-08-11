@@ -11,10 +11,14 @@ interface EventDefinition {
     [key: string]: (...args: any[]) => any;
 }
 
-// Direct events
-// Directly from the object to . 
-//      Without the object, there cannot be listeners.
-// Responsible for one event group
+/** Use when have multiple signals that are related, 
+ *  and where the caller must define handlers for ALL of the group at the same time 
+ *  
+ *  Use as a member variable of a system/entity.
+ *  Allows the object to send events directly to listeners.
+ * 
+ * "Direct events"
+ */
 export class EventHub<T extends EventDefinition> {
 
     private listeners: EventGroup<T>[] = [];
@@ -166,7 +170,7 @@ export class SimpleStatefulSignal<T extends StatefulEventDefinition>{
     }
 }
 
-/** TODO: CustomStatefulSignal */
+/** TODO: CustomStatefulSignal. Allows custom on_add and on_delete behavior */
 
 
 

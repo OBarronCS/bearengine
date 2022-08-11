@@ -19,7 +19,7 @@ import { EmitterAttach } from "../core-engine/particles";
 import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparticles";
 import { random_range } from "shared/misc/random";
 import { PhysicsDotEntity } from "./firstlevel";
-import { easeInOutExpo, NumberTween, VecTween } from "shared/core/tween";
+import { easeInOutExpo } from "shared/core/tween";
 import { BoostDirection } from "./boostzone";
 import { InterpolatedVar } from "../core-engine/networking/cliententitydecorators";
 import { SlowAttribute } from "shared/core/sharedlogic/sharedattributes";

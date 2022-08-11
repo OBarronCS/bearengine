@@ -421,8 +421,12 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                                 const alpha_panel = new LabelWidget(new Vec2(), "Network protocol incompatible with server");
                                 alpha_panel.setPosition({type: "percent", percent: .5}, {type: "percent", percent: .25}).center();
                                 
-                                this.game.entities.addEntity(new WidgetAlphaTween(alpha_panel, "",3.5).from(1).to(0).go().delay(4));
-
+                                this.game.entities.addEntity(new WidgetAlphaTween(alpha_panel, "", {
+                                    duration_seconds: 3.5,
+                                    start: 1,
+                                    end: 0
+                                }).delay(4));
+                                
                                 this.game.ui.addWidget(alpha_panel);
 
                                 this.network.disconnect();

@@ -1,6 +1,6 @@
 import { Emitter } from "shared/graphics/particles";
 import { Sprite, Graphics, Text } from "shared/graphics/graphics";
-import { Effect } from "shared/core/effects";
+import { BaseEntitySignals } from "shared/core/effects";
 import { PacketWriter, SharedNetworkedEntities } from "shared/core/sharedlogic/networkschemas";
 import { GamePacket, ServerBoundPacket } from "shared/core/sharedlogic/packetdefinitions";
 import { CreateShootController, GunshootController, ProjectileBulletEffects, PROJECTILE_SHOT_DATA, SHOT_LINKER, BeamActionType, HitscanRayEffects, ItemActionAck } from "shared/core/sharedlogic/weapondefinitions";
@@ -115,9 +115,6 @@ export abstract class WeaponItem<T extends "weapon_item" = "weapon_item"> extend
 @networkedclass_client("projectile_weapon") //@ts-expect-error
 export class ProjectileWeapon<T extends "projectile_weapon" = "projectile_weapon"> extends WeaponItem<T> {
 
-
-    // private addons: GunAddon[] = TerrainCarverAddons;
-
     readonly shot_name = this.GetStaticValue("shot_name");
     readonly shot_id = SHOT_LINKER.NameToID(this.shot_name);
 
@@ -167,7 +164,7 @@ export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bounce: boole
 
                 const particle_system = new EmitterAttach(bullet,particle_path,"assets/particle.png");
 
-                bullet.onStart(function(){
+                bullet.signals.on_start.add_handler(() => {
                     game.entities.addEntity(particle_system);
                 });
 
@@ -177,8 +174,8 @@ export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bounce: boole
 
                 const grav = new Vec2().set(effect.force);
 
-                bullet.onUpdate(function(){
-                    this.velocity.add(grav);
+                bullet.signals.on_update.add_handler(() => {
+                    bullet.velocity.add(grav);
                 });
 
                 break;
@@ -203,27 +200,27 @@ export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bounce: boole
                 
                 const text = new Text(choose(EMOJIS));
 
-                bullet.onStart(function(){
+                bullet.signals.on_start.add_handler(() => {
                     //this.sprite.visible = false;
-                    this.sprite.sprite.addChild(text);
+                    bullet.sprite.sprite.addChild(text);
                 });
 
-                bullet.onUpdate(function(){
-                    text.angle = this.velocity.dangle()
+                bullet.signals.on_update.add_handler(() => {
+                    text.angle = bullet.velocity.dangle()
                 });
 
-                bullet.onFinish(function(){
-                    this.game.engine.renderer.addEmitter("particle.png", PARTICLE_CONFIG.EMOJI_HIT_WALL, this.x, this.y)
+                bullet.signals.on_finish.add_handler(() => {
+                    bullet.game.engine.renderer.addEmitter("particle.png", PARTICLE_CONFIG.EMOJI_HIT_WALL, bullet.x, bullet.y)
                 });
 
                 break;
             }
             case "ice_slow": {
 
-                bullet.onFinish(function(){
+                bullet.signals.on_finish.add_handler(() => {
                 
                     const effect = new LocalIceEffect(2.6);
-                    effect.position.set(this.position);
+                    effect.position.set(bullet.position);
                     // console.log("ICE: "+this.position);
                     game.entities.addEntity(effect);
 
@@ -233,7 +230,7 @@ export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bounce: boole
             }
             case "paint_ball":{
 
-                bullet.onFinish(function(){
+                bullet.signals.on_finish.add_handler(() => {
 
 
                     // const hit = this.game.terrain.get_terrain_intersection(new Rect(this.x - 5, this.y - 5, 10, 10));
@@ -270,8 +267,10 @@ export function ShootProjectileWeapon_C(game: NetworkPlatformGame, bounce: boole
 // Bullets are special, don't follow normal shared entity rules, are not created normally
 //@ts-expect-error
 @networkedclass_client("projectile_bullet")
-export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
+export class ModularProjectileBullet extends Entity {
     
+    signals = new BaseEntitySignals();
+
     @net("projectile_bullet").variable("velocity")
     readonly velocity = new Vec2();
 
@@ -281,26 +280,35 @@ export class ModularProjectileBullet extends Effect<NetworkPlatformGame> {
 
     constructor(public bounce: boolean){
         super();
+    }
+    
+    update(dt: number): void {
+        if(this.continue_moving){
 
-        this.onUpdate(function(dt: number){
-            if(this.continue_moving){
-
-                const zones = this.game.collisionManager.point_query_list(this.position, BoostDirection);
-                for(const z of zones){
-                    this.velocity.add(z.attr.dir);
-                }
-
-                if(this.bounce){
-                    SimpleBouncePhysics(this.game.terrain, this.position, this.velocity, new Vec2(0, .4), .6);
-                } else {
-                    this.position.add(this.velocity);
-                }
-                this.sprite.angle = this.velocity.angle();
+            const zones = this.game.collisionManager.point_query_list(this.position, BoostDirection);
+            for(const z of zones){
+                this.velocity.add(z.attr.dir);
             }
-        });
 
+            if(this.bounce){
+                SimpleBouncePhysics(this.game.terrain, this.position, this.velocity, new Vec2(0, .4), .6);
+            } else {
+                this.position.add(this.velocity);
+            }
+            this.sprite.angle = this.velocity.angle();
+        }
+
+        this.signals.update(dt);
     }
 
+    override onAdd(): void {
+        this.signals.start();
+    }
+
+    override onDestroy(): void {
+        this.signals.end();
+    }
+    
     @net("projectile_bullet").event("changeTrajectory")
     _onChangeTrajectory(server_time: number, position: Vec2, velocity: Vec2){
         this.position.set(position);
@@ -383,7 +391,12 @@ export function ShootHitscanWeapon_C(game: NetworkPlatformGame, line: Line, effe
                     line.draw(canvas,0xFFFFFF);
                 }
                 
-                const tween = new NumberTween(canvas, "alpha",.4).from(1).to(0).go().onFinish(() => canvas.destroy());
+                const tween = new NumberTween(canvas, "alpha",{
+                    duration_seconds: .4,
+                    start: 1,
+                    end: 0,
+                });
+                tween.signals.on_finish.add_handler(() => canvas.destroy());
             
                 game.entities.addEntity(tween);
                 game.engine.renderer.addEmitter("particle.png", PARTICLE_CONFIG.BULLET_HIT_WALL, line.B.x, line.B.y);
@@ -397,8 +410,14 @@ export function ShootHitscanWeapon_C(game: NetworkPlatformGame, line: Line, effe
     if(effects.length === 0){
         const canvas = game.engine.renderer.createCanvas();
         line.draw(canvas, 0x346eeb);
-        const tween = new NumberTween(canvas, "alpha",.4).from(1).to(0).go().onFinish(() => canvas.destroy());
-    
+
+        const tween = new NumberTween(canvas, "alpha",{
+            duration_seconds: .4,
+            start: 1,
+            end: 0,
+        });
+        tween.signals.on_finish.add_handler(() => canvas.destroy());
+
         game.entities.addEntity(tween);
         game.engine.renderer.addEmitter("particle.png", PARTICLE_CONFIG.BULLET_HIT_WALL, line.B.x, line.B.y);
     }
@@ -443,35 +462,6 @@ export class BeamWeapon extends UsableItem<"beam_weapon"> {
         return false;
     }
 }
-
-
-interface GunAddon {
-    modifyShot: (bullet: ModularProjectileBullet) => void,
-    [key: string]: any; // allow for random data
-}
-
-
-class TerrainHitAddon implements GunAddon {
-
-    modifyShot(bullet: ModularProjectileBullet){
-        bullet.onUpdate(function(){
-            // Client side prediction of terrain hit?
-
-            // const testTerrain = this.game.terrain.lineCollision(this.position,Vec2.add(this.position, this.velocity.clone().extend(100)));
-            // const RADIUS = 40;
-
-            // if(testTerrain){
-            //     this.game.terrain.carveCircle(testTerrain.point.x, testTerrain.point.y, RADIUS);
-            //     this.destroy();
-            // }
-        })
-    }
-}
-
-export const TerrainCarverAddons: GunAddon[] = [
-    new TerrainHitAddon(),
-]
-
 
 
 // Simple entity to draw an item as a sprite in the world
@@ -707,7 +697,11 @@ class LocalIceEffect extends DrawableEntity {
     override onAdd(): void {
         const canvas = this.game.engine.renderer.createCanvas();
         drawCircle(canvas, this.position, this.radius, 0x346eeb);
-        const tween = new NumberTween(canvas, "alpha",this.lifetime_s + .2).from(1).to(0).go().onFinish(() => canvas.destroy());
+        const tween = new NumberTween(canvas, "alpha",{
+            duration_seconds: this.lifetime_s + .2,
+            start: 1,
+            end: 0
+        });
 
         this.game.entities.addEntity(tween)
     }
@@ -842,7 +836,6 @@ register_clientside_itemaction("projectile_shot",
         const b = ShootProjectileWeapon_C(game, SHOT_LINKER.IDToData(shot_prefab_id).bounce, bullet_effects, pos, velocity, sprite);
 
         // It's now a networked entity
-        //@ts-expect-error
         game.networksystem.remoteEntities.set(bullet_entity_id, b);
         game.networksystem.networked_entity_subset.addEntity(b);
 
@@ -875,7 +868,6 @@ class PredictProjectileShot extends PredictAction<"projectile_shot", ProjectileW
                         
         // Allows bullet to be controlled remotely
         if(bullet !== undefined){
-            //@ts-expect-error
             this.game.networksystem.remoteEntities.set(bullet_entity_id, bullet);
             this.game.networksystem.networked_entity_subset.forceAddEntityFromMain(bullet);
         }
@@ -903,7 +895,6 @@ register_clientside_itemaction("shotgun_shot",
         for(let i = 0; i < bullet_entity_id_list.length; i++) {
             const remote_id = bullet_entity_id_list[i];
 
-            //@ts-expect-error
             game.networksystem.remoteEntities.set(remote_id, bullets[i]);
             game.networksystem.networked_entity_subset.addEntity(bullets[i]);
         }
@@ -951,7 +942,6 @@ class PredictShotgunShot extends PredictAction<"shotgun_shot", ShotgunWeapon> {
             if(bullet !== undefined){
                 if(bullet.entityID !== NULL_ENTITY_INDEX){
 
-                    //@ts-expect-error
                     this.game.networksystem.remoteEntities.set(remote_id, bullet);
                     this.game.networksystem.networked_entity_subset.forceAddEntityFromMain(bullet);
 

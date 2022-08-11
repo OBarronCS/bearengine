@@ -495,14 +495,14 @@ export class ProgressBarWidget extends BearWidgetAdapter {
 // Input for Array, Boolean, Vector
 
 
-export class WidgetAlphaTween extends Tween<number> {
+export class WidgetAlphaTween extends Tween<BearWidget,any,any> {
 
-    __anon = this.onFinish(() => { 
-        (this.object as BearWidget).parent.removeChild(this.object as BearWidget);
+    __anon = this.signals.on_finish.add_handler(() => { 
+        this.state.parent.removeChild(this.state);
     })
 
     setValueAt(t: number): void {
-        (this.object as BearWidget).setAlpha(lerp(this.initialValue, this.finalValue, t));
+        this.state.setAlpha(lerp(this.initialValue, this.finalValue, t));
     }
 
     

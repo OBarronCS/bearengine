@@ -1,4 +1,4 @@
-import { EntityEffect } from "shared/core/effects";
+import { BaseEntitySignals } from "shared/core/effects";
 import { BeamActionType, Clip, CreateShootController, GunshootController, ItemActionAck, SHOT_LINKER, SimpleWeaponControllerDefinition } from "shared/core/sharedlogic/weapondefinitions";
 import { TickTimer } from "shared/datastructures/ticktimer";
 import { random_int, random_range } from "shared/misc/random";
@@ -269,7 +269,7 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
     // List of all players that the projectile will hit this tick
     player_test: ServerPlayerEntity[] = [];
 
-    effect = new EntityEffect(this);
+    effect = new BaseEntitySignals();
 
     private finalActionFunctions: (() => void)[] = [];
     onfinalAction(func:((this: this) => void)): this {
@@ -339,11 +339,11 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
     }
 
     override onAdd(): void {
-        this.effect.onAdd();
+        this.effect.start();
     }
 
     override onDestroy(): void {
-        this.effect.onDestroy()
+        this.effect.end()
     }
     
 
@@ -376,7 +376,7 @@ class ServerProjectileBullet extends NetworkedEntity<"projectile_bullet"> {
 
     _destroyed = false;
     override destroy(){
-        // This might be called multiple times
+        // This might be called multiple times during the tick it was destroyed in
         if(this._destroyed) return;
         this._destroyed = true;
         
