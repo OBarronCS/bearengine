@@ -17,6 +17,16 @@ export const bearevents = {
         return function<C extends AbstractEntity>(target: C, key: string, r: TypedPropertyDescriptor<(other: InstanceType<T>) => void>){
             register_entity_event("collision", key, target.constructor as typeof AbstractEntity, other_type)
         };
+    },
+    collision_start: <T extends AttributeCtor>(other_type: T) => {
+        return function<C extends AbstractEntity>(target: C, key: string, r: TypedPropertyDescriptor<(other: InstanceType<T>) => void>){
+            register_entity_event("collision_start", key, target.constructor as typeof AbstractEntity, other_type)
+        };
+    },
+    collision_end: <T extends AttributeCtor>(other_type: T) => {
+        return function<C extends AbstractEntity>(target: C, key: string, r: TypedPropertyDescriptor<(other: InstanceType<T>) => void>){
+            register_entity_event("collision_end", key, target.constructor as typeof AbstractEntity, other_type)
+        };
     }
 } as const;
 

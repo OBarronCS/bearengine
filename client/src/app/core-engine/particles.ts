@@ -28,6 +28,7 @@ export class EmitterAttach extends Entity {
             this.destroy();
         } else if(this.targetEntity.entityID !== NULL_ENTITY_INDEX){
             this.emitter.updateSpawnPos(this.targetEntity.x + this.offset.x,this.targetEntity.y + this.offset.y);
+            console.log(this.targetEntity.position)
         } else {
             this.destroy();
         }

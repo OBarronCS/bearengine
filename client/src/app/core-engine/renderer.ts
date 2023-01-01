@@ -30,7 +30,7 @@ export class RendererSystem {
     public guiContainer = new Container();
     public mainContainer = new Container();
 
-    private particle_container = new ParticleContainer(1500*6,{})
+    private particle_container = new ParticleContainer(1500*6);
     
     public targetWindow: Window;
     public targetDiv: HTMLElement;
@@ -137,10 +137,14 @@ export class RendererSystem {
         //         this.emitters.pop();
         //     }
         // }
+        
+        let alive = 0;
 
         for(const emitter of this.emitters){
             emitter.update(dt);
+            alive += emitter.particleCount
         }
+        // console.log(alive);
     }
 
     update(){

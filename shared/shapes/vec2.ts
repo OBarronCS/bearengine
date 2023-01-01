@@ -1,5 +1,6 @@
 
 import { DEG_TO_RAD, RAD_TO_DEG, dcos, dsin, floor, min, max } from "shared/misc/mathutils";
+import { random } from "shared/misc/random";
 import { Rect } from "./rectangle";
 
 export interface Coordinate {
@@ -46,6 +47,11 @@ export class Vec2 {
         vec.y = dsin(angle) * length;
         
         return vec;
+    }
+
+    /** A random vector of with random length up to max*/
+    static random_max_length(max_length = 1): Vec2 {
+        return Vec2.random(random(max_length))
     }
 
     static distanceSquared(p1: Coordinate, p2: Coordinate): number {
@@ -140,7 +146,8 @@ export class Vec2 {
         this.y = -this.y
         return this;
     }
-
+    
+    /** Inplace add */
     add(point: Coordinate): this {
         this.x += point.x;
         this.y += point.y;

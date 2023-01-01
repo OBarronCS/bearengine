@@ -43,9 +43,9 @@ export const PARTICLE_CONFIG = DefineSchema<{ [key: string]: EmitterConfigV1 | E
             "max": 0.8
         },
         "blendMode": "normal",
-        "frequency": 0.001,
+        "frequency": 0.005,
         "emitterLifetime": -1,
-        "maxParticles": 499,
+        "maxParticles": 100, // 499
         "pos": {
             "x": 0,
             "y": 0

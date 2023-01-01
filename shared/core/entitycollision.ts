@@ -13,7 +13,7 @@ import type { Graphics } from "shared/graphics/graphics";
 import { Line } from "shared/shapes/line";
 import { Dimension, Rect } from "shared/shapes/rectangle";
 import { SpatialGrid } from "shared/datastructures/spatialgrid";
-import { AbstractEntity } from "shared/core/abstractentity";
+import { AbstractEntity, EntityID } from "shared/core/abstractentity";
 import { Subsystem } from "./subsystem";
 import { Attribute, AttributeCtor, get_attribute_id, get_attribute_id_from_type } from "./entityattribute";
 import { Vec2, Coordinate } from "shared/shapes/vec2";
@@ -39,8 +39,15 @@ export class ColliderPart extends Attribute {
     public check_collisions = false;
 
 
-    readonly active_callbacks = new Map<number,((attr: Attribute) => void)>();
-    // isTrigger
+    readonly on_active_collision_callbacks = new Map<number,((attr: Attribute) => void)>();
+
+    /** Set of other entity id's currently colliding with. Checked every tick */
+    readonly current_tick_active_collisions = new Set<EntityID>();
+    readonly last_tick_active_collisions = new Set<EntityID>();
+    
+    readonly on_start_collision_callbacks = new Map<number,((attr: Attribute) => void)>();
+    readonly on_end_collision_callbacks = new Map<number, ((attr: Attribute) => void)>();
+
 
     constructor(dimensions: Dimension, offset: Coordinate){
         super();
@@ -86,7 +93,51 @@ export class CollisionManager extends Subsystem {
 
             if(get_attribute_id_from_type(other_type) === -1) this.game.entities["register_new_attribute_type"](other_type);
 
-            collider.active_callbacks.set(get_attribute_id_from_type(other_type), (attr: Attribute) => {
+            collider.on_active_collision_callbacks.set(get_attribute_id_from_type(other_type), (attr: Attribute) => {
+                entity[method_name](attr);
+            });
+
+            collider.check_collisions = true;
+        },
+        (sparse_index: number) => {
+            console.error("IMPLEMENT THIS");
+        }
+    ));
+
+    private readonly start_collisions = this.addEventDispatcher(new CustomEventDispatcher("collision_start", 
+        (sparse_index: number, entity: AbstractEntity, method_name: string, other_type: typeof Attribute) => {
+            console.log("Collision for " + entity.constructor.name + " registered")
+            const collider = entity.getAttribute(ColliderPart);
+            if(collider == null){
+                console.error("Cannot find collider part for entity: " + entity.constructor.name)
+                return;
+            }
+
+            if(get_attribute_id_from_type(other_type) === -1) this.game.entities["register_new_attribute_type"](other_type);
+
+            collider.on_start_collision_callbacks.set(get_attribute_id_from_type(other_type), (attr: Attribute) => {
+                entity[method_name](attr);
+            });
+
+            collider.check_collisions = true;
+        },
+        (sparse_index: number) => {
+            console.error("IMPLEMENT THIS");
+        }
+    ));
+
+    private readonly end_collisions = this.addEventDispatcher(new CustomEventDispatcher("collision_end", 
+        (sparse_index: number, entity: AbstractEntity, method_name: string, other_type: typeof Attribute) => {
+            console.log("Collision for " + entity.constructor.name + " registered")
+            const collider = entity.getAttribute(ColliderPart);
+            if(collider == null){
+                console.error("Cannot find collider part for entity: " + entity.constructor.name)
+                return;
+            }
+
+            if(get_attribute_id_from_type(other_type) === -1) this.game.entities["register_new_attribute_type"](other_type);
+
+            collider.on_end_collision_callbacks.set(get_attribute_id_from_type(other_type), (attr: Attribute) => {
                 entity[method_name](attr);
             });
 
@@ -115,17 +166,56 @@ export class CollisionManager extends Subsystem {
         for(const collider of this.colliders){
             if(collider.check_collisions){
                 // Get list of all other colliders that collide with this one
+
+                //
+                collider.current_tick_active_collisions.clear();
+
                 for(const other of this.gen_collision_list(collider)){
-                    // Check if it matches any of the registered callbacks
 
-                    for(const val of collider.active_callbacks.keys()){
-                        if(this.game.entities.hasAttributeByID(other.owner.entityID,val)){
+                    // On start callbacks
+                    if(!collider.last_tick_active_collisions.has(other.owner.entityID)){
+                        for(const val of collider.on_start_collision_callbacks.keys()){
 
-                            collider.active_callbacks.get(val)(this.game.entities.getAttributeByID(other.owner.entityID, val));
+                            if(this.game.entities.hasAttributeByID(other.owner.entityID,val)){
+                                collider.on_start_collision_callbacks.get(val)(this.game.entities.getAttributeByID(other.owner.entityID, val));
+                            }
                         }
                     }
 
+                    // Active collisions
+                    // Check if it matches any of the registered callbacks
+                    for(const val of collider.on_active_collision_callbacks.keys()){
+                        if(this.game.entities.hasAttributeByID(other.owner.entityID,val)){
+                            collider.on_active_collision_callbacks.get(val)(this.game.entities.getAttributeByID(other.owner.entityID, val));
+                        }
+                    }
+
+                    // Add the other entity to the list of entities collided with
+                    collider.current_tick_active_collisions.add(other.owner.entityID);
+
                 }
+
+                //
+                for(const e of collider.last_tick_active_collisions){
+                    if(!collider.current_tick_active_collisions.has(e)){
+
+                        for(const val of collider.on_end_collision_callbacks.keys()){
+
+                            if(this.game.entities.hasAttributeByID(e,val)){
+                                collider.on_end_collision_callbacks.get(val)(this.game.entities.getAttributeByID(e, val));
+                            }
+                        }
+                    }
+                }
+
+
+                collider.last_tick_active_collisions.clear();
+                for(const e of collider.current_tick_active_collisions){
+                    collider.last_tick_active_collisions.add(e);
+                }
+                //
+    
+
             }
         }
     }

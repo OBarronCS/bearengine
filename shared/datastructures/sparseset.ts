@@ -145,8 +145,8 @@ class CustomSparseSetIterator<T> implements IterableIterator<T> {
 
     next(): IteratorResult<T, any> {
         return {
-            value: (this.last_index <= 0 ? undefined : this.values[--this.last_index]),
-            done: this.last_index <= 0
+            done: this.last_index <= 0,
+            value: (this.last_index <= 0 ? undefined : this.values[--this.last_index])
         }
     }
 

@@ -196,7 +196,7 @@ export class OnDelaySignal extends SimpleStatefulSignal<IOnDelaySignal> {
 
         const it = this.custom_iterator();
 
-        for(const li of it){
+        for(const li of it){            
             if(li.internal_args.ticks_so_far++ === li.register_args.delay){
                 this.dispatch(li);
                 it.remove_current();

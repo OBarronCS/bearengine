@@ -14,7 +14,7 @@ import { RemoteLocations } from "../core-engine/networking/remotecontrol";
 import { GraphicsPart, SpritePart } from "../core-engine/parts";
 import { SavePlayerAnimation } from "./testlevelentities";
 
-import { WeaponItem, ItemDrawer, UsableItem } from "../core-engine/clientitems";
+import { WeaponItem, ItemDrawer, UsableItem, ShootProjectileWeapon_C } from "../core-engine/clientitems";
 import { EmitterAttach } from "../core-engine/particles";
 import { PARTICLE_CONFIG } from "../../../../shared/core/sharedlogic/sharedparticles";
 import { random_range } from "shared/misc/random";
@@ -29,6 +29,8 @@ import { SimpleBouncePhysics } from "shared/core/sharedlogic/sharedphysics";
 import { Color } from "shared/datastructures/color";
 import { BearEngine, NetworkPlatformGame } from "../core-engine/bearengine";
 import { choose } from "shared/datastructures/arrayutils";
+import { SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
+import { EffectEntity } from "shared/core/effects";
 
 
 
@@ -591,6 +593,18 @@ export class Player extends DrawableEntity {
     manualUpdate(dt: number): void {
         this.healthbar_widget.percent = this.health / 100;
         this.engine.camera.setDangle(-this.gravity.dangle() + 90)
+
+        // if(this.keyboard.wasPressed("KeyL")){
+        //     const state = SHOT_LINKER.NameToData("SIMPLE_TERRAIN_HIT");
+        //     const dir = Vec2.subtract(this.engine.mouse.position, this.position);
+        //     const b = ShootProjectileWeapon_C(this.game, state.bounce, state.bullet_effects, this.position, dir.clone().extend(15), state.item_sprite);
+        //     this.game.entities.addEntity(b);
+
+        //     const effect = new EffectEntity({});
+        //     effect.signals.on_delay.add_handler({delay: 100}, () => { b.destroy(); effect.destroy(); });
+        //     this.game.entities.addEntity(effect);
+        // }
+
 
         if(!this.authority_over_position) {
             this.idleAnimation.setPosition(this.position);
@@ -1562,7 +1576,7 @@ export class Player extends DrawableEntity {
 
 export class RemotePlayer extends Entity {
 
-    //colliderPart = this.addPart(new ColliderPart(dimensions(48,30),{x:24, y:15}));
+    colliderPart = this.addPart(new ColliderPart(dimensions(48,30),{x:24, y:15}));
     readonly id: number;
     public health = 100;
 

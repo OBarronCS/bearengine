@@ -27,6 +27,23 @@
 			"}"
 		]
 	},
+
+	"ActionAttribute shortcut": {
+		"scope": "javascript,typescript",
+		"prefix": "actionattribute",
+		"body":  [
+			"export class $1 extends Attribute {",
+			"",
+			"\tconstructor(private callback: ($2) => void){",
+			"\t\tsuper();",
+			"\t}",
+			"",
+			"\t${3:execute}(...data: Parameters<$1[\"callback\"]>) {",
+			"\t\tthis.callback(...data);",
+			"\t};",
+			"}"
+		]
+	},
 	// Place your bearengine workspace snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and 
 	// description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope 
 	// is left empty or omitted, the snippet gets applied to all languages. The prefix is what is 

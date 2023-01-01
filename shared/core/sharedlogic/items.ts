@@ -176,6 +176,12 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
         type:"swap_item"
     }),
 
+    "tp_item": CreateItem({
+        item_name: "Telepearl",
+        item_sprite: "fireball.png",
+        type:"teleport_item"
+    }),
+
     emoji_weapon: CreateItem({
         type:"projectile_weapon",
         item_name:"Emoji weapon",

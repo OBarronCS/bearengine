@@ -35,7 +35,13 @@ LockKeys([
 ]);
 
 
+type BrandedIDType<B> = number & { readonly B: never } & {_type?: B};
 
+type Hello = BrandedIDType<"Hello">;
+type No = BrandedIDType<"Noasdasd">;
+
+const id1: Hello = 1 as Hello;
+let id2: No = 23 as No;
 
 // // Testing drag and drop!
 // function dragAndDropTest(element: HTMLCanvasElement){

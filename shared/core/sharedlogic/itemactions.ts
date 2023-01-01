@@ -70,6 +70,16 @@ export const ItemActionDef = DefineSchema<{ [K:string]: ItemActionFormat } >()({
             argTypes:[netv.uint8(), netv.uint32()],
             callback:(beam_action_type: BeamActionType, beam_id) => void 0
         }
+    },
+    "teleport_to_mouse": {
+        serverbound: {
+            argTypes:[],
+            callback: () => void 0
+        },
+        clientbound: {
+            argTypes:[],
+            callback: () => void 0
+        }
     }
     
 } as const);

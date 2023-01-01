@@ -1807,90 +1807,7 @@ export function loadTestLevel(engine: BearEngine): void {
     //this.addEntity(new Test())
 
 
-    // GRID QUADTREE
-    class Quadquadtest extends DrawableEntity {
-        
-        private q = new LiveGridQuadTree(128);
-        private scale = 16;
-
-        constructor(){
-            super();
-            this.q.calculateEdges();
-            this.redraw();
-            this.canvas.graphics.addChild(this.hoverGraphic)
-        }
-
-        private hoverGraphic = new Graphics();
-
-        private start = new Vec2(0,0);
-        private target = new Vec2(0,0);
-
-        private flip = false;
-
-
-        update(dt: number): void {
-            if(this.mouse.isDown("left")){
-
-                const x = floor(this.mouse.position.x / this.scale);
-                const y = floor(this.mouse.position.y / this.scale)
-
-                this.q.insert(x,y);
-                
-
-                this.q.insert(x+1,y);
-                this.q.insert(x-1,y);
-                this.q.insert(x,y+1);
-                this.q.insert(x,y-1);
-
-                this.q.insert(x+1,y+1);
-                this.q.insert(x+1,y-1);
-                this.q.insert(x-1,y+1);
-                this.q.insert(x-1,y-1);
-
-                this.q.calculateEdges();
-
-                this.q.startPath(this.start.x, this.start.y, this.target.x, this.target.y);
-
-                this.redraw();
-            } else if(this.keyboard.wasPressed("KeyE")){
-                const x = floor(this.mouse.position.x / this.scale);
-                const y = floor(this.mouse.position.y / this.scale);
-
-                if(!this.flip)
-                    this.start.set({x: x, y: y});
-                else
-                    this.target.set({x: x, y: y});
-
-                
-                this.flip = !this.flip;
-                this.q.startPath(this.start.x, this.start.y, this.target.x, this.target.y)
-                this.redraw();
-            } else if(this.mouse.isDown("right")){
-                 
-
-                this.q.stepPath();
-            
-                this.redraw();
-            }
-
-            this.hoverGraphic.clear();
-
-            const x = floor(this.mouse.position.x / this.scale);
-            const y = floor(this.mouse.position.y / this.scale);
-
-            const node = this.q.getNode(x,y)
-            if(node !== null) node.draw(this.hoverGraphic,this.scale, 9, 0x0000FF);
-        }
-
-        draw(g: Graphics): void {
-            g.clear();
-
-            this.q.draw(g,this.scale);
-        }
-
-    }
-
-    //this.addEntity(new Quadquadtest())
+    
 
     // ASTAR GRID
     class Test3 extends DrawableEntity {
@@ -2204,29 +2121,39 @@ export class TestIK extends DrawableEntity {
         
         // Min 2 points, this list creates the IK 'arm'
         private points: Vec2[] = []
+        private point_count = 3;
+        private length_per_segment = 40;
 
-        constructor(){
+        constructor(offset: Coordinate){
             super();
 
-            
-            const points = 25;
-            const lengthPerSegment = 10;
+            this.reset(Vec2.add(Vec2.ZERO, offset));
+            // for(let i = 0; i < this.point_count; i++){
+            //     this.points.push(new Vec2(i * this.length_per_segment, 0))
+            // }
+        }
 
-            for(let i = 0; i < points; i++){
-                this.points.push(new Vec2(i * lengthPerSegment, 0))
+        reset(new_anchor: Readonly<Coordinate>){
+            this.points = [];
+
+            for(let i = this.point_count - 1; i >= 0; i--){
+                this.points.push(new Vec2(i * this.length_per_segment, 0).add(new_anchor))
             }
         }
 
         update(dt: number): void {
-
-            if(this.mouse.wasReleased("left")) this.points[this.points.length - 1] = this.mouse.position.clone()
-
-            let target = this.mouse.position.clone() as Coordinate;
             
+            if(this.mouse.wasReleased("left")) {
+                this.reset(this.mouse.position.clone())
+                // this.points[this.points.length - 1] = this.mouse.position.clone()
+                // return
+            }
+            
+            let target = this.mouse.position.clone() as Coordinate;
+
             // Last point in list is the anchor 
             const base = this.points[this.points.length - 1].clone();
             //console.log(base)
-
 
             for (let i = 0; i < this.points.length - 1; i++) {
                 const newTail = this.moveSegment(this.points[i], this.points[i + 1], target);
@@ -2388,6 +2315,89 @@ class ConwaysLife {
                 g.drawRect(i * scale, j * scale,scale,scale);
             }
         }
+    }
+
+}
+
+// GRID QUADTREE
+export class Quadquadtest extends DrawableEntity {
+        
+    private q = new LiveGridQuadTree(128);
+    private scale = 16;
+
+    constructor(){
+        super();
+        this.q.calculateEdges();
+        this.redraw();
+        this.canvas.graphics.addChild(this.hoverGraphic)
+    }
+
+    private hoverGraphic = new Graphics();
+
+    private start = new Vec2(0,0);
+    private target = new Vec2(0,0);
+
+    private flip = false;
+
+
+    update(dt: number): void {
+        if(this.mouse.isDown("left")){
+
+            const x = floor(this.mouse.position.x / this.scale);
+            const y = floor(this.mouse.position.y / this.scale)
+
+            this.q.insert(x,y);
+            
+
+            this.q.insert(x+1,y);
+            this.q.insert(x-1,y);
+            this.q.insert(x,y+1);
+            this.q.insert(x,y-1);
+
+            this.q.insert(x+1,y+1);
+            this.q.insert(x+1,y-1);
+            this.q.insert(x-1,y+1);
+            this.q.insert(x-1,y-1);
+
+            this.q.calculateEdges();
+
+            this.q.startPath(this.start.x, this.start.y, this.target.x, this.target.y);
+
+            this.redraw();
+        } else if(this.keyboard.wasPressed("KeyE")){
+            const x = floor(this.mouse.position.x / this.scale);
+            const y = floor(this.mouse.position.y / this.scale);
+
+            if(!this.flip)
+                this.start.set({x: x, y: y});
+            else
+                this.target.set({x: x, y: y});
+
+            
+            this.flip = !this.flip;
+            this.q.startPath(this.start.x, this.start.y, this.target.x, this.target.y)
+            this.redraw();
+        } else if(this.mouse.isDown("right")){
+             
+
+            this.q.stepPath();
+        
+            this.redraw();
+        }
+
+        this.hoverGraphic.clear();
+
+        const x = floor(this.mouse.position.x / this.scale);
+        const y = floor(this.mouse.position.y / this.scale);
+
+        const node = this.q.getNode(x,y)
+        if(node !== null) node.draw(this.hoverGraphic,this.scale, 9, 0x0000FF);
+    }
+
+    draw(g: Graphics): void {
+        g.clear();
+
+        this.q.draw(g,this.scale);
     }
 
 }

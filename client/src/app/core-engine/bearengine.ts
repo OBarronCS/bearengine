@@ -10,7 +10,7 @@ import { CustomMapFormat } from "shared/core/tiledmapeditor";
 import { TerrainManager } from "shared/core/terrainmanager";
 import { ColliderPart, CollisionManager } from "shared/core/entitycollision";
 
-import { frameEditor, HermiteCurveTestBlend, TestIK } from "../gamelogic/testlevelentities";
+import { frameEditor, HermiteCurveTestBlend, Quadquadtest, TestIK } from "../gamelogic/testlevelentities";
 import { EngineKeyboard } from "../input/keyboard";
 import { EngineMouse } from "../input/mouse";
 import { CameraSystem } from "./camera";
@@ -465,9 +465,13 @@ export class LevelScene extends BearScene<NetworkPlatformGame> {
             }
         }
 
+        // if(this.game.engine.keyboard.wasPressed("KeyY")){
+        //     const ik = this.game.entities.addEntity(new TestIK(Vec2.random_max_length(100)));
+        // }
 
         if(this.game.engine.keyboard.wasPressed("KeyH")){
-            this.game.entities.addEntity(new TestEntityForVideo());
+            // this.game.entities.addEntity(new Quadquadtest())
+            // this.game.entities.addEntity(new TestEntityForVideo());
 
             // this.game.player = this.game.entities.addEntity(new Player());
             // this.game.player.position.setXY(this.game.activeLevel.bbox.width/2, this.game.activeLevel.bbox.height/2);
@@ -513,16 +517,22 @@ export class IKScene extends BearScene<NetworkPlatformGame> {
 }
 
 
-class TestEntityForVideo extends Entity {
-        
+class TestEntityForVideo extends DrawableEntity {
+
     private sprite = this.addPart(new SpritePart("flower.png"));
     private collider = this.addPart(new ColliderPart(dimensions(200,200), Vec2.ZERO));
 
     private total = 0
 
     update(dt: number): void {
-        this.position.set(this.mouse)
+        this.position.set(this.mouse);
+        this.redraw()
     }
+
+    draw(g: Graphics): void {
+        this.collider.rect.draw(g);
+    }
+        
 
     // // @bearevent("mousehover", {})
     // daisvfdakusvdjasd(point: Vec2){
@@ -540,6 +550,22 @@ class TestEntityForVideo extends Entity {
         console.log("collision with: " + other.constructor.name);
         this.total++;
     }
+
+    @bearevents.collision_start(RemotePlayer)
+    ddadd(other: RemotePlayer): void{
+        // Requires that the other thing has a collider 
+        console.log("START_COLLISION: " + other.constructor.name);
+        this.total++;
+    }
+
+
+    @bearevents.collision_end(RemotePlayer)
+    ddddd(other: RemotePlayer): void{
+        // Requires that the other thing has a collider 
+        console.log("END_COLLISION with: " + other.constructor.name);
+        this.total++;
+    }
+
 
     @bearevents.mouse_down("left")
     asdasdasdasd(point: Vec2){

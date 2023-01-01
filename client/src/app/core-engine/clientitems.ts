@@ -597,6 +597,25 @@ export class PlayerSwapItem_C extends Entity {
     update(dt: number): void {}
 }
 
+//@ts-expect-error
+@networkedclass_client("teleport_item")
+export class TeleportItem_C extends UsableItem<"teleport_item"> {
+
+    operate(dt: number, position: Vec2, mouse: Vec2, mouse_down: boolean, game: NetworkPlatformGame, player: Player): boolean {
+        
+        if(mouse_down){
+
+            const a = new PredictTeleportAction(this.game, this);
+            a.predict_action();
+
+            return true;
+        }
+        
+        return false;
+    }
+
+}
+
 
 export class BeamEffect_C extends DrawableEntity {
 
@@ -1016,6 +1035,26 @@ class PredictForceFieldAction extends PredictAction<"force_field", {}> {
     }
     ack_fail(error_code: ItemActionAck): void {
         console.log("Failed shield");
+    }
+
+}
+
+
+/** Never gets called, but necessary for linker */
+register_clientside_itemaction("teleport_to_mouse", (game) => {
+
+});
+
+class PredictTeleportAction extends PredictAction<"teleport_to_mouse", {}> {
+
+    predict_action(): void {
+        this.request_action("teleport_to_mouse")
+    }
+    ack_success(): void {
+        console.log("TP")
+    }
+    ack_fail(error_code: ItemActionAck): void {
+        console.log("cannot tp")
     }
 
 }

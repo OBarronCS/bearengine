@@ -26,6 +26,7 @@ import { BoostDirection, BoostZone_S } from "./boostzones";
 import { DEG_TO_RAD, floor } from "shared/misc/mathutils";
 import { MatchGamemode } from "shared/core/sharedlogic/sharedenums";
 
+// When pickup, what do we do?
 export enum ItemActivationType {
     GIVE_ITEM,
     INSTANT
@@ -172,66 +173,11 @@ export class PlayerSwapperItem extends SBaseItem<"swap_item"> {
     }
 }
 
+//@ts-expect-error
+@networkedclass_server("teleport_item")
+export class TeleportItem extends SBaseItem<"teleport_item"> {
 
-// abstract class Gun<T extends ItemData> extends ServerItem<T> {
-
-//     readonly position = new Vec2();
-//     readonly direction = new Vec2();
-
-//     reloading = false;
-
-//     triggerHeldThisTick = false;
-
-//     // holdTrigger(){
-//     //     this.triggerHeldThisTick = true;
-//     // }
-
-//     // update(dt: number): void {
-//     //     if(this.shootController.holdTrigger(this.triggerHeldThisTick)){
-//     //         if(this.clip.ammo > 0){
-//     //             this.clip.ammo -= 1;
-
-//     //             this.shoot();
-//     //         }
-//     //     }
-
-//     //     this.triggerHeldThisTick = false;
-//     // }
-
-//     abstract shoot(game: ServerBearEngine): void;
-// }
-
-
-
-interface GunAddon {
-    modifyShot: (bullet: ServerProjectileBullet) => void,
-    [key: string]: any; // allow for random data
 }
-
-// class ModularGun<T extends ItemData> extends Gun<T> {
-
-//     addons: GunAddon[] = [];
-
-//     constructor(data: T, addons: GunAddon[]){
-//         super(data);
-//         this.addons.push(...addons);
-//     }
-
-//     shoot(game: ServerBearEngine){
-//         const bullet = new ServerBullet();
-            
-//         bullet.position.set(this.position);
-
-//         bullet.velocity = this.direction.clone().extend(25);
-
-
-//         for(const addon of this.addons){
-//             addon.modifyShot(bullet);
-//         }
-    
-//         game.createRemoteEntity(bullet);
-//     }
-// }
 
 
 export function ServerShootHitscanWeapon(game: ServerBearEngine, position: Vec2, end: Vec2, owner: ConnectionID): Vec2 {
@@ -722,15 +668,11 @@ export class LaserTripmine_S extends NetworkedEntity<"laser_tripmine"> {
         
         this.game.callEntityEvent(this, "laser_tripmine", "boom");
 
-        
-        for(const entity of this.game.entities.entities){
-            if(entity instanceof LaserTripmine_S){
-                if(Vec2.distanceSquared(this.__position, entity.__position) < (45*2)**2){
-                    if(!entity.exploded) entity.boom();
-                }
+        for(const entity of this.game.entities.view(LaserTripmine_S)){
+            if(Vec2.distanceSquared(this.__position, entity.__position) < (45*2)**2){
+                if(!entity.exploded) entity.boom();
             }
         }
-
 
         this.game.destroyRemoteEntity(this);
     }
@@ -985,6 +927,32 @@ class ForceFieldAttempt extends AttemptAction<"force_field"> {
         }
 
         this.respond_fail("force_field", ItemActionAck.INVALID_STATE);
+    }
+}
+
+
+@link_item_action_attempt("teleport_to_mouse")
+class TeleportAttempt extends AttemptAction<"teleport_to_mouse"> {
+    
+    attempt_action(): void {
+        console.log("Player forcefield!");
+        if(this.player.playerEntity.item_in_hand instanceof TeleportItem){
+            
+
+            this.player.personalPackets.enqueue(
+                new ForcePositionPacket(this.player.playerEntity.mouse.x, this.player.playerEntity.mouse.y)
+            )
+            
+            // Tells everyone to delete the item!
+            this.game.notifyItemRemove(this.player);
+            this.player.playerEntity.clearItem();
+
+            // DO NOT SEND TO ALL. JUST ACK
+            this.private_ack_success("teleport_to_mouse");
+            return;
+        }
+
+        this.respond_fail("teleport_to_mouse", ItemActionAck.INVALID_STATE);
     }
 }
 
