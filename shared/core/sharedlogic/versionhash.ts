@@ -135,5 +135,5 @@ function CreateHash(manual: number): bigint {
 const MANUAL_VERSION = 1;
 
 export const NETWORK_VERSION_HASH = CreateHash(MANUAL_VERSION);
-console.log("Network Protocol Hash: ", BigInt2BinaryString(NETWORK_VERSION_HASH));
+console.log(`Network Protocol Hash: [${BigInt2BinaryString(NETWORK_VERSION_HASH)}] (${NETWORK_VERSION_HASH})`);
 

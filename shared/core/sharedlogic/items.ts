@@ -68,7 +68,7 @@ export const MIGRATED_ITEMS = DefineSchema< {[k: string] : Test<keyof SharedNetw
     paintball: CreateItem({
         type:"projectile_weapon",
         item_name:"",
-        item_sprite:"missing_texture.png",
+        item_sprite:"hitscan.png",
         ammo: 100,
         capacity: 100,
         initial_speed: 7*8,

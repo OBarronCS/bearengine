@@ -30,7 +30,6 @@ import { Color } from "shared/datastructures/color";
 import { BearEngine, NetworkPlatformGame } from "../core-engine/bearengine";
 import { choose } from "shared/datastructures/arrayutils";
 import { SHOT_LINKER } from "shared/core/sharedlogic/weapondefinitions";
-import { EffectEntity } from "shared/core/effects";
 
 
 

@@ -142,7 +142,7 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
     private _serverTick = 0;
     currentServerTick(): number { return this._serverTick; }
 
-    // Generous, default ping
+    // Generous, default ping, milliseconds
     // MAYBE: set it to -1 and don't start ticking until we actually know it. Right now it starts ticking and then some time later the ping is adjusted
     private ping: number = 100;
 
@@ -396,6 +396,9 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
             }
 
 
+            let _debug_current_packet_type: GamePacket;
+            let _debug_last_packet_type: GamePacket = -1;
+
             const packets = this.packets;
             while(!packets.isEmpty()){
 
@@ -406,6 +409,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
                 while(stream.hasMoreData()){
                     const type: GamePacket = stream.getUint8();
 
+                    _debug_current_packet_type = type;
+                    
                     // console.log(GamePacket[type])
 
                     switch(type){
@@ -1094,6 +1099,8 @@ export class NetworkSystem extends Subsystem<NetworkPlatformGame> {
 
                         default: AssertUnreachable(type);
                     }
+
+                    _debug_last_packet_type = _debug_current_packet_type;
                 }
             }
 

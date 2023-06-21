@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import path from "path";
 import { LevelRef, LevelRefLinker } from "shared/core/sharedlogic/assetlinker";
-import { RandomItemID } from "shared/core/sharedlogic/items";
+import { ITEM_LINKER, RandomItemID } from "shared/core/sharedlogic/items";
 import { MatchDurationType, MatchGamemode } from "shared/core/sharedlogic/sharedenums";
 import { TiledMap, ParseTiledMapData } from "shared/core/tiledmapeditor";
 import { choose, most_frequent_choose } from "shared/datastructures/arrayutils";
@@ -30,7 +30,7 @@ export class WorldInfo {
 }
 
 /** Initializes terrain and world data */
-export function load_tiled_map(game: ServerBearEngine,  map: keyof typeof LevelRef) {
+export function load_tiled_map(game: ServerBearEngine, map: keyof typeof LevelRef) {
         const level_path = LevelRef[map];
         const level_id = LevelRefLinker.NameToID(map);
 
@@ -196,7 +196,14 @@ abstract class Round {
 const ROUND_OVER_REST_TIMER_TICKS = 60 * 3;
 
 export class LobbyRound extends Round {
-    start(): void {}
+    start(): void {
+
+        // Doesn't work if players join late, or at all it appears 
+        // for(const p of this.game.iterate_players()){
+        //     const item_instance = this.game.createItemFromPrefab(ITEM_LINKER.NameToID("paintball"));
+        //     this.game.givePlayerItem(p, item_instance);
+        // }
+    }
 
     update(): void {}
 

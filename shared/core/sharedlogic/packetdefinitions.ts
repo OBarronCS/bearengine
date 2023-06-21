@@ -105,6 +105,9 @@ export enum ServerBoundPacket {
 
 
     REQUEST_CHAT_MESSAGE, // [ShortString (255 chars max), ]
+
+
+    
 }
 
 

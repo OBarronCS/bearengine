@@ -114,7 +114,9 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     private readonly clients: ConnectionID[] = [];
     private readonly players = new Map<ConnectionID,PlayerInformation>();
     
-
+    iterate_players() {
+        return [...this.players.values()] as const;
+    }
     // Set of all packets that should be sent to any player joining mid-game
     // Cleared at start and end of each round 
     // Packets are added here if the PacketWriter has the savePacket flag = true;
@@ -142,7 +144,6 @@ export class ServerBearEngine extends BearGame<{}, ServerEntity> {
     //     return this.server_state === ServerGameState.ROUND_ACTIVE;
     // }
 
-    
 
     // Subsystems
     public terrain: TerrainManager;
